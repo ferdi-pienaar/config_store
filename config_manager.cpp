@@ -6,16 +6,16 @@ config_manager::config_manager(cm_item_descriptor * desc)
     base_desc = desc;
 }
 
-void config_manager::do_op(string op)
+void config_manager::do_cmd(int argc, char *argv[])
 {
 
-    if (op == "add")
+    if (argv[0] == "add")
     {
         cout << "ADD" << endl;
     }
     else
     {
-        cout << "Unknown op " << op << "." << endl;
+        cout << "Unknown op " << argv[0] << "." << endl;
     }
 }
 

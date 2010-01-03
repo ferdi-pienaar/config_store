@@ -6,6 +6,7 @@
 #include <iostream>
 using namespace std;
 
+
 // xxx len (for TLV) should be a typedef so it could be modified
 // xxx type (for TLV) should be a typedef so it could be modified
 
@@ -17,7 +18,7 @@ using namespace std;
 typedef unsigned short cm_item_len;
 
 // Identifier ID, unique within its context, used to identify it in NVRFAM
-typedef unsigned int cm_descriptor_id;
+typedef unsigned short cm_descriptor_id;
 
 
 // Descriptor of configurable item (either simple or compound)
@@ -43,29 +44,45 @@ public:
 // xxx Should CONTAINED or OWNED be handled as classes?
 class cm_component
 {
+public:
     typedef enum
     {
         CONTAINED,  // items are part of the composite (memory allocated at same time)
         OWNED       // component items are referenced by their composite
     }component_type;
 
-    
-    cm_item_descriptor desc;   // the item's descriptor
-    unsigned short     count;  // (Max) number of instances of the item
-    component_type     type;   //    
-    unsigned int       offset; // Offset of items (or pointer to items) within the composite
+private:
 
+    component_type       type;   //    
+    cm_item_descriptor * pDesc;   // the item's descriptor
+    unsigned short       count;  // (Max) number of instances of the item
+    unsigned int         offset; // Offset of items (or pointer to items) within the composite
+
+public:
+    
+    cm_component(component_type t,
+                 cm_item_descriptor * d,
+                 unsigned short c,
+                 unsigned int o):
+                 type(t), pDesc(d), count(c), offset(o){};
 };
 
 
 // Composite item descriptor's contain a list of components.
 class cm_composite_item_descriptor : public cm_item_descriptor
 {
-    cm_component  * pComp;                // List of components (simple or composite)
-    unsigned short  count;                // Number of descriptors in the list;
+    cm_component  * pComp;                // List of components (simple or composite), an array
+    unsigned short  count;                // Number of components in the list;
 
 public:    
-    cm_composite_item_descriptor(){};
+    cm_composite_item_descriptor(char * name,
+                                 cm_descriptor_id id,
+                                 cm_component * componentList,
+                                 unsigned short componentCount):
+                                 cm_item_descriptor(name, id), // init base class
+                                 pComp(componentList),         // init data member
+                                 count(componentCount)
+                                 {};
 
     ~cm_composite_item_descriptor(){};
 
@@ -81,7 +98,9 @@ class cm_simple_item_descriptor : public cm_item_descriptor
     cm_item_len len;  // Number of bytes occupied by an item in RAM
 
 public:
-    cm_simple_item_descriptor(char * name, int id){};
+    cm_simple_item_descriptor(char * name,
+                              cm_descriptor_id id):
+                              cm_item_descriptor(name, id){};
     ~cm_simple_item_descriptor(){};
 
 
@@ -97,7 +116,7 @@ class config_manager
 {  
     public:
     config_manager(cm_item_descriptor * pDesc);
-    void do_op(string op);
+    void do_cmd(int argc, char *argv[]);
 
     cm_item_descriptor * base_desc;
 };

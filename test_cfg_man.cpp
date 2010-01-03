@@ -22,14 +22,22 @@ int main()
     config_manager * cm = new config_manager(pBaseDesc);
     
     while (true)
-    {
-        string op;
-    
-        cout << ">";
-        cin >> op;
+    {        
+        string cmd;
+        char * ex;
 
-        cm->do_op(op);
+        cout << ">";
+
+        cin >> cmd;
+
+        cout << cmd;
+      
+
+        ex = (char *)cmd.c_str();
+        
+        cm->do_cmd(1, &ex);
     }
+    
 }
 
 

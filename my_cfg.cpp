@@ -18,9 +18,19 @@ enum
 cm_simple_item_descriptor ip_address = cm_simple_item_descriptor("ipaddr", DEVICE_IPADDR);
 cm_simple_item_descriptor cliPort = cm_simple_item_descriptor("cliPort", DEVICE_CLIPORT);
 
-cm_composite_item_descriptor deviceDesc;
+cm_component deviceComponentList[] = 
+{
+    cm_component(cm_component::CONTAINED, &ip_address, 1, offsetof(tDevice, addr)),
+    cm_component(cm_component::CONTAINED, &cliPort, 1, offsetof(tDevice, cliPort)),
+};
 
-// A pointer to the base descriptor
+cm_composite_item_descriptor deviceDesc = cm_composite_item_descriptor(
+    "device",
+    0xbabe,
+    deviceComponentList,
+    sizeof(deviceComponentList)/sizeof(deviceComponentList[0]));
+
+// A pointer to the base descriptor: a global used by the application code
+// to initialize the config manager xxx
 cm_item_descriptor * pBaseDesc = &deviceDesc;
-
 
