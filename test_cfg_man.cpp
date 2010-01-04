@@ -1,6 +1,7 @@
 #include <iostream>
 #include "config_manager.h"
 #include "my_cfg.h"
+#include <cstring> // strtok
 
 
 using namespace std;
@@ -19,25 +20,26 @@ using namespace std;
 
 int main()
 {
+    // Initialize the config manager with the base descriptor it is to manage.
     config_manager * cm = new config_manager(pBaseDesc);
     
     while (true)
-    {        
-        string cmd;
-        char * ex;
+    {
+        char cmd[120];
+        char * param[20];
+        int wordCnt = 0;
 
-        cout << ">";
+        printf(">");
 
-        cin >> cmd;
+        fgets(cmd, sizeof(cmd), stdin);
 
-        cout << cmd;
-      
+        param[0] = strtok(cmd, " ");
 
-        ex = (char *)cmd.c_str();
-        
-        cm->do_cmd(1, &ex);
+        while (NULL != (param[++wordCnt] = strtok(NULL, " ")))
+        {}
+
+        cm->do_cmd(wordCnt, param);
     }
-    
 }
 
 
