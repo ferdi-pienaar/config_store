@@ -19,6 +19,7 @@ config_manager::config_manager(cm_item_descriptor * desc)
     base_desc = desc;
 }
 
+// Execute command words from client.
 void config_manager::do_cmd(int argc, char *argv[])
 {
     int i;
@@ -71,6 +72,19 @@ void config_manager::do_cmd(int argc, char *argv[])
         cout << "command at " << i << endl;
     }
 
+    unsigned char      * pRam;
+    cm_item_descriptor * pDesc;
+
+    if (1)
+    {
+        pDesc = base_desc;
+        pRam  = ramBase;
+        
+        // xxx for certain ops, find the item and descriptor to which to apply the op
+        // xxx in some cases, we might not want to start
+        base_desc->getItem(argc, argv, &pDesc, &pRam);
+    }
+
     switch (cmd)
     {
         case CM_LOAD:
@@ -84,6 +98,20 @@ void config_manager::do_cmd(int argc, char *argv[])
         default:
             break;
     }
+}
+
+
+/// Write TLV to memory, and advance the ptr to the end of memory written to.
+//  This is useful for writing to a RAM buffer first, for subsequent write
+//  to NVRAM.
+//  xxx if we want to write directly to NVRAM, we need to implement a method
+//  that does that...
+void cm_item_descriptor::writeTlv(unsigned char ** ppMem)
+{
+    **ppMem = id;            // write to memory
+    *ppMem += sizeof(id);    // advance the memory pointer
+    **ppMem = getLen();           // write to memory
+    *ppMem += sizeof(cm_item_len);   // advance the memory pointer
 }
 
 
@@ -116,6 +144,36 @@ void cm_composite_item_descriptor::getItem(int argc,
         // xxx create a public getName function
         cout << pComp->pDesc->getName();
     }
+}
+
+cm_item_len cm_composite_item_descriptor::getLen()
+{
+    // xxx recursive calls to components' getLen.
+    // xxx verify we don't overflow cm_item_len
+    return 0;
+}
+
+
+void cm_simple_item_descriptor::print(unsigned char * pRam, cm_item_len len)
+{
+    if (pPrt == NULL)
+    {
+        // xxx error handling
+        cout << "err" << endl;
+        return;
+    }
+    pPrt(pRam, len);
+}
+
+void cm_simple_item_descriptor::setdef(unsigned char * pRam, cm_item_len len)
+{
+    if (pSetDef == NULL)
+    {
+        // No function installed, so use default default value: 0
+        memset(pRam, 0, len);
+        return;
+    }
+    pSetDef(pRam, len);
 }
 
 

@@ -7,18 +7,39 @@
 using namespace std;
 
 
-// xxx len (for TLV) should be a typedef so it could be modified
-// xxx type (for TLV) should be a typedef so it could be modified
-
 // xxx one of the problems with the earlier version of this code that I'd like
 // to avoid this time is requiring the application developer to know that
 // a component counter has to precede an OWNED component or component array.
 
 // Number of bytes in an item; used in NVRAM
+// Because it determines the longest possible length of any item in NVRAM,
+// it's also big enough to be used for the length of items in RAM
+// (which are shorter, as the exclude the Id and Length fields saved to NVRAM).
 typedef unsigned short cm_item_len;
 
 // Identifier ID, unique within its context, used to identify it in NVRFAM
 typedef unsigned short cm_descriptor_id;
+
+// Functionpointer to the functions registered by user when descriptor is created
+typedef void (*CM_SET_FPTR)(unsigned char *pRam, cm_item_len len, string val);
+typedef void (*CM_SETDEF_FPTR)(unsigned char *pRam, cm_item_len len);
+typedef void (*CM_PRT_FPTR)(unsigned char *pRam, cm_item_len len);
+
+
+// xxx Either we have the getItem method (ugly), which is called before we apply
+// an set, setdef, prt, add, del command to the found item.
+// 
+// OR
+// We eliminate the getItem method, and pass the command string recursively down the
+// hierarchy of descriptors, until we either consume the whole command
+// or reach a command keyword (set, setdef, prt, add, del).
+// 'save' and 'load' commands are intercepted by the CM itself, since they
+// have global applicability only.
+//
+// The recursion code should then be present in only 1 place:
+// cm_composite_item_descriptor::do_cmd
+//  Some commands are executed by a simple: set, setdef, prt
+//  Some commands are executed by a composite: add, del
 
 
 // Descriptor of configurable item (either simple or compound)
@@ -29,12 +50,17 @@ protected: // xxx these are protected because I want to access them from the der
     string           name;     // name by which item is addressed on CLI
     cm_descriptor_id id;       // ID (unique within the context of the component's context) of item in NVRAM
 
+    virtual void writeTlv(unsigned char ** pRam);
+
 public:
     cm_item_descriptor(string iname, cm_descriptor_id iid){name = iname; id = iid;}
     virtual ~cm_item_descriptor(){}
-    virtual void print(unsigned char * pRam){}; // composite items use their components to help them do this
+
+    virtual void print(unsigned char * pRam, cm_item_len len) = 0; // composite items use their components to help them do this
     string getName(){return name;}
     virtual void getItem(int argc, char *argv[], cm_item_descriptor ** ppItem, unsigned char **ppRam) = 0;
+
+    virtual cm_item_len getLen() = 0; 
     
 };
 
@@ -42,6 +68,11 @@ public:
 //  It may be CONTAINED or OWNED.
 //  There may be one or more instances (i.e. single item or an array of items).
 // xxx Should CONTAINED or OWNED be handled as classes?
+// xxx we could embed this class in cm_composite_item_descriptor, but then
+// client could not create component lists at init.  The constructor for this
+// class has to be exposed to the client programmer.
+// Perhaps all members should be private, with cm_composite_item_descriptor
+// as friend, since it has to read (but not write) them.
 class cm_component
 {
 public:
@@ -73,6 +104,7 @@ class cm_composite_item_descriptor : public cm_item_descriptor
     cm_component  * compList;                // List of components (simple or composite), an array
     unsigned short  compCount;                // Number of components in the list;
 
+
 public:    
     cm_composite_item_descriptor(char * name,
                                  cm_descriptor_id id,
@@ -84,35 +116,52 @@ public:
                                  {};
 
     ~cm_composite_item_descriptor(){};
-    void print(unsigned char * pRam){}; // composite items use their components to help them do this
+    void print(unsigned char * pRam, cm_item_len len){}; // composite items use their components to help them do this
 
     
     void getItem(int argc, char *argv[], cm_item_descriptor ** ppItem, unsigned char **ppRam);
     
-
+    virtual cm_item_len getLen();
 
 };
 
 
-// Only simple items can be set.
 // xxx methods (apart from constructor) are private (not for user), but config_manager is friend?
 class cm_simple_item_descriptor : public cm_item_descriptor
 {
     cm_item_len len;  // Number of bytes occupied by an item in RAM
 
+    // populate the following ptrs when creating a descriptor
+    // The config manager itself provides a set for basic types
+    // of configurable items, with 'C' linkage.
+    // These are only applicable to simple items:
+    //  set
+    //  setdef
+    //
+    CM_SET_FPTR    pSet;
+    CM_SETDEF_FPTR pSetDef;
+    CM_PRT_FPTR    pPrt;
+
+
 public:
     cm_simple_item_descriptor(char * name,
-                              cm_descriptor_id id):
-                              cm_item_descriptor(name, id){};
+                              cm_descriptor_id id,
+                              CM_SET_FPTR sf,
+                              CM_SETDEF_FPTR sdf,
+                              CM_PRT_FPTR pf):
+                              cm_item_descriptor(name, id),
+                              pSet(sf),
+                              pSetDef(sdf),
+                              pPrt(pf){};
+                              
     ~cm_simple_item_descriptor(){};
 
-
-    void set(string);
-
-    void print(unsigned char * pRam){};
+    void print(unsigned char * pRam, cm_item_len len);
+    void set(unsigned char * pRam, cm_item_len len, string str);
+    void setdef(unsigned char * pRam, cm_item_len len);
 
     void getItem(int argc, char *argv[], cm_item_descriptor ** ppItem, unsigned char **ppRam){}
-
+    virtual cm_item_len getLen(){return len;}
 };
 
 
@@ -123,9 +172,12 @@ public:
     config_manager(cm_item_descriptor * pDesc);
     void do_cmd(int argc, char *argv[]);
 
+    void init(){} // xxx calls load for base descriptor
+
 private:
     
     cm_item_descriptor * base_desc;
+    unsigned char *      ramBase; // xxx initialize during init
 
     // Current context
     string               contextString;

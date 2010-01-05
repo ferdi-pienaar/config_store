@@ -10,10 +10,24 @@
 //    cfg_man to modify the data.  RAM data is never written to directly
 //    (xxx can we enforce this rule?).
 // 
+
+#define NUM_CLI_PORT      4
+#define MAX_LEN_USER_NAME 16
+
 typedef struct
 {
-    unsigned long addr;
-    unsigned short cliPort;
+    char           name[MAX_LEN_USER_NAME];
+    unsigned long  id;
+    short          temperature;
+
+} tUser;
+
+typedef struct
+{
+    unsigned long  addr;
+    unsigned short cliPort[NUM_CLI_PORT];
+
+    
 
 } tDevice;
 

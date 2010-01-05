@@ -1,5 +1,6 @@
 #include <iostream>
 #include "my_cfg.h"
+#include "config_manager_util.h"
 using namespace std;
 
 // Initialization of configurable item descriptors used by my application.
@@ -15,13 +16,22 @@ enum
     DEVICE_CLIPORT = 1,
 };
 
-cm_simple_item_descriptor ip_address = cm_simple_item_descriptor("ipaddr", DEVICE_IPADDR);
-cm_simple_item_descriptor cliPort = cm_simple_item_descriptor("cliPort", DEVICE_CLIPORT);
+cm_simple_item_descriptor ip_address = cm_simple_item_descriptor("ipaddr",
+                                                                 DEVICE_IPADDR,
+                                                                 NULL,
+                                                                 NULL,
+                                                                 cm_prt_int);
+
+cm_simple_item_descriptor cliPort = cm_simple_item_descriptor("cliPort", 
+                                                              DEVICE_CLIPORT,
+                                                              NULL,
+                                                              NULL,
+                                                              cm_prt_int);
 
 cm_component deviceComponentList[] = 
 {
     cm_component(cm_component::CONTAINED, &ip_address, 1, offsetof(tDevice, addr)),
-    cm_component(cm_component::CONTAINED, &cliPort, 1, offsetof(tDevice, cliPort)),
+    cm_component(cm_component::CONTAINED, &cliPort, NUM_CLI_PORT, offsetof(tDevice, cliPort)),
 };
 
 cm_composite_item_descriptor deviceDesc = cm_composite_item_descriptor(
