@@ -1,6 +1,7 @@
 #include "config_manager.h"
 using namespace std;
 
+
 typedef enum
 {
     CM_ADD,
@@ -10,9 +11,12 @@ typedef enum
     CM_SETDEF,
     CM_LOAD,
     CM_SAVE,    
-    CM_CMD_NONE,
+    CM_OP_NONE,
 
-} eCmCmd;
+} eCmOp;
+
+static eCmOp getOp(char * word);
+
 
 config_manager::config_manager(cm_item_descriptor * desc)
 {
@@ -23,51 +27,20 @@ config_manager::config_manager(cm_item_descriptor * desc)
 void config_manager::do_cmd(int argc, char *argv[])
 {
     int i;
-    eCmCmd cmd = CM_CMD_NONE;
+    eCmOp op = CM_OP_NONE;
     
     for (i = 0; i < argc; i++)
     {
         cout << i << ": " << argv[i] << "." << endl;
 
-        if (strcmp(argv[i], "add") == 0)
+        if (getOp(argv[i]) != CM_OP_NONE)
         {
-            cmd = CM_ADD;
-            break;
-        }
-        else if (strcmp(argv[i], "del") == 0)
-        {            
-            cmd = CM_DEL;
-            break;
-        }
-        else if (strcmp(argv[i], "prt") == 0)
-        {
-            cmd = CM_PRT;
-            break;
-        }
-        else if (strcmp(argv[i], "set") == 0)
-        {
-            cmd = CM_SET;
-            break;
-        }
-        else if (strcmp(argv[i], "setdef") == 0)
-        {
-            cmd = CM_SETDEF;
-            break;
-        }
-        else if (strcmp(argv[i], "load") == 0)
-        {
-            cmd = CM_LOAD;
-            break;
-        }
-        else if (strcmp(argv[i], "save") == 0)
-        {
-            cmd = CM_SAVE;
             break;
         }
     }
 
 
-    if (cmd != CM_CMD_NONE)
+    if (op != CM_OP_NONE)
     {
         cout << "command at " << i << endl;
     }
@@ -82,10 +55,10 @@ void config_manager::do_cmd(int argc, char *argv[])
         
         // xxx for certain ops, find the item and descriptor to which to apply the op
         // xxx in some cases, we might not want to start
-        base_desc->getItem(argc, argv, &pDesc, &pRam);
+        base_desc->do_cmd(argc, argv, pRam);
     }
 
-    switch (cmd)
+    switch (op)
     {
         case CM_LOAD:
             cout << "load at " << i;
@@ -101,6 +74,108 @@ void config_manager::do_cmd(int argc, char *argv[])
 }
 
 
+
+
+
+//
+// argc number of items in argv
+// argv array of strings containing name elements
+// pRam - pointer to RAM at which item is located
+//
+void cm_composite_item_descriptor::do_cmd(int argc,
+                                          char *argv[],
+                                          unsigned char * pRam)
+{
+    // Sanity check
+    #if 0
+    if (strcmp(argv[0], name.c_str()) != 0)
+    {
+        return;
+    }
+
+    #endif
+
+    eCmOp op = getOp(argv[0]);
+
+    if (op == CM_PRT)
+    {
+        print(pRam);
+        return;
+    }
+
+}
+
+// Delegate print command to components
+void cm_composite_item_descriptor::print(unsigned char * pRam)
+{
+    unsigned short last;
+    
+    for (int i = 0; i < compCount; i++)
+    {
+        cm_component * pComp = &(compList[i]);
+
+        if (pComp->type == cm_component::CONTAINED)
+        {
+            for (int j = 0; j < pComp->count; j++)
+            {
+                pComp->pDesc->print(pRam);
+                pRam += pComp->pDesc->getLen();
+            }
+        }
+    }
+}
+
+
+cm_item_len cm_composite_item_descriptor::getLen()
+{
+    // xxx recursive calls to components' getLen.
+    // xxx verify we don't overflow cm_item_len
+    return 0;
+}
+
+//
+// argc number of items in argv
+// argv array of strings containing name elements
+// pRam - pointer to RAM at which item is located
+//
+void cm_simple_item_descriptor::do_cmd(int argc,
+                                       char *argv[],
+                                       unsigned char * pRam)
+{
+    
+    
+}
+
+
+void cm_simple_item_descriptor::print(unsigned char * pRam)
+{
+    if (pPrt == NULL)
+    {
+        // No function installed so default print function: hex chars
+        for (int i = 0; i < len; i++)
+        {
+            printf("%02x", pRam[i]);
+        }
+    }
+    else
+    {
+        pPrt(pRam, len);
+    }
+}
+
+void cm_simple_item_descriptor::setdef(unsigned char * pRam)
+{
+    if (pSetDef == NULL)
+    {
+        // No function installed, so use default default value: 0
+        memset(pRam, 0, len);
+    }
+    else
+    {
+        pSetDef(pRam, len);
+    }
+}
+
 /// Write TLV to memory, and advance the ptr to the end of memory written to.
 //  This is useful for writing to a RAM buffer first, for subsequent write
 //  to NVRAM.
@@ -114,68 +189,20 @@ void cm_item_descriptor::writeTlv(unsigned char ** ppMem)
     *ppMem += sizeof(cm_item_len);   // advance the memory pointer
 }
 
-
-//
-// argc number of items in argv
-// argv array of strings containing name elements
-// ppItem - output, updated when item is found
-// ppRam - input/output, pointer to RAM at which item is located
-//
-// When we enter this method, we already know the composite
-// determined this object has a matching name.
-void cm_composite_item_descriptor::getItem(int argc,
-                                           char *argv[],
-                                           cm_item_descriptor ** ppItem,
-                                           unsigned char **ppRam)
+// Helper function that returns what kind of operation (if any) a word is
+eCmOp getOp(char * word)
 {
-    // Sanity check
-    if (strcmp(argv[0], name.c_str()) != 0)
-    {
-        return;
-    }
+    if (strcmp(word, "add") == 0) return CM_ADD;
+    if (strcmp(word, "del") == 0) return CM_DEL;
+    if (strcmp(word, "prt") == 0) return CM_PRT;
+    if (strcmp(word, "set") == 0) return CM_SET;
+    if (strcmp(word, "setdef") == 0) return CM_SETDEF;
+    if (strcmp(word, "load") == 0) return  CM_LOAD;
+    if (strcmp(word, "save") == 0) return CM_SAVE;
 
-    cout << "found " << name << endl;
-
-    // Search for matching component
-    for (int i = 0; i < compCount; i++)
-    {
-        cm_component * pComp = &(compList[i]);
-
-        // xxx create a public getName function
-        cout << pComp->pDesc->getName();
-    }
+    // If no match, it's not an operation
+    return CM_OP_NONE;
 }
-
-cm_item_len cm_composite_item_descriptor::getLen()
-{
-    // xxx recursive calls to components' getLen.
-    // xxx verify we don't overflow cm_item_len
-    return 0;
-}
-
-
-void cm_simple_item_descriptor::print(unsigned char * pRam, cm_item_len len)
-{
-    if (pPrt == NULL)
-    {
-        // xxx error handling
-        cout << "err" << endl;
-        return;
-    }
-    pPrt(pRam, len);
-}
-
-void cm_simple_item_descriptor::setdef(unsigned char * pRam, cm_item_len len)
-{
-    if (pSetDef == NULL)
-    {
-        // No function installed, so use default default value: 0
-        memset(pRam, 0, len);
-        return;
-    }
-    pSetDef(pRam, len);
-}
-
 
 
 

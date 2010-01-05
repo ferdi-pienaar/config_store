@@ -33,7 +33,7 @@ int main()
 
         fgets(cmd, sizeof(cmd), stdin);
 
-        param[0] = strtok(cmd, " ");
+        param[0] = strtok(cmd, " \n");
 
         while (NULL != (param[++wordCnt] = strtok(NULL, " ")))
         {}

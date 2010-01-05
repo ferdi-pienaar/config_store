@@ -18,12 +18,14 @@ enum
 
 cm_simple_item_descriptor ip_address = cm_simple_item_descriptor("ipaddr",
                                                                  DEVICE_IPADDR,
+                                                                 sizeof(unsigned long), // xxx
                                                                  NULL,
                                                                  NULL,
                                                                  cm_prt_int);
 
 cm_simple_item_descriptor cliPort = cm_simple_item_descriptor("cliPort", 
                                                               DEVICE_CLIPORT,
+                                                              sizeof(unsigned short), // xxx
                                                               NULL,
                                                               NULL,
                                                               cm_prt_int);
