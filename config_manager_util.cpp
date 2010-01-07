@@ -1,9 +1,12 @@
+/// This file contains an optional but useful extension
+//  to the config manager: set and print functions for
+//  basic data types.  The user can add similar implementations
+//  for special types, such as IP or Ethernet addresses.
+
 #include "config_manager_util.h"
 #include <assert.h>
 using namespace std;
 
-/// This file contains an optional but useful extension
-//  to the config manager.
 
 // signed int
 void cm_prt_int(unsigned char *pRam, cm_item_len len)

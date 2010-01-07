@@ -1,4 +1,5 @@
 #include "config_manager.h"
+#include <sstream>
 using namespace std;
 
 
@@ -21,6 +22,13 @@ static eCmOp getOp(char * word);
 config_manager::config_manager(cm_item_descriptor * desc)
 {
     base_desc = desc;
+}
+
+
+// xxx calls setdef for base descriptor, then load
+void config_manager::init(void)
+{
+    ramBase = (unsigned char *)malloc(base_desc->getLen());  
 }
 
 // Execute command words from client.
@@ -99,16 +107,20 @@ void cm_composite_item_descriptor::do_cmd(int argc,
 
     if (op == CM_PRT)
     {
-        print(pRam);
+        print(pRam, "");
         return;
     }
 
 }
 
 // Delegate print command to components
-void cm_composite_item_descriptor::print(unsigned char * pRam)
+void cm_composite_item_descriptor::print(unsigned char * pRam, string prefix)
 {
-    unsigned short last;
+    //unsigned short last;
+    char indexbuf[4];
+
+    cout << "xxx debug: " << "print composite " << name << " with len " << len << endl;
+
     
     for (int i = 0; i < compCount; i++)
     {
@@ -118,19 +130,12 @@ void cm_composite_item_descriptor::print(unsigned char * pRam)
         {
             for (int j = 0; j < pComp->count; j++)
             {
-                pComp->pDesc->print(pRam);
+                snprintf(indexbuf, sizeof(indexbuf), "%d", j);
+                pComp->pDesc->print(pRam, prefix + pComp->pDesc->getName() + " " + indexbuf + " ");
                 pRam += pComp->pDesc->getLen();
             }
         }
     }
-}
-
-
-cm_item_len cm_composite_item_descriptor::getLen()
-{
-    // xxx recursive calls to components' getLen.
-    // xxx verify we don't overflow cm_item_len
-    return 0;
 }
 
 //
@@ -146,9 +151,15 @@ void cm_simple_item_descriptor::do_cmd(int argc,
     
 }
 
-
-void cm_simple_item_descriptor::print(unsigned char * pRam)
+// An item does not print its own name, since
+// it may be preceded by an index, which is known
+// to the item's composite but not to the item.
+void cm_simple_item_descriptor::print(unsigned char * pRam, string prefix)
 {
+    cout << prefix;
+
+    cout << "xxx debug: " << "print simple " << name << " with len " << len << endl;
+    
     if (pPrt == NULL)
     {
         // No function installed so default print function: hex chars
@@ -161,6 +172,7 @@ void cm_simple_item_descriptor::print(unsigned char * pRam)
     {
         pPrt(pRam, len);
     }
+    cout << endl;
 }
 
 void cm_simple_item_descriptor::setdef(unsigned char * pRam)
@@ -183,10 +195,10 @@ void cm_simple_item_descriptor::setdef(unsigned char * pRam)
 //  that does that...
 void cm_item_descriptor::writeTlv(unsigned char ** ppMem)
 {
-    **ppMem = id;            // write to memory
-    *ppMem += sizeof(id);    // advance the memory pointer
-    **ppMem = getLen();           // write to memory
-    *ppMem += sizeof(cm_item_len);   // advance the memory pointer
+    **ppMem = id;                      // write to memory
+    *ppMem += sizeof(id);              // advance the memory pointer
+    **ppMem = getTlvLen();             // write to memory
+    *ppMem += sizeof(cm_item_len);     // advance the memory pointer
 }
 
 // Helper function that returns what kind of operation (if any) a word is

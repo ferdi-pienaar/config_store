@@ -41,23 +41,29 @@ typedef void (*CM_PRT_FPTR)(unsigned char *pRam, cm_item_len len);
 // xxx methods are private (not for user), but config_manager is friend?
 class cm_item_descriptor
 {
+private:
+    virtual void writeTlv(unsigned char ** pRam) = 0;    
     
 protected: // xxx these are protected because I want to access them from the derived classes
     string           name;     // name by which item is addressed on CLI
-    cm_descriptor_id id;       // ID (unique within the context of the component's context) of item in NVRAM
+    cm_descriptor_id id;       // ID (unique within the context of the component's context) of item in NVRAM    
+    cm_item_len len;  // Number of bytes occupied by an item in RAM
 
-    void writeTlv(unsigned char ** pRam);
+    virtual cm_item_len getTlvLen() = 0;
 
-public:
-    cm_item_descriptor(string iname, cm_descriptor_id iid){name = iname; id = iid;}
+public:    
+
+    virtual cm_item_len getLen(){return len;}
+
+    cm_item_descriptor(string iname, cm_descriptor_id iid, cm_item_len ilen):
+          name(iname), id(iid), len(ilen){}
     virtual ~cm_item_descriptor(){}
 
     virtual void do_cmd(int argc, char *argv[], unsigned char * pRam) = 0;
 
-    virtual void print(unsigned char * pRam) = 0; // composite items use their components to help them do this
+    virtual void print(unsigned char * pRam, string prefix) = 0;
     string getName(){return name;}
 
-    virtual cm_item_len getLen() = 0; 
     
 };
 
@@ -101,25 +107,25 @@ class cm_composite_item_descriptor : public cm_item_descriptor
     
     cm_component  * compList;                // List of components (simple or composite), an array
     unsigned short  compCount;               // Number of components in the list;
+    virtual void writeTlv(unsigned char ** pRam){}
+    virtual cm_item_len getTlvLen(){return 0;}    
+
 
 
 public:    
     cm_composite_item_descriptor(char * name,
                                  cm_descriptor_id id,
+                                 cm_item_len l,
                                  cm_component * componentList,
                                  unsigned short componentCount):
-                                 cm_item_descriptor(name, id), // init base class
+                                 cm_item_descriptor(name, id, l), // init base class
                                  compList(componentList),         // init data member
                                  compCount(componentCount)
                                  {};
 
     ~cm_composite_item_descriptor(){};
     void do_cmd(int argc, char *argv[], unsigned char * pRam);
-
-    
-    void print(unsigned char * pRam);
-
-    virtual cm_item_len getLen();
+    void print(unsigned char * pRam, string prefix);
 
 };
 
@@ -127,7 +133,6 @@ public:
 // xxx methods (apart from constructor) are private (not for user), but config_manager is friend?
 class cm_simple_item_descriptor : public cm_item_descriptor
 {
-    cm_item_len len;  // Number of bytes occupied by an item in RAM
 
     // populate the following ptrs when creating a descriptor
     // The config manager itself provides a set for basic types
@@ -140,6 +145,11 @@ class cm_simple_item_descriptor : public cm_item_descriptor
     CM_SETDEF_FPTR pSetDef;
     CM_PRT_FPTR    pPrt;
 
+    virtual void writeTlv(unsigned char ** pRam){}
+    virtual cm_item_len getTlvLen(){return getLen();}
+
+
+
 public:
     cm_simple_item_descriptor(char * name,
                               cm_descriptor_id id,
@@ -147,8 +157,7 @@ public:
                               CM_SET_FPTR sf,
                               CM_SETDEF_FPTR sdf,
                               CM_PRT_FPTR pf):
-                              cm_item_descriptor(name, id),
-                              len(l),
+                              cm_item_descriptor(name, id, l),
                               pSet(sf),
                               pSetDef(sdf),
                               pPrt(pf){};
@@ -158,11 +167,9 @@ public:
     void do_cmd(int argc, char *argv[], unsigned char * pRam);
 
 
-    void print(unsigned char * pRam);
+    void print(unsigned char * pRam, string prefix);
     void set(unsigned char * pRam, string str);
     void setdef(unsigned char * pRam);
-
-    virtual cm_item_len getLen(){return len;}
 };
 
 
@@ -173,7 +180,7 @@ public:
     config_manager(cm_item_descriptor * pDesc);
     void do_cmd(int argc, char *argv[]);
 
-    void init(){} // xxx calls setdef for base descriptor, then load
+    void init();
 
 private:
     

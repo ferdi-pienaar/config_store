@@ -39,6 +39,7 @@ cm_component deviceComponentList[] =
 cm_composite_item_descriptor deviceDesc = cm_composite_item_descriptor(
     "device",
     0xbabe,
+    sizeof(tDevice),
     deviceComponentList,
     sizeof(deviceComponentList)/sizeof(deviceComponentList[0]));
 
