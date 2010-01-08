@@ -53,17 +53,17 @@ void config_manager::do_cmd(int argc, char *argv[])
         cout << "command at " << i << endl;
     }
 
-    unsigned char      * pRam;
+    unsigned char      * pItem;
     cm_item_descriptor * pDesc;
 
     if (1)
     {
         pDesc = base_desc;
-        pRam  = ramBase;
+        pItem  = ramBase;
         
         // xxx for certain ops, find the item and descriptor to which to apply the op
         // xxx in some cases, we might not want to start
-        base_desc->do_cmd(argc, argv, pRam);
+        base_desc->do_cmd(argc, argv, pItem);
     }
 
     switch (op)
@@ -81,18 +81,20 @@ void config_manager::do_cmd(int argc, char *argv[])
     }
 }
 
-
-
-
+////////////////////////////////////////////////////////////////////////////////
+//
+// cm_composite_item_descriptor
+//
+////////////////////////////////////////////////////////////////////////////////
 
 //
 // argc number of items in argv
 // argv array of strings containing name elements
-// pRam - pointer to RAM at which item is located
+// pItem - pointer to RAM at which item is located
 //
 void cm_composite_item_descriptor::do_cmd(int argc,
                                           char *argv[],
-                                          unsigned char * pRam)
+                                          unsigned char * pItem)
 {
     // Sanity check
     #if 0
@@ -107,45 +109,102 @@ void cm_composite_item_descriptor::do_cmd(int argc,
 
     if (op == CM_PRT)
     {
-        print(pRam, "");
+        print(pItem, "");
         return;
     }
 
 }
 
-// Delegate print command to components
-void cm_composite_item_descriptor::print(unsigned char * pRam, string prefix)
+
+// Traverse the items in xxx
+// pItem: pointer to current item
+// @return pointer to next item
+void cm_composite_item_descriptor::startItem(unsigned char * pThisItem)
 {
-    //unsigned short last;
-    char indexbuf[4];
+    compIndex = 0;
+    pItem = pThisItem;
+    compList[compIndex].startItem(pItem);
+}
 
-    cout << "xxx debug: " << "print composite " << name << " with len " << len << endl;
+// Returns next component item, along with the applicable descriptor.
+// These may members of successive arrays, each handled by a different component object.
+// xxx this should return a name (the index) too, rather than having a separate getCurrentItemName method.
+//
+void cm_composite_item_descriptor::getNextItem(cm_item_descriptor ** ppDesc, int * pIdx, unsigned char ** ppItem)
+{
+    cm_component * pComp = &(compList[compIndex]);
 
-    
-    for (int i = 0; i < compCount; i++)
-    {
-        cm_component * pComp = &(compList[i]);
+    *ppDesc = pComp->pDesc;
+    *ppItem = pComp->getNextItem(pIdx);
 
-        if (pComp->type == cm_component::CONTAINED)
-        {
-            for (int j = 0; j < pComp->count; j++)
-            {
-                snprintf(indexbuf, sizeof(indexbuf), "%d", j);
-                pComp->pDesc->print(pRam, prefix + pComp->pDesc->getName() + " " + indexbuf + " ");
-                pRam += pComp->pDesc->getLen();
-            }
-        }
+    if (pComp->checkLastItem())
+    { 
+        // No more items in this component; go to next
+        pComp = &(compList[++compIndex]);
+        pComp->startItem(pItem);
     }
 }
 
 //
+bool cm_composite_item_descriptor::checkLastItem()
+{
+    return (compIndex == compCount) && compList[compIndex].checkLastItem();
+}
+
+
+
+cm_item_len cm_composite_item_descriptor::getTlvLen()
+{
+    return 0;
+}
+
+/// Write item's TLV to a buffer, and advance the ptr to the end of memory written to.
+//  This is useful for writing to a RAM buffer first, for subsequent write
+//  to NVRAM.
+//  xxx if we want to write directly to NVRAM, we need to implement a method
+//  that does that...
+void cm_composite_item_descriptor::writeTlv(unsigned char *pItem, unsigned char ** ppBuf)
+{
+    
+}
+
+// Delegate print command to components
+// 
+void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix)
+{
+    char indexbuf[4];
+
+    cout << "xxx debug: " << "print composite " << name << " with len " << len << endl;
+
+    startItem(pItem);
+    while (!checkLastItem())
+    {
+        cm_item_descriptor * pCompDesc;
+        unsigned char *      pCompItem;
+        int itemIndex;
+
+        getNextItem(&pCompDesc, &itemIndex, &pCompItem);
+
+        snprintf(indexbuf, sizeof(indexbuf), "%d", itemIndex);
+        pCompDesc->print(pCompItem, prefix + pCompDesc->getName() + " " + indexbuf + " ");
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// cm_simple_item_descriptor
+//
+////////////////////////////////////////////////////////////////////////////////
+
+//
 // argc number of items in argv
 // argv array of strings containing name elements
-// pRam - pointer to RAM at which item is located
+// pItem - pointer to RAM at which item is located
 //
 void cm_simple_item_descriptor::do_cmd(int argc,
                                        char *argv[],
-                                       unsigned char * pRam)
+                                       unsigned char * pItem)
 {
     
     
@@ -154,7 +213,7 @@ void cm_simple_item_descriptor::do_cmd(int argc,
 // An item does not print its own name, since
 // it may be preceded by an index, which is known
 // to the item's composite but not to the item.
-void cm_simple_item_descriptor::print(unsigned char * pRam, string prefix)
+void cm_simple_item_descriptor::print(unsigned char * pItem, string prefix)
 {
     cout << prefix;
 
@@ -165,41 +224,116 @@ void cm_simple_item_descriptor::print(unsigned char * pRam, string prefix)
         // No function installed so default print function: hex chars
         for (int i = 0; i < len; i++)
         {
-            printf("%02x", pRam[i]);
+            printf("%02x", pItem[i]);
         }
     }
     else
     {
-        pPrt(pRam, len);
+        pPrt(pItem, len);
     }
     cout << endl;
 }
 
-void cm_simple_item_descriptor::setdef(unsigned char * pRam)
+void cm_simple_item_descriptor::setdef(unsigned char * pItem)
 {
     if (pSetDef == NULL)
     {
         // No function installed, so use default default value: 0
-        memset(pRam, 0, len);
+        memset(pItem, 0, len);
     }
     else
     {
-        pSetDef(pRam, len);
+        pSetDef(pItem, len);
     }
 }
 
-/// Write TLV to memory, and advance the ptr to the end of memory written to.
+/// Write TLV to a buffer, and advance the ptr to the end of memory written to.
 //  This is useful for writing to a RAM buffer first, for subsequent write
 //  to NVRAM.
 //  xxx if we want to write directly to NVRAM, we need to implement a method
 //  that does that...
-void cm_item_descriptor::writeTlv(unsigned char ** ppMem)
+void cm_simple_item_descriptor::writeTlv(unsigned char *pItem, unsigned char ** ppBuf)
 {
-    **ppMem = id;                      // write to memory
-    *ppMem += sizeof(id);              // advance the memory pointer
-    **ppMem = getTlvLen();             // write to memory
-    *ppMem += sizeof(cm_item_len);     // advance the memory pointer
+    **ppBuf = id;                      // write Type (i.e. the ID)
+    *ppBuf += sizeof(id);              // advance the memory pointer
+    **ppBuf = getTlvLen();             // write Length
+    *ppBuf += sizeof(cm_item_len);     // advance the memory pointer
+
+    memcpy(*ppBuf, pItem, len);
+    *ppBuf += len;
+    
 }
+
+/// Return total length of TLV item:
+//  The number of bytes taken up by T + L + V.
+cm_item_len cm_simple_item_descriptor::getTlvLen()
+{
+    return sizeof(cm_descriptor_id) + sizeof(cm_item_len) + getLen();
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// cm_component
+//
+////////////////////////////////////////////////////////////////////////////////
+
+// Traverse the items in an array.
+// pItem: pointer to current item
+// @return pointer to next item
+void cm_component::startItem(unsigned char * pParentItem)
+{
+    if (type == CONTAINED)
+    {
+        itemIndex = 0;                 // initialize counter member used in getNextItem
+        pItem = pParentItem + offset;
+    }
+    else
+    {
+        itemIndex = 0;                                    // initialize counter member used in getNextItem
+        pItem = (unsigned char *)*(pParentItem + offset); // location is a pointer to the OWNED item
+        assert(0);
+    }
+}
+
+// Get next item in array owned by component.
+// Also return the index if pIdx is not NULL; this is used e.g. when printing the index before the item value.
+//
+unsigned char * cm_component::getNextItem(int * pIdx)
+{
+    unsigned char * ret = pItem;
+
+    if (pIdx != NULL)
+    {
+        *pIdx = itemIndex;
+    }
+    itemIndex++;
+    pItem += pDesc->getLen();
+    return ret;
+}
+
+bool cm_component::checkLastItem()
+{
+    if (type == CONTAINED)
+    {    
+        return (itemIndex == count);
+    }
+    else
+    {        
+        // xxx Wrong -- Here, count is dynamic, and saved in a previous CONTAINED item
+        return (itemIndex == count);
+    }
+}
+
+
+// During iteration, return name of current item -- by default, just convert the iteration index
+// to a string, but xxx
+#if 0
+string cm_component::getCurrentItemName()
+{
+}
+#endif
+
 
 // Helper function that returns what kind of operation (if any) a word is
 eCmOp getOp(char * word)
@@ -215,6 +349,4 @@ eCmOp getOp(char * word)
     // If no match, it's not an operation
     return CM_OP_NONE;
 }
-
-
 

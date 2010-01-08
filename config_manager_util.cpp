@@ -9,22 +9,22 @@ using namespace std;
 
 
 // signed int
-void cm_prt_int(unsigned char *pRam, cm_item_len len)
+void cm_prt_int(unsigned char *pItem, cm_item_len len)
 {
     int v;
     
     switch (len)
     {
         case 1: // replace with something from std C file yyy
-            v = *((char *)pRam);
+            v = *((char *)pItem);
             break;
 
         case 2:            
-            v = *((short *)pRam);
+            v = *((short *)pItem);
             break;
             
         case 4:            
-            v = *((int *)pRam);
+            v = *((int *)pItem);
             break;
 
         default:

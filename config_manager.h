@@ -21,9 +21,9 @@ typedef unsigned short cm_item_len;
 typedef unsigned short cm_descriptor_id;
 
 // Function pointers -- types registered by user when descriptor is created
-typedef void (*CM_SET_FPTR)(unsigned char *pRam, cm_item_len len, string val);
-typedef void (*CM_SETDEF_FPTR)(unsigned char *pRam, cm_item_len len);
-typedef void (*CM_PRT_FPTR)(unsigned char *pRam, cm_item_len len);
+typedef void (*CM_SET_FPTR)(unsigned char *pItem, cm_item_len len, string val);
+typedef void (*CM_SETDEF_FPTR)(unsigned char *pItem, cm_item_len len);
+typedef void (*CM_PRT_FPTR)(unsigned char *pItem, cm_item_len len);
 
 
 // We eliminate the getItem method, and pass the command string recursively down the
@@ -42,7 +42,7 @@ typedef void (*CM_PRT_FPTR)(unsigned char *pRam, cm_item_len len);
 class cm_item_descriptor
 {
 private:
-    virtual void writeTlv(unsigned char ** pRam) = 0;    
+    virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf) = 0;    
     
 protected: // xxx these are protected because I want to access them from the derived classes
     string           name;     // name by which item is addressed on CLI
@@ -51,7 +51,8 @@ protected: // xxx these are protected because I want to access them from the der
 
     virtual cm_item_len getTlvLen() = 0;
 
-public:    
+public:        
+
 
     virtual cm_item_len getLen(){return len;}
 
@@ -59,9 +60,9 @@ public:
           name(iname), id(iid), len(ilen){}
     virtual ~cm_item_descriptor(){}
 
-    virtual void do_cmd(int argc, char *argv[], unsigned char * pRam) = 0;
+    virtual void do_cmd(int argc, char *argv[], unsigned char * pItem) = 0;
 
-    virtual void print(unsigned char * pRam, string prefix) = 0;
+    virtual void print(unsigned char * pItem, string prefix) = 0;
     string getName(){return name;}
 
     
@@ -78,12 +79,19 @@ public:
 // as friend, since it has to read (but not write) them.
 class cm_component
 {
+    unsigned int    itemIndex;  // index used when traversing the array of component items 
+    unsigned char * pItem;      // pointer used to traverse array (base value can change during add, del & setdef!)
+    
 public:
     typedef enum
     {
-        CONTAINED,  // items are part of the composite (memory allocated at same time)
+        CONTAINED,  // component items are part of the composite (memory allocated at same time)
         OWNED       // component items are referenced by their composite
     }component_type;
+
+    virtual void startItem(unsigned char * pItem);
+    virtual unsigned char * getNextItem(int * pIdx);
+    virtual bool checkLastItem();
 
     cm_component(component_type t,
                  cm_item_descriptor * d,
@@ -104,11 +112,18 @@ public:
 // xxx methods (apart from constructor) are private (not for user), but config_manager is friend?
 class cm_composite_item_descriptor : public cm_item_descriptor
 {
+    unsigned int    compIndex; // index used when traversing pCompLost 
+    unsigned char * pItem;     // current item in RAM (not fixed, since there may be several items per descriptor)
+
     
-    cm_component  * compList;                // List of components (simple or composite), an array
-    unsigned short  compCount;               // Number of components in the list;
-    virtual void writeTlv(unsigned char ** pRam){}
-    virtual cm_item_len getTlvLen(){return 0;}    
+    cm_component  * compList;           // List of components (simple or composite), an array
+    unsigned short  compCount;          // Number of components in the list (number of descriptors, not items)
+
+    void startItem(unsigned char * pParentItem);
+    void getNextItem(cm_item_descriptor ** ppDesc, int * pIdx, unsigned char ** ppItem);
+    bool checkLastItem();
+    virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf);
+    virtual cm_item_len getTlvLen();    
 
 
 
@@ -124,8 +139,8 @@ public:
                                  {};
 
     ~cm_composite_item_descriptor(){};
-    void do_cmd(int argc, char *argv[], unsigned char * pRam);
-    void print(unsigned char * pRam, string prefix);
+    void do_cmd(int argc, char *argv[], unsigned char * pItem);
+    void print(unsigned char * pItem, string prefix);
 
 };
 
@@ -145,12 +160,24 @@ class cm_simple_item_descriptor : public cm_item_descriptor
     CM_SETDEF_FPTR pSetDef;
     CM_PRT_FPTR    pPrt;
 
-    virtual void writeTlv(unsigned char ** pRam){}
-    virtual cm_item_len getTlvLen(){return getLen();}
-
-
+    virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf);
+    virtual cm_item_len getTlvLen();
+    
 
 public:
+    #if 1
+    // Further subclassing?  Two types of behaviour: if COUNT, the value is
+    // used by CM as a counter.
+    // The derived class
+    #else
+    typedef enum
+    {
+        STANDARD,    // item has no meaning to config manager
+        OWNED_COUNT, // item is used by CM as counter for following array of OWNED components
+        NAME         // item is name distinguishing an item from others in the array (instead of idx)
+    }item_type;
+    #endif
+        
     cm_simple_item_descriptor(char * name,
                               cm_descriptor_id id,
                               cm_item_len l,
@@ -164,12 +191,12 @@ public:
                               
     ~cm_simple_item_descriptor(){};
 
-    void do_cmd(int argc, char *argv[], unsigned char * pRam);
+    void do_cmd(int argc, char *argv[], unsigned char * pItem);
 
 
-    void print(unsigned char * pRam, string prefix);
-    void set(unsigned char * pRam, string str);
-    void setdef(unsigned char * pRam);
+    void print(unsigned char * pItem, string prefix);
+    void set(unsigned char * pItem, string str);
+    void setdef(unsigned char * pItem);
 };
 
 
