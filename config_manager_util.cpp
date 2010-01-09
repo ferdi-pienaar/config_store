@@ -5,6 +5,7 @@
 
 #include "config_manager_util.h"
 #include <assert.h>
+#include <limits.h>
 using namespace std;
 
 
@@ -15,7 +16,7 @@ void cm_prt_int(unsigned char *pItem, cm_item_len len)
     
     switch (len)
     {
-        case 1: // replace with something from std C file yyy
+        case 1: // xxx replace with something from std C file yyy for portability
             v = *((char *)pItem);
             break;
 
@@ -32,6 +33,34 @@ void cm_prt_int(unsigned char *pItem, cm_item_len len)
     }
 
     printf("%d", v);
+}
+
+void cm_set_int(unsigned char *pItem, cm_item_len len, string val)
+{
+    long int v = strtol(val.c_str(), NULL, 0);
+
+    // xxx just return if v not initialized
+    // xxx Sanity check on len
+    
+    switch (len)
+    {
+        case 1: // xxx replace with something from std C file yyy
+            char cv = (char)v;
+            memcpy(pItem, &cv, sizeof(cv));
+            break;
+
+        case 2:            
+            short sv = (short)v;
+            memcpy(pItem, &sv, sizeof(sv));
+            break;
+            
+        case 4:            
+            memcpy(pItem, &v, sizeof(v));
+            break;
+
+        default:
+            assert(0);
+    }
 }
             
 

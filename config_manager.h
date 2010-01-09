@@ -80,17 +80,25 @@ public:
 class cm_component
 {
     unsigned int    itemIndex;  // index used when traversing the array of component items 
-    unsigned char * pItem;      // pointer used to traverse array (base value can change during add, del & setdef!)
+
+    // pointer used to traverse array (xxx base value can change during add, del & setdef, or can we set it
+    // when the instance is created, i.e. during init or add, instead of when we start a traversal?
+    // also del operation can read to memory reallocation, perhaps.
+    unsigned char * pFirstItem; 
     
 public:
+    // xxx there should be two subclasses corresponding to these type.
+    // They'll differ in having different ways of setting pFirstItem,
+    // and different ways of handling count/maxCount in getNextItem and isLastItem.
     typedef enum
     {
         CONTAINED,  // component items are part of the composite (memory allocated at same time)
         OWNED       // component items are referenced by their composite
     }component_type;
 
-    virtual void firstItem(unsigned char * pItem);
-    virtual unsigned char * getNextItem(int * pIdx);
+    virtual void * firstItem(unsigned char * pItem);
+    virtual void * nextItem();
+    virtual unsigned char * getCurrentItem();
     virtual bool isLastItem();
 
     cm_component(component_type t,
@@ -111,20 +119,12 @@ public:
 // Composite item descriptor's contain a list of components.
 // xxx methods (apart from constructor) are private (not for user), but config_manager is friend?
 class cm_composite_item_descriptor : public cm_item_descriptor
-{
-    unsigned int    compIndex; // index used when traversing pCompLost 
-    unsigned char * pItem;     // current item in RAM (not fixed, since there may be several items per descriptor)
-
-    
+{ 
     cm_component  * compList;           // List of components (simple or composite), an array
     unsigned short  compCount;          // Number of components in the list (number of descriptors, not items)
 
-    void firstItem(unsigned char * pParentItem);
-    void getNextItem(cm_item_descriptor ** ppDesc, int * pIdx, unsigned char ** ppItem);
-    bool isLastItem();
     virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf);
     virtual cm_item_len getTlvLen();    
-
 
 
 public:    
@@ -195,7 +195,7 @@ public:
 
 
     void print(unsigned char * pItem, string prefix);
-    void set(unsigned char * pItem, string str);
+    void set(unsigned char * pItem, string val);
     void setdef(unsigned char * pItem);
 };
 

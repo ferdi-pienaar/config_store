@@ -34,51 +34,32 @@ void config_manager::init(void)
 // Execute command words from client.
 void config_manager::do_cmd(int argc, char *argv[])
 {
-    int i;
     eCmOp op = CM_OP_NONE;
-    
-    for (i = 0; i < argc; i++)
-    {
-        cout << i << ": " << argv[i] << "." << endl;
-
-        if (getOp(argv[i]) != CM_OP_NONE)
-        {
-            break;
-        }
-    }
-
-
-    if (op != CM_OP_NONE)
-    {
-        cout << "command at " << i << endl;
-    }
 
     unsigned char      * pItem;
     cm_item_descriptor * pDesc;
 
-    if (1)
-    {
-        pDesc = base_desc;
-        pItem  = ramBase;
-        
-        // xxx for certain ops, find the item and descriptor to which to apply the op
-        // xxx in some cases, we might not want to start
-        base_desc->do_cmd(argc, argv, pItem);
-    }
 
-    switch (op)
+    // First try to treat the commands that are only applicable at the top level
+    switch (getOp(argv[0]))
     {
         case CM_LOAD:
-            cout << "load at " << i;
-            break;
+            cout << "load" << endl;
+            return;
 
         case CM_SAVE:
-            cout << "save at " << i;
-            break;
+            cout << "save" << endl;
+            return;
 
         default:
             break;
     }
+
+    pDesc = base_desc;
+    pItem  = ramBase;
+    
+    // Pass command to top level item for handling
+    base_desc->do_cmd(argc, argv, pItem);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -100,13 +81,40 @@ void cm_composite_item_descriptor::do_cmd(int argc,
 
     if (op == CM_OP_NONE)
     {
-        // If we haven't reached an operation-word in the input, look for the component to which it may apply
+        // We haven't reached an operation-word, so search for the component to which the command applies
         for (int i = 0; i < compCount; i++)
-        {
-            cm_component * pComp = &(compList[i]);
+        {            
+            cm_component *  pComp = &(compList[i]);
+            int             itemIndex = 0;
 
-            if (pComp->count > 1)
+            if (strcmp(argv[0], pComp->pDesc->getName().c_str()) == 0)
             {
+                // Found matching name, now determine if the next word should be an index
+                // xxx this works only for CONTAINED components...
+                argc--;
+                argv++;
+                if (pComp->count > 1)
+                {
+                    char * pEnd;
+                    
+                    itemIndex = strtol(argv[0], &pEnd, 0);
+
+                    if (pEnd == argv[0])
+                    {
+                        cout << "Component '" << pComp->pDesc->getName() << "' needs index." << endl;
+                        return;
+                    }
+
+                    // xxx verify index range
+                    
+                    argc--;
+                    argv++;
+                }
+
+                cout << "xxx cmd item base " << (unsigned)pItem << " offset " << pComp->offset << " index " << itemIndex << " len " << pComp->pDesc->getLen() << endl;
+
+                // Pass the remainder of the command to the matching component
+                return pComp->pDesc->do_cmd(argc, argv, pItem + pComp->offset + itemIndex * pComp->pDesc->getLen());
             }
         }
     }
@@ -123,7 +131,7 @@ void cm_composite_item_descriptor::do_cmd(int argc,
             break;
 
         case CM_SET:
-            cout << "'Set' operation not applicable to composite item " << getName() << endl;
+            cout << "'Set' operation not applicable to composite item '" << getName() << "'" << endl;
             break;
 
         case CM_SETDEF:
@@ -135,48 +143,11 @@ void cm_composite_item_descriptor::do_cmd(int argc,
 }
 
 
-// Traverse the items in xxx
-// pItem: pointer to current item
-// @return pointer to next item
-void cm_composite_item_descriptor::firstItem(unsigned char * pThisItem)
-{
-    compIndex = 0;
-    pItem = pThisItem;
-    compList[compIndex].firstItem(pItem);
-}
-
-// Returns next component item, along with the applicable descriptor.
-// These may members of successive arrays, each handled by a different component object.
-// xxx this should return a name (the index) too, rather than having a separate getCurrentItemName method.
-//
-void cm_composite_item_descriptor::getNextItem(cm_item_descriptor ** ppDesc, int * pIdx, unsigned char ** ppItem)
-{
-    cm_component * pComp = &(compList[compIndex]);
-
-    *ppDesc = pComp->pDesc;
-    *ppItem = pComp->getNextItem(pIdx);
-
-    if (pComp->isLastItem())
-    { 
-        // No more items in this component; go to next
-        pComp = &(compList[++compIndex]);
-        pComp->firstItem(pItem);
-    }
-}
-
-// The last item of a composite has been reached when we've
-// reached the last item in the last component aggregation.
-bool cm_composite_item_descriptor::isLastItem()
-{
-    return (compIndex == compCount) && compList[compIndex].isLastItem();
-}
-
-
 cm_item_len cm_composite_item_descriptor::getTlvLen()
 {
-    firstItem(pItem);
 
     // xxx traverse components
+    return 0;
 }
 
 /// Write item's TLV to a buffer, and advance the ptr to the end of memory written to.
@@ -193,19 +164,23 @@ void cm_composite_item_descriptor::writeTlv(unsigned char *pItem, unsigned char 
 // 
 void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix)
 {
-    int                  itemIndex;        
-    cm_item_descriptor * pCompDesc;
-    unsigned char *      pCompItem;
-
     char indexbuf[4];
 
     cout << "xxx debug: " << "print composite " << name << " with len " << len << endl;
 
-    for(firstItem(pItem); !isLastItem(); getNextItem(&pCompDesc, &itemIndex, &pCompItem))
-    {
+    // For each component, and for each of the array of items under it...
+    for (int i = 0; i < compCount; i++)
+    {            
+        cm_component *  pComp = &(compList[i]);
+        unsigned char * pCompItem;
 
-        snprintf(indexbuf, sizeof(indexbuf), "%d", itemIndex);
-        pCompDesc->print(pCompItem, prefix + pCompDesc->getName() + " " + indexbuf + " ");
+        int itemIndex = 0;
+
+        for (pComp->firstItem(pItem); !pComp->isLastItem(); pComp->nextItem())
+        {
+            snprintf(indexbuf, sizeof(indexbuf), "%d", itemIndex++);
+            pComp->pDesc->print(pComp->getCurrentItem(), prefix + pComp->pDesc->getName() + " " + indexbuf + " ");
+        }
     }
 }
 
@@ -225,7 +200,30 @@ void cm_simple_item_descriptor::do_cmd(int argc,
                                        char *argv[],
                                        unsigned char * pItem)
 {
+    cout << "simple cmd at " << (unsigned int)pItem << endl;
     
+    switch (getOp(argv[0]))
+    {
+        case CM_OP_NONE:
+        case CM_ADD:
+        case CM_DEL:
+            cout << argv[0] << " is not an operation supported by " << getName() << endl;
+            break;
+            
+        case CM_PRT:
+            print(pItem, "");
+            break;
+
+        case CM_SET:
+            set(pItem, argv[1]);
+            break;
+
+        case CM_SETDEF:
+            break;
+
+        default:
+            cout << "Internal error on " << argv[0] << endl;
+    }
     
 }
 
@@ -236,7 +234,7 @@ void cm_simple_item_descriptor::print(unsigned char * pItem, string prefix)
 {
     cout << prefix;
 
-    cout << "xxx debug: " << "print simple " << name << " with len " << len << endl;
+    cout << "xxx debug: " << "print simple " << name << " with len " << len << " at " << (unsigned int)pItem << endl;
     
     if (pPrt == NULL)
     {
@@ -249,6 +247,23 @@ void cm_simple_item_descriptor::print(unsigned char * pItem, string prefix)
     else
     {
         pPrt(pItem, len);
+    }
+    cout << endl;
+}
+
+
+// Set.
+void cm_simple_item_descriptor::set(unsigned char * pItem, string val)
+{
+    cout << "xxx dbg: " << "set simple " << name << " at " << (unsigned int)pItem << " to value " << val  << endl;
+    
+    if (pSet != NULL)
+    {
+        pSet(pItem, len, val);
+    }
+    else
+    {
+        cout << "set function not installed for '" << getName() << "'" << endl;
     }
     cout << endl;
 }
@@ -297,38 +312,36 @@ cm_item_len cm_simple_item_descriptor::getTlvLen()
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-// Traverse the items in an array.
-// pItem: pointer to current item
-// @return pointer to next item
-void cm_component::firstItem(unsigned char * pParentItem)
+// Traverse the items in the array.
+// pParentItem: pointer to parent item; from this component can calculate
+//              the addresses of the items it links to the composite.
+//
+void * cm_component::firstItem(unsigned char * pParentItem)
 {
     if (type == CONTAINED)
     {
         itemIndex = 0;                 // initialize counter member used in getNextItem
-        pItem = pParentItem + offset;
+        return (pFirstItem = pParentItem + offset);
     }
     else
     {
         itemIndex = 0;                                    // initialize counter member used in getNextItem
-        pItem = (unsigned char *)*(pParentItem + offset); // location is a pointer to the OWNED item
+        return (pFirstItem = *(unsigned char **)(pParentItem + offset)); // location is a pointer to the OWNED item
         assert(0);
     }
 }
 
-// Get next item in array owned by component.
-// Also return the index if pIdx is not NULL; this is used e.g. when printing the index before the item value.
+// Get next item in array handled by component.
 //
-unsigned char * cm_component::getNextItem(int * pIdx)
+void * cm_component::nextItem()
 {
-    unsigned char * ret = pItem;
+    cout<<"xxx debug: nextItem, 1st " << (unsigned int)pFirstItem << endl;
+    return pFirstItem + (pDesc->getLen() * itemIndex++);
+}
 
-    if (pIdx != NULL)
-    {
-        *pIdx = itemIndex;
-    }
-    itemIndex++;
-    pItem += pDesc->getLen();
-    return ret;
+unsigned char * cm_component::getCurrentItem()
+{
+    return pFirstItem + (pDesc->getLen() * itemIndex);
 }
 
 bool cm_component::isLastItem()
@@ -343,6 +356,7 @@ bool cm_component::isLastItem()
         return (itemIndex == count);
     }
 }
+
 
 
 // During iteration, return name of current item -- by default, just convert the iteration index
