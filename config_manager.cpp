@@ -96,34 +96,53 @@ void cm_composite_item_descriptor::do_cmd(int argc,
                                           char *argv[],
                                           unsigned char * pItem)
 {
-    // Sanity check
-    #if 0
-    if (strcmp(argv[0], name.c_str()) != 0)
-    {
-        return;
-    }
-
-    #endif
-
     eCmOp op = getOp(argv[0]);
 
-    if (op == CM_PRT)
+    if (op == CM_OP_NONE)
     {
-        print(pItem, "");
-        return;
+        // If we haven't reached an operation-word in the input, look for the component to which it may apply
+        for (int i = 0; i < compCount; i++)
+        {
+            cm_component * pComp = &(compList[i]);
+
+            if (pComp->count > 1)
+            {
+            }
+        }
     }
 
+    switch (op)
+    {
+        case CM_ADD:
+            break;
+        case CM_DEL:
+            break;
+            
+        case CM_PRT:
+            print(pItem, "");
+            break;
+
+        case CM_SET:
+            cout << "'Set' operation not applicable to composite item " << getName() << endl;
+            break;
+
+        case CM_SETDEF:
+            break;
+
+        default:
+            cout << "Internal error op " << op;
+    }
 }
 
 
 // Traverse the items in xxx
 // pItem: pointer to current item
 // @return pointer to next item
-void cm_composite_item_descriptor::startItem(unsigned char * pThisItem)
+void cm_composite_item_descriptor::firstItem(unsigned char * pThisItem)
 {
     compIndex = 0;
     pItem = pThisItem;
-    compList[compIndex].startItem(pItem);
+    compList[compIndex].firstItem(pItem);
 }
 
 // Returns next component item, along with the applicable descriptor.
@@ -137,25 +156,27 @@ void cm_composite_item_descriptor::getNextItem(cm_item_descriptor ** ppDesc, int
     *ppDesc = pComp->pDesc;
     *ppItem = pComp->getNextItem(pIdx);
 
-    if (pComp->checkLastItem())
+    if (pComp->isLastItem())
     { 
         // No more items in this component; go to next
         pComp = &(compList[++compIndex]);
-        pComp->startItem(pItem);
+        pComp->firstItem(pItem);
     }
 }
 
-//
-bool cm_composite_item_descriptor::checkLastItem()
+// The last item of a composite has been reached when we've
+// reached the last item in the last component aggregation.
+bool cm_composite_item_descriptor::isLastItem()
 {
-    return (compIndex == compCount) && compList[compIndex].checkLastItem();
+    return (compIndex == compCount) && compList[compIndex].isLastItem();
 }
-
 
 
 cm_item_len cm_composite_item_descriptor::getTlvLen()
 {
-    return 0;
+    firstItem(pItem);
+
+    // xxx traverse components
 }
 
 /// Write item's TLV to a buffer, and advance the ptr to the end of memory written to.
@@ -172,18 +193,16 @@ void cm_composite_item_descriptor::writeTlv(unsigned char *pItem, unsigned char 
 // 
 void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix)
 {
+    int                  itemIndex;        
+    cm_item_descriptor * pCompDesc;
+    unsigned char *      pCompItem;
+
     char indexbuf[4];
 
     cout << "xxx debug: " << "print composite " << name << " with len " << len << endl;
 
-    startItem(pItem);
-    while (!checkLastItem())
+    for(firstItem(pItem); !isLastItem(); getNextItem(&pCompDesc, &itemIndex, &pCompItem))
     {
-        cm_item_descriptor * pCompDesc;
-        unsigned char *      pCompItem;
-        int itemIndex;
-
-        getNextItem(&pCompDesc, &itemIndex, &pCompItem);
 
         snprintf(indexbuf, sizeof(indexbuf), "%d", itemIndex);
         pCompDesc->print(pCompItem, prefix + pCompDesc->getName() + " " + indexbuf + " ");
@@ -281,7 +300,7 @@ cm_item_len cm_simple_item_descriptor::getTlvLen()
 // Traverse the items in an array.
 // pItem: pointer to current item
 // @return pointer to next item
-void cm_component::startItem(unsigned char * pParentItem)
+void cm_component::firstItem(unsigned char * pParentItem)
 {
     if (type == CONTAINED)
     {
@@ -312,7 +331,7 @@ unsigned char * cm_component::getNextItem(int * pIdx)
     return ret;
 }
 
-bool cm_component::checkLastItem()
+bool cm_component::isLastItem()
 {
     if (type == CONTAINED)
     {    

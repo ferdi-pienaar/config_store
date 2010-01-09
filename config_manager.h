@@ -89,9 +89,9 @@ public:
         OWNED       // component items are referenced by their composite
     }component_type;
 
-    virtual void startItem(unsigned char * pItem);
+    virtual void firstItem(unsigned char * pItem);
     virtual unsigned char * getNextItem(int * pIdx);
-    virtual bool checkLastItem();
+    virtual bool isLastItem();
 
     cm_component(component_type t,
                  cm_item_descriptor * d,
@@ -119,9 +119,9 @@ class cm_composite_item_descriptor : public cm_item_descriptor
     cm_component  * compList;           // List of components (simple or composite), an array
     unsigned short  compCount;          // Number of components in the list (number of descriptors, not items)
 
-    void startItem(unsigned char * pParentItem);
+    void firstItem(unsigned char * pParentItem);
     void getNextItem(cm_item_descriptor ** ppDesc, int * pIdx, unsigned char ** ppItem);
-    bool checkLastItem();
+    bool isLastItem();
     virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf);
     virtual cm_item_len getTlvLen();    
 
