@@ -42,26 +42,22 @@ typedef void (*CM_PRT_FPTR)(unsigned char *pItem, cm_item_len len);
 class cm_item_descriptor
 {
 private:
-    virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf) = 0;    
     
 protected: // xxx these are protected because I want to access them from the derived classes
     string           name;     // name by which item is addressed on CLI
     cm_descriptor_id id;       // ID (unique within the context of the component's context) of item in NVRAM    
     cm_item_len len;  // Number of bytes occupied by an item in RAM
 
-    virtual cm_item_len getTlvLen() = 0;
 
-public:        
-
-
-    virtual cm_item_len getLen(){return len;}
-
+public: 
     cm_item_descriptor(string iname, cm_descriptor_id iid, cm_item_len ilen):
-          name(iname), id(iid), len(ilen){}
+                       name(iname), id(iid), len(ilen){}
     virtual ~cm_item_descriptor(){}
 
     virtual void do_cmd(int argc, char *argv[], unsigned char * pItem) = 0;
-
+    virtual cm_item_len getLen(){return len;}
+    virtual cm_item_len getTlvLen(unsigned char * pItem) = 0;
+    virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf) = 0;
     virtual void print(unsigned char * pItem, string prefix) = 0;
     string getName(){return name;}
 
@@ -87,7 +83,6 @@ class cm_component
     unsigned char * pFirstItem; 
     
 public:
-    // xxx there should be two subclasses corresponding to these type.
     // They'll differ in having different ways of setting pFirstItem,
     // and different ways of handling count/maxCount in getNextItem and isLastItem.
     typedef enum
@@ -124,7 +119,7 @@ class cm_composite_item_descriptor : public cm_item_descriptor
     unsigned short  compCount;          // Number of components in the list (number of descriptors, not items)
 
     virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf);
-    virtual cm_item_len getTlvLen();    
+    virtual cm_item_len getTlvLen(unsigned char * pItem);    
 
 
 public:    
@@ -161,7 +156,7 @@ class cm_simple_item_descriptor : public cm_item_descriptor
     CM_PRT_FPTR    pPrt;
 
     virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf);
-    virtual cm_item_len getTlvLen();
+    virtual cm_item_len getTlvLen(unsigned char * pItem);
     
 
 public:
@@ -206,12 +201,12 @@ class config_manager
 public:
     config_manager(cm_item_descriptor * pDesc);
     void do_cmd(int argc, char *argv[]);
-
     void init();
 
 private:
+    void save();
     
-    cm_item_descriptor * base_desc;
+    cm_item_descriptor * base_desc;    
     unsigned char *      ramBase; // xxx initialize during init
 
     // Current context

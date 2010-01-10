@@ -19,6 +19,13 @@ typedef enum
 static eCmOp getOp(char * word);
 
 
+////////////////////////////////////////////////////////////////////////////////
+//
+// config_manager
+//
+////////////////////////////////////////////////////////////////////////////////
+
+
 config_manager::config_manager(cm_item_descriptor * desc)
 {
     base_desc = desc;
@@ -34,13 +41,11 @@ void config_manager::init(void)
 // Execute command words from client.
 void config_manager::do_cmd(int argc, char *argv[])
 {
-    eCmOp op = CM_OP_NONE;
-
     unsigned char      * pItem;
     cm_item_descriptor * pDesc;
 
 
-    // First try to treat the commands that are only applicable at the top level
+    // First treat the commands that are only applicable at the top level
     switch (getOp(argv[0]))
     {
         case CM_LOAD:
@@ -48,7 +53,7 @@ void config_manager::do_cmd(int argc, char *argv[])
             return;
 
         case CM_SAVE:
-            cout << "save" << endl;
+            save();
             return;
 
         default:
@@ -60,6 +65,31 @@ void config_manager::do_cmd(int argc, char *argv[])
     
     // Pass command to top level item for handling
     base_desc->do_cmd(argc, argv, pItem);
+}
+
+// Save data in RAM to NVRAM, in TLV format.
+void config_manager::save()
+{
+    cm_item_len tlvLen = base_desc->getTlvLen(ramBase);
+
+    
+    // Allocate a temporary buffer to contain TLV format data
+    unsigned char * buf = new unsigned char[tlvLen];
+
+    // xxx debug
+    memset(buf, 0x5a, tlvLen);
+
+    cout << "Allocated buffer " << tlvLen << endl;
+
+    unsigned char * pBuf = buf; // this copy is modified by writeTlv
+
+    base_desc->writeTlv(ramBase, &pBuf);
+
+    //  xxx debug
+    for (int i = 0; i < tlvLen; i++)
+    {
+        printf("%02x\n", buf[i]);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -81,7 +111,7 @@ void cm_composite_item_descriptor::do_cmd(int argc,
 
     if (op == CM_OP_NONE)
     {
-        // We haven't reached an operation-word, so search for the component to which the command applies
+        // We haven't reached an operation-word, so pass command to component item
         for (int i = 0; i < compCount; i++)
         {            
             cm_component *  pComp = &(compList[i]);
@@ -101,11 +131,15 @@ void cm_composite_item_descriptor::do_cmd(int argc,
 
                     if (pEnd == argv[0])
                     {
-                        cout << "Component '" << pComp->pDesc->getName() << "' needs index." << endl;
+                        cout << "'"<<pComp->pDesc->getName()<<"' needs index."<<endl;
                         return;
                     }
 
-                    // xxx verify index range
+                    if (itemIndex >= pComp->count)
+                    {
+                        cout << "'"<<pComp->pDesc->getName()<<"' index out of range."<<endl;
+                        return;
+                    }
                     
                     argc--;
                     argv++;
@@ -138,27 +172,60 @@ void cm_composite_item_descriptor::do_cmd(int argc,
             break;
 
         default:
-            cout << "Internal error op " << op;
+            cout<<"Unknown command or item '"<<argv[0]<<"'"<<endl;
     }
 }
 
-
-cm_item_len cm_composite_item_descriptor::getTlvLen()
+//
+// Return the length in bytes of a TLV item.
+//
+cm_item_len cm_composite_item_descriptor::getTlvLen(unsigned char * pItem)
 {
+    cm_item_len tlvLen = sizeof(cm_descriptor_id) + sizeof(cm_item_len);
+    
+    // For each component, and for each of the array of items under it...
+    for (int i = 0; i < compCount; i++)
+    {            
+        cm_component *  pComp = &(compList[i]);
 
-    // xxx traverse components
-    return 0;
+        for (pComp->firstItem(pItem); !pComp->isLastItem(); pComp->nextItem())
+        {
+            tlvLen += pComp->pDesc->getTlvLen(pComp->getCurrentItem());
+        }
+    }    
+    return tlvLen;
 }
+
 
 /// Write item's TLV to a buffer, and advance the ptr to the end of memory written to.
 //  This is useful for writing to a RAM buffer first, for subsequent write
 //  to NVRAM.
+//  xxx add param, bufsize, to do a buffer overflow check.
 //  xxx if we want to write directly to NVRAM, we need to implement a method
 //  that does that...
 void cm_composite_item_descriptor::writeTlv(unsigned char *pItem, unsigned char ** ppBuf)
 {
+    // The L field in TLV does not include this item's T+L fields
+    cm_item_len componentLen = getTlvLen(pItem) - sizeof(len) - sizeof(id);
     
+    // First write own Type and Length
+    memcpy(*ppBuf, &id, sizeof(id));             // write Type (i.e. the ID)
+    *ppBuf += sizeof(id);                        // advance the memory pointer
+    memcpy(*ppBuf, &componentLen, sizeof(len));  // write Length (of Value to follow)
+    *ppBuf += sizeof(len);                       // advance the memory pointer
+    
+    // Now write V, which is the TLVs of all components
+    for (int i = 0; i < compCount; i++)
+    {            
+        cm_component *  pComp = &(compList[i]);
+
+        for (pComp->firstItem(pItem); !pComp->isLastItem(); pComp->nextItem())
+        {
+            pComp->pDesc->writeTlv(pComp->getCurrentItem(), ppBuf);
+        }
+    }
 }
+
 
 // Delegate print command to components
 // 
@@ -172,7 +239,6 @@ void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix)
     for (int i = 0; i < compCount; i++)
     {            
         cm_component *  pComp = &(compList[i]);
-        unsigned char * pCompItem;
 
         int itemIndex = 0;
 
@@ -222,7 +288,7 @@ void cm_simple_item_descriptor::do_cmd(int argc,
             break;
 
         default:
-            cout << "Internal error on " << argv[0] << endl;
+            cout << "Unknown operation '" << argv[0] << "'" << endl;
     }
     
 }
@@ -263,7 +329,7 @@ void cm_simple_item_descriptor::set(unsigned char * pItem, string val)
     }
     else
     {
-        cout << "set function not installed for '" << getName() << "'" << endl;
+        cout << "'" << getName() << "' can't be set." << endl;
     }
     cout << endl;
 }
@@ -288,20 +354,21 @@ void cm_simple_item_descriptor::setdef(unsigned char * pItem)
 //  that does that...
 void cm_simple_item_descriptor::writeTlv(unsigned char *pItem, unsigned char ** ppBuf)
 {
-    **ppBuf = id;                      // write Type (i.e. the ID)
+    memcpy(*ppBuf, &id, sizeof(id));   // write Type (i.e. the ID)
     *ppBuf += sizeof(id);              // advance the memory pointer
-    **ppBuf = getTlvLen();             // write Length
-    *ppBuf += sizeof(cm_item_len);     // advance the memory pointer
+    memcpy(*ppBuf, &len, sizeof(len)); // write Length
+    *ppBuf += sizeof(len);             // advance the memory pointer
 
-    memcpy(*ppBuf, pItem, len);
+    memcpy(*ppBuf, pItem, len);        // write Value
     *ppBuf += len;
-    
 }
 
 /// Return total length of TLV item:
 //  The number of bytes taken up by T + L + V.
-cm_item_len cm_simple_item_descriptor::getTlvLen()
+//  (For a simple item, there's no dependency on pItem, the RAM contents.)
+cm_item_len cm_simple_item_descriptor::getTlvLen(unsigned char * pItem)
 {
+    cout << "simple tlv " << sizeof(cm_descriptor_id) + sizeof(cm_item_len) + getLen() << endl;
     return sizeof(cm_descriptor_id) + sizeof(cm_item_len) + getLen();
 }
 

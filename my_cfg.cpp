@@ -23,7 +23,7 @@ cm_simple_item_descriptor ip_address = cm_simple_item_descriptor("ipaddr",
                                                                  NULL,
                                                                  cm_prt_int);
 
-cm_simple_item_descriptor cliPort = cm_simple_item_descriptor("cliPort", 
+cm_simple_item_descriptor cliPort = cm_simple_item_descriptor("port", 
                                                               DEVICE_CLIPORT,
                                                               sizeof(unsigned short), // xxx
                                                               cm_set_int,
