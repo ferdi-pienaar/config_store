@@ -45,7 +45,7 @@ void config_manager::init(void)
 
     base_desc->setdef(ramBase);
 
-    // base_desc->load(ramBase);
+    //load(ramBase);
 }
 
 
@@ -131,7 +131,7 @@ void config_manager::load()
         // We haven't reached an operation-word, so pass command to component item
         for (int i = 0; i < compCount; i++)
         {            
-            cm_component * pComp = &(compList[i]);
+            cm_component * pComp = compList[i];
             int            itemIndex = 0;
 
             if (strcmp(argv[0], pComp->pDesc->getName().c_str()) == 0)
@@ -210,7 +210,7 @@ cm_item_len cm_composite_item_descriptor::getTlvLen(unsigned char * pItem)
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < compCount; i++)
     {            
-        cm_component * pComp = &(compList[i]);
+        cm_component * pComp = compList[i];
 
         for (pComp->firstItem(pItem); !pComp->isLastItem(); pComp->nextItem())
         {
@@ -241,7 +241,7 @@ void cm_composite_item_descriptor::writeTlv(unsigned char *pItem, unsigned char 
     // Now write V, which is the TLVs of all components
     for (int i = 0; i < compCount; i++)
     {            
-        cm_component * pComp = &(compList[i]);
+        cm_component * pComp = compList[i];
 
         for (pComp->firstItem(pItem); !pComp->isLastItem(); pComp->nextItem())
         {
@@ -262,7 +262,7 @@ void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix)
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < compCount; i++)
     {            
-        cm_component * pComp = &(compList[i]);
+        cm_component * pComp = compList[i];
 
         int itemIndex = 0;
 
@@ -283,7 +283,7 @@ void cm_composite_item_descriptor::setdef(unsigned char * pItem)
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < compCount; i++)
     {            
-        cm_component * pComp = &(compList[i]);
+        cm_component * pComp = compList[i];
 
         for (pComp->firstItem(pItem); !pComp->isLastItem(); pComp->nextItem())
         {
@@ -420,24 +420,6 @@ cm_item_len cm_simple_item_descriptor::getTlvLen(unsigned char * pItem)
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-// Traverse the items in the array.
-// pParentItem: pointer to parent item; from this component can calculate
-//              the addresses of the items it links to the composite.
-//
-void cm_component::firstItem(unsigned char * pParentItem)
-{
-    if (type == CONTAINED)
-    {
-        itemIndex = 0;                 // initialize counter member used in getNextItem
-        pFirstItem = pParentItem + offset;
-    }
-    else
-    {
-        itemIndex = 0;                                    // initialize counter member used in getNextItem
-        pFirstItem = *(unsigned char **)(pParentItem + offset); // location is a pointer to the OWNED item
-        assert(0);
-    }
-}
 
 // Get next item in array handled by component.
 //
@@ -451,19 +433,84 @@ unsigned char * cm_component::getCurrentItem()
     return pFirstItem + (pDesc->getLen() * itemIndex);
 }
 
-bool cm_component::isLastItem()
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// cm_contained_component
+//
+////////////////////////////////////////////////////////////////////////////////
+
+// Traverse the items in the array.
+// pParentItem: pointer to parent item; from this component can calculate
+//              the addresses of the items it links to the composite.
+//
+void cm_contained_component::firstItem(unsigned char * pParentItem)
 {
-    if (type == CONTAINED)
-    {    
-        return (itemIndex == count);
-    }
-    else
-    {        
-        // xxx Wrong -- Here, count is dynamic, and saved in a previous CONTAINED item
-        return (itemIndex == count);
-    }
+    itemIndex = 0;                 // initialize counter member used in getNextItem
+    pFirstItem = pParentItem + offset;
 }
 
+// Return true if index has reached fixed max value
+bool cm_contained_component::isLastItem()
+{
+    return (itemIndex == count);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// cm_owned_component
+//
+////////////////////////////////////////////////////////////////////////////////
+
+// Traverse the items in the array.
+// pParentItem: pointer to parent item; from this component can calculate
+//              the addresses of the items it links to the composite.
+//
+void cm_owned_component::firstItem(unsigned char * pParentItem)
+{
+    itemIndex = 0;                                    // initialize counter member used in getNextItem
+    pFirstItem = *(unsigned char **)(pParentItem + offset); // location is a pointer to the OWNED item
+}
+
+
+// Return true if index has reached the value of the counter 
+// xxx could we obtain the value of the counter earlier?
+// xxx giving a fixed size to counters would simplify this, but
+// introduce a dependency on the application programmer doing the right thing.
+bool cm_owned_component::isLastItem()
+{ 
+    unsigned int c;
+
+    switch (pCounterComp->pDesc->getLen()) 
+    { 
+        case 1: 
+            {
+                unsigned char v;
+
+                memcpy(&v, pFirstItem - pCounterComp->offset, sizeof(v));
+                c = v;
+            }
+            break;
+       
+        case 2:
+            { 
+                unsigned short v;
+
+                memcpy(&v, pFirstItem - pCounterComp->offset, sizeof(v));
+                c = v;
+            }
+            break;
+       
+        case 4: 
+            memcpy(&c, pFirstItem - pCounterComp->offset, sizeof(c)); 
+            break;
+
+        default:
+            assert(0);
+       
+    }
+    return (itemIndex == c);
+}
 
 
 // During iteration, return name of current item -- by default, just convert the iteration index

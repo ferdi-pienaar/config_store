@@ -6,6 +6,8 @@
 #include <iostream>
 using namespace std;
 
+// xxx throughout I've provisionally avoided the use of references; revise this.
+
 
 // xxx one of the problems with the earlier version of this code that I'd like
 // to avoid this time is requiring the application developer to know that
@@ -73,7 +75,10 @@ public:
     
 };
 
+///
 // The way in which a cm_item_descriptor forms part of a composite.
+// Within a composite descriptor, there's one of these for each
+// component descriptor (i.e. one for each array of component items).
 //  It may be CONTAINED or OWNED.
 //  There may be one or more instances (i.e. single item or an array of items).
 // xxx Should CONTAINED or OWNED be handled as classes?
@@ -84,6 +89,7 @@ public:
 // as friend, since it has to read (but not write) them.
 class cm_component
 {
+protected:
     unsigned int    itemIndex;  // index used when traversing the array of component items 
 
     // pointer used to traverse array (xxx base value can change during add, del & setdef, or can we set it
@@ -94,37 +100,63 @@ class cm_component
 public:
     // They'll differ in having different ways of setting pFirstItem,
     // and different ways of handling count/maxCount in getNextItem and isLastItem.
-    typedef enum
-    {
-        CONTAINED,  // component items are part of the composite (memory allocated at same time)
-        OWNED       // component items are referenced by their composite
-    }component_type;
 
-    virtual void firstItem(unsigned char * pItem);
+    virtual void firstItem(unsigned char * pItem) = 0;
     virtual const unsigned char * nextItem();
     virtual unsigned char * getCurrentItem();
-    virtual bool isLastItem();
+    virtual bool isLastItem() = 0;
 
-    cm_component(component_type t,
-                 cm_item_descriptor * d,
+    cm_component(cm_item_descriptor * d,
                  unsigned short c,
                  unsigned int o):
-                 type(t), pDesc(d), count(c), offset(o){};
+                 pDesc(d), count(c), offset(o){};
 
-    component_type       type;   //    
     cm_item_descriptor * pDesc;  // the component's descriptor
     unsigned short       count;  // (Max) number of instances of the item
-    unsigned int         offset; // Offset of items (or pointer to items) within the composite
+    unsigned int         offset; // Offset [bytes] of items (or pointer to items) within the composite item
+};
+
+// Component items are contained within the composite: the item memory is allocated along
+// with that of the composite item, and the 'add' and 'del' operations don't apply.
+class cm_contained_component : public cm_component
+{
+public:
+    cm_contained_component(cm_item_descriptor * d,
+                           unsigned short c,
+                           unsigned int o):
+                           cm_component(d,c,o){}
+
+    void firstItem(unsigned char * pParentItem);
+    virtual bool isLastItem();
 
 };
 
+// Component items are owned but not contained by the composite: the item memory is allocated
+// by an 'add' operation and freed by a 'del' operation.  By default, the number
+// of items is 0.
+class cm_owned_component : public cm_component
+{
+private:
+    cm_contained_component * pCounterComp;
+    
+public:
+     cm_owned_component(cm_item_descriptor * d,
+                        unsigned short c,
+                        unsigned int o,
+                        cm_contained_component * cComp):
+                        cm_component(d,c,o), pCounterComp(cComp){}
+
+     void firstItem(unsigned char * pParentItem);
+     virtual bool isLastItem();
+
+};
 
 
 // Composite item descriptor's contain a list of components.
 // xxx methods (apart from constructor) are private (not for user), but config_manager is friend?
 class cm_composite_item_descriptor : public cm_item_descriptor
 { 
-    cm_component  * compList;           // List of components (simple or composite), an array
+    cm_component ** compList;           // List of ptrs to components, an array
     unsigned short  compCount;          // Number of components in the list (number of descriptors, not items)
 
     virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf);
@@ -135,7 +167,7 @@ public:
     cm_composite_item_descriptor(char * name,
                                  cm_descriptor_id id,
                                  cm_item_len l,
-                                 cm_component * componentList,
+                                 cm_component ** componentList,
                                  unsigned short componentCount):
                                  cm_item_descriptor(name, id, l), // init base class
                                  compList(componentList),         // init data member
@@ -170,18 +202,6 @@ class cm_simple_item_descriptor : public cm_item_descriptor
     
 
 public:
-    #if 1
-    // Further subclassing?  Two types of behaviour: if COUNT, the value is
-    // used by CM as a counter.
-    // The derived class
-    #else
-    typedef enum
-    {
-        STANDARD,    // item has no meaning to config manager
-        OWNED_COUNT, // item is used by CM as counter for following array of OWNED components
-        NAME         // item is name distinguishing an item from others in the array (instead of idx)
-    }item_type;
-    #endif
         
     cm_simple_item_descriptor(char * name,
                               cm_descriptor_id id,

@@ -27,8 +27,10 @@ typedef struct
     unsigned long  addr;
     unsigned short cliPort[NUM_CLI_PORT];
 
-    
+    unsigned int   userCount;
+    tUser        * users;
 
+    
 } tDevice;
 
 
