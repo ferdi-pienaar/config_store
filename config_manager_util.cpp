@@ -6,11 +6,13 @@
 #include "config_manager_util.h"
 #include <assert.h>
 #include <limits.h>
+#include <stdint.h> // uint8_t, etc
+
 using namespace std;
 
 
 // signed int
-void cm_prt_int(unsigned char *pItem, cm_item_len len)
+void cm_prt_int(const unsigned char *pItem, cm_item_len len)
 {
     int v;
     

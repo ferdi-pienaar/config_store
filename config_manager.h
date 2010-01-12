@@ -2,7 +2,7 @@
 #ifndef CFG_MAN_H
 #define CFG_MAN_H
 
-#include <stdint.h>
+#include <stdint.h> // uint8_t, etc
 #include <iostream>
 using namespace std;
 
@@ -10,6 +10,13 @@ using namespace std;
 // xxx one of the problems with the earlier version of this code that I'd like
 // to avoid this time is requiring the application developer to know that
 // a component counter has to precede an OWNED component or component array.
+// Possible solution: during init, for an OWNED component, give a pointer
+// to the descriptor of its counter, which must be a member of the same
+// composite.  Hence, the offset (and size) is available, and the item can be accessed
+// (in RAM).  This also forces the application programmer to
+// supply something, i.e. the API guides him.
+// Is there something we can do to verify, maybe at run-time, that the correct thing
+// has been done?
 
 // Number of bytes in an item; used in NVRAM
 // Because it determines the longest possible length of any item in NVRAM,
@@ -23,7 +30,7 @@ typedef unsigned short cm_descriptor_id;
 // Function pointers -- types registered by user when descriptor is created
 typedef void (*CM_SET_FPTR)(unsigned char *pItem, cm_item_len len, string val);
 typedef void (*CM_SETDEF_FPTR)(unsigned char *pItem, cm_item_len len);
-typedef void (*CM_PRT_FPTR)(unsigned char *pItem, cm_item_len len);
+typedef void (*CM_PRT_FPTR)(const unsigned char *pItem, cm_item_len len);
 
 
 // We eliminate the getItem method, and pass the command string recursively down the
@@ -59,6 +66,8 @@ public:
     virtual cm_item_len getTlvLen(unsigned char * pItem) = 0;
     virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf) = 0;
     virtual void print(unsigned char * pItem, string prefix) = 0;
+    virtual void setdef(unsigned char * pItem) = 0;
+
     string getName(){return name;}
 
     
@@ -91,8 +100,8 @@ public:
         OWNED       // component items are referenced by their composite
     }component_type;
 
-    virtual void * firstItem(unsigned char * pItem);
-    virtual void * nextItem();
+    virtual void firstItem(unsigned char * pItem);
+    virtual const unsigned char * nextItem();
     virtual unsigned char * getCurrentItem();
     virtual bool isLastItem();
 
@@ -136,6 +145,7 @@ public:
     ~cm_composite_item_descriptor(){};
     void do_cmd(int argc, char *argv[], unsigned char * pItem);
     void print(unsigned char * pItem, string prefix);
+    void setdef(unsigned char * pItem);
 
 };
 
@@ -205,6 +215,7 @@ public:
 
 private:
     void save();
+    void load();
     
     cm_item_descriptor * base_desc;    
     unsigned char *      ramBase; // xxx initialize during init

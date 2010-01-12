@@ -29,7 +29,10 @@ int main()
 
         printf(">");
 
-        fgets(cmd, sizeof(cmd), stdin);
+        if (fgets(cmd, sizeof(cmd), stdin) == NULL)
+        {
+            continue;
+        }
 
         param[0] = strtok(cmd, WORD_DELIMITERS);
 

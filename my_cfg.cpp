@@ -18,7 +18,7 @@ enum
 
 cm_simple_item_descriptor ip_address = cm_simple_item_descriptor("ipaddr",
                                                                  DEVICE_IPADDR,
-                                                                 sizeof(unsigned long), // xxx
+                                                                 sizeof(unsigned long), // xxx define SIZEOF macro
                                                                  cm_set_int,
                                                                  NULL,
                                                                  cm_prt_int);

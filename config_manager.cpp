@@ -2,6 +2,11 @@
 #include <sstream>
 using namespace std;
 
+#ifdef DEBUG_PRINT
+#define DBG_PRT(fmt,...) printf(fmt, ##__VA_ARGS__)
+#else
+#define DBG_PRT(fmt,...)
+#endif
 
 typedef enum
 {
@@ -32,13 +37,19 @@ config_manager::config_manager(cm_item_descriptor * desc)
 }
 
 
-// xxx calls setdef for base descriptor, then load
+// Initialize config manager: allocate and populate item memory in RAM.
+//
 void config_manager::init(void)
 {
-    ramBase = (unsigned char *)malloc(base_desc->getLen());  
+    ramBase = (unsigned char *)malloc(base_desc->getLen());
+
+    base_desc->setdef(ramBase);
+
+    // base_desc->load(ramBase);
 }
 
-// Execute command words from client.
+
+// Execute command words entered by client on CLI.
 void config_manager::do_cmd(int argc, char *argv[])
 {
     unsigned char      * pItem;
@@ -49,7 +60,7 @@ void config_manager::do_cmd(int argc, char *argv[])
     switch (getOp(argv[0]))
     {
         case CM_LOAD:
-            cout << "load" << endl;
+            load();
             return;
 
         case CM_SAVE:
@@ -66,6 +77,7 @@ void config_manager::do_cmd(int argc, char *argv[])
     // Pass command to top level item for handling
     base_desc->do_cmd(argc, argv, pItem);
 }
+
 
 // Save data in RAM to NVRAM, in TLV format.
 void config_manager::save()
@@ -92,6 +104,13 @@ void config_manager::save()
     }
 }
 
+
+// Load data in NVRAM, in TLV format, to configurable items in RAM.
+void config_manager::load()
+{
+    cout << "load." << endl;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // cm_composite_item_descriptor
@@ -103,9 +122,7 @@ void config_manager::save()
 // argv array of strings containing name elements
 // pItem - pointer to RAM at which item is located
 //
-void cm_composite_item_descriptor::do_cmd(int argc,
-                                          char *argv[],
-                                          unsigned char * pItem)
+ void cm_composite_item_descriptor::do_cmd(int argc, char *argv[], unsigned char * pItem)
 {
     eCmOp op = getOp(argv[0]);
 
@@ -114,8 +131,8 @@ void cm_composite_item_descriptor::do_cmd(int argc,
         // We haven't reached an operation-word, so pass command to component item
         for (int i = 0; i < compCount; i++)
         {            
-            cm_component *  pComp = &(compList[i]);
-            int             itemIndex = 0;
+            cm_component * pComp = &(compList[i]);
+            int            itemIndex = 0;
 
             if (strcmp(argv[0], pComp->pDesc->getName().c_str()) == 0)
             {
@@ -123,6 +140,9 @@ void cm_composite_item_descriptor::do_cmd(int argc,
                 // xxx this works only for CONTAINED components...
                 argc--;
                 argv++;
+
+                
+                
                 if (pComp->count > 1)
                 {
                     char * pEnd;
@@ -145,7 +165,7 @@ void cm_composite_item_descriptor::do_cmd(int argc,
                     argv++;
                 }
 
-                cout << "xxx cmd item base " << (unsigned)pItem << " offset " << pComp->offset << " index " << itemIndex << " len " << pComp->pDesc->getLen() << endl;
+                DBG_PRT("cmd item base %p offset %d index %d len %d\n", pItem, pComp->offset, itemIndex, pComp->pDesc->getLen());
 
                 // Pass the remainder of the command to the matching component
                 return pComp->pDesc->do_cmd(argc, argv, pItem + pComp->offset + itemIndex * pComp->pDesc->getLen());
@@ -156,8 +176,11 @@ void cm_composite_item_descriptor::do_cmd(int argc,
     switch (op)
     {
         case CM_ADD:
+            // xxx implement
             break;
+            
         case CM_DEL:
+            // xxx implement
             break;
             
         case CM_PRT:
@@ -169,6 +192,7 @@ void cm_composite_item_descriptor::do_cmd(int argc,
             break;
 
         case CM_SETDEF:
+            setdef(pItem);
             break;
 
         default:
@@ -186,7 +210,7 @@ cm_item_len cm_composite_item_descriptor::getTlvLen(unsigned char * pItem)
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < compCount; i++)
     {            
-        cm_component *  pComp = &(compList[i]);
+        cm_component * pComp = &(compList[i]);
 
         for (pComp->firstItem(pItem); !pComp->isLastItem(); pComp->nextItem())
         {
@@ -205,7 +229,7 @@ cm_item_len cm_composite_item_descriptor::getTlvLen(unsigned char * pItem)
 //  that does that...
 void cm_composite_item_descriptor::writeTlv(unsigned char *pItem, unsigned char ** ppBuf)
 {
-    // The L field in TLV does not include this item's T+L fields
+    // The L field in TLV excludes this item's T+L fields
     cm_item_len componentLen = getTlvLen(pItem) - sizeof(len) - sizeof(id);
     
     // First write own Type and Length
@@ -217,7 +241,7 @@ void cm_composite_item_descriptor::writeTlv(unsigned char *pItem, unsigned char 
     // Now write V, which is the TLVs of all components
     for (int i = 0; i < compCount; i++)
     {            
-        cm_component *  pComp = &(compList[i]);
+        cm_component * pComp = &(compList[i]);
 
         for (pComp->firstItem(pItem); !pComp->isLastItem(); pComp->nextItem())
         {
@@ -233,19 +257,37 @@ void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix)
 {
     char indexbuf[4];
 
-    cout << "xxx debug: " << "print composite " << name << " with len " << len << endl;
+    DBG_PRT("print composite %s with len %d\n", name.c_str(), len);
 
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < compCount; i++)
     {            
-        cm_component *  pComp = &(compList[i]);
+        cm_component * pComp = &(compList[i]);
 
         int itemIndex = 0;
 
         for (pComp->firstItem(pItem); !pComp->isLastItem(); pComp->nextItem())
         {
+            // xxx need pComp->indexNeeded to know if we an index to print, or during command parsing.
             snprintf(indexbuf, sizeof(indexbuf), "%d", itemIndex++);
             pComp->pDesc->print(pComp->getCurrentItem(), prefix + pComp->pDesc->getName() + " " + indexbuf + " ");
+        }
+    }
+}
+
+// Delegate setdef command to components
+// xxx TBD: for OWNED components, free owned memory before setting
+// the corresponding counter to 0.
+void cm_composite_item_descriptor::setdef(unsigned char * pItem)
+{    
+    // For each component, and for each of the array of items under it...
+    for (int i = 0; i < compCount; i++)
+    {            
+        cm_component * pComp = &(compList[i]);
+
+        for (pComp->firstItem(pItem); !pComp->isLastItem(); pComp->nextItem())
+        {
+            pComp->pDesc->setdef(pComp->getCurrentItem());
         }
     }
 }
@@ -262,11 +304,9 @@ void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix)
 // argv array of strings containing name elements
 // pItem - pointer to RAM at which item is located
 //
-void cm_simple_item_descriptor::do_cmd(int argc,
-                                       char *argv[],
-                                       unsigned char * pItem)
+void cm_simple_item_descriptor::do_cmd(int argc, char *argv[], unsigned char * pItem)
 {
-    cout << "simple cmd at " << (unsigned int)pItem << endl;
+    DBG_PRT("simple cmd at %p\n", pItem);
     
     switch (getOp(argv[0]))
     {
@@ -285,6 +325,7 @@ void cm_simple_item_descriptor::do_cmd(int argc,
             break;
 
         case CM_SETDEF:
+            setdef(pItem);
             break;
 
         default:
@@ -300,7 +341,7 @@ void cm_simple_item_descriptor::print(unsigned char * pItem, string prefix)
 {
     cout << prefix;
 
-    cout << "xxx debug: " << "print simple " << name << " with len " << len << " at " << (unsigned int)pItem << endl;
+    DBG_PRT("print simple %s with len %d at %p\n", name.c_str(), len, pItem);
     
     if (pPrt == NULL)
     {
@@ -321,8 +362,8 @@ void cm_simple_item_descriptor::print(unsigned char * pItem, string prefix)
 // Set.
 void cm_simple_item_descriptor::set(unsigned char * pItem, string val)
 {
-    cout << "xxx dbg: " << "set simple " << name << " at " << (unsigned int)pItem << " to value " << val  << endl;
-    
+    DBG_PRT("set simple %s at %p to value %s\n", name.c_str(), pItem, val.c_str());
+
     if (pSet != NULL)
     {
         pSet(pItem, len, val);
@@ -334,6 +375,7 @@ void cm_simple_item_descriptor::set(unsigned char * pItem, string val)
     cout << endl;
 }
 
+// Set configurable item to its default value.
 void cm_simple_item_descriptor::setdef(unsigned char * pItem)
 {
     if (pSetDef == NULL)
@@ -368,7 +410,6 @@ void cm_simple_item_descriptor::writeTlv(unsigned char *pItem, unsigned char ** 
 //  (For a simple item, there's no dependency on pItem, the RAM contents.)
 cm_item_len cm_simple_item_descriptor::getTlvLen(unsigned char * pItem)
 {
-    cout << "simple tlv " << sizeof(cm_descriptor_id) + sizeof(cm_item_len) + getLen() << endl;
     return sizeof(cm_descriptor_id) + sizeof(cm_item_len) + getLen();
 }
 
@@ -383,26 +424,25 @@ cm_item_len cm_simple_item_descriptor::getTlvLen(unsigned char * pItem)
 // pParentItem: pointer to parent item; from this component can calculate
 //              the addresses of the items it links to the composite.
 //
-void * cm_component::firstItem(unsigned char * pParentItem)
+void cm_component::firstItem(unsigned char * pParentItem)
 {
     if (type == CONTAINED)
     {
         itemIndex = 0;                 // initialize counter member used in getNextItem
-        return (pFirstItem = pParentItem + offset);
+        pFirstItem = pParentItem + offset;
     }
     else
     {
         itemIndex = 0;                                    // initialize counter member used in getNextItem
-        return (pFirstItem = *(unsigned char **)(pParentItem + offset)); // location is a pointer to the OWNED item
+        pFirstItem = *(unsigned char **)(pParentItem + offset); // location is a pointer to the OWNED item
         assert(0);
     }
 }
 
 // Get next item in array handled by component.
 //
-void * cm_component::nextItem()
+const unsigned char * cm_component::nextItem()
 {
-    cout<<"xxx debug: nextItem, 1st " << (unsigned int)pFirstItem << endl;
     return pFirstItem + (pDesc->getLen() * itemIndex++);
 }
 
