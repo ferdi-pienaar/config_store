@@ -137,13 +137,11 @@ void config_manager::load()
             if (strcmp(argv[0], pComp->pDesc->getName().c_str()) == 0)
             {
                 // Found matching name, now determine if the next word should be an index
-                // xxx this works only for CONTAINED components...
                 argc--;
                 argv++;
 
-                
-                
-                if (pComp->count > 1)
+                // If there's more than one item, an index must be provided
+                if (pComp->getCount(pItem) > 1)
                 {
                     char * pEnd;
                     
@@ -173,6 +171,7 @@ void config_manager::load()
         }
     }
 
+    // If we're here, it means argv[0] was an operation, or there was no match to next part of item id
     switch (op)
     {
         case CM_ADD:
@@ -210,11 +209,12 @@ cm_item_len cm_composite_item_descriptor::getTlvLen(unsigned char * pItem)
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < compCount; i++)
     {            
-        cm_component * pComp = compList[i];
+        cm_component *  pComp = compList[i];
+        unsigned char * pFirstItem = pComp->getFirstItem(pItem);
 
-        for (pComp->firstItem(pItem); !pComp->isLastItem(); pComp->nextItem())
+        for (unsigned j = 0; !pComp->isLastItem(pItem, j); j++)
         {
-            tlvLen += pComp->pDesc->getTlvLen(pComp->getCurrentItem());
+            tlvLen += pComp->pDesc->getTlvLen(pFirstItem + j * pComp->pDesc->getLen());
         }
     }    
     return tlvLen;
@@ -241,11 +241,12 @@ void cm_composite_item_descriptor::writeTlv(unsigned char *pItem, unsigned char 
     // Now write V, which is the TLVs of all components
     for (int i = 0; i < compCount; i++)
     {            
-        cm_component * pComp = compList[i];
+        cm_component *  pComp = compList[i];
+        unsigned char * pFirstItem = pComp->getFirstItem(pItem);
 
-        for (pComp->firstItem(pItem); !pComp->isLastItem(); pComp->nextItem())
+        for (unsigned j = 0; !pComp->isLastItem(pItem, j); j++)
         {
-            pComp->pDesc->writeTlv(pComp->getCurrentItem(), ppBuf);
+            pComp->pDesc->writeTlv(pFirstItem + j * pComp->pDesc->getLen(), ppBuf);
         }
     }
 }
@@ -255,25 +256,34 @@ void cm_composite_item_descriptor::writeTlv(unsigned char *pItem, unsigned char 
 // 
 void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix)
 {
-    char indexbuf[4];
+    char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
 
     DBG_PRT("print composite %s with len %d\n", name.c_str(), len);
 
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < compCount; i++)
     {            
-        cm_component * pComp = compList[i];
+        cm_component *  pComp = compList[i];
+        unsigned char * pFirstItem = pComp->getFirstItem(pItem);
 
-        int itemIndex = 0;
 
-        for (pComp->firstItem(pItem); !pComp->isLastItem(); pComp->nextItem())
+        for (unsigned j = 0; !pComp->isLastItem(pItem, j); j++)
         {
-            // xxx need pComp->indexNeeded to know if we an index to print, or during command parsing.
-            snprintf(indexbuf, sizeof(indexbuf), "%d", itemIndex++);
-            pComp->pDesc->print(pComp->getCurrentItem(), prefix + pComp->pDesc->getName() + " " + indexbuf + " ");
+            if (pComp->getCount(pItem) > 1)
+            {
+                // There's more than one item, so print the index to distinguish among them
+                snprintf(indexbuf, sizeof(indexbuf), " %d", j);
+            }
+            else
+            {
+                // There's only one item, so we needn't print an index
+                indexbuf[0] = 0;
+            }
+            pComp->pDesc->print(pFirstItem + j * pComp->pDesc->getLen(), prefix + pComp->pDesc->getName() + indexbuf + " ");
         }
     }
 }
+
 
 // Delegate setdef command to components
 // xxx TBD: for OWNED components, free owned memory before setting
@@ -283,11 +293,13 @@ void cm_composite_item_descriptor::setdef(unsigned char * pItem)
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < compCount; i++)
     {            
-        cm_component * pComp = compList[i];
+        cm_component *  pComp = compList[i];
+        unsigned char * pFirstItem = pComp->getFirstItem(pItem);
 
-        for (pComp->firstItem(pItem); !pComp->isLastItem(); pComp->nextItem())
+
+        for (unsigned j = 0; !pComp->isLastItem(pItem, j); j++)
         {
-            pComp->pDesc->setdef(pComp->getCurrentItem());
+            pComp->pDesc->setdef(pFirstItem + j * pComp->pDesc->getLen());
         }
     }
 }
@@ -376,6 +388,12 @@ void cm_simple_item_descriptor::set(unsigned char * pItem, string val)
 }
 
 // Set configurable item to its default value.
+// xxx for owned counters, no modification should be allowed;
+// this probably means we should not implement the default
+// setdef here, but create it as a util and let the client
+// install it if that's what he wants.
+// But we should check that for a counter, no setdef or set
+// is installed.
 void cm_simple_item_descriptor::setdef(unsigned char * pItem)
 {
     if (pSetDef == NULL)
@@ -421,19 +439,6 @@ cm_item_len cm_simple_item_descriptor::getTlvLen(unsigned char * pItem)
 ////////////////////////////////////////////////////////////////////////////////
 
 
-// Get next item in array handled by component.
-//
-const unsigned char * cm_component::nextItem()
-{
-    return pFirstItem + (pDesc->getLen() * itemIndex++);
-}
-
-unsigned char * cm_component::getCurrentItem()
-{
-    return pFirstItem + (pDesc->getLen() * itemIndex);
-}
-
-
 ////////////////////////////////////////////////////////////////////////////////
 //
 // cm_contained_component
@@ -444,17 +449,23 @@ unsigned char * cm_component::getCurrentItem()
 // pParentItem: pointer to parent item; from this component can calculate
 //              the addresses of the items it links to the composite.
 //
-void cm_contained_component::firstItem(unsigned char * pParentItem)
+unsigned char * cm_contained_component::getFirstItem(unsigned char * pParentItem)
 {
-    itemIndex = 0;                 // initialize counter member used in getNextItem
-    pFirstItem = pParentItem + offset;
+   return pParentItem + offset;
 }
 
 // Return true if index has reached fixed max value
-bool cm_contained_component::isLastItem()
+bool cm_contained_component::isLastItem(unsigned char * pParentItem, unsigned itemIndex)
 {
     return (itemIndex == count);
 }
+
+// Return the number of items in the component's array
+unsigned cm_contained_component::getCount(unsigned char * pParentItem)
+{
+    return count;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -466,28 +477,33 @@ bool cm_contained_component::isLastItem()
 // pParentItem: pointer to parent item; from this component can calculate
 //              the addresses of the items it links to the composite.
 //
-void cm_owned_component::firstItem(unsigned char * pParentItem)
+unsigned char * cm_owned_component::getFirstItem(unsigned char * pParentItem)
 {
-    itemIndex = 0;                                    // initialize counter member used in getNextItem
-    pFirstItem = *(unsigned char **)(pParentItem + offset); // location is a pointer to the OWNED item
+    return *(unsigned char **)(pParentItem + offset); // location is a pointer to the OWNED item
 }
 
 
 // Return true if index has reached the value of the counter 
-// xxx could we obtain the value of the counter earlier?
-// xxx giving a fixed size to counters would simplify this, but
-// introduce a dependency on the application programmer doing the right thing.
-bool cm_owned_component::isLastItem()
+bool cm_owned_component::isLastItem(unsigned char * pParentItem, unsigned itemIndex)
 { 
+    return (itemIndex == getCount(pParentItem));
+}
+
+
+// Return the number of items in the component's array
+// xxx giving a fixed size to counters would simplify this, but
+// introduces a dependency on the application programmer doing the right thing
+unsigned cm_owned_component::getCount(unsigned char * pParentItem)
+{
     unsigned int c;
 
     switch (pCounterComp->pDesc->getLen()) 
     { 
-        case 1: 
+        case 1:
             {
                 unsigned char v;
 
-                memcpy(&v, pFirstItem - pCounterComp->offset, sizeof(v));
+                memcpy(&v, pParentItem + pCounterComp->offset, sizeof(v));
                 c = v;
             }
             break;
@@ -496,20 +512,20 @@ bool cm_owned_component::isLastItem()
             { 
                 unsigned short v;
 
-                memcpy(&v, pFirstItem - pCounterComp->offset, sizeof(v));
+                memcpy(&v, pParentItem + pCounterComp->offset, sizeof(v));
                 c = v;
             }
             break;
        
-        case 4: 
-            memcpy(&c, pFirstItem - pCounterComp->offset, sizeof(c)); 
+        case 4:
+            memcpy(&c, pParentItem + pCounterComp->offset, sizeof(c)); 
             break;
 
         default:
             assert(0);
        
     }
-    return (itemIndex == c);
+    return c;
 }
 
 

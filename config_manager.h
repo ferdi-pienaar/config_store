@@ -7,6 +7,8 @@
 using namespace std;
 
 // xxx throughout I've provisionally avoided the use of references; revise this.
+// xxx All descriptors, maybe also components, should be const.
+// xxx revise the name component; it's just too confusing => aggregate?
 
 
 // xxx one of the problems with the earlier version of this code that I'd like
@@ -72,7 +74,6 @@ public:
 
     string getName(){return name;}
 
-    
 };
 
 ///
@@ -87,24 +88,19 @@ public:
 // class has to be exposed to the client programmer.
 // Perhaps all members should be private, with cm_composite_item_descriptor
 // as friend, since it has to read (but not write) them.
+// 
+//
 class cm_component
 {
 protected:
-    unsigned int    itemIndex;  // index used when traversing the array of component items 
-
-    // pointer used to traverse array (xxx base value can change during add, del & setdef, or can we set it
-    // when the instance is created, i.e. during init or add, instead of when we start a traversal?
-    // also del operation can read to memory reallocation, perhaps.
-    unsigned char * pFirstItem; 
     
 public:
     // They'll differ in having different ways of setting pFirstItem,
     // and different ways of handling count/maxCount in getNextItem and isLastItem.
 
-    virtual void firstItem(unsigned char * pItem) = 0;
-    virtual const unsigned char * nextItem();
-    virtual unsigned char * getCurrentItem();
-    virtual bool isLastItem() = 0;
+    virtual unsigned char * getFirstItem(unsigned char * pParentItem) = 0;
+    virtual bool isLastItem(unsigned char * pParentItem, unsigned itemIndex) = 0;
+    virtual unsigned getCount(unsigned char * pParentItem) = 0;
 
     cm_component(cm_item_descriptor * d,
                  unsigned short c,
@@ -116,6 +112,7 @@ public:
     unsigned int         offset; // Offset [bytes] of items (or pointer to items) within the composite item
 };
 
+
 // Component items are contained within the composite: the item memory is allocated along
 // with that of the composite item, and the 'add' and 'del' operations don't apply.
 class cm_contained_component : public cm_component
@@ -126,8 +123,10 @@ public:
                            unsigned int o):
                            cm_component(d,c,o){}
 
-    void firstItem(unsigned char * pParentItem);
-    virtual bool isLastItem();
+    unsigned char * getFirstItem(unsigned char * pParentItem);
+    virtual bool isLastItem(unsigned char * pParentItem, unsigned itemIndex);
+    virtual unsigned getCount(unsigned char * pParentItem);
+
 
 };
 
@@ -137,17 +136,18 @@ public:
 class cm_owned_component : public cm_component
 {
 private:
-    cm_contained_component * pCounterComp;
+    cm_contained_component * pCounterComp; // the counter for this owned component
     
 public:
-     cm_owned_component(cm_item_descriptor * d,
-                        unsigned short c,
-                        unsigned int o,
-                        cm_contained_component * cComp):
-                        cm_component(d,c,o), pCounterComp(cComp){}
+    cm_owned_component(cm_item_descriptor * d,
+                       unsigned short c,
+                       unsigned int o,
+                       cm_contained_component * cComp):
+                       cm_component(d,c,o), pCounterComp(cComp){}
 
-     void firstItem(unsigned char * pParentItem);
-     virtual bool isLastItem();
+    unsigned char * getFirstItem(unsigned char * pParentItem);
+    virtual bool isLastItem(unsigned char * pParentItem, unsigned itemIndex);
+    virtual unsigned getCount(unsigned char * pParentItem);
 
 };
 
