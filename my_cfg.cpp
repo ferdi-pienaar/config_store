@@ -41,7 +41,7 @@ cm_simple_item_descriptor port = cm_simple_item_descriptor("port",
                                                             NULL,
                                                             cm_prt_int);
 
-cm_simple_item_descriptor userCnt = cm_simple_item_descriptor("usrCnt", 
+cm_simple_item_descriptor userCnt = cm_simple_item_descriptor("usercnt", 
                                                               DEVICE_USERCOUNT,
                                                               sizeof(unsigned int), // xxx
                                                               NULL, // No set fn used for counter

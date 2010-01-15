@@ -16,7 +16,8 @@ typedef enum
     CM_SET,
     CM_SETDEF,
     CM_LOAD,
-    CM_SAVE,    
+    CM_SAVE,
+    CM_HELP,     // xxx
     CM_OP_NONE,
 
 } eCmOp;
@@ -30,7 +31,7 @@ static eCmOp getOp(char * word);
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-
+// xxx Install the NVRAMwrite function.
 config_manager::config_manager(cm_item_descriptor * desc)
 {
     base_desc = desc;
@@ -38,7 +39,10 @@ config_manager::config_manager(cm_item_descriptor * desc)
 
 
 // Initialize config manager: allocate and populate item memory in RAM.
-//
+// xxx We could presumably do these things in the constructor, but
+// having an init method gives us more flexibility in delaying certain
+// actions until later; this allows us to create the CM early in the 
+// init cycle, but delay malloc and NVRAM reads until later.
 void config_manager::init(void)
 {
     ramBase = (unsigned char *)malloc(base_desc->getLen());
@@ -132,7 +136,7 @@ void config_manager::load()
         for (int i = 0; i < compCount; i++)
         {            
             cm_component * pComp = compList[i];
-            int            itemIndex = 0;
+            unsigned int   itemIndex = 0;
 
             if (strcmp(argv[0], pComp->pDesc->getName().c_str()) == 0)
             {
@@ -140,12 +144,12 @@ void config_manager::load()
                 argc--;
                 argv++;
 
-                // If there's more than one item, an index must be provided
+                // If there's more than one item in the array, an index must be provided
                 if (pComp->getCount(pItem) > 1)
                 {
                     char * pEnd;
                     
-                    itemIndex = strtol(argv[0], &pEnd, 0);
+                    itemIndex = strtoul(argv[0], &pEnd, 0);
 
                     if (pEnd == argv[0])
                     {
@@ -153,7 +157,7 @@ void config_manager::load()
                         return;
                     }
 
-                    if (itemIndex >= pComp->count)
+                    if (itemIndex >= pComp->getCount(pItem))
                     {
                         cout << "'"<<pComp->pDesc->getName()<<"' index out of range."<<endl;
                         return;
@@ -166,7 +170,7 @@ void config_manager::load()
                 DBG_PRT("cmd item base %p offset %d index %d len %d\n", pItem, pComp->offset, itemIndex, pComp->pDesc->getLen());
 
                 // Pass the remainder of the command to the matching component
-                return pComp->pDesc->do_cmd(argc, argv, pItem + pComp->offset + itemIndex * pComp->pDesc->getLen());
+                return pComp->pDesc->do_cmd(argc, argv, pComp->getFirstItem(pItem) + itemIndex * pComp->pDesc->getLen());
             }
         }
     }
@@ -175,11 +179,12 @@ void config_manager::load()
     switch (op)
     {
         case CM_ADD:
-            // xxx implement
+            // Remove the word 'add' and pass the remainder to the method
+            add(argc - 1, &(argv[1]), pItem);
             break;
             
         case CM_DEL:
-            // xxx implement
+            del(argc, argv, pItem);
             break;
             
         case CM_PRT:
@@ -199,6 +204,101 @@ void config_manager::load()
     }
 }
 
+// Add an owned component to a composite
+void cm_composite_item_descriptor::add(int argc, char *argv[], unsigned char * pItem)
+{
+    DBG_PRT("add %s\n\r", argv[0]);
+
+    if (argc != 1)
+    {
+        cout << argc << " parameters for 'add'." << endl;
+        return;
+    }
+
+    for (int i = 0; i < compCount; i++)
+    {            
+        cm_component *  pComp = compList[i];
+
+        if (strcmp(argv[0], pComp->pDesc->getName().c_str()) == 0)
+        {        
+            unsigned char * pFirstItem = pComp->getFirstItem(pItem);
+
+            // Haven't reached max xxx this is a bit of a hack -- should I discover pComp's type here?
+            if (pComp->getCount(pItem) < pComp->maxCount)
+            {
+                // xxx this is wrong: I don't need to modify a local copy of pFirstItem, but the pointer itself
+                //pFirstItem = (unsigned char *)realloc(pFirstItem, (pComp->getCount(pItem) + 1) * pComp->pDesc->getLen());
+
+                //pComp->pDesc->setdef(pFirstItem + pComp->getCount(pItem) * pComp->pDesc->getLen());
+
+                DBG_PRT("add at %p\n", pFirstItem);
+
+                // xxx set the counter.
+                // setCount method implemented for OWNED but not CONTAINED.
+                
+                return;
+            }
+            else
+            {
+                cout << "Can't add another '" << pComp->pDesc->getName() <<"'." << endl;
+                return;
+            }  
+        }
+    }
+    cout << "No item '" << argv[0] << " in '" << getName() << "'." << endl;
+}
+
+// Del an owned component from a composite
+void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * pItem)
+{
+    DBG_PRT("del %s\n\r", argv[0]);
+
+    // Find matching component name
+    for (int i = 0; i < compCount; i++)
+    {            
+        cm_component *  pComp = compList[i];
+        unsigned char * pFirstItem = pComp->getFirstItem(pItem);
+        unsigned int    itemIndex = 0;
+
+
+        if (strcmp(argv[0], pComp->pDesc->getName().c_str()) == 0)
+        {
+            // Found matching name, now determine if the next word should be an index
+            argc--;
+            argv++;
+
+            // xxx create method to get index?
+            // xxx how do we avoid attempting to delete a CONTAINED component?
+
+            // If there's more than one item in the array, an index must be provided
+            if (pComp->getCount(pItem) > 1)
+            {
+                char * pEnd;
+                
+                itemIndex = strtoul(argv[0], &pEnd, 0);
+
+                if (pEnd == argv[0])
+                {
+                    cout << "'"<<pComp->pDesc->getName()<<"' needs index."<<endl;
+                    return;
+                }
+
+                if (itemIndex >= pComp->getCount(pItem))
+                {
+                    cout << "'"<<pComp->pDesc->getName()<<"' index out of range."<<endl;
+                    return;
+                }
+                
+                argc--;
+                argv++;
+            }
+
+            DBG_PRT("del item base %p offset %d index %d len %d\n", pItem, pComp->offset, itemIndex, pComp->pDesc->getLen());
+        }
+    }
+}
+
+
 //
 // Return the length in bytes of a TLV item.
 //
@@ -211,8 +311,9 @@ cm_item_len cm_composite_item_descriptor::getTlvLen(unsigned char * pItem)
     {            
         cm_component *  pComp = compList[i];
         unsigned char * pFirstItem = pComp->getFirstItem(pItem);
+        unsigned int    itemCount = pComp->getCount(pItem);
 
-        for (unsigned j = 0; !pComp->isLastItem(pItem, j); j++)
+        for (unsigned j = 0; j < itemCount; j++)
         {
             tlvLen += pComp->pDesc->getTlvLen(pFirstItem + j * pComp->pDesc->getLen());
         }
@@ -243,8 +344,9 @@ void cm_composite_item_descriptor::writeTlv(unsigned char *pItem, unsigned char 
     {            
         cm_component *  pComp = compList[i];
         unsigned char * pFirstItem = pComp->getFirstItem(pItem);
+        unsigned int    itemCount = pComp->getCount(pItem);
 
-        for (unsigned j = 0; !pComp->isLastItem(pItem, j); j++)
+        for (unsigned j = 0; j < itemCount; j++)
         {
             pComp->pDesc->writeTlv(pFirstItem + j * pComp->pDesc->getLen(), ppBuf);
         }
@@ -265,9 +367,9 @@ void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix)
     {            
         cm_component *  pComp = compList[i];
         unsigned char * pFirstItem = pComp->getFirstItem(pItem);
+        unsigned int    itemCount = pComp->getCount(pItem);
 
-
-        for (unsigned j = 0; !pComp->isLastItem(pItem, j); j++)
+        for (unsigned j = 0; j < itemCount; j++)
         {
             if (pComp->getCount(pItem) > 1)
             {
@@ -288,6 +390,13 @@ void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix)
 // Delegate setdef command to components
 // xxx TBD: for OWNED components, free owned memory before setting
 // the corresponding counter to 0.
+// How to do this: one solution: if a descriptor has no installed
+// setdef method, then don't setdef.  When we do setdef on an
+// owned component, set the corresponding counter to 0 afterwards.
+// This means that a counter should have no setdef (or set) method
+// installed, to avoid the counter being cleared.  We should (during init?)
+// verify that all counters obey these constraints.
+// Or we create a new class, for counters?...
 void cm_composite_item_descriptor::setdef(unsigned char * pItem)
 {    
     // For each component, and for each of the array of items under it...
@@ -295,9 +404,9 @@ void cm_composite_item_descriptor::setdef(unsigned char * pItem)
     {            
         cm_component *  pComp = compList[i];
         unsigned char * pFirstItem = pComp->getFirstItem(pItem);
+        unsigned int    itemCount = pComp->getCount(pItem);
 
-
-        for (unsigned j = 0; !pComp->isLastItem(pItem, j); j++)
+        for (unsigned j = 0; j < itemCount; j++)
         {
             pComp->pDesc->setdef(pFirstItem + j * pComp->pDesc->getLen());
         }
@@ -454,16 +563,12 @@ unsigned char * cm_contained_component::getFirstItem(unsigned char * pParentItem
    return pParentItem + offset;
 }
 
-// Return true if index has reached fixed max value
-bool cm_contained_component::isLastItem(unsigned char * pParentItem, unsigned itemIndex)
-{
-    return (itemIndex == count);
-}
 
-// Return the number of items in the component's array
+// Return the number of items in the component's array.
+// For a contained component, the count is fixed at maxCount.
 unsigned cm_contained_component::getCount(unsigned char * pParentItem)
 {
-    return count;
+    return maxCount;
 }
 
 
@@ -480,13 +585,6 @@ unsigned cm_contained_component::getCount(unsigned char * pParentItem)
 unsigned char * cm_owned_component::getFirstItem(unsigned char * pParentItem)
 {
     return *(unsigned char **)(pParentItem + offset); // location is a pointer to the OWNED item
-}
-
-
-// Return true if index has reached the value of the counter 
-bool cm_owned_component::isLastItem(unsigned char * pParentItem, unsigned itemIndex)
-{ 
-    return (itemIndex == getCount(pParentItem));
 }
 
 

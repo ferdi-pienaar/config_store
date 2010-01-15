@@ -8,7 +8,7 @@ using namespace std;
 
 // xxx throughout I've provisionally avoided the use of references; revise this.
 // xxx All descriptors, maybe also components, should be const.
-// xxx revise the name component; it's just too confusing => aggregate?
+// xxx revise the name component; it's just too confusing => aggregate? container?
 
 
 // xxx one of the problems with the earlier version of this code that I'd like
@@ -95,21 +95,17 @@ class cm_component
 protected:
     
 public:
-    // They'll differ in having different ways of setting pFirstItem,
-    // and different ways of handling count/maxCount in getNextItem and isLastItem.
-
     virtual unsigned char * getFirstItem(unsigned char * pParentItem) = 0;
-    virtual bool isLastItem(unsigned char * pParentItem, unsigned itemIndex) = 0;
     virtual unsigned getCount(unsigned char * pParentItem) = 0;
 
     cm_component(cm_item_descriptor * d,
                  unsigned short c,
                  unsigned int o):
-                 pDesc(d), count(c), offset(o){};
+                 pDesc(d), maxCount(c), offset(o){};
 
-    cm_item_descriptor * pDesc;  // the component's descriptor
-    unsigned short       count;  // (Max) number of instances of the item
-    unsigned int         offset; // Offset [bytes] of items (or pointer to items) within the composite item
+    cm_item_descriptor * pDesc;     // the component's descriptor
+    unsigned short       maxCount;  // Max number of instances of the item
+    unsigned int         offset;    // Offset [bytes] of items (or pointer to items) within the composite item
 };
 
 
@@ -124,7 +120,6 @@ public:
                            cm_component(d,c,o){}
 
     unsigned char * getFirstItem(unsigned char * pParentItem);
-    virtual bool isLastItem(unsigned char * pParentItem, unsigned itemIndex);
     virtual unsigned getCount(unsigned char * pParentItem);
 
 
@@ -146,7 +141,6 @@ public:
                        cm_component(d,c,o), pCounterComp(cComp){}
 
     unsigned char * getFirstItem(unsigned char * pParentItem);
-    virtual bool isLastItem(unsigned char * pParentItem, unsigned itemIndex);
     virtual unsigned getCount(unsigned char * pParentItem);
 
 };
@@ -178,6 +172,8 @@ public:
     void do_cmd(int argc, char *argv[], unsigned char * pItem);
     void print(unsigned char * pItem, string prefix);
     void setdef(unsigned char * pItem);
+    void add(int argc, char *argv[], unsigned char * pItem);
+    void del(int argc, char *argv[], unsigned char * pItem);
 
 };
 
