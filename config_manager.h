@@ -95,9 +95,6 @@ class cm_component
 protected:
     
 public:
-    virtual unsigned char * getFirstItem(unsigned char * pParentItem) = 0;
-    virtual unsigned getCount(unsigned char * pParentItem) = 0;
-
     cm_component(cm_item_descriptor * d,
                  unsigned short c,
                  unsigned int o):
@@ -106,6 +103,12 @@ public:
     cm_item_descriptor * pDesc;     // the component's descriptor
     unsigned short       maxCount;  // Max number of instances of the item
     unsigned int         offset;    // Offset [bytes] of items (or pointer to items) within the composite item
+
+    bool getIndex(int & argc, char ** & argv, unsigned char * pParentItem, unsigned int & itemIndex);
+    virtual unsigned char * getFirstItem(unsigned char * pParentItem) = 0;
+    virtual unsigned getCount(unsigned char * pParentItem) = 0;
+    virtual bool isAddSupported() = 0;
+    virtual void setCount(unsigned char * pParentItem, unsigned int) = 0;
 };
 
 
@@ -121,7 +124,8 @@ public:
 
     unsigned char * getFirstItem(unsigned char * pParentItem);
     virtual unsigned getCount(unsigned char * pParentItem);
-
+    bool isAddSupported(){return false;}
+    void setCount(unsigned char * pParentItem, unsigned int){assert(isAddSupported());} // add operation doesn't apply
 
 };
 
@@ -142,6 +146,9 @@ public:
 
     unsigned char * getFirstItem(unsigned char * pParentItem);
     virtual unsigned getCount(unsigned char * pParentItem);
+    bool isAddSupported(){return true;}
+    void setCount(unsigned char * pParentItem, unsigned int);
+
 
 };
 

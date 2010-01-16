@@ -93,7 +93,7 @@ cm_component * deviceComponentList[] =
     new cm_contained_component(&ip_address, 1, offsetof(tDevice, addr)),
     new cm_contained_component(&port, NUM_CLI_PORT, offsetof(tDevice, cliPort)),
     &userCntComp,
-    new cm_owned_component(&user, 10 /* xxx max */, offsetof(tDevice, users), &userCntComp),
+    new cm_owned_component(&user, 3 /* xxx max number of users */, offsetof(tDevice, users), &userCntComp),
 };
 
 cm_composite_item_descriptor deviceDesc = cm_composite_item_descriptor(

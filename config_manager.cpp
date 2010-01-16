@@ -136,7 +136,7 @@ void config_manager::load()
         for (int i = 0; i < compCount; i++)
         {            
             cm_component * pComp = compList[i];
-            unsigned int   itemIndex = 0;
+            unsigned int   itemIdx;
 
             if (strcmp(argv[0], pComp->pDesc->getName().c_str()) == 0)
             {
@@ -144,33 +144,16 @@ void config_manager::load()
                 argc--;
                 argv++;
 
-                // If there's more than one item in the array, an index must be provided
-                if (pComp->getCount(pItem) > 1)
+                if (pComp->getIndex(argc, argv, pItem, itemIdx) == false)
                 {
-                    char * pEnd;
-                    
-                    itemIndex = strtoul(argv[0], &pEnd, 0);
-
-                    if (pEnd == argv[0])
-                    {
-                        cout << "'"<<pComp->pDesc->getName()<<"' needs index."<<endl;
-                        return;
-                    }
-
-                    if (itemIndex >= pComp->getCount(pItem))
-                    {
-                        cout << "'"<<pComp->pDesc->getName()<<"' index out of range."<<endl;
-                        return;
-                    }
-                    
-                    argc--;
-                    argv++;
+                    // An index is needed but couldn't be extracted from the command
+                    return;
                 }
 
-                DBG_PRT("cmd item base %p offset %d index %d len %d\n", pItem, pComp->offset, itemIndex, pComp->pDesc->getLen());
+                DBG_PRT("cmd item base %p offset %d index %d len %d\n", pItem, pComp->offset, itemIdx, pComp->pDesc->getLen());
 
                 // Pass the remainder of the command to the matching component
-                return pComp->pDesc->do_cmd(argc, argv, pComp->getFirstItem(pItem) + itemIndex * pComp->pDesc->getLen());
+                return pComp->pDesc->do_cmd(argc, argv, pComp->getFirstItem(pItem) + itemIdx * pComp->pDesc->getLen());
             }
         }
     }
@@ -180,31 +163,30 @@ void config_manager::load()
     {
         case CM_ADD:
             // Remove the word 'add' and pass the remainder to the method
-            add(argc - 1, &(argv[1]), pItem);
-            break;
+            return add(argc - 1, &(argv[1]), pItem);
             
         case CM_DEL:
-            del(argc, argv, pItem);
-            break;
+            return del(argc - 1, &(argv[1]), pItem);
             
         case CM_PRT:
-            print(pItem, "");
-            break;
+            return print(pItem, "");
 
         case CM_SET:
-            cout << "'Set' operation not applicable to composite item '" << getName() << "'" << endl;
-            break;
+            return;
 
         case CM_SETDEF:
-            setdef(pItem);
-            break;
+            return setdef(pItem);
 
         default:
-            cout<<"Unknown command or item '"<<argv[0]<<"'"<<endl;
+            break;
     }
+    // If we're here, failed to consume argv[0]
+    cout << "'" << argv[0] << "' operation not applicable to composite item '" << getName() << "'" << endl;
 }
 
-// Add an owned component to a composite
+// Add a component to a composite.
+// This allocates memory for the new item, sets it to default values,
+// and increments the corresponding counter.
 void cm_composite_item_descriptor::add(int argc, char *argv[], unsigned char * pItem)
 {
     DBG_PRT("add %s\n\r", argv[0]);
@@ -221,28 +203,31 @@ void cm_composite_item_descriptor::add(int argc, char *argv[], unsigned char * p
 
         if (strcmp(argv[0], pComp->pDesc->getName().c_str()) == 0)
         {        
-            unsigned char * pFirstItem = pComp->getFirstItem(pItem);
-
-            // Haven't reached max xxx this is a bit of a hack -- should I discover pComp's type here?
-            if (pComp->getCount(pItem) < pComp->maxCount)
+            if (!pComp->isAddSupported())
             {
-                // xxx this is wrong: I don't need to modify a local copy of pFirstItem, but the pointer itself
-                //pFirstItem = (unsigned char *)realloc(pFirstItem, (pComp->getCount(pItem) + 1) * pComp->pDesc->getLen());
-
-                //pComp->pDesc->setdef(pFirstItem + pComp->getCount(pItem) * pComp->pDesc->getLen());
-
-                DBG_PRT("add at %p\n", pFirstItem);
-
-                // xxx set the counter.
-                // setCount method implemented for OWNED but not CONTAINED.
-                
+                cout<<"Add not supported for '"<<pComp->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
                 return;
             }
-            else
+
+            unsigned int cnt = pComp->getCount(pItem); // number of items currently in array
+
+            if (cnt >= pComp->maxCount)
             {
-                cout << "Can't add another '" << pComp->pDesc->getName() <<"'." << endl;
+                cout<<"Can't add '"<<pComp->pDesc->getName()<<"' (max "<<pComp->maxCount<<")."<<endl;
                 return;
             }  
+                
+            // Reallocate memory, and save pointer in the same location
+            unsigned char ** ppItems = (unsigned char **)(pItem + pComp->offset);
+
+            *ppItems = (unsigned char *)realloc(*ppItems, (cnt + 1) * pComp->pDesc->getLen());
+
+            // Initialize added item with default values
+            pComp->pDesc->setdef(*ppItems + cnt * pComp->pDesc->getLen());
+
+            DBG_PRT("add at %p\n", *ppItems);
+
+            return pComp->setCount(pItem, cnt + 1);
         }
     }
     cout << "No item '" << argv[0] << " in '" << getName() << "'." << endl;
@@ -253,47 +238,57 @@ void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * p
 {
     DBG_PRT("del %s\n\r", argv[0]);
 
+    if ((argc != 1) && (argc != 2))
+    {
+        // Provide item name and, optionally, index
+        cout << argc << " parameters for 'del'." << endl;
+        return;
+    }    
+
     // Find matching component name
     for (int i = 0; i < compCount; i++)
     {            
         cm_component *  pComp = compList[i];
-        unsigned char * pFirstItem = pComp->getFirstItem(pItem);
-        unsigned int    itemIndex = 0;
-
+        unsigned int    itemIdx;
 
         if (strcmp(argv[0], pComp->pDesc->getName().c_str()) == 0)
         {
-            // Found matching name, now determine if the next word should be an index
             argc--;
             argv++;
-
-            // xxx create method to get index?
-            // xxx how do we avoid attempting to delete a CONTAINED component?
-
-            // If there's more than one item in the array, an index must be provided
-            if (pComp->getCount(pItem) > 1)
+            
+            if (!pComp->isAddSupported())
             {
-                char * pEnd;
-                
-                itemIndex = strtoul(argv[0], &pEnd, 0);
-
-                if (pEnd == argv[0])
-                {
-                    cout << "'"<<pComp->pDesc->getName()<<"' needs index."<<endl;
-                    return;
-                }
-
-                if (itemIndex >= pComp->getCount(pItem))
-                {
-                    cout << "'"<<pComp->pDesc->getName()<<"' index out of range."<<endl;
-                    return;
-                }
-                
-                argc--;
-                argv++;
+                cout<<"Delete not supported for '"<<pComp->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
+                return;
             }
 
-            DBG_PRT("del item base %p offset %d index %d len %d\n", pItem, pComp->offset, itemIndex, pComp->pDesc->getLen());
+            unsigned int cnt = pComp->getCount(pItem); // number of items currently in array
+
+            if (cnt == 0)
+            {
+                cout << "'Currently no '" <<pComp->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
+                return;
+            }
+
+            if (pComp->getIndex(argc, argv, pItem, itemIdx) == false)
+            {
+                // An index is needed but couldn't be extracted from the command
+                return;
+            }
+
+            // Reallocate memory, and save pointer in the same location
+            unsigned char ** ppItems = (unsigned char **)(pItem + pComp->offset);
+
+            // Shift down items to occupy the memory vacated by deleted item
+            memcpy(*ppItems + itemIdx * pComp->pDesc->getLen(),
+                   *ppItems + (itemIdx + 1) * pComp->pDesc->getLen(),
+                   (cnt - itemIdx - 1) * pComp->pDesc->getLen());
+
+            *ppItems = (unsigned char *)realloc(*ppItems, (cnt - 1) * pComp->pDesc->getLen());
+
+            DBG_PRT("del item base %p offset %d index %d len %d\n", pItem, pComp->offset, itemIdx, pComp->pDesc->getLen());
+
+            return pComp->setCount(pItem, cnt - 1);
         }
     }
 }
@@ -503,6 +498,8 @@ void cm_simple_item_descriptor::set(unsigned char * pItem, string val)
 // install it if that's what he wants.
 // But we should check that for a counter, no setdef or set
 // is installed.
+// xxx despite this, we must ensure that for a new item,
+// all counters are set to 0 (even if there's no setdef for counter items).
 void cm_simple_item_descriptor::setdef(unsigned char * pItem)
 {
     if (pSetDef == NULL)
@@ -547,6 +544,42 @@ cm_item_len cm_simple_item_descriptor::getTlvLen(unsigned char * pItem)
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+// Utility function to extract in index from an array of command words
+// Returns false if unable to extract an index.
+// Returns true of able to return an index
+// If no index is required, the index is set to 0, and true is returned.
+bool cm_component::getIndex(int & argc, char ** & argv, unsigned char * pParentItem, unsigned int & itemIdx)
+{      
+    // If there's more than one item in the array, an index must be provided
+    if (getCount(pParentItem) <= 1)
+    {
+        // No index is needed, since there are 1 or 0 items present
+        itemIdx = 0;
+        return true;
+    }
+
+    // An index is needed
+    char * pEnd;
+    
+    itemIdx = strtoul(argv[0], &pEnd, 0);
+
+    if (pEnd == argv[0])
+    {
+        cout << "'" << pDesc->getName() << "' needs index." <<endl;
+        return false;
+    }
+
+    if (itemIdx >= getCount(pParentItem))
+    {
+        cout<<"'"<<pDesc->getName()<<"' index out of range (there are "<<getCount(pParentItem)<<")."<<endl;
+        return false;
+    }
+    
+    argc--;
+    argv++;
+
+    return true;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -626,6 +659,15 @@ unsigned cm_owned_component::getCount(unsigned char * pParentItem)
     return c;
 }
 
+// Set value in RAM that records the number of items in the array of items
+// xxx enforce, run-time of compile-time, that counters are unsigned int sized.
+void cm_owned_component::setCount(unsigned char * pParentItem, unsigned int count)
+{
+    // Sanity check: if add/del operation not supported, the setCount() is meaningless
+    assert(isAddSupported());
+    
+    memcpy(pParentItem + pCounterComp->offset, &count, sizeof(count));
+}
 
 // During iteration, return name of current item -- by default, just convert the iteration index
 // to a string, but xxx
