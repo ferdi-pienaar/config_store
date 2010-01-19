@@ -31,6 +31,10 @@ typedef unsigned short cm_item_len;
 // Identifier ID, unique within its context, used to identify it in NVRFAM
 typedef unsigned short cm_descriptor_id;
 
+// Function pointers -- types registered by user when initializing CM
+typedef void (*CM_READ_FROM_NVRAM)(unsigned char *pBuf, cm_item_len * pLen);
+typedef void (*CM_WRITE_TO_NVRAM)(const unsigned char *pBuf, cm_item_len len);
+
 // Function pointers -- types registered by user when descriptor is created
 typedef void (*CM_SET_FPTR)(unsigned char *pItem, cm_item_len len, string val);
 typedef void (*CM_SETDEF_FPTR)(unsigned char *pItem, cm_item_len len);
@@ -82,7 +86,6 @@ public:
 // component descriptor (i.e. one for each array of component items).
 //  It may be CONTAINED or OWNED.
 //  There may be one or more instances (i.e. single item or an array of items).
-// xxx Should CONTAINED or OWNED be handled as classes?
 // xxx we could embed this class in cm_composite_item_descriptor, but then
 // client could not create component lists at init.  The constructor for this
 // class has to be exposed to the client programmer.
@@ -220,8 +223,6 @@ public:
     ~cm_simple_item_descriptor(){};
 
     void do_cmd(int argc, char *argv[], unsigned char * pItem);
-
-
     void print(unsigned char * pItem, string prefix);
     void set(unsigned char * pItem, string val);
     void setdef(unsigned char * pItem);
@@ -234,11 +235,13 @@ class config_manager
 public:
     config_manager(cm_item_descriptor * pDesc);
     void do_cmd(int argc, char *argv[]);
-    void init();
+    void init(CM_READ_FROM_NVRAM pRead, CM_WRITE_TO_NVRAM pWr);
 
 private:
     void save();
     void load();
+    CM_READ_FROM_NVRAM pReadFromNvram; // fn installed by user to do read for CM
+    CM_WRITE_TO_NVRAM  pWriteToNvram;  // fn installed by user to do write for CM 
     
     cm_item_descriptor * base_desc;    
     unsigned char *      ramBase; // xxx initialize during init

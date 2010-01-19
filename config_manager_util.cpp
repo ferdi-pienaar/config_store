@@ -11,6 +11,12 @@
 using namespace std;
 
 
+// The default setdef function, which fills the item with 0 bytes.
+void cm_setdef(unsigned char *pItem, cm_item_len len)
+{
+    memset(pItem, 0, len);
+}
+
 // signed int
 void cm_prt_int(const unsigned char *pItem, cm_item_len len)
 {

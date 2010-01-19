@@ -31,14 +31,14 @@ cm_simple_item_descriptor ip_address = cm_simple_item_descriptor("ipaddr",
                                                                  DEVICE_IPADDR,
                                                                  sizeof(unsigned long), // xxx define SIZEOF macro
                                                                  cm_set_int,
-                                                                 NULL,
+                                                                 cm_setdef,
                                                                  cm_prt_int);
 
 cm_simple_item_descriptor port = cm_simple_item_descriptor("port", 
                                                             DEVICE_CLIPORT,
                                                             sizeof(unsigned short), // xxx
                                                             cm_set_int,
-                                                            NULL,
+                                                            cm_setdef,
                                                             cm_prt_int);
 
 cm_simple_item_descriptor userCnt = cm_simple_item_descriptor("usercnt", 
@@ -52,21 +52,21 @@ cm_simple_item_descriptor user_name = cm_simple_item_descriptor("name",
                                                                DEVICE_USER_NAME,
                                                                MAX_LEN_USER_NAME, // xxx
                                                                NULL, // xxx set
-                                                               NULL,
+                                                               cm_setdef,
                                                                NULL /* xxx prt */);
 
 cm_simple_item_descriptor user_id = cm_simple_item_descriptor("id", 
                                                              DEVICE_USER_ID,
                                                              sizeof(unsigned long), // xxx
                                                              cm_set_int, // xxx unsigned
-                                                             NULL,
+                                                             cm_setdef,
                                                              cm_prt_int /* xxx unsigned */);
 
 cm_simple_item_descriptor user_temp = cm_simple_item_descriptor("temp", 
                                                                DEVICE_USER_TEMP,
                                                                sizeof(short), // xxx
                                                                cm_set_int, // xxx set
-                                                               NULL,
+                                                               cm_setdef,
                                                                cm_prt_int);
 
 /* We define this one separately because we want to reference it in two places xxx */

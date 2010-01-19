@@ -43,11 +43,14 @@ config_manager::config_manager(cm_item_descriptor * desc)
 // having an init method gives us more flexibility in delaying certain
 // actions until later; this allows us to create the CM early in the 
 // init cycle, but delay malloc and NVRAM reads until later.
-void config_manager::init(void)
+void config_manager::init(CM_READ_FROM_NVRAM pRead, CM_WRITE_TO_NVRAM pWr)
 {
     ramBase = (unsigned char *)malloc(base_desc->getLen());
 
     base_desc->setdef(ramBase);
+
+    pWriteToNvram = pWr;
+    pReadFromNvram = pRead;
 
     //load(ramBase);
 }
@@ -106,6 +109,13 @@ void config_manager::save()
     {
         printf("%02x\n", buf[i]);
     }
+
+    FILE * fp;
+    fp = fopen("cfg.bin", "wb");  // open file for binary write
+
+    fwrite(buf, 1, tlvLen, fp);
+
+    fclose(fp);
 }
 
 
@@ -113,6 +123,25 @@ void config_manager::save()
 void config_manager::load()
 {
     cout << "load." << endl;
+
+    FILE * fp;
+    if ((fp = fopen("cfg.bin", "rb")) == NULL)  // open file for binary read
+    {
+        cout << "No config file." << endl;
+        return;
+    }
+
+    cm_descriptor_id id;
+    cm_item_len      tlvLen;
+    
+    fread(&id, sizeof(id), 1, fp);
+    fread(&tlvLen, sizeof(tlvLen), 1, fp);
+
+    printf("id %x len %d\n", id, tlvLen);
+
+    // xxx if top-level ID is unexpected, stop?
+    
+    fclose(fp);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -136,13 +165,14 @@ void config_manager::load()
         for (int i = 0; i < compCount; i++)
         {            
             cm_component * pComp = compList[i];
-            unsigned int   itemIdx;
 
             if (strcmp(argv[0], pComp->pDesc->getName().c_str()) == 0)
-            {
+            {            
                 // Found matching name, now determine if the next word should be an index
                 argc--;
                 argv++;
+
+                unsigned int itemIdx;
 
                 if (pComp->getIndex(argc, argv, pItem, itemIdx) == false)
                 {
@@ -166,13 +196,11 @@ void config_manager::load()
             return add(argc - 1, &(argv[1]), pItem);
             
         case CM_DEL:
+            // Remove the word 'del' and pass the remainder to the method
             return del(argc - 1, &(argv[1]), pItem);
             
         case CM_PRT:
             return print(pItem, "");
-
-        case CM_SET:
-            return;
 
         case CM_SETDEF:
             return setdef(pItem);
@@ -222,7 +250,9 @@ void cm_composite_item_descriptor::add(int argc, char *argv[], unsigned char * p
 
             *ppItems = (unsigned char *)realloc(*ppItems, (cnt + 1) * pComp->pDesc->getLen());
 
-            // Initialize added item with default values
+            // Initialize added item with default values. First memset to ensure
+            // counters, which have no setdef fn, are 0 (also sets pointers to owned to NULL).
+            memset(*ppItems + cnt * pComp->pDesc->getLen(), 0, pComp->pDesc->getLen());
             pComp->pDesc->setdef(*ppItems + cnt * pComp->pDesc->getLen());
 
             DBG_PRT("add at %p\n", *ppItems);
@@ -234,6 +264,7 @@ void cm_composite_item_descriptor::add(int argc, char *argv[], unsigned char * p
 }
 
 // Del an owned component from a composite
+// xxx When all items deleted, set pointer to owned mem to NULL for later sanity checks?
 void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * pItem)
 {
     DBG_PRT("del %s\n\r", argv[0]);
@@ -249,7 +280,6 @@ void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * p
     for (int i = 0; i < compCount; i++)
     {            
         cm_component *  pComp = compList[i];
-        unsigned int    itemIdx;
 
         if (strcmp(argv[0], pComp->pDesc->getName().c_str()) == 0)
         {
@@ -269,6 +299,8 @@ void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * p
                 cout << "'Currently no '" <<pComp->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
                 return;
             }
+
+            unsigned int itemIdx;
 
             if (pComp->getIndex(argc, argv, pItem, itemIdx) == false)
             {
@@ -294,9 +326,8 @@ void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * p
 }
 
 
-//
-// Return the length in bytes of a TLV item.
-//
+/// Return total length of TLV item:
+//  The number of bytes taken up by T + L + V.
 cm_item_len cm_composite_item_descriptor::getTlvLen(unsigned char * pItem)
 {
     cm_item_len tlvLen = sizeof(cm_descriptor_id) + sizeof(cm_item_len);
@@ -383,15 +414,12 @@ void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix)
 
 
 // Delegate setdef command to components
-// xxx TBD: for OWNED components, free owned memory before setting
+// For OWNED components, free owned memory before setting
 // the corresponding counter to 0.
-// How to do this: one solution: if a descriptor has no installed
-// setdef method, then don't setdef.  When we do setdef on an
-// owned component, set the corresponding counter to 0 afterwards.
-// This means that a counter should have no setdef (or set) method
-// installed, to avoid the counter being cleared.  We should (during init?)
-// verify that all counters obey these constraints.
-// Or we create a new class, for counters?...
+// This means that we should not clear the counter first
+// (which is why no setdef is installed for a counter), since pComp->getCount
+// for an owned component depends on the counter stil being set.
+// xxx set pointer to owned mem to NULL for later sanity checks?
 void cm_composite_item_descriptor::setdef(unsigned char * pItem)
 {    
     // For each component, and for each of the array of items under it...
@@ -402,8 +430,18 @@ void cm_composite_item_descriptor::setdef(unsigned char * pItem)
         unsigned int    itemCount = pComp->getCount(pItem);
 
         for (unsigned j = 0; j < itemCount; j++)
-        {
+        {           
             pComp->pDesc->setdef(pFirstItem + j * pComp->pDesc->getLen());
+
+            // After setting to default, free owned memory and set counter to 0
+            if (pComp->isAddSupported() && (pComp->getCount(pItem) > 0))
+            {
+                DBG_PRT("setdef free %p\n" pItem + pComp->offset);
+
+                free(pItem + pComp->offset);
+
+                return pComp->setCount(pItem, 0);
+            }
         }
     }
 }
@@ -492,22 +530,12 @@ void cm_simple_item_descriptor::set(unsigned char * pItem, string val)
 }
 
 // Set configurable item to its default value.
-// xxx for owned counters, no modification should be allowed;
-// this probably means we should not implement the default
-// setdef here, but create it as a util and let the client
-// install it if that's what he wants.
+// xxx for owned counters, no modification should be allowed.
 // But we should check that for a counter, no setdef or set
 // is installed.
-// xxx despite this, we must ensure that for a new item,
-// all counters are set to 0 (even if there's no setdef for counter items).
 void cm_simple_item_descriptor::setdef(unsigned char * pItem)
 {
-    if (pSetDef == NULL)
-    {
-        // No function installed, so use default default value: 0
-        memset(pItem, 0, len);
-    }
-    else
+    if (pSetDef != NULL)
     {
         pSetDef(pItem, len);
     }

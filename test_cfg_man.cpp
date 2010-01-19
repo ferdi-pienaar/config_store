@@ -14,12 +14,13 @@ using namespace std;
 
 #define WORD_DELIMITERS " \n"
 
+
 int main()
 {
     // Initialize the config manager with the base descriptor it is to manage.
     config_manager * cm = new config_manager(pBaseDesc);
 
-    cm->init();
+    cm->init(NULL, NULL);
     
     while (true)
     {
