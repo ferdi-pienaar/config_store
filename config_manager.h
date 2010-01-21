@@ -60,19 +60,22 @@ private:
     
 protected: // xxx these are protected because I want to access them from the derived classes
     string           name;     // name by which item is addressed on CLI
-    cm_descriptor_id id;       // ID (unique within the context of the component's context) of item in NVRAM    
     cm_item_len len;  // Number of bytes occupied by an item in RAM
 
 
-public: 
+public:     
+    cm_descriptor_id id;       // ID (unique within the context of the component's context) of item in NVRAM    
+
+
     cm_item_descriptor(string iname, cm_descriptor_id iid, cm_item_len ilen):
-                       name(iname), id(iid), len(ilen){}
+                       name(iname), len(ilen), id(iid){}
     virtual ~cm_item_descriptor(){}
 
     virtual void do_cmd(int argc, char *argv[], unsigned char * pItem) = 0;
     virtual cm_item_len getLen(){return len;}
     virtual cm_item_len getTlvLen(unsigned char * pItem) = 0;
     virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf) = 0;
+    virtual int loadFromTlv(FILE * fp, unsigned char * pItem) = 0;
     virtual void print(unsigned char * pItem, string prefix) = 0;
     virtual void setdef(unsigned char * pItem) = 0;
 
@@ -164,7 +167,8 @@ class cm_composite_item_descriptor : public cm_item_descriptor
     unsigned short  compCount;          // Number of components in the list (number of descriptors, not items)
 
     virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf);
-    virtual cm_item_len getTlvLen(unsigned char * pItem);    
+    virtual cm_item_len getTlvLen(unsigned char * pItem);
+    virtual int loadFromTlv(FILE * fp, unsigned char * pItem);
 
 
 public:    
@@ -205,7 +209,7 @@ class cm_simple_item_descriptor : public cm_item_descriptor
 
     virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf);
     virtual cm_item_len getTlvLen(unsigned char * pItem);
-    
+    virtual int loadFromTlv(FILE * fp, unsigned char * pItem);
 
 public:
         

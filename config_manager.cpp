@@ -31,7 +31,7 @@ static eCmOp getOp(char * word);
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-// xxx Install the NVRAMwrite function.
+// 
 config_manager::config_manager(cm_item_descriptor * desc)
 {
     base_desc = desc;
@@ -52,7 +52,7 @@ void config_manager::init(CM_READ_FROM_NVRAM pRead, CM_WRITE_TO_NVRAM pWr)
     pWriteToNvram = pWr;
     pReadFromNvram = pRead;
 
-    //load(ramBase);
+    load();
 }
 
 
@@ -67,12 +67,10 @@ void config_manager::do_cmd(int argc, char *argv[])
     switch (getOp(argv[0]))
     {
         case CM_LOAD:
-            load();
-            return;
+            return load();
 
         case CM_SAVE:
-            save();
-            return;
+            return save();
 
         default:
             break;
@@ -122,8 +120,6 @@ void config_manager::save()
 // Load data in NVRAM, in TLV format, to configurable items in RAM.
 void config_manager::load()
 {
-    cout << "load." << endl;
-
     FILE * fp;
     if ((fp = fopen("cfg.bin", "rb")) == NULL)  // open file for binary read
     {
@@ -131,16 +127,15 @@ void config_manager::load()
         return;
     }
 
-    cm_descriptor_id id;
-    cm_item_len      tlvLen;
-    
+    cm_descriptor_id id;    
     fread(&id, sizeof(id), 1, fp);
-    fread(&tlvLen, sizeof(tlvLen), 1, fp);
 
-    printf("id %x len %d\n", id, tlvLen);
+    printf("Load id %#x\n", id);
 
     // xxx if top-level ID is unexpected, stop?
-    
+
+    base_desc->loadFromTlv(fp, ramBase);
+
     fclose(fp);
 }
 
@@ -281,47 +276,50 @@ void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * p
     {            
         cm_component *  pComp = compList[i];
 
-        if (strcmp(argv[0], pComp->pDesc->getName().c_str()) == 0)
+        if (strcmp(argv[0], pComp->pDesc->getName().c_str()) != 0)
         {
-            argc--;
-            argv++;
-            
-            if (!pComp->isAddSupported())
-            {
-                cout<<"Delete not supported for '"<<pComp->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
-                return;
-            }
-
-            unsigned int cnt = pComp->getCount(pItem); // number of items currently in array
-
-            if (cnt == 0)
-            {
-                cout << "'Currently no '" <<pComp->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
-                return;
-            }
-
-            unsigned int itemIdx;
-
-            if (pComp->getIndex(argc, argv, pItem, itemIdx) == false)
-            {
-                // An index is needed but couldn't be extracted from the command
-                return;
-            }
-
-            // Reallocate memory, and save pointer in the same location
-            unsigned char ** ppItems = (unsigned char **)(pItem + pComp->offset);
-
-            // Shift down items to occupy the memory vacated by deleted item
-            memcpy(*ppItems + itemIdx * pComp->pDesc->getLen(),
-                   *ppItems + (itemIdx + 1) * pComp->pDesc->getLen(),
-                   (cnt - itemIdx - 1) * pComp->pDesc->getLen());
-
-            *ppItems = (unsigned char *)realloc(*ppItems, (cnt - 1) * pComp->pDesc->getLen());
-
-            DBG_PRT("del item base %p offset %d index %d len %d\n", pItem, pComp->offset, itemIdx, pComp->pDesc->getLen());
-
-            return pComp->setCount(pItem, cnt - 1);
+            continue; // mismatch: continue to next candidate
         }
+
+        // Match found
+        argc--;
+        argv++;
+        
+        if (!pComp->isAddSupported())
+        {
+            cout<<"Delete not supported for '"<<pComp->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
+            return;
+        }
+
+        unsigned int cnt = pComp->getCount(pItem); // number of items currently in array
+
+        if (cnt == 0)
+        {
+            cout << "'Currently no '" <<pComp->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
+            return;
+        }
+
+        unsigned int itemIdx;
+
+        if (pComp->getIndex(argc, argv, pItem, itemIdx) == false)
+        {
+            // An index is needed but couldn't be extracted from the command
+            return;
+        }
+
+        // Reallocate memory, and save pointer in the same location
+        unsigned char ** ppItems = (unsigned char **)(pItem + pComp->offset);
+
+        // Shift down items to occupy the memory vacated by deleted item
+        memcpy(*ppItems + itemIdx * pComp->pDesc->getLen(),
+               *ppItems + (itemIdx + 1) * pComp->pDesc->getLen(),
+               (cnt - itemIdx - 1) * pComp->pDesc->getLen());
+
+        *ppItems = (unsigned char *)realloc(*ppItems, (cnt - 1) * pComp->pDesc->getLen());
+
+        DBG_PRT("del item base %p offset %d index %d len %d\n", pItem, pComp->offset, itemIdx, pComp->pDesc->getLen());
+
+        return pComp->setCount(pItem, cnt - 1);
     }
 }
 
@@ -377,6 +375,83 @@ void cm_composite_item_descriptor::writeTlv(unsigned char *pItem, unsigned char 
             pComp->pDesc->writeTlv(pFirstItem + j * pComp->pDesc->getLen(), ppBuf);
         }
     }
+}
+
+
+// Calling function called this function because the ID matches,
+// so it's not checked here again.
+// This method reads L, and moves forward in the file by that many bytes,
+// using what it finds in the file to initialize the object's configurable items.
+// xxx after each read, check how much was read.
+// xxx when reading owned items, allocate memory for them!  Either by adding them
+// as they're found, or by adding enough memory based on the loaded counter.
+int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem)
+{
+    cm_item_len  tlvLen;
+    cm_item_len  bytesRead;
+    unsigned int itemIdx; // number of items read of a given type, i.e. offset in the item array
+    bool         firstComp = true;
+    
+    fread(&tlvLen, sizeof(tlvLen), 1, fp);
+    bytesRead = sizeof(tlvLen);
+
+    DBG_PRT("composite load %d bytes to %p\n", tlvLen, pItem);
+
+    while (bytesRead < tlvLen) // xxx 
+    {    
+        cm_component *   pComp;
+        unsigned char *  pFirstItem;
+        cm_descriptor_id compId, prevCompId;
+        int              i;
+
+        fread(&compId, sizeof(compId), 1, fp);
+        bytesRead += sizeof(compId);
+
+        DBG_PRT("load component ID %d\n", compId);
+
+        // Look for a component with ID matching the one read from NVRAM
+        for (i = 0; i < compCount; i++)
+        {            
+            pComp = compList[i];
+            
+            if (compId == pComp->pDesc->id)
+            {
+                break;
+            }
+        }
+
+        // When we start with a new item type (or the 1st one), reset array index and pFirstItem
+        if (firstComp || (compId != prevCompId))
+        {
+            // xxx here, check if itemIdx matches the count, i.e. did we read as many items as we should have?
+            
+            pFirstItem = pComp->getFirstItem(pItem);
+            itemIdx = 0;
+            firstComp = false;
+        }
+
+        if (i < compCount)
+        {            
+            // Found a match, so delegate the reading to the corresponding component
+            DBG_PRT("component '%s' matches, itemIdx %d\n", pComp->pDesc->getName().c_str(), itemIdx);
+
+            bytesRead += pComp->pDesc->loadFromTlv(fp, pFirstItem + itemIdx++ * pComp->pDesc->getLen());
+        }
+        else
+        {            
+            // We got to the end of the list without finding a match: skip over the unrecognized item
+            cout << "Couldn't load unknown component ID " << compId << endl;
+
+            cm_item_len componentTlvLen;
+            fread(&componentTlvLen, sizeof(componentTlvLen), 1, fp);
+            bytesRead += sizeof(componentTlvLen);
+            fseek(fp, componentTlvLen, SEEK_CUR);
+            bytesRead += componentTlvLen;
+        }
+        DBG_PRT("composite '%s': %d read\n", getName().c_str(), bytesRead);
+        prevCompId = compId;
+    }
+    return bytesRead;
 }
 
 
@@ -436,7 +511,7 @@ void cm_composite_item_descriptor::setdef(unsigned char * pItem)
             // After setting to default, free owned memory and set counter to 0
             if (pComp->isAddSupported() && (pComp->getCount(pItem) > 0))
             {
-                DBG_PRT("setdef free %p\n" pItem + pComp->offset);
+                DBG_PRT("setdef free %p\n", pItem + pComp->offset);
 
                 free(pItem + pComp->offset);
 
@@ -563,6 +638,38 @@ void cm_simple_item_descriptor::writeTlv(unsigned char *pItem, unsigned char ** 
 cm_item_len cm_simple_item_descriptor::getTlvLen(unsigned char * pItem)
 {
     return sizeof(cm_descriptor_id) + sizeof(cm_item_len) + getLen();
+}
+
+
+// Calling function called this function because the ID matches,
+// so it's not checked here again.
+// This method reads L, and moves forward in the file by that many bytes,
+// using what it finds in the file to initialize the object's configurable items.
+// xxx after each read, check how much was read.
+int cm_simple_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem)
+{
+    cm_item_len tlvLen;
+    
+    fread(&tlvLen, sizeof(tlvLen), 1, fp);
+
+    DBG_PRT("load simple %d bytes to %d\n", tlvLen, pItem);
+
+    if (tlvLen != getLen())
+    {
+        // Item larger than expected: we don't truncate, we leave
+        // the item as unchanged, but move forward in the file.
+        cout << "TLV len " << tlvLen << ", expected " << getLen() << endl;
+
+        fseek(fp, tlvLen, SEEK_CUR);
+    }
+
+    // xxx Could we handle the case where len > tlvLen?  Is there a reasonable
+    // action to perform in this case?  Yes, but it would be dependent on
+    // endian-ness, and for big-endian systems we'd have to know if we were
+    // reading an integer or not.
+    fread(pItem, tlvLen, 1, fp); // xxx ptr, size, count, stream
+
+    return sizeof(tlvLen) + tlvLen;
 }
 
 
