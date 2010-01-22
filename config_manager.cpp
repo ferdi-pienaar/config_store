@@ -383,8 +383,6 @@ void cm_composite_item_descriptor::writeTlv(unsigned char *pItem, unsigned char 
 // This method reads L, and moves forward in the file by that many bytes,
 // using what it finds in the file to initialize the object's configurable items.
 // xxx after each read, check how much was read.
-// xxx when reading owned items, allocate memory for them!  Either by adding them
-// as they're found, or by adding enough memory based on the loaded counter.
 int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem)
 {
     cm_item_len  tlvLen;
@@ -401,6 +399,7 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem)
     {    
         cm_component *   pComp;
         unsigned char *  pFirstItem;
+        unsigned char ** ppItems;
         cm_descriptor_id compId, prevCompId;
         int              i;
 
@@ -420,14 +419,25 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem)
             }
         }
 
-        // When we start with a new item type (or the 1st one), reset array index and pFirstItem
+        // When we start with a new item type (or the 1st one), reset array index and pFirstItem,
+        // and, if necessary, allocate memory for expected number of items
         if (firstComp || (compId != prevCompId))
         {
             // xxx here, check if itemIdx matches the count, i.e. did we read as many items as we should have?
-            
+            firstComp = false;
+
+            // Allocate memory for owned items -- xxx note we assume the count has been populated correctly
+            if (pComp->isAddSupported() && pComp->getCount(pItem) > 0)
+            {
+                ppItems = (unsigned char **)(pItem + pComp->offset);
+
+                *ppItems = (unsigned char *)malloc(pComp->pDesc->getLen() * pComp->getCount(pItem));
+
+                DBG_PRT("load: for %d items, alloc %p to %p\n", pComp->getCount(pItem), *ppItems, ppItems);
+            }
+
             pFirstItem = pComp->getFirstItem(pItem);
             itemIdx = 0;
-            firstComp = false;
         }
 
         if (i < compCount)
@@ -504,19 +514,26 @@ void cm_composite_item_descriptor::setdef(unsigned char * pItem)
         unsigned char * pFirstItem = pComp->getFirstItem(pItem);
         unsigned int    itemCount = pComp->getCount(pItem);
 
+        // Set each item to default
         for (unsigned j = 0; j < itemCount; j++)
         {           
             pComp->pDesc->setdef(pFirstItem + j * pComp->pDesc->getLen());
+        }
 
-            // After setting to default, free owned memory and set counter to 0
-            if (pComp->isAddSupported() && (pComp->getCount(pItem) > 0))
-            {
-                DBG_PRT("setdef free %p\n", pItem + pComp->offset);
+        // If necessary, free the block of memory where the items were, and set counter to 0
+        if ((itemCount > 0) && pComp->isAddSupported())
+        {
+            unsigned char ** ppItems = (unsigned char **)(pItem + pComp->offset);
 
-                free(pItem + pComp->offset);
+            assert(*ppItems != NULL);
+            
+            DBG_PRT("setdef free %p\n", *ppItems);
 
-                return pComp->setCount(pItem, 0);
-            }
+            free(*ppItems);
+
+            *ppItems = NULL; // xxx for future sanity checks
+
+            return pComp->setCount(pItem, 0);
         }
     }
 }
@@ -652,7 +669,7 @@ int cm_simple_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem)
     
     fread(&tlvLen, sizeof(tlvLen), 1, fp);
 
-    DBG_PRT("load simple %d bytes to %d\n", tlvLen, pItem);
+    DBG_PRT("load simple %d bytes to %p\n", tlvLen, pItem);
 
     if (tlvLen != getLen())
     {
