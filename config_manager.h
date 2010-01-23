@@ -59,12 +59,12 @@ class cm_item_descriptor
 private:
     
 protected: // xxx these are protected because I want to access them from the derived classes
-    string           name;     // name by which item is addressed on CLI
-    cm_item_len len;  // Number of bytes occupied by an item in RAM
+    const string           name;     // name by which item is addressed on CLI
+    const cm_item_len      len;      // Number of bytes occupied by an item in RAM
 
 
 public:     
-    cm_descriptor_id id;       // ID (unique within the context of the component's context) of item in NVRAM    
+    const cm_descriptor_id id;       // ID (unique within the context of the component's context) of item in NVRAM    
 
 
     cm_item_descriptor(string iname, cm_descriptor_id iid, cm_item_len ilen):
@@ -72,8 +72,8 @@ public:
     virtual ~cm_item_descriptor(){}
 
     virtual void do_cmd(int argc, char *argv[], unsigned char * pItem) = 0;
-    virtual cm_item_len getLen(){return len;}
-    virtual cm_item_len getTlvLen(unsigned char * pItem) = 0;
+    virtual cm_item_len getLen() const {return len;}
+    virtual cm_item_len getTlvLen(unsigned char * pItem) const = 0;
     virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf) = 0;
     virtual int loadFromTlv(FILE * fp, unsigned char * pItem) = 0;
     virtual void print(unsigned char * pItem, string prefix) = 0;
@@ -107,8 +107,8 @@ public:
                  pDesc(d), maxCount(c), offset(o){};
 
     cm_item_descriptor * pDesc;     // the component's descriptor
-    unsigned short       maxCount;  // Max number of instances of the item
-    unsigned int         offset;    // Offset [bytes] of items (or pointer to items) within the composite item
+    const unsigned short       maxCount;  // Max number of instances of the item
+    const unsigned int         offset;    // Offset [bytes] of items (or pointer to items) within the composite item
 
     bool getIndex(int & argc, char ** & argv, unsigned char * pParentItem, unsigned int & itemIndex);
     virtual unsigned char * getFirstItem(unsigned char * pParentItem) = 0;
@@ -164,10 +164,10 @@ public:
 class cm_composite_item_descriptor : public cm_item_descriptor
 { 
     cm_component ** compList;           // List of ptrs to components, an array
-    unsigned short  compCount;          // Number of components in the list (number of descriptors, not items)
+    const unsigned short  compCount;          // Number of components in the list (number of descriptors, not items)
 
     virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf);
-    virtual cm_item_len getTlvLen(unsigned char * pItem);
+    virtual cm_item_len getTlvLen(unsigned char * pItem) const;
     virtual int loadFromTlv(FILE * fp, unsigned char * pItem);
 
 
@@ -203,12 +203,12 @@ class cm_simple_item_descriptor : public cm_item_descriptor
     //  set
     //  setdef
     //
-    CM_SET_FPTR    pSet;
-    CM_SETDEF_FPTR pSetDef;
-    CM_PRT_FPTR    pPrt;
+    const CM_SET_FPTR    pSet;
+    const CM_SETDEF_FPTR pSetDef;
+    const CM_PRT_FPTR    pPrt;
 
     virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf);
-    virtual cm_item_len getTlvLen(unsigned char * pItem);
+    virtual cm_item_len getTlvLen(unsigned char * pItem) const;
     virtual int loadFromTlv(FILE * fp, unsigned char * pItem);
 
 public:

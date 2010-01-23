@@ -334,7 +334,7 @@ void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * p
 
 /// Return total length of TLV item:
 //  The number of bytes taken up by T + L + V.
-cm_item_len cm_composite_item_descriptor::getTlvLen(unsigned char * pItem)
+cm_item_len cm_composite_item_descriptor::getTlvLen(unsigned char * pItem) const
 {
     cm_item_len tlvLen = sizeof(cm_descriptor_id) + sizeof(cm_item_len);
     
@@ -663,7 +663,7 @@ void cm_simple_item_descriptor::writeTlv(unsigned char *pItem, unsigned char ** 
 /// Return total length of TLV item:
 //  The number of bytes taken up by T + L + V.
 //  (For a simple item, there's no dependency on pItem, the RAM contents.)
-cm_item_len cm_simple_item_descriptor::getTlvLen(unsigned char * pItem)
+cm_item_len cm_simple_item_descriptor::getTlvLen(unsigned char * pItem) const
 {
     return sizeof(cm_descriptor_id) + sizeof(cm_item_len) + getLen();
 }
@@ -821,6 +821,7 @@ unsigned cm_owned_component::getCount(unsigned char * pParentItem)
     }
     return c;
 }
+
 
 // Set value in RAM that records the number of items in the array of items
 // xxx enforce, run-time of compile-time, that counters are unsigned int sized.
