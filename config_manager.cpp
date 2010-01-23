@@ -150,7 +150,7 @@ void config_manager::load()
 // argv array of strings containing name elements
 // pItem - pointer to RAM at which item is located
 //
- void cm_composite_item_descriptor::do_cmd(int argc, char *argv[], unsigned char * pItem)
+ void cm_composite_item_descriptor::do_cmd(int argc, char *argv[], unsigned char * pItem) const
 {
     eCmOp op = getOp(argv[0]);
 
@@ -214,7 +214,7 @@ void config_manager::load()
 // Add a component named by argc,argv to a composite.
 // This allocates memory for the new item, sets it to default values,
 // and increments the corresponding counter.
-void cm_composite_item_descriptor::add(int argc, char *argv[], unsigned char * pItem)
+void cm_composite_item_descriptor::add(int argc, char *argv[], unsigned char * pItem) const
 {
     DBG_PRT("add %s\n\r", argv[0]);
 
@@ -268,7 +268,7 @@ void cm_composite_item_descriptor::add(int argc, char *argv[], unsigned char * p
 
 // Del an owned component named by argc,argv from a composite
 // xxx When all items deleted, set pointer to owned mem to NULL for later sanity checks?
-void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * pItem)
+void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * pItem) const
 {
     DBG_PRT("del %s\n\r", argv[0]);
 
@@ -360,7 +360,7 @@ cm_item_len cm_composite_item_descriptor::getTlvLen(unsigned char * pItem) const
 //  xxx add param, bufsize, to do a buffer overflow check.
 //  xxx if we want to write directly to NVRAM, we need to implement a method
 //  that does that...
-void cm_composite_item_descriptor::writeTlv(unsigned char *pItem, unsigned char ** ppBuf)
+void cm_composite_item_descriptor::writeTlv(unsigned char *pItem, unsigned char ** ppBuf) const
 {
     // The L field in TLV excludes this item's T+L fields
     cm_item_len componentLen = getTlvLen(pItem) - sizeof(len) - sizeof(id);
@@ -391,7 +391,7 @@ void cm_composite_item_descriptor::writeTlv(unsigned char *pItem, unsigned char 
 // This method reads L, and moves forward in the file by that many bytes,
 // using what it finds in the file to initialize the object's configurable items.
 // xxx after each read, check how much was read.
-int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem)
+int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) const
 {
     cm_item_len  tlvLen;
     cm_item_len  bytesRead;
@@ -475,7 +475,7 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem)
 
 // Delegate print command to components
 // 
-void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix)
+void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix) const
 {
     char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
 
@@ -513,7 +513,7 @@ void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix)
 // (which is why no setdef is installed for a counter), since pComp->getCount
 // for an owned component depends on the counter stil being set.
 // xxx set pointer to owned mem to NULL for later sanity checks?
-void cm_composite_item_descriptor::setdef(unsigned char * pItem)
+void cm_composite_item_descriptor::setdef(unsigned char * pItem) const
 {    
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < compCount; i++)
@@ -558,7 +558,7 @@ void cm_composite_item_descriptor::setdef(unsigned char * pItem)
 // argv array of strings containing name elements
 // pItem - pointer to RAM at which item is located
 //
-void cm_simple_item_descriptor::do_cmd(int argc, char *argv[], unsigned char * pItem)
+void cm_simple_item_descriptor::do_cmd(int argc, char *argv[], unsigned char * pItem) const
 {
     DBG_PRT("simple cmd at %p\n", pItem);
     
@@ -591,7 +591,7 @@ void cm_simple_item_descriptor::do_cmd(int argc, char *argv[], unsigned char * p
 // An item does not print its own name, since
 // it may be preceded by an index, which is known
 // to the item's composite but not to the item.
-void cm_simple_item_descriptor::print(unsigned char * pItem, string prefix)
+void cm_simple_item_descriptor::print(unsigned char * pItem, string prefix) const
 {
     cout << prefix;
 
@@ -614,7 +614,7 @@ void cm_simple_item_descriptor::print(unsigned char * pItem, string prefix)
 
 
 // Set.
-void cm_simple_item_descriptor::set(unsigned char * pItem, string val)
+void cm_simple_item_descriptor::set(unsigned char * pItem, string val) const
 {
     DBG_PRT("set simple %s at %p to value %s\n", name.c_str(), pItem, val.c_str());
 
@@ -634,7 +634,7 @@ void cm_simple_item_descriptor::set(unsigned char * pItem, string val)
 // xxx for owned counters, no modification should be allowed.
 // But we should check that for a counter, no setdef or set
 // is installed.
-void cm_simple_item_descriptor::setdef(unsigned char * pItem)
+void cm_simple_item_descriptor::setdef(unsigned char * pItem) const
 {
     if (pSetDef != NULL)
     {
@@ -648,7 +648,7 @@ void cm_simple_item_descriptor::setdef(unsigned char * pItem)
 //  to NVRAM.
 //  xxx if we want to write directly to NVRAM, we need to implement a method
 //  that does that...
-void cm_simple_item_descriptor::writeTlv(unsigned char *pItem, unsigned char ** ppBuf)
+void cm_simple_item_descriptor::writeTlv(unsigned char *pItem, unsigned char ** ppBuf) const
 {
     memcpy(*ppBuf, &id, sizeof(id));   // write Type (i.e. the ID)
     *ppBuf += sizeof(id);              // advance the memory pointer
@@ -674,7 +674,7 @@ cm_item_len cm_simple_item_descriptor::getTlvLen(unsigned char * pItem) const
 // This method reads L, and moves forward in the file by that many bytes,
 // using what it finds in the file to initialize the object's configurable items.
 // xxx after each read, check how much was read.
-int cm_simple_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem)
+int cm_simple_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) const
 {
     cm_item_len tlvLen;
     

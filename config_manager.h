@@ -71,15 +71,15 @@ public:
                        name(iname), len(ilen), id(iid){}
     virtual ~cm_item_descriptor(){}
 
-    virtual void do_cmd(int argc, char *argv[], unsigned char * pItem) = 0;
+    virtual void do_cmd(int argc, char *argv[], unsigned char * pItem) const = 0;
     virtual cm_item_len getLen() const {return len;}
     virtual cm_item_len getTlvLen(unsigned char * pItem) const = 0;
-    virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf) = 0;
-    virtual int loadFromTlv(FILE * fp, unsigned char * pItem) = 0;
-    virtual void print(unsigned char * pItem, string prefix) = 0;
-    virtual void setdef(unsigned char * pItem) = 0;
+    virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf) const = 0;
+    virtual int loadFromTlv(FILE * fp, unsigned char * pItem) const = 0;
+    virtual void print(unsigned char * pItem, string prefix) const = 0;
+    virtual void setdef(unsigned char * pItem) const = 0;
 
-    string getName(){return name;}
+    string getName() const {return name;}
 
 };
 
@@ -166,9 +166,9 @@ class cm_composite_item_descriptor : public cm_item_descriptor
     cm_component ** compList;           // List of ptrs to components, an array
     const unsigned short  compCount;          // Number of components in the list (number of descriptors, not items)
 
-    virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf);
+    virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf) const;
     virtual cm_item_len getTlvLen(unsigned char * pItem) const;
-    virtual int loadFromTlv(FILE * fp, unsigned char * pItem);
+    virtual int loadFromTlv(FILE * fp, unsigned char * pItem) const;
 
 
 public:    
@@ -183,11 +183,11 @@ public:
                                  {};
 
     ~cm_composite_item_descriptor(){};
-    void do_cmd(int argc, char *argv[], unsigned char * pItem);
-    void print(unsigned char * pItem, string prefix);
-    void setdef(unsigned char * pItem);
-    void add(int argc, char *argv[], unsigned char * pItem);
-    void del(int argc, char *argv[], unsigned char * pItem);
+    void do_cmd(int argc, char *argv[], unsigned char * pItem) const;
+    void print(unsigned char * pItem, string prefix) const;
+    void setdef(unsigned char * pItem) const;
+    void add(int argc, char *argv[], unsigned char * pItem) const;
+    void del(int argc, char *argv[], unsigned char * pItem) const;
 
 };
 
@@ -207,9 +207,9 @@ class cm_simple_item_descriptor : public cm_item_descriptor
     const CM_SETDEF_FPTR pSetDef;
     const CM_PRT_FPTR    pPrt;
 
-    virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf);
+    virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf) const;
     virtual cm_item_len getTlvLen(unsigned char * pItem) const;
-    virtual int loadFromTlv(FILE * fp, unsigned char * pItem);
+    virtual int loadFromTlv(FILE * fp, unsigned char * pItem) const;
 
 public:
         
@@ -226,10 +226,10 @@ public:
                               
     ~cm_simple_item_descriptor(){};
 
-    void do_cmd(int argc, char *argv[], unsigned char * pItem);
-    void print(unsigned char * pItem, string prefix);
-    void set(unsigned char * pItem, string val);
-    void setdef(unsigned char * pItem);
+    void do_cmd(int argc, char *argv[], unsigned char * pItem) const;
+    void print(unsigned char * pItem, string prefix) const;
+    void set(unsigned char * pItem, string val) const;
+    void setdef(unsigned char * pItem) const;
 };
 
 
