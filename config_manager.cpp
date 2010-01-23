@@ -22,7 +22,7 @@ typedef enum
 
 } eCmOp;
 
-static eCmOp getOp(char * word);
+static eCmOp getOp(const char * word);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -161,29 +161,32 @@ void config_manager::load()
         {            
             cm_component * pComp = compList[i];
 
-            if (strcmp(argv[0], pComp->pDesc->getName().c_str()) == 0)
-            {            
-                // Found matching name, now determine if the next word should be an index
-                argc--;
-                argv++;
-
-                unsigned int itemIdx;
-
-                if (pComp->getIndex(argc, argv, pItem, itemIdx) == false)
-                {
-                    // An index is needed but couldn't be extracted from the command
-                    return;
-                }
-
-                DBG_PRT("cmd item base %p offset %d index %d len %d\n", pItem, pComp->offset, itemIdx, pComp->pDesc->getLen());
-
-                // Pass the remainder of the command to the matching component
-                return pComp->pDesc->do_cmd(argc, argv, pComp->getFirstItem(pItem) + itemIdx * pComp->pDesc->getLen());
+            if (strcmp(argv[0], pComp->pDesc->getName().c_str()) != 0)
+            {
+                // No match -- continue to next candidate
+                continue;
             }
+            
+            // Found matching name, now determine if the next word should be an index
+            argc--;
+            argv++;
+
+            unsigned int itemIdx;
+
+            if (pComp->getIndex(argc, argv, pItem, itemIdx) == false)
+            {
+                // An index is needed but couldn't be extracted from the command
+                return;
+            }
+
+            DBG_PRT("cmd item base %p offset %d index %d len %d\n", pItem, pComp->offset, itemIdx, pComp->pDesc->getLen());
+
+            // Pass the remainder of the command to the matching component
+            return pComp->pDesc->do_cmd(argc, argv, pComp->getFirstItem(pItem) + itemIdx * pComp->pDesc->getLen());
         }
     }
 
-    // If we're here, it means argv[0] was an operation, or there was no match to next part of item id
+    // If we're here, it means argv[0] was an operation, or there was no match to next word in item id
     switch (op)
     {
         case CM_ADD:
@@ -207,7 +210,8 @@ void config_manager::load()
     cout << "'" << argv[0] << "' operation not applicable to composite item '" << getName() << "'" << endl;
 }
 
-// Add a component to a composite.
+
+// Add a component named by argc,argv to a composite.
 // This allocates memory for the new item, sets it to default values,
 // and increments the corresponding counter.
 void cm_composite_item_descriptor::add(int argc, char *argv[], unsigned char * pItem)
@@ -224,41 +228,45 @@ void cm_composite_item_descriptor::add(int argc, char *argv[], unsigned char * p
     {            
         cm_component *  pComp = compList[i];
 
-        if (strcmp(argv[0], pComp->pDesc->getName().c_str()) == 0)
-        {        
-            if (!pComp->isAddSupported())
-            {
-                cout<<"Add not supported for '"<<pComp->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
-                return;
-            }
-
-            unsigned int cnt = pComp->getCount(pItem); // number of items currently in array
-
-            if (cnt >= pComp->maxCount)
-            {
-                cout<<"Can't add '"<<pComp->pDesc->getName()<<"' (max "<<pComp->maxCount<<")."<<endl;
-                return;
-            }  
-                
-            // Reallocate memory, and save pointer in the same location
-            unsigned char ** ppItems = (unsigned char **)(pItem + pComp->offset);
-
-            *ppItems = (unsigned char *)realloc(*ppItems, (cnt + 1) * pComp->pDesc->getLen());
-
-            // Initialize added item with default values. First memset to ensure
-            // counters, which have no setdef fn, are 0 (also sets pointers to owned to NULL).
-            memset(*ppItems + cnt * pComp->pDesc->getLen(), 0, pComp->pDesc->getLen());
-            pComp->pDesc->setdef(*ppItems + cnt * pComp->pDesc->getLen());
-
-            DBG_PRT("add at %p\n", *ppItems);
-
-            return pComp->setCount(pItem, cnt + 1);
+        if (strcmp(argv[0], pComp->pDesc->getName().c_str()) != 0)
+        {
+            // No match, continue to next candidate
+            continue;
         }
+        
+        if (!pComp->isAddSupported())
+        {
+            cout<<"Add not supported for '"<<pComp->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
+            return;
+        }
+
+        unsigned int cnt = pComp->getCount(pItem); // number of items currently in array
+
+        if (cnt >= pComp->maxCount)
+        {
+            cout<<"Can't add '"<<pComp->pDesc->getName()<<"' (max "<<pComp->maxCount<<")."<<endl;
+            return;
+        }  
+            
+        // Reallocate memory, and save pointer in the same location
+        unsigned char ** ppItems = (unsigned char **)(pItem + pComp->offset);
+
+        *ppItems = (unsigned char *)realloc(*ppItems, (cnt + 1) * pComp->pDesc->getLen());
+
+        // Initialize added item with default values. First memset to ensure
+        // counters, which have no setdef fn, are 0 (also sets pointers to owned to NULL).
+        memset(*ppItems + cnt * pComp->pDesc->getLen(), 0, pComp->pDesc->getLen());
+        pComp->pDesc->setdef(*ppItems + cnt * pComp->pDesc->getLen());
+
+        DBG_PRT("add at %p\n", *ppItems);
+
+        return pComp->setCount(pItem, cnt + 1);
     }
     cout << "No item '" << argv[0] << " in '" << getName() << "'." << endl;
 }
 
-// Del an owned component from a composite
+
+// Del an owned component named by argc,argv from a composite
 // xxx When all items deleted, set pointer to owned mem to NULL for later sanity checks?
 void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * pItem)
 {
@@ -427,7 +435,7 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem)
             firstComp = false;
 
             // Allocate memory for owned items -- xxx note we assume the count has been populated correctly
-            if (pComp->isAddSupported() && pComp->getCount(pItem) > 0)
+            if (pComp->isAddSupported() && (pComp->getCount(pItem) > 0))
             {
                 ppItems = (unsigned char **)(pItem + pComp->offset);
 
@@ -576,9 +584,9 @@ void cm_simple_item_descriptor::do_cmd(int argc, char *argv[], unsigned char * p
 
         default:
             cout << "Unknown operation '" << argv[0] << "'" << endl;
-    }
-    
+    }   
 }
+
 
 // An item does not print its own name, since
 // it may be preceded by an index, which is known
@@ -621,6 +629,7 @@ void cm_simple_item_descriptor::set(unsigned char * pItem, string val)
     cout << endl;
 }
 
+
 // Set configurable item to its default value.
 // xxx for owned counters, no modification should be allowed.
 // But we should check that for a counter, no setdef or set
@@ -632,6 +641,7 @@ void cm_simple_item_descriptor::setdef(unsigned char * pItem)
         pSetDef(pItem, len);
     }
 }
+
 
 /// Write TLV to a buffer, and advance the ptr to the end of memory written to.
 //  This is useful for writing to a RAM buffer first, for subsequent write
@@ -648,6 +658,7 @@ void cm_simple_item_descriptor::writeTlv(unsigned char *pItem, unsigned char ** 
     memcpy(*ppBuf, pItem, len);        // write Value
     *ppBuf += len;
 }
+
 
 /// Return total length of TLV item:
 //  The number of bytes taken up by T + L + V.
@@ -831,7 +842,7 @@ string cm_component::getCurrentItemName()
 
 
 // Helper function that returns what kind of operation (if any) a word is
-eCmOp getOp(char * word)
+eCmOp getOp(const char * word)
 {
     if (strcmp(word, "add") == 0) return CM_ADD;
     if (strcmp(word, "del") == 0) return CM_DEL;
