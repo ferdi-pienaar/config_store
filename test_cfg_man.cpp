@@ -24,11 +24,11 @@ int main()
     
     while (true)
     {
-        char cmd[120];
+        char   cmd[120];
         char * param[20];
-        int wordCnt = 0;
+        int    wordCnt = 0;
 
-        printf(">");
+        printf("%s> ", cm->getPromptString());
 
         if (fgets(cmd, sizeof(cmd), stdin) == NULL)
         {
@@ -43,7 +43,6 @@ int main()
         cm->do_cmd(wordCnt, param);
     }
 }
-
 
 
 

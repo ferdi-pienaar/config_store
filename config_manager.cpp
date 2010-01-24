@@ -49,6 +49,8 @@ void config_manager::init(CM_READ_FROM_NVRAM pRead, CM_WRITE_TO_NVRAM pWr)
 
     base_desc->setdef(ramBase);
 
+    contextString = base_desc->getName();
+
     pWriteToNvram = pWr;
     pReadFromNvram = pRead;
 
@@ -59,10 +61,6 @@ void config_manager::init(CM_READ_FROM_NVRAM pRead, CM_WRITE_TO_NVRAM pWr)
 // Execute command words entered by client on CLI.
 void config_manager::do_cmd(int argc, char *argv[])
 {
-    unsigned char      * pItem;
-    cm_item_descriptor * pDesc;
-
-
     // First treat the commands that are only applicable at the top level
     switch (getOp(argv[0]))
     {
@@ -76,11 +74,15 @@ void config_manager::do_cmd(int argc, char *argv[])
             break;
     }
 
-    pDesc = base_desc;
-    pItem  = ramBase;
-    
     // Pass command to top level item for handling
-    base_desc->do_cmd(argc, argv, pItem);
+    base_desc->do_cmd(argc, argv, ramBase);
+}
+
+
+// Get a prompt string to display to user, representing the current context
+const char * config_manager::getPromptString()
+{
+    return contextString.c_str();
 }
 
 
@@ -179,8 +181,14 @@ void config_manager::load()
                 return;
             }
 
-            DBG_PRT("cmd item base %p offset %d index %d len %d\n", pItem, pComp->offset, itemIdx, pComp->pDesc->getLen());
+            DBG_PRT("cmd pItem %p offset %d idx %d len %d\n", pItem, pComp->offset, itemIdx, pComp->pDesc->getLen());
 
+            if (argc == 0)
+            {
+                // End of input
+                return;
+            }
+            
             // Pass the remainder of the command to the matching component
             return pComp->pDesc->do_cmd(argc, argv, pComp->getFirstItem(pItem) + itemIdx * pComp->pDesc->getLen());
         }
@@ -711,7 +719,7 @@ int cm_simple_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) con
 // Returns false if unable to extract an index.
 // Returns true of able to return an index
 // If no index is required, the index is set to 0, and true is returned.
-bool cm_component::getIndex(int & argc, char ** & argv, unsigned char * pParentItem, unsigned int & itemIdx)
+bool cm_component::getIndex(int & argc, char ** & argv, unsigned char * pParentItem, unsigned int & itemIdx) const
 {      
     // If there's more than one item in the array, an index must be provided
     if (getCount(pParentItem) <= 1)
@@ -754,7 +762,7 @@ bool cm_component::getIndex(int & argc, char ** & argv, unsigned char * pParentI
 // pParentItem: pointer to parent item; from this component can calculate
 //              the addresses of the items it links to the composite.
 //
-unsigned char * cm_contained_component::getFirstItem(unsigned char * pParentItem)
+unsigned char * cm_contained_component::getFirstItem(unsigned char * pParentItem) const
 {
    return pParentItem + offset;
 }
@@ -762,7 +770,7 @@ unsigned char * cm_contained_component::getFirstItem(unsigned char * pParentItem
 
 // Return the number of items in the component's array.
 // For a contained component, the count is fixed at maxCount.
-unsigned cm_contained_component::getCount(unsigned char * pParentItem)
+unsigned cm_contained_component::getCount(unsigned char * pParentItem) const
 {
     return maxCount;
 }
@@ -778,7 +786,7 @@ unsigned cm_contained_component::getCount(unsigned char * pParentItem)
 // pParentItem: pointer to parent item; from this component can calculate
 //              the addresses of the items it links to the composite.
 //
-unsigned char * cm_owned_component::getFirstItem(unsigned char * pParentItem)
+unsigned char * cm_owned_component::getFirstItem(unsigned char * pParentItem) const
 {
     return *(unsigned char **)(pParentItem + offset); // location is a pointer to the OWNED item
 }
@@ -787,7 +795,7 @@ unsigned char * cm_owned_component::getFirstItem(unsigned char * pParentItem)
 // Return the number of items in the component's array
 // xxx giving a fixed size to counters would simplify this, but
 // introduces a dependency on the application programmer doing the right thing
-unsigned cm_owned_component::getCount(unsigned char * pParentItem)
+unsigned cm_owned_component::getCount(unsigned char * pParentItem) const
 {
     unsigned int c;
 
@@ -825,7 +833,7 @@ unsigned cm_owned_component::getCount(unsigned char * pParentItem)
 
 // Set value in RAM that records the number of items in the array of items
 // xxx enforce, run-time of compile-time, that counters are unsigned int sized.
-void cm_owned_component::setCount(unsigned char * pParentItem, unsigned int count)
+void cm_owned_component::setCount(unsigned char * pParentItem, unsigned int count) const
 {
     // Sanity check: if add/del operation not supported, the setCount() is meaningless
     assert(isAddSupported());

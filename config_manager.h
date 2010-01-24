@@ -106,15 +106,15 @@ public:
                  unsigned int o):
                  pDesc(d), maxCount(c), offset(o){};
 
-    cm_item_descriptor * pDesc;     // the component's descriptor
+    const cm_item_descriptor * pDesc;     // the component's descriptor
     const unsigned short       maxCount;  // Max number of instances of the item
     const unsigned int         offset;    // Offset [bytes] of items (or pointer to items) within the composite item
 
-    bool getIndex(int & argc, char ** & argv, unsigned char * pParentItem, unsigned int & itemIndex);
-    virtual unsigned char * getFirstItem(unsigned char * pParentItem) = 0;
-    virtual unsigned getCount(unsigned char * pParentItem) = 0;
-    virtual bool isAddSupported() = 0;
-    virtual void setCount(unsigned char * pParentItem, unsigned int) = 0;
+    bool getIndex(int & argc, char ** & argv, unsigned char * pParentItem, unsigned int & itemIndex) const;
+    virtual unsigned char * getFirstItem(unsigned char * pParentItem) const = 0;
+    virtual unsigned getCount(unsigned char * pParentItem) const = 0;
+    virtual bool isAddSupported() const = 0;
+    virtual void setCount(unsigned char * pParentItem, unsigned int) const = 0;
 };
 
 
@@ -128,10 +128,10 @@ public:
                            unsigned int o):
                            cm_component(d,c,o){}
 
-    unsigned char * getFirstItem(unsigned char * pParentItem);
-    virtual unsigned getCount(unsigned char * pParentItem);
-    bool isAddSupported(){return false;}
-    void setCount(unsigned char * pParentItem, unsigned int){assert(isAddSupported());} // add operation doesn't apply
+    unsigned char * getFirstItem(unsigned char * pParentItem) const;
+    virtual unsigned getCount(unsigned char * pParentItem) const;
+    bool isAddSupported() const {return false;}
+    void setCount(unsigned char * pParentItem, unsigned int) const {assert(isAddSupported());} // add operation doesn't apply
 
 };
 
@@ -141,7 +141,7 @@ public:
 class cm_owned_component : public cm_component
 {
 private:
-    cm_contained_component * pCounterComp; // the counter for this owned component
+    const cm_contained_component * pCounterComp; // the counter for this owned component
     
 public:
     cm_owned_component(cm_item_descriptor * d,
@@ -150,10 +150,10 @@ public:
                        cm_contained_component * cComp):
                        cm_component(d,c,o), pCounterComp(cComp){}
 
-    unsigned char * getFirstItem(unsigned char * pParentItem);
-    virtual unsigned getCount(unsigned char * pParentItem);
-    bool isAddSupported(){return true;}
-    void setCount(unsigned char * pParentItem, unsigned int);
+    unsigned char * getFirstItem(unsigned char * pParentItem) const;
+    virtual unsigned getCount(unsigned char * pParentItem) const;
+    bool isAddSupported() const {return true;}
+    void setCount(unsigned char * pParentItem, unsigned int) const;
 
 
 };
@@ -234,12 +234,15 @@ public:
 
 
 // xxx Should be a singleton?
+// This class is the application programme's sole point of access to
+// the configurable items.
 class config_manager
 {  
 public:
     config_manager(cm_item_descriptor * pDesc);
     void do_cmd(int argc, char *argv[]);
     void init(CM_READ_FROM_NVRAM pRead, CM_WRITE_TO_NVRAM pWr);
+    const char * getPromptString();
 
 private:
     void save();
@@ -247,8 +250,8 @@ private:
     CM_READ_FROM_NVRAM pReadFromNvram; // fn installed by user to do read for CM
     CM_WRITE_TO_NVRAM  pWriteToNvram;  // fn installed by user to do write for CM 
     
-    cm_item_descriptor * base_desc;    
-    unsigned char *      ramBase; // xxx initialize during init
+    const cm_item_descriptor * base_desc;    
+    unsigned char *            ramBase;
 
     // Current context
     string               contextString;
