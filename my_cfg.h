@@ -35,7 +35,7 @@ typedef struct
 
 
 // A pointer to the base descriptor is needed by the code that instantiates cm xxx???
-extern cm_item_descriptor * pBaseDesc;
+extern const cm_item_descriptor * pBaseDesc;
  
 
 

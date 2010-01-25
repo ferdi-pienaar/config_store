@@ -32,7 +32,7 @@ static eCmOp getOp(const char * word);
 ////////////////////////////////////////////////////////////////////////////////
 
 // 
-config_manager::config_manager(cm_item_descriptor * desc)
+config_manager::config_manager(const cm_item_descriptor * desc)
 {
     base_desc = desc;
 }
@@ -161,7 +161,7 @@ void config_manager::load()
         // We haven't reached an operation-word, so pass command to component item
         for (int i = 0; i < compCount; i++)
         {            
-            cm_component * pComp = compList[i];
+            const cm_component * pComp = compList[i];
 
             if (strcmp(argv[0], pComp->pDesc->getName().c_str()) != 0)
             {
@@ -234,7 +234,7 @@ void cm_composite_item_descriptor::add(int argc, char *argv[], unsigned char * p
 
     for (int i = 0; i < compCount; i++)
     {            
-        cm_component *  pComp = compList[i];
+        const cm_component * pComp = compList[i];
 
         if (strcmp(argv[0], pComp->pDesc->getName().c_str()) != 0)
         {
@@ -290,7 +290,7 @@ void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * p
     // Find matching component name
     for (int i = 0; i < compCount; i++)
     {            
-        cm_component *  pComp = compList[i];
+        const cm_component * pComp = compList[i];
 
         if (strcmp(argv[0], pComp->pDesc->getName().c_str()) != 0)
         {
@@ -349,9 +349,9 @@ cm_item_len cm_composite_item_descriptor::getTlvLen(unsigned char * pItem) const
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < compCount; i++)
     {            
-        cm_component *  pComp = compList[i];
-        unsigned char * pFirstItem = pComp->getFirstItem(pItem);
-        unsigned int    itemCount = pComp->getCount(pItem);
+        const cm_component * pComp      = compList[i];
+        unsigned char *      pFirstItem = pComp->getFirstItem(pItem);
+        unsigned int         itemCount  = pComp->getCount(pItem);
 
         for (unsigned j = 0; j < itemCount; j++)
         {
@@ -382,9 +382,9 @@ void cm_composite_item_descriptor::writeTlv(unsigned char *pItem, unsigned char 
     // Now write V, which is the TLVs of all components
     for (int i = 0; i < compCount; i++)
     {            
-        cm_component *  pComp = compList[i];
-        unsigned char * pFirstItem = pComp->getFirstItem(pItem);
-        unsigned int    itemCount = pComp->getCount(pItem);
+        const cm_component * pComp      = compList[i];
+        unsigned char *      pFirstItem = pComp->getFirstItem(pItem);
+        unsigned int         itemCount  = pComp->getCount(pItem);
 
         for (unsigned j = 0; j < itemCount; j++)
         {
@@ -413,11 +413,11 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) 
 
     while (bytesRead < tlvLen) // xxx 
     {    
-        cm_component *   pComp;
-        unsigned char *  pFirstItem;
-        unsigned char ** ppItems;
-        cm_descriptor_id compId, prevCompId;
-        int              i;
+        const cm_component * pComp;
+        unsigned char *      pFirstItem;
+        unsigned char **     ppItems;
+        cm_descriptor_id     compId, prevCompId;
+        int                  i;
 
         fread(&compId, sizeof(compId), 1, fp);
         bytesRead += sizeof(compId);
@@ -492,9 +492,9 @@ void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix) c
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < compCount; i++)
     {            
-        cm_component *  pComp = compList[i];
-        unsigned char * pFirstItem = pComp->getFirstItem(pItem);
-        unsigned int    itemCount = pComp->getCount(pItem);
+        const cm_component * pComp      = compList[i];
+        unsigned char *      pFirstItem = pComp->getFirstItem(pItem);
+        unsigned int         itemCount  = pComp->getCount(pItem);
 
         for (unsigned j = 0; j < itemCount; j++)
         {
@@ -526,9 +526,9 @@ void cm_composite_item_descriptor::setdef(unsigned char * pItem) const
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < compCount; i++)
     {            
-        cm_component *  pComp = compList[i];
-        unsigned char * pFirstItem = pComp->getFirstItem(pItem);
-        unsigned int    itemCount = pComp->getCount(pItem);
+        const cm_component * pComp      = compList[i];
+        unsigned char *      pFirstItem = pComp->getFirstItem(pItem);
+        unsigned int         itemCount  = pComp->getCount(pItem);
 
         // Set each item to default
         for (unsigned j = 0; j < itemCount; j++)

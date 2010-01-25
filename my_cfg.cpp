@@ -27,42 +27,42 @@ enum
 };
 
 
-cm_simple_item_descriptor ip_address = cm_simple_item_descriptor("ipaddr",
+const cm_simple_item_descriptor ip_address = cm_simple_item_descriptor("ipaddr",
                                                                  DEVICE_IPADDR,
                                                                  sizeof(unsigned long), // xxx define SIZEOF macro
                                                                  cm_set_int,
                                                                  cm_setdef,
                                                                  cm_prt_int);
 
-cm_simple_item_descriptor port = cm_simple_item_descriptor("port", 
+const cm_simple_item_descriptor port = cm_simple_item_descriptor("port", 
                                                             DEVICE_CLIPORT,
                                                             sizeof(unsigned short), // xxx
                                                             cm_set_int,
                                                             cm_setdef,
                                                             cm_prt_int);
 
-cm_simple_item_descriptor userCnt = cm_simple_item_descriptor("usercnt", 
+const cm_simple_item_descriptor userCnt = cm_simple_item_descriptor("usercnt", 
                                                               DEVICE_USERCOUNT,
                                                               sizeof(unsigned int), // xxx
                                                               NULL, // No set fn used for counter
                                                               NULL, // No setdef fn used for counter
                                                               cm_prt_int);
 
-cm_simple_item_descriptor user_name = cm_simple_item_descriptor("name", 
+const cm_simple_item_descriptor user_name = cm_simple_item_descriptor("name", 
                                                                DEVICE_USER_NAME,
                                                                MAX_LEN_USER_NAME, // xxx
                                                                NULL, // xxx set
                                                                cm_setdef,
                                                                NULL /* xxx prt */);
 
-cm_simple_item_descriptor user_id = cm_simple_item_descriptor("id", 
+const cm_simple_item_descriptor user_id = cm_simple_item_descriptor("id", 
                                                              DEVICE_USER_ID,
                                                              sizeof(unsigned long), // xxx
                                                              cm_set_int, // xxx unsigned
                                                              cm_setdef,
                                                              cm_prt_int /* xxx unsigned */);
 
-cm_simple_item_descriptor user_temp = cm_simple_item_descriptor("temp", 
+const cm_simple_item_descriptor user_temp = cm_simple_item_descriptor("temp", 
                                                                DEVICE_USER_TEMP,
                                                                sizeof(short), // xxx
                                                                cm_set_int, // xxx set
@@ -70,17 +70,17 @@ cm_simple_item_descriptor user_temp = cm_simple_item_descriptor("temp",
                                                                cm_prt_int);
 
 /* We define this one separately because we want to reference it in two places xxx */
-cm_contained_component userCntComp = cm_contained_component(&userCnt, 1, offsetof(tDevice, userCount));
+const cm_contained_component userCntComp = cm_contained_component(&userCnt, 1, offsetof(tDevice, userCount));
 
 // xxx Does the use of 'new' mean these could not be located in ROM on an embedded device?
-cm_component * deviceUserComponentList[] = 
+const cm_component * const deviceUserComponentList[] = 
 {
     new cm_contained_component(&user_name, 1, offsetof(tUser, name)),
     new cm_contained_component(&user_id, 1, offsetof(tUser, id)),
     new cm_contained_component(&user_temp, 1, offsetof(tUser, temperature)),
 };
 
-cm_composite_item_descriptor user = cm_composite_item_descriptor(
+const cm_composite_item_descriptor user = cm_composite_item_descriptor(
     "user", 
     DEVICE_USER,
     sizeof(tUser),
@@ -88,7 +88,7 @@ cm_composite_item_descriptor user = cm_composite_item_descriptor(
     sizeof(deviceUserComponentList)/sizeof(deviceUserComponentList[0])
 );
 
-cm_component * deviceComponentList[] = 
+const cm_component * const deviceComponentList[] = 
 {
     new cm_contained_component(&ip_address, 1, offsetof(tDevice, addr)),
     new cm_contained_component(&port, NUM_CLI_PORT, offsetof(tDevice, cliPort)),
@@ -96,7 +96,7 @@ cm_component * deviceComponentList[] =
     new cm_owned_component(&user, 3 /* xxx max number of users */, offsetof(tDevice, users), &userCntComp),
 };
 
-cm_composite_item_descriptor deviceDesc = cm_composite_item_descriptor(
+const cm_composite_item_descriptor deviceDesc = cm_composite_item_descriptor(
     "device",
     0xbabe,
     sizeof(tDevice),
@@ -105,5 +105,5 @@ cm_composite_item_descriptor deviceDesc = cm_composite_item_descriptor(
 
 // A pointer to the base descriptor: a global used by the application code
 // to initialize the config manager xxx
-cm_item_descriptor * pBaseDesc = &deviceDesc;
+const cm_item_descriptor * pBaseDesc = &deviceDesc;
 

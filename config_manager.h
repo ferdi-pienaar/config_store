@@ -7,7 +7,6 @@
 using namespace std;
 
 // xxx throughout I've provisionally avoided the use of references; revise this.
-// xxx All descriptors, maybe also components, should be const.
 // xxx revise the name component; it's just too confusing => aggregate? container?
 
 
@@ -101,7 +100,7 @@ class cm_component
 protected:
     
 public:
-    cm_component(cm_item_descriptor * d,
+    cm_component(const cm_item_descriptor * d,
                  unsigned short c,
                  unsigned int o):
                  pDesc(d), maxCount(c), offset(o){};
@@ -123,7 +122,7 @@ public:
 class cm_contained_component : public cm_component
 {
 public:
-    cm_contained_component(cm_item_descriptor * d,
+    cm_contained_component(const cm_item_descriptor * d,
                            unsigned short c,
                            unsigned int o):
                            cm_component(d,c,o){}
@@ -144,10 +143,10 @@ private:
     const cm_contained_component * pCounterComp; // the counter for this owned component
     
 public:
-    cm_owned_component(cm_item_descriptor * d,
+    cm_owned_component(const cm_item_descriptor * d,
                        unsigned short c,
                        unsigned int o,
-                       cm_contained_component * cComp):
+                       const cm_contained_component * cComp):
                        cm_component(d,c,o), pCounterComp(cComp){}
 
     unsigned char * getFirstItem(unsigned char * pParentItem) const;
@@ -163,8 +162,8 @@ public:
 // xxx methods (apart from constructor) are private (not for user), but config_manager is friend?
 class cm_composite_item_descriptor : public cm_item_descriptor
 { 
-    cm_component ** compList;           // List of ptrs to components, an array
-    const unsigned short  compCount;          // Number of components in the list (number of descriptors, not items)
+    const cm_component * const * compList;  // Array of pointers to components (pointers, because abstract cm_component can't be instantiated)
+    const unsigned short         compCount; // Number of components in the list (number of descriptors, not items)
 
     virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf) const;
     virtual cm_item_len getTlvLen(unsigned char * pItem) const;
@@ -175,7 +174,7 @@ public:
     cm_composite_item_descriptor(char * name,
                                  cm_descriptor_id id,
                                  cm_item_len l,
-                                 cm_component ** componentList,
+                                 const cm_component * const * componentList,
                                  unsigned short componentCount):
                                  cm_item_descriptor(name, id, l), // init base class
                                  compList(componentList),         // init data member
@@ -239,7 +238,7 @@ public:
 class config_manager
 {  
 public:
-    config_manager(cm_item_descriptor * pDesc);
+    config_manager(const cm_item_descriptor * pDesc);
     void do_cmd(int argc, char *argv[]);
     void init(CM_READ_FROM_NVRAM pRead, CM_WRITE_TO_NVRAM pWr);
     const char * getPromptString();
