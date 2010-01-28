@@ -7,6 +7,19 @@ using namespace std;
 // At initialization, this allocates and populates the meta-data for the
 // data declarations in my_cfg.h.
 
+// xxx all const objects are used in the hope that they will be ROMable.
+// From ISO's "Technical Report on C++ Performance":
+//  In general, const objects of classes with constructors must be dynamically initialized.
+//  However, in some cases compile-time initialization could be performed if static analysis
+//  of the constructors resulted in constant values being used. In this case, the object could
+//  be ROMable.
+//
+// It seems to depend on the type of static analysis that the compiler in question is capable
+// of doing.  "Thinking in C++ states that objects with user-defined constructors are
+// not ROMable, but the above seems to contradict that.
+// It may also be that objects with virtual function are not ROMable (where is the vtable and
+// when is it initialized?).
+
 
 // Allocate item IDs, which are unique within their contexts.
 // These are saved to NVRAM.
@@ -26,6 +39,7 @@ enum
     
 };
 
+// xxx should be a naming convention: camelCase, or underscores; order in which things are defined, etc.
 
 const cm_simple_item_descriptor ip_address = cm_simple_item_descriptor("ipaddr",
                                                                  DEVICE_IPADDR,
@@ -69,39 +83,47 @@ const cm_simple_item_descriptor user_temp = cm_simple_item_descriptor("temp",
                                                                cm_setdef,
                                                                cm_prt_int);
 
-/* We define this one separately because we want to reference it in two places xxx */
-const cm_contained_component userCntComp = cm_contained_component(&userCnt, 1, offsetof(tDevice, userCount));
+/* We define this one separately because we want to reference it in two places */
+const cm_contained_aggregate userCntAggr = cm_contained_aggregate(&userCnt, 1, offsetof(tDevice, userCount));
 
-// xxx Does the use of 'new' mean these could not be located in ROM on an embedded device?
-const cm_component * const deviceUserComponentList[] = 
+
+const cm_contained_aggregate userNameAggr(&user_name, 1, offsetof(tUser, name));
+const cm_contained_aggregate userIdAggr(&user_id, 1, offsetof(tUser, id));
+const cm_contained_aggregate userTempAggr(&user_temp, 1, offsetof(tUser, temperature));
+
+const cm_aggregate * const deviceUserAggrList[] = 
 {
-    new cm_contained_component(&user_name, 1, offsetof(tUser, name)),
-    new cm_contained_component(&user_id, 1, offsetof(tUser, id)),
-    new cm_contained_component(&user_temp, 1, offsetof(tUser, temperature)),
+    &userNameAggr,
+    &userIdAggr,
+    &userTempAggr,
 };
 
 const cm_composite_item_descriptor user = cm_composite_item_descriptor(
     "user", 
     DEVICE_USER,
     sizeof(tUser),
-    deviceUserComponentList,
-    sizeof(deviceUserComponentList)/sizeof(deviceUserComponentList[0])
+    deviceUserAggrList,
+    sizeof(deviceUserAggrList)/sizeof(deviceUserAggrList[0])
 );
 
-const cm_component * const deviceComponentList[] = 
+const cm_contained_aggregate ipaddressAggr(&ip_address, 1, offsetof(tDevice, addr));
+const cm_contained_aggregate portAggr(&port, NUM_CLI_PORT, offsetof(tDevice, cliPort));
+const cm_owned_aggregate userAggr(&user, 3 /* xxx max number of users */, offsetof(tDevice, users), &userCntAggr);
+
+const cm_aggregate * const deviceAggrList[] = 
 {
-    new cm_contained_component(&ip_address, 1, offsetof(tDevice, addr)),
-    new cm_contained_component(&port, NUM_CLI_PORT, offsetof(tDevice, cliPort)),
-    &userCntComp,
-    new cm_owned_component(&user, 3 /* xxx max number of users */, offsetof(tDevice, users), &userCntComp),
+    &ipaddressAggr,
+    &portAggr,
+    &userCntAggr,
+    &userAggr,
 };
 
 const cm_composite_item_descriptor deviceDesc = cm_composite_item_descriptor(
     "device",
     0xbabe,
     sizeof(tDevice),
-    deviceComponentList,
-    sizeof(deviceComponentList)/sizeof(deviceComponentList[0]));
+    deviceAggrList,
+    sizeof(deviceAggrList)/sizeof(deviceAggrList[0]));
 
 // A pointer to the base descriptor: a global used by the application code
 // to initialize the config manager xxx

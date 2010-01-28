@@ -7,7 +7,6 @@
 using namespace std;
 
 // xxx throughout I've provisionally avoided the use of references; revise this.
-// xxx revise the name component; it's just too confusing => aggregate? container?
 
 
 // xxx one of the problems with the earlier version of this code that I'd like
@@ -63,7 +62,7 @@ protected: // xxx these are protected because I want to access them from the der
 
 
 public:     
-    const cm_descriptor_id id;       // ID (unique within the context of the component's context) of item in NVRAM    
+    const cm_descriptor_id id;       // ID (unique within the context of the component's composite) of item in NVRAM    
 
 
     cm_item_descriptor(string iname, cm_descriptor_id iid, cm_item_len ilen):
@@ -85,7 +84,7 @@ public:
 ///
 // The way in which a cm_item_descriptor forms part of a composite.
 // Within a composite descriptor, there's one of these for each
-// component descriptor (i.e. one for each array of component items).
+// component descriptor (i.e. one for each aggregate of component items).
 //  It may be CONTAINED or OWNED.
 //  There may be one or more instances (i.e. single item or an array of items).
 // xxx we could embed this class in cm_composite_item_descriptor, but then
@@ -95,12 +94,12 @@ public:
 // as friend, since it has to read (but not write) them.
 // 
 //
-class cm_component
+class cm_aggregate
 {
 protected:
     
 public:
-    cm_component(const cm_item_descriptor * d,
+    cm_aggregate(const cm_item_descriptor * d,
                  unsigned short c,
                  unsigned int o):
                  pDesc(d), maxCount(c), offset(o){};
@@ -117,15 +116,15 @@ public:
 };
 
 
-// Component items are contained within the composite: the item memory is allocated along
+// In a contained aggregate, component items are contained within the composite: the item memory is allocated along
 // with that of the composite item, and the 'add' and 'del' operations don't apply.
-class cm_contained_component : public cm_component
+class cm_contained_aggregate : public cm_aggregate
 {
 public:
-    cm_contained_component(const cm_item_descriptor * d,
+    cm_contained_aggregate(const cm_item_descriptor * d,
                            unsigned short c,
                            unsigned int o):
-                           cm_component(d,c,o){}
+                           cm_aggregate(d,c,o){}
 
     unsigned char * getFirstItem(unsigned char * pParentItem) const;
     virtual unsigned getCount(unsigned char * pParentItem) const;
@@ -134,20 +133,20 @@ public:
 
 };
 
-// Component items are owned but not contained by the composite: the item memory is allocated
+// In an owned aggregate, component items are owned but not contained by the composite: the item memory is allocated
 // by an 'add' operation and freed by a 'del' operation.  By default, the number
 // of items is 0.
-class cm_owned_component : public cm_component
+class cm_owned_aggregate : public cm_aggregate
 {
 private:
-    const cm_contained_component * pCounterComp; // the counter for this owned component
+    const cm_contained_aggregate * pCounterComp; // the counter for this owned component
     
 public:
-    cm_owned_component(const cm_item_descriptor * d,
+    cm_owned_aggregate(const cm_item_descriptor * d,
                        unsigned short c,
                        unsigned int o,
-                       const cm_contained_component * cComp):
-                       cm_component(d,c,o), pCounterComp(cComp){}
+                       const cm_contained_aggregate * cComp):
+                       cm_aggregate(d,c,o), pCounterComp(cComp){}
 
     unsigned char * getFirstItem(unsigned char * pParentItem) const;
     virtual unsigned getCount(unsigned char * pParentItem) const;
@@ -162,7 +161,7 @@ public:
 // xxx methods (apart from constructor) are private (not for user), but config_manager is friend?
 class cm_composite_item_descriptor : public cm_item_descriptor
 { 
-    const cm_component * const * compList;  // Array of pointers to components (pointers, because abstract cm_component can't be instantiated)
+    const cm_aggregate * const * compList;  // Array of pointers to components (pointers, because abstract cm_aggregate can't be instantiated)
     const unsigned short         compCount; // Number of components in the list (number of descriptors, not items)
 
     virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf) const;
@@ -174,7 +173,7 @@ public:
     cm_composite_item_descriptor(char * name,
                                  cm_descriptor_id id,
                                  cm_item_len l,
-                                 const cm_component * const * componentList,
+                                 const cm_aggregate * const * componentList,
                                  unsigned short componentCount):
                                  cm_item_descriptor(name, id, l), // init base class
                                  compList(componentList),         // init data member

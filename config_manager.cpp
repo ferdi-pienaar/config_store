@@ -161,9 +161,9 @@ void config_manager::load()
         // We haven't reached an operation-word, so pass command to component item
         for (int i = 0; i < compCount; i++)
         {            
-            const cm_component * pComp = compList[i];
+            const cm_aggregate * pAggr = compList[i];
 
-            if (strcmp(argv[0], pComp->pDesc->getName().c_str()) != 0)
+            if (strcmp(argv[0], pAggr->pDesc->getName().c_str()) != 0)
             {
                 // No match -- continue to next candidate
                 continue;
@@ -175,13 +175,13 @@ void config_manager::load()
 
             unsigned int itemIdx;
 
-            if (pComp->getIndex(argc, argv, pItem, itemIdx) == false)
+            if (pAggr->getIndex(argc, argv, pItem, itemIdx) == false)
             {
                 // An index is needed but couldn't be extracted from the command
                 return;
             }
 
-            DBG_PRT("cmd pItem %p offset %d idx %d len %d\n", pItem, pComp->offset, itemIdx, pComp->pDesc->getLen());
+            DBG_PRT("cmd pItem %p offset %d idx %d len %d\n", pItem, pAggr->offset, itemIdx, pAggr->pDesc->getLen());
 
             if (argc == 0)
             {
@@ -190,7 +190,7 @@ void config_manager::load()
             }
             
             // Pass the remainder of the command to the matching component
-            return pComp->pDesc->do_cmd(argc, argv, pComp->getFirstItem(pItem) + itemIdx * pComp->pDesc->getLen());
+            return pAggr->pDesc->do_cmd(argc, argv, pAggr->getFirstItem(pItem) + itemIdx * pAggr->pDesc->getLen());
         }
     }
 
@@ -234,41 +234,41 @@ void cm_composite_item_descriptor::add(int argc, char *argv[], unsigned char * p
 
     for (int i = 0; i < compCount; i++)
     {            
-        const cm_component * pComp = compList[i];
+        const cm_aggregate * pAggr = compList[i];
 
-        if (strcmp(argv[0], pComp->pDesc->getName().c_str()) != 0)
+        if (strcmp(argv[0], pAggr->pDesc->getName().c_str()) != 0)
         {
             // No match, continue to next candidate
             continue;
         }
         
-        if (!pComp->isAddSupported())
+        if (!pAggr->isAddSupported())
         {
-            cout<<"Add not supported for '"<<pComp->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
+            cout<<"Add not supported for '"<<pAggr->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
             return;
         }
 
-        unsigned int cnt = pComp->getCount(pItem); // number of items currently in array
+        unsigned int cnt = pAggr->getCount(pItem); // number of items currently in array
 
-        if (cnt >= pComp->maxCount)
+        if (cnt >= pAggr->maxCount)
         {
-            cout<<"Can't add '"<<pComp->pDesc->getName()<<"' (max "<<pComp->maxCount<<")."<<endl;
+            cout<<"Can't add '"<<pAggr->pDesc->getName()<<"' (max "<<pAggr->maxCount<<")."<<endl;
             return;
         }  
             
         // Reallocate memory, and save pointer in the same location
-        unsigned char ** ppItems = (unsigned char **)(pItem + pComp->offset);
+        unsigned char ** ppItems = (unsigned char **)(pItem + pAggr->offset);
 
-        *ppItems = (unsigned char *)realloc(*ppItems, (cnt + 1) * pComp->pDesc->getLen());
+        *ppItems = (unsigned char *)realloc(*ppItems, (cnt + 1) * pAggr->pDesc->getLen());
 
         // Initialize added item with default values. First memset to ensure
         // counters, which have no setdef fn, are 0 (also sets pointers to owned to NULL).
-        memset(*ppItems + cnt * pComp->pDesc->getLen(), 0, pComp->pDesc->getLen());
-        pComp->pDesc->setdef(*ppItems + cnt * pComp->pDesc->getLen());
+        memset(*ppItems + cnt * pAggr->pDesc->getLen(), 0, pAggr->pDesc->getLen());
+        pAggr->pDesc->setdef(*ppItems + cnt * pAggr->pDesc->getLen());
 
         DBG_PRT("add at %p\n", *ppItems);
 
-        return pComp->setCount(pItem, cnt + 1);
+        return pAggr->setCount(pItem, cnt + 1);
     }
     cout << "No item '" << argv[0] << " in '" << getName() << "'." << endl;
 }
@@ -290,9 +290,9 @@ void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * p
     // Find matching component name
     for (int i = 0; i < compCount; i++)
     {            
-        const cm_component * pComp = compList[i];
+        const cm_aggregate * pAggr = compList[i];
 
-        if (strcmp(argv[0], pComp->pDesc->getName().c_str()) != 0)
+        if (strcmp(argv[0], pAggr->pDesc->getName().c_str()) != 0)
         {
             continue; // mismatch: continue to next candidate
         }
@@ -301,41 +301,41 @@ void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * p
         argc--;
         argv++;
         
-        if (!pComp->isAddSupported())
+        if (!pAggr->isAddSupported())
         {
-            cout<<"Delete not supported for '"<<pComp->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
+            cout<<"Delete not supported for '"<<pAggr->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
             return;
         }
 
-        unsigned int cnt = pComp->getCount(pItem); // number of items currently in array
+        unsigned int cnt = pAggr->getCount(pItem); // number of items currently in array
 
         if (cnt == 0)
         {
-            cout << "'Currently no '" <<pComp->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
+            cout << "'Currently no '" <<pAggr->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
             return;
         }
 
         unsigned int itemIdx;
 
-        if (pComp->getIndex(argc, argv, pItem, itemIdx) == false)
+        if (pAggr->getIndex(argc, argv, pItem, itemIdx) == false)
         {
             // An index is needed but couldn't be extracted from the command
             return;
         }
 
         // Reallocate memory, and save pointer in the same location
-        unsigned char ** ppItems = (unsigned char **)(pItem + pComp->offset);
+        unsigned char ** ppItems = (unsigned char **)(pItem + pAggr->offset);
 
         // Shift down items to occupy the memory vacated by deleted item
-        memcpy(*ppItems + itemIdx * pComp->pDesc->getLen(),
-               *ppItems + (itemIdx + 1) * pComp->pDesc->getLen(),
-               (cnt - itemIdx - 1) * pComp->pDesc->getLen());
+        memcpy(*ppItems + itemIdx * pAggr->pDesc->getLen(),
+               *ppItems + (itemIdx + 1) * pAggr->pDesc->getLen(),
+               (cnt - itemIdx - 1) * pAggr->pDesc->getLen());
 
-        *ppItems = (unsigned char *)realloc(*ppItems, (cnt - 1) * pComp->pDesc->getLen());
+        *ppItems = (unsigned char *)realloc(*ppItems, (cnt - 1) * pAggr->pDesc->getLen());
 
-        DBG_PRT("del item base %p offset %d index %d len %d\n", pItem, pComp->offset, itemIdx, pComp->pDesc->getLen());
+        DBG_PRT("del item base %p offset %d index %d len %d\n", pItem, pAggr->offset, itemIdx, pAggr->pDesc->getLen());
 
-        return pComp->setCount(pItem, cnt - 1);
+        return pAggr->setCount(pItem, cnt - 1);
     }
 }
 
@@ -349,13 +349,13 @@ cm_item_len cm_composite_item_descriptor::getTlvLen(unsigned char * pItem) const
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < compCount; i++)
     {            
-        const cm_component * pComp      = compList[i];
-        unsigned char *      pFirstItem = pComp->getFirstItem(pItem);
-        unsigned int         itemCount  = pComp->getCount(pItem);
+        const cm_aggregate * pAggr      = compList[i];
+        unsigned char *      pFirstItem = pAggr->getFirstItem(pItem);
+        unsigned int         itemCount  = pAggr->getCount(pItem);
 
         for (unsigned j = 0; j < itemCount; j++)
         {
-            tlvLen += pComp->pDesc->getTlvLen(pFirstItem + j * pComp->pDesc->getLen());
+            tlvLen += pAggr->pDesc->getTlvLen(pFirstItem + j * pAggr->pDesc->getLen());
         }
     }    
     return tlvLen;
@@ -382,13 +382,13 @@ void cm_composite_item_descriptor::writeTlv(unsigned char *pItem, unsigned char 
     // Now write V, which is the TLVs of all components
     for (int i = 0; i < compCount; i++)
     {            
-        const cm_component * pComp      = compList[i];
-        unsigned char *      pFirstItem = pComp->getFirstItem(pItem);
-        unsigned int         itemCount  = pComp->getCount(pItem);
+        const cm_aggregate * pAggr      = compList[i];
+        unsigned char *      pFirstItem = pAggr->getFirstItem(pItem);
+        unsigned int         itemCount  = pAggr->getCount(pItem);
 
         for (unsigned j = 0; j < itemCount; j++)
         {
-            pComp->pDesc->writeTlv(pFirstItem + j * pComp->pDesc->getLen(), ppBuf);
+            pAggr->pDesc->writeTlv(pFirstItem + j * pAggr->pDesc->getLen(), ppBuf);
         }
     }
 }
@@ -413,7 +413,7 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) 
 
     while (bytesRead < tlvLen) // xxx 
     {    
-        const cm_component * pComp;
+        const cm_aggregate * pAggr;
         unsigned char *      pFirstItem;
         unsigned char **     ppItems;
         cm_descriptor_id     compId, prevCompId;
@@ -427,9 +427,9 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) 
         // Look for a component with ID matching the one read from NVRAM
         for (i = 0; i < compCount; i++)
         {            
-            pComp = compList[i];
+            pAggr = compList[i];
             
-            if (compId == pComp->pDesc->id)
+            if (compId == pAggr->pDesc->id)
             {
                 break;
             }
@@ -443,25 +443,25 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) 
             firstComp = false;
 
             // Allocate memory for owned items -- xxx note we assume the count has been populated correctly
-            if (pComp->isAddSupported() && (pComp->getCount(pItem) > 0))
+            if (pAggr->isAddSupported() && (pAggr->getCount(pItem) > 0))
             {
-                ppItems = (unsigned char **)(pItem + pComp->offset);
+                ppItems = (unsigned char **)(pItem + pAggr->offset);
 
-                *ppItems = (unsigned char *)malloc(pComp->pDesc->getLen() * pComp->getCount(pItem));
+                *ppItems = (unsigned char *)malloc(pAggr->pDesc->getLen() * pAggr->getCount(pItem));
 
-                DBG_PRT("load: for %d items, alloc %p to %p\n", pComp->getCount(pItem), *ppItems, ppItems);
+                DBG_PRT("load: for %d items, alloc %p to %p\n", pAggr->getCount(pItem), *ppItems, ppItems);
             }
 
-            pFirstItem = pComp->getFirstItem(pItem);
+            pFirstItem = pAggr->getFirstItem(pItem);
             itemIdx = 0;
         }
 
         if (i < compCount)
         {            
             // Found a match, so delegate the reading to the corresponding component
-            DBG_PRT("component '%s' matches, itemIdx %d\n", pComp->pDesc->getName().c_str(), itemIdx);
+            DBG_PRT("component '%s' matches, itemIdx %d\n", pAggr->pDesc->getName().c_str(), itemIdx);
 
-            bytesRead += pComp->pDesc->loadFromTlv(fp, pFirstItem + itemIdx++ * pComp->pDesc->getLen());
+            bytesRead += pAggr->pDesc->loadFromTlv(fp, pFirstItem + itemIdx++ * pAggr->pDesc->getLen());
         }
         else
         {            
@@ -492,13 +492,13 @@ void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix) c
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < compCount; i++)
     {            
-        const cm_component * pComp      = compList[i];
-        unsigned char *      pFirstItem = pComp->getFirstItem(pItem);
-        unsigned int         itemCount  = pComp->getCount(pItem);
+        const cm_aggregate * pAggr      = compList[i];
+        unsigned char *      pFirstItem = pAggr->getFirstItem(pItem);
+        unsigned int         itemCount  = pAggr->getCount(pItem);
 
         for (unsigned j = 0; j < itemCount; j++)
         {
-            if (pComp->getCount(pItem) > 1)
+            if (pAggr->getCount(pItem) > 1)
             {
                 // There's more than one item, so print the index to distinguish among them
                 snprintf(indexbuf, sizeof(indexbuf), " %d", j);
@@ -508,7 +508,7 @@ void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix) c
                 // There's only one item, so we needn't print an index
                 indexbuf[0] = 0;
             }
-            pComp->pDesc->print(pFirstItem + j * pComp->pDesc->getLen(), prefix + pComp->pDesc->getName() + indexbuf + " ");
+            pAggr->pDesc->print(pFirstItem + j * pAggr->pDesc->getLen(), prefix + pAggr->pDesc->getName() + indexbuf + " ");
         }
     }
 }
@@ -518,7 +518,7 @@ void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix) c
 // For OWNED components, free owned memory before setting
 // the corresponding counter to 0.
 // This means that we should not clear the counter first
-// (which is why no setdef is installed for a counter), since pComp->getCount
+// (which is why no setdef is installed for a counter), since pAggr->getCount
 // for an owned component depends on the counter stil being set.
 // xxx set pointer to owned mem to NULL for later sanity checks?
 void cm_composite_item_descriptor::setdef(unsigned char * pItem) const
@@ -526,20 +526,20 @@ void cm_composite_item_descriptor::setdef(unsigned char * pItem) const
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < compCount; i++)
     {            
-        const cm_component * pComp      = compList[i];
-        unsigned char *      pFirstItem = pComp->getFirstItem(pItem);
-        unsigned int         itemCount  = pComp->getCount(pItem);
+        const cm_aggregate * pAggr      = compList[i];
+        unsigned char *      pFirstItem = pAggr->getFirstItem(pItem);
+        unsigned int         itemCount  = pAggr->getCount(pItem);
 
         // Set each item to default
         for (unsigned j = 0; j < itemCount; j++)
         {           
-            pComp->pDesc->setdef(pFirstItem + j * pComp->pDesc->getLen());
+            pAggr->pDesc->setdef(pFirstItem + j * pAggr->pDesc->getLen());
         }
 
         // If necessary, free the block of memory where the items were, and set counter to 0
-        if ((itemCount > 0) && pComp->isAddSupported())
+        if ((itemCount > 0) && pAggr->isAddSupported())
         {
-            unsigned char ** ppItems = (unsigned char **)(pItem + pComp->offset);
+            unsigned char ** ppItems = (unsigned char **)(pItem + pAggr->offset);
 
             assert(*ppItems != NULL);
             
@@ -549,7 +549,7 @@ void cm_composite_item_descriptor::setdef(unsigned char * pItem) const
 
             *ppItems = NULL; // xxx for future sanity checks
 
-            return pComp->setCount(pItem, 0);
+            return pAggr->setCount(pItem, 0);
         }
     }
 }
@@ -711,7 +711,7 @@ int cm_simple_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) con
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// cm_component
+// cm_aggregate
 //
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -719,7 +719,7 @@ int cm_simple_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) con
 // Returns false if unable to extract an index.
 // Returns true of able to return an index
 // If no index is required, the index is set to 0, and true is returned.
-bool cm_component::getIndex(int & argc, char ** & argv, unsigned char * pParentItem, unsigned int & itemIdx) const
+bool cm_aggregate::getIndex(int & argc, char ** & argv, unsigned char * pParentItem, unsigned int & itemIdx) const
 {      
     // If there's more than one item in the array, an index must be provided
     if (getCount(pParentItem) <= 1)
@@ -754,7 +754,7 @@ bool cm_component::getIndex(int & argc, char ** & argv, unsigned char * pParentI
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// cm_contained_component
+// cm_contained_aggregate
 //
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -762,7 +762,7 @@ bool cm_component::getIndex(int & argc, char ** & argv, unsigned char * pParentI
 // pParentItem: pointer to parent item; from this component can calculate
 //              the addresses of the items it links to the composite.
 //
-unsigned char * cm_contained_component::getFirstItem(unsigned char * pParentItem) const
+unsigned char * cm_contained_aggregate::getFirstItem(unsigned char * pParentItem) const
 {
    return pParentItem + offset;
 }
@@ -770,7 +770,7 @@ unsigned char * cm_contained_component::getFirstItem(unsigned char * pParentItem
 
 // Return the number of items in the component's array.
 // For a contained component, the count is fixed at maxCount.
-unsigned cm_contained_component::getCount(unsigned char * pParentItem) const
+unsigned cm_contained_aggregate::getCount(unsigned char * pParentItem) const
 {
     return maxCount;
 }
@@ -778,7 +778,7 @@ unsigned cm_contained_component::getCount(unsigned char * pParentItem) const
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// cm_owned_component
+// cm_owned_aggregate
 //
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -786,7 +786,7 @@ unsigned cm_contained_component::getCount(unsigned char * pParentItem) const
 // pParentItem: pointer to parent item; from this component can calculate
 //              the addresses of the items it links to the composite.
 //
-unsigned char * cm_owned_component::getFirstItem(unsigned char * pParentItem) const
+unsigned char * cm_owned_aggregate::getFirstItem(unsigned char * pParentItem) const
 {
     return *(unsigned char **)(pParentItem + offset); // location is a pointer to the OWNED item
 }
@@ -795,7 +795,7 @@ unsigned char * cm_owned_component::getFirstItem(unsigned char * pParentItem) co
 // Return the number of items in the component's array
 // xxx giving a fixed size to counters would simplify this, but
 // introduces a dependency on the application programmer doing the right thing
-unsigned cm_owned_component::getCount(unsigned char * pParentItem) const
+unsigned cm_owned_aggregate::getCount(unsigned char * pParentItem) const
 {
     unsigned int c;
 
@@ -833,7 +833,7 @@ unsigned cm_owned_component::getCount(unsigned char * pParentItem) const
 
 // Set value in RAM that records the number of items in the array of items
 // xxx enforce, run-time of compile-time, that counters are unsigned int sized.
-void cm_owned_component::setCount(unsigned char * pParentItem, unsigned int count) const
+void cm_owned_aggregate::setCount(unsigned char * pParentItem, unsigned int count) const
 {
     // Sanity check: if add/del operation not supported, the setCount() is meaningless
     assert(isAddSupported());
@@ -844,7 +844,7 @@ void cm_owned_component::setCount(unsigned char * pParentItem, unsigned int coun
 // During iteration, return name of current item -- by default, just convert the iteration index
 // to a string, but xxx
 #if 0
-string cm_component::getCurrentItemName()
+string cm_aggregate::getCurrentItemName()
 {
 }
 #endif
