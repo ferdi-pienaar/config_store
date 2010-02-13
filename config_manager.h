@@ -38,6 +38,9 @@ typedef void (*CM_SET_FPTR)(unsigned char *pItem, cm_item_len len, string val);
 typedef void (*CM_SETDEF_FPTR)(unsigned char *pItem, cm_item_len len);
 typedef void (*CM_PRT_FPTR)(const unsigned char *pItem, cm_item_len len);
 
+// Pre-declare so we can use it in method prototype before defining it
+struct t_cm_context;
+
 
 // We eliminate the getItem method, and pass the command string recursively down the
 // hierarchy of descriptors, until we either consume the whole command
@@ -69,7 +72,7 @@ public:
                        name(iname), len(ilen), id(iid){}
     virtual ~cm_item_descriptor(){}
 
-    virtual void do_cmd(int argc, char *argv[], unsigned char * pItem) const = 0;
+    virtual void do_cmd(int argc, char *argv[], unsigned char * pItem, struct t_cm_context & ctxt ) const = 0;
     virtual cm_item_len getLen() const {return len;}
     virtual cm_item_len getTlvLen(unsigned char * pItem) const = 0;
     virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf) const = 0;
@@ -80,6 +83,16 @@ public:
     string getName() const {return name;}
 
 };
+
+
+// xxx should not be exported
+typedef struct t_cm_context
+{
+    string                     str;
+    const cm_item_descriptor * pDesc;
+    unsigned char *            pItem;
+} cm_context;
+
 
 ///
 // The way in which a cm_item_descriptor forms part of a composite.
@@ -99,6 +112,14 @@ class cm_aggregate
 protected:
     
 public:
+    typedef enum
+    {
+        CM_GOT,
+        CM_NO_NEED,
+        CM_FAILED
+        
+    } CM_GET_INDEX_RESULT;
+    
     cm_aggregate(const cm_item_descriptor * d,
                  unsigned short c,
                  unsigned int o):
@@ -108,7 +129,7 @@ public:
     const unsigned short       maxCount;  // Max number of instances of the item
     const unsigned int         offset;    // Offset [bytes] of items (or pointer to items) within the composite item
 
-    bool getIndex(int & argc, char ** & argv, unsigned char * pParentItem, unsigned int & itemIndex) const;
+    CM_GET_INDEX_RESULT getIndex(int argc, char ** argv, unsigned char * pParentItem, unsigned int & itemIndex) const;
     virtual unsigned char * getFirstItem(unsigned char * pParentItem) const = 0;
     virtual unsigned getCount(unsigned char * pParentItem) const = 0;
     virtual bool isAddSupported() const = 0;
@@ -181,7 +202,7 @@ public:
                                  {};
 
     ~cm_composite_item_descriptor(){};
-    void do_cmd(int argc, char *argv[], unsigned char * pItem) const;
+    void do_cmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
     void print(unsigned char * pItem, string prefix) const;
     void setdef(unsigned char * pItem) const;
     void add(int argc, char *argv[], unsigned char * pItem) const;
@@ -224,7 +245,7 @@ public:
                               
     ~cm_simple_item_descriptor(){};
 
-    void do_cmd(int argc, char *argv[], unsigned char * pItem) const;
+    void do_cmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
     void print(unsigned char * pItem, string prefix) const;
     void set(unsigned char * pItem, string val) const;
     void setdef(unsigned char * pItem) const;
@@ -245,6 +266,7 @@ public:
 private:
     void save();
     void load();
+    void reset_ctxt();
     CM_READ_FROM_NVRAM pReadFromNvram; // fn installed by user to do read for CM
     CM_WRITE_TO_NVRAM  pWriteToNvram;  // fn installed by user to do write for CM 
     
@@ -252,10 +274,7 @@ private:
     unsigned char *            ramBase;
 
     // Current context
-    string               contextString;
-    cm_item_descriptor * contextDesc;
-    unsigned char *      contextRam;
-    
+    cm_context ctxt;
 };
 
 #endif // CFG_MAN_H

@@ -18,6 +18,7 @@ typedef enum
     CM_LOAD,
     CM_SAVE,
     CM_HELP,     // xxx
+    CM_RESET_CTXT, // return context to top level
     CM_OP_NONE,
 
 } eCmOp;
@@ -49,12 +50,20 @@ void config_manager::init(CM_READ_FROM_NVRAM pRead, CM_WRITE_TO_NVRAM pWr)
 
     base_desc->setdef(ramBase);
 
-    contextString = base_desc->getName();
+    reset_ctxt();
 
     pWriteToNvram = pWr;
     pReadFromNvram = pRead;
 
     load();
+}
+
+// Reset context to top level
+void config_manager::reset_ctxt()
+{
+    ctxt.str   = base_desc->getName();
+    ctxt.pDesc = base_desc;
+    ctxt.pItem = ramBase;
 }
 
 
@@ -70,19 +79,22 @@ void config_manager::do_cmd(int argc, char *argv[])
         case CM_SAVE:
             return save();
 
+        case CM_RESET_CTXT:
+            return reset_ctxt();
+
         default:
             break;
     }
 
-    // Pass command to top level item for handling
-    base_desc->do_cmd(argc, argv, ramBase);
+    // Pass command that don't apply to CM as a whole, to current context for handling
+    ctxt.pDesc->do_cmd(argc, argv, ctxt.pItem, ctxt);
 }
 
 
 // Get a prompt string to display to user, representing the current context
 const char * config_manager::getPromptString()
 {
-    return contextString.c_str();
+    return ctxt.str.c_str();
 }
 
 
@@ -104,11 +116,12 @@ void config_manager::save()
 
     base_desc->writeTlv(ramBase, &pBuf);
 
-    //  xxx debug
+    #ifdef DEBUG_PRINT
     for (int i = 0; i < tlvLen; i++)
     {
         printf("%02x\n", buf[i]);
     }
+    #endif
 
     FILE * fp;
     fp = fopen("cfg.bin", "wb");  // open file for binary write
@@ -152,7 +165,10 @@ void config_manager::load()
 // argv array of strings containing name elements
 // pItem - pointer to RAM at which item is located
 //
- void cm_composite_item_descriptor::do_cmd(int argc, char *argv[], unsigned char * pItem) const
+ void cm_composite_item_descriptor::do_cmd(int argc,
+                                           char *argv[],
+                                           unsigned char * pItem,
+                                           cm_context & ctxt) const
 {
     eCmOp op = getOp(argv[0]);
 
@@ -169,28 +185,50 @@ void config_manager::load()
                 continue;
             }
             
-            // Found matching name, now determine if the next word should be an index
-            argc--;
-            argv++;
-
+            // Found matching name: now try to get index from next word
             unsigned int itemIdx;
+            cm_aggregate::CM_GET_INDEX_RESULT indexRes = pAggr->getIndex(argc - 1, argv + 1, pItem, itemIdx);
 
-            if (pAggr->getIndex(argc, argv, pItem, itemIdx) == false)
+            if (indexRes == cm_aggregate::CM_FAILED)
             {
-                // An index is needed but couldn't be extracted from the command
                 return;
             }
 
+            // Now an item has been identified correctly, change context
+            ctxt.str  += " ";
+            ctxt.str  += argv[0];
+
+            // Move past item name
+            argc--;
+            argv++;
+
+            if (indexRes == cm_aggregate::CM_GOT)
+            {
+                // Add index string, if there was one
+                ctxt.str  += " ";
+                ctxt.str  += argv[0];
+                
+                argc--;
+                argv++;
+            }
+
             DBG_PRT("cmd pItem %p offset %d idx %d len %d\n", pItem, pAggr->offset, itemIdx, pAggr->pDesc->getLen());
+
+            // Update context, even if there's nothing further in command string to process
+            ctxt.pDesc = pAggr->pDesc;
+            ctxt.pItem = pAggr->getFirstItem(pItem) + itemIdx * pAggr->pDesc->getLen();
 
             if (argc == 0)
             {
                 // End of input
                 return;
             }
-            
+
             // Pass the remainder of the command to the matching component
-            return pAggr->pDesc->do_cmd(argc, argv, pAggr->getFirstItem(pItem) + itemIdx * pAggr->pDesc->getLen());
+            return pAggr->pDesc->do_cmd(argc,
+                                        argv,
+                                        ctxt.pItem,
+                                        ctxt);
         }
     }
 
@@ -317,7 +355,7 @@ void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * p
 
         unsigned int itemIdx;
 
-        if (pAggr->getIndex(argc, argv, pItem, itemIdx) == false)
+        if (pAggr->getIndex(argc - 1, argv + 1, pItem, itemIdx) == cm_aggregate::CM_FAILED)
         {
             // An index is needed but couldn't be extracted from the command
             return;
@@ -333,7 +371,8 @@ void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * p
 
         *ppItems = (unsigned char *)realloc(*ppItems, (cnt - 1) * pAggr->pDesc->getLen());
 
-        DBG_PRT("del item base %p offset %d index %d len %d\n", pItem, pAggr->offset, itemIdx, pAggr->pDesc->getLen());
+        DBG_PRT("del item base %p offset %d index %d len %d\n",
+                pItem, pAggr->offset, itemIdx, pAggr->pDesc->getLen());
 
         return pAggr->setCount(pItem, cnt - 1);
     }
@@ -566,7 +605,10 @@ void cm_composite_item_descriptor::setdef(unsigned char * pItem) const
 // argv array of strings containing name elements
 // pItem - pointer to RAM at which item is located
 //
-void cm_simple_item_descriptor::do_cmd(int argc, char *argv[], unsigned char * pItem) const
+void cm_simple_item_descriptor::do_cmd(int argc,
+                                       char *argv[],
+                                       unsigned char * pItem,
+                                       cm_context & ctxt) const
 {
     DBG_PRT("simple cmd at %p\n", pItem);
     
@@ -715,41 +757,49 @@ int cm_simple_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) con
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-// Utility function to extract in index from an array of command words
-// Returns false if unable to extract an index.
-// Returns true of able to return an index
-// If no index is required, the index is set to 0, and true is returned.
-bool cm_aggregate::getIndex(int & argc, char ** & argv, unsigned char * pParentItem, unsigned int & itemIdx) const
-{      
-    // If there's more than one item in the array, an index must be provided
+// Utility method to extract in index from an array of command words
+// Returns CM_FAILED if unable to extract an index when one is required.
+// Returns CM_GOT if able to return a valid (in-range) index, or 
+// Return CM_NO_NEED no index is needed from user, in which case the index returned is 0.
+//
+cm_aggregate::CM_GET_INDEX_RESULT cm_aggregate::getIndex(int argc,
+                                                         char ** argv,
+                                                         unsigned char * pParentItem,
+                                                         unsigned int & itemIdx) const
+{   
+    bool   gotIndex = false;
+    char * pEnd;
+
     if (getCount(pParentItem) <= 1)
     {
-        // No index is needed, since there are 1 or 0 items present
+        // No index from user is needed, since there are 0 or 1 items present
         itemIdx = 0;
-        return true;
+        return CM_NO_NEED;
     }
 
-    // An index is needed
-    char * pEnd;
-    
-    itemIdx = strtoul(argv[0], &pEnd, 0);
+    if (argc > 0)
+    {
+        // An index is needed, so try to extract one
+        itemIdx = strtoul(argv[0], &pEnd, 0);
 
-    if (pEnd == argv[0])
+        if (pEnd > argv[0])
+        {
+            gotIndex = true;
+        }
+    }
+
+    if (!gotIndex)
     {
         cout << "'" << pDesc->getName() << "' needs index." <<endl;
-        return false;
+        return CM_FAILED;
     }
 
     if (itemIdx >= getCount(pParentItem))
     {
-        cout<<"'"<<pDesc->getName()<<"' index out of range (there are "<<getCount(pParentItem)<<")."<<endl;
-        return false;
+        cout<<"'"<<pDesc->getName()<<"' index "<<itemIdx<<" out of range (0.. "<<getCount(pParentItem)-1<<")."<<endl;
+        return CM_FAILED;
     }
-    
-    argc--;
-    argv++;
-
-    return true;
+    return CM_GOT;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -860,6 +910,7 @@ eCmOp getOp(const char * word)
     if (strcmp(word, "setdef") == 0) return CM_SETDEF;
     if (strcmp(word, "load") == 0) return  CM_LOAD;
     if (strcmp(word, "save") == 0) return CM_SAVE;
+    if (strcmp(word, "<") == 0) return CM_RESET_CTXT;
 
     // If no match, it's not an operation
     return CM_OP_NONE;
