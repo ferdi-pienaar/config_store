@@ -48,10 +48,9 @@ void config_manager::init(CM_READ_FROM_NVRAM pRead, CM_WRITE_TO_NVRAM pWr)
 {
     ramBase = (unsigned char *)malloc(base_desc->getLen());
 
-    base_desc->setdef(ramBase);
-
-    reset_ctxt();
-
+    // Set counters to 0 and pointers to NULL so load can work correctly.
+    memset(ramBase, 0, base_desc->getLen());
+    
     pWriteToNvram = pWr;
     pReadFromNvram = pRead;
 
@@ -149,7 +148,12 @@ void config_manager::load()
 
     // xxx if top-level ID is unexpected, stop?
 
+    // Before loading, thus allocating new memory, call setdef to free owned memory
+    base_desc->setdef(ramBase);
     base_desc->loadFromTlv(fp, ramBase);
+
+    // Reset context, since a reload re-allocates memory and makes current context invalid
+    reset_ctxt();
 
     fclose(fp);
 }
@@ -175,9 +179,9 @@ void config_manager::load()
     if (op == CM_OP_NONE)
     {
         // We haven't reached an operation-word, so pass command to component item
-        for (int i = 0; i < compCount; i++)
+        for (int i = 0; i < aggrCount; i++)
         {            
-            const cm_aggregate * pAggr = compList[i];
+            const cm_aggregate * pAggr = aggrList[i];
 
             if (strcmp(argv[0], pAggr->pDesc->getName().c_str()) != 0)
             {
@@ -194,40 +198,39 @@ void config_manager::load()
                 return;
             }
 
-            // Now an item has been identified correctly, change context
-            ctxt.str  += " ";
-            ctxt.str  += argv[0];
+            DBG_PRT("cmd pItem %p offset %d idx %d len %d\n", pItem, pAggr->offset, itemIdx, pAggr->pDesc->getLen());
 
-            // Move past item name
-            argc--;
-            argv++;
-
-            if (indexRes == cm_aggregate::CM_GOT)
+            if (((indexRes == cm_aggregate::CM_GOT) && (argc == 2)) ||
+                ((indexRes == cm_aggregate::CM_NO_NEED) && (argc == 1)))
             {
-                // Add index string, if there was one
+                // End of input
+                // An item has been identified, so it becomes the context.
+                ctxt.pDesc = pAggr->pDesc;
+                ctxt.pItem = pAggr->getFirstItem(pItem) + itemIdx * pAggr->pDesc->getLen();
+
                 ctxt.str  += " ";
                 ctxt.str  += argv[0];
-                
+
+                if (indexRes == cm_aggregate::CM_GOT)
+                {
+                    // Add index string, if there was one
+                    ctxt.str  += " ";
+                    ctxt.str  += argv[1];                    
+                }
+                return;
+            }
+
+            if (indexRes == cm_aggregate::CM_GOT)
+            {            
+                // Advance if there was an index in the command
                 argc--;
                 argv++;
             }
 
-            DBG_PRT("cmd pItem %p offset %d idx %d len %d\n", pItem, pAggr->offset, itemIdx, pAggr->pDesc->getLen());
-
-            // Update context, even if there's nothing further in command string to process
-            ctxt.pDesc = pAggr->pDesc;
-            ctxt.pItem = pAggr->getFirstItem(pItem) + itemIdx * pAggr->pDesc->getLen();
-
-            if (argc == 0)
-            {
-                // End of input
-                return;
-            }
-
             // Pass the remainder of the command to the matching component
-            return pAggr->pDesc->do_cmd(argc,
-                                        argv,
-                                        ctxt.pItem,
+            return pAggr->pDesc->do_cmd(argc-1,
+                                        argv+1,
+                                        pAggr->getFirstItem(pItem) + itemIdx * pAggr->pDesc->getLen(),
                                         ctxt);
         }
     }
@@ -270,9 +273,9 @@ void cm_composite_item_descriptor::add(int argc, char *argv[], unsigned char * p
         return;
     }
 
-    for (int i = 0; i < compCount; i++)
+    for (int i = 0; i < aggrCount; i++)
     {            
-        const cm_aggregate * pAggr = compList[i];
+        const cm_aggregate * pAggr = aggrList[i];
 
         if (strcmp(argv[0], pAggr->pDesc->getName().c_str()) != 0)
         {
@@ -326,9 +329,9 @@ void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * p
     }    
 
     // Find matching component name
-    for (int i = 0; i < compCount; i++)
+    for (int i = 0; i < aggrCount; i++)
     {            
-        const cm_aggregate * pAggr = compList[i];
+        const cm_aggregate * pAggr = aggrList[i];
 
         if (strcmp(argv[0], pAggr->pDesc->getName().c_str()) != 0)
         {
@@ -385,10 +388,10 @@ cm_item_len cm_composite_item_descriptor::getTlvLen(unsigned char * pItem) const
 {
     cm_item_len tlvLen = sizeof(cm_descriptor_id) + sizeof(cm_item_len);
     
-    // For each component, and for each of the array of items under it...
-    for (int i = 0; i < compCount; i++)
+    // For each aggregate, and for each of the array of items under it...
+    for (int i = 0; i < aggrCount; i++)
     {            
-        const cm_aggregate * pAggr      = compList[i];
+        const cm_aggregate * pAggr      = aggrList[i];
         unsigned char *      pFirstItem = pAggr->getFirstItem(pItem);
         unsigned int         itemCount  = pAggr->getCount(pItem);
 
@@ -419,9 +422,9 @@ void cm_composite_item_descriptor::writeTlv(unsigned char *pItem, unsigned char 
     *ppBuf += sizeof(len);                       // advance the memory pointer
     
     // Now write V, which is the TLVs of all components
-    for (int i = 0; i < compCount; i++)
+    for (int i = 0; i < aggrCount; i++)
     {            
-        const cm_aggregate * pAggr      = compList[i];
+        const cm_aggregate * pAggr      = aggrList[i];
         unsigned char *      pFirstItem = pAggr->getFirstItem(pItem);
         unsigned int         itemCount  = pAggr->getCount(pItem);
 
@@ -438,6 +441,7 @@ void cm_composite_item_descriptor::writeTlv(unsigned char *pItem, unsigned char 
 // This method reads L, and moves forward in the file by that many bytes,
 // using what it finds in the file to initialize the object's configurable items.
 // xxx after each read, check how much was read.
+// xxx shouldn't the i < aggrCount test come BEFORE allocating memory?
 int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) const
 {
     cm_item_len  tlvLen;
@@ -464,9 +468,9 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) 
         DBG_PRT("load component ID %d\n", compId);
 
         // Look for a component with ID matching the one read from NVRAM
-        for (i = 0; i < compCount; i++)
+        for (i = 0; i < aggrCount; i++)
         {            
-            pAggr = compList[i];
+            pAggr = aggrList[i];
             
             if (compId == pAggr->pDesc->id)
             {
@@ -495,7 +499,7 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) 
             itemIdx = 0;
         }
 
-        if (i < compCount)
+        if (i < aggrCount)
         {            
             // Found a match, so delegate the reading to the corresponding component
             DBG_PRT("component '%s' matches, itemIdx %d\n", pAggr->pDesc->getName().c_str(), itemIdx);
@@ -529,9 +533,9 @@ void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix) c
     DBG_PRT("print composite %s with len %d\n", name.c_str(), len);
 
     // For each component, and for each of the array of items under it...
-    for (int i = 0; i < compCount; i++)
+    for (int i = 0; i < aggrCount; i++)
     {            
-        const cm_aggregate * pAggr      = compList[i];
+        const cm_aggregate * pAggr      = aggrList[i];
         unsigned char *      pFirstItem = pAggr->getFirstItem(pItem);
         unsigned int         itemCount  = pAggr->getCount(pItem);
 
@@ -554,18 +558,20 @@ void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix) c
 
 
 // Delegate setdef command to components
+// Preconditions: item contains valid data, i.e. if there are OWNED
+// components, the corresponding counter > 0 (so we can know to free them).
+//
 // For OWNED components, free owned memory before setting
 // the corresponding counter to 0.
 // This means that we should not clear the counter first
-// (which is why no setdef is installed for a counter), since pAggr->getCount
-// for an owned component depends on the counter stil being set.
-// xxx set pointer to owned mem to NULL for later sanity checks?
+// (which is why no setdef fn is installed for a counter), since pAggr->getCount
+// for an owned component depends on the counter still being set.
 void cm_composite_item_descriptor::setdef(unsigned char * pItem) const
 {    
     // For each component, and for each of the array of items under it...
-    for (int i = 0; i < compCount; i++)
+    for (int i = 0; i < aggrCount; i++)
     {            
-        const cm_aggregate * pAggr      = compList[i];
+        const cm_aggregate * pAggr      = aggrList[i];
         unsigned char *      pFirstItem = pAggr->getFirstItem(pItem);
         unsigned int         itemCount  = pAggr->getCount(pItem);
 
@@ -588,7 +594,7 @@ void cm_composite_item_descriptor::setdef(unsigned char * pItem) const
 
             *ppItems = NULL; // xxx for future sanity checks
 
-            return pAggr->setCount(pItem, 0);
+            pAggr->setCount(pItem, 0);
         }
     }
 }
@@ -903,14 +909,14 @@ string cm_aggregate::getCurrentItemName()
 // Helper function that returns what kind of operation (if any) a word is
 eCmOp getOp(const char * word)
 {
-    if (strcmp(word, "add") == 0) return CM_ADD;
-    if (strcmp(word, "del") == 0) return CM_DEL;
-    if (strcmp(word, "prt") == 0) return CM_PRT;
-    if (strcmp(word, "set") == 0) return CM_SET;
-    if (strcmp(word, "setdef") == 0) return CM_SETDEF;
-    if (strcmp(word, "load") == 0) return  CM_LOAD;
-    if (strcmp(word, "save") == 0) return CM_SAVE;
-    if (strcmp(word, "<") == 0) return CM_RESET_CTXT;
+    if (strcmp(word, "add") == 0)     return CM_ADD;
+    if (strcmp(word, "del") == 0)     return CM_DEL;
+    if (strcmp(word, "prt") == 0)     return CM_PRT;
+    if (strcmp(word, "set") == 0)     return CM_SET;
+    if (strcmp(word, "setdef") == 0)  return CM_SETDEF;
+    if (strcmp(word, "load") == 0)    return  CM_LOAD;
+    if (strcmp(word, "save") == 0)    return CM_SAVE;
+    if (strcmp(word, "<") == 0)       return CM_RESET_CTXT;
 
     // If no match, it's not an operation
     return CM_OP_NONE;

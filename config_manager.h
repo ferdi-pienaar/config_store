@@ -182,8 +182,8 @@ public:
 // xxx methods (apart from constructor) are private (not for user), but config_manager is friend?
 class cm_composite_item_descriptor : public cm_item_descriptor
 { 
-    const cm_aggregate * const * compList;  // Array of pointers to components (pointers, because abstract cm_aggregate can't be instantiated)
-    const unsigned short         compCount; // Number of components in the list (number of descriptors, not items)
+    const cm_aggregate * const * aggrList;  // Array of pointers to aggregates (pointers, because abstract cm_aggregate can't be instantiated)
+    const unsigned short         aggrCount; // Number of aggregates in the list (number of descriptors, not items)
 
     virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf) const;
     virtual cm_item_len getTlvLen(unsigned char * pItem) const;
@@ -194,11 +194,11 @@ public:
     cm_composite_item_descriptor(char * name,
                                  cm_descriptor_id id,
                                  cm_item_len l,
-                                 const cm_aggregate * const * componentList,
-                                 unsigned short componentCount):
+                                 const cm_aggregate * const * aggrList,
+                                 unsigned short aggrCount):
                                  cm_item_descriptor(name, id, l), // init base class
-                                 compList(componentList),         // init data member
-                                 compCount(componentCount)
+                                 aggrList(aggrList),         // init data member
+                                 aggrCount(aggrCount)
                                  {};
 
     ~cm_composite_item_descriptor(){};
