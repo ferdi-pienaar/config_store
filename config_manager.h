@@ -4,6 +4,7 @@
 
 #include <stdint.h> // uint8_t, etc
 #include <iostream>
+
 using namespace std;
 
 // xxx throughout I've provisionally avoided the use of references; revise this.
@@ -79,6 +80,7 @@ public:
     virtual int loadFromTlv(FILE * fp, unsigned char * pItem) const = 0;
     virtual void print(unsigned char * pItem, string prefix) const = 0;
     virtual void setdef(unsigned char * pItem) const = 0;
+    virtual void help(const unsigned char * pItem) const = 0;
 
     string getName() const {return name;}
 
@@ -131,7 +133,7 @@ public:
 
     CM_GET_INDEX_RESULT getIndex(int argc, char ** argv, unsigned char * pParentItem, unsigned int & itemIndex) const;
     virtual unsigned char * getFirstItem(unsigned char * pParentItem) const = 0;
-    virtual unsigned getCount(unsigned char * pParentItem) const = 0;
+    virtual unsigned getCount(const unsigned char * pParentItem) const = 0;
     virtual bool isAddSupported() const = 0;
     virtual void setCount(unsigned char * pParentItem, unsigned int) const = 0;
 };
@@ -148,7 +150,7 @@ public:
                            cm_aggregate(d,c,o){}
 
     unsigned char * getFirstItem(unsigned char * pParentItem) const;
-    virtual unsigned getCount(unsigned char * pParentItem) const;
+    virtual unsigned getCount(const unsigned char * pParentItem) const;
     bool isAddSupported() const {return false;}
     void setCount(unsigned char * pParentItem, unsigned int) const {assert(isAddSupported());} // add operation doesn't apply
 
@@ -170,7 +172,7 @@ public:
                        cm_aggregate(d,c,o), pCounterComp(cComp){}
 
     unsigned char * getFirstItem(unsigned char * pParentItem) const;
-    virtual unsigned getCount(unsigned char * pParentItem) const;
+    virtual unsigned getCount(const unsigned char * pParentItem) const;
     bool isAddSupported() const {return true;}
     void setCount(unsigned char * pParentItem, unsigned int) const;
 
@@ -205,6 +207,7 @@ public:
     void do_cmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
     void print(unsigned char * pItem, string prefix) const;
     void setdef(unsigned char * pItem) const;
+    virtual void help(const unsigned char * pItem) const;
     void add(int argc, char *argv[], unsigned char * pItem) const;
     void del(int argc, char *argv[], unsigned char * pItem) const;
 
@@ -249,6 +252,7 @@ public:
     void print(unsigned char * pItem, string prefix) const;
     void set(unsigned char * pItem, string val) const;
     void setdef(unsigned char * pItem) const;
+    virtual void help(const unsigned char * pItem) const {cout << "len " << getLen() << endl;}
 };
 
 

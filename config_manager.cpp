@@ -252,6 +252,9 @@ void config_manager::load()
         case CM_SETDEF:
             return setdef(pItem);
 
+        case CM_HELP:
+            return help(pItem);
+
         default:
             break;
     }
@@ -358,7 +361,7 @@ void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * p
 
         unsigned int itemIdx;
 
-        if (pAggr->getIndex(argc - 1, argv + 1, pItem, itemIdx) == cm_aggregate::CM_FAILED)
+        if (pAggr->getIndex(argc, argv, pItem, itemIdx) == cm_aggregate::CM_FAILED)
         {
             // An index is needed but couldn't be extracted from the command
             return;
@@ -600,6 +603,24 @@ void cm_composite_item_descriptor::setdef(unsigned char * pItem) const
 }
 
 
+// Give name of each component
+void cm_composite_item_descriptor::help(const unsigned char * pItem) const
+{
+    for (int i = 0; i < aggrCount; i++)
+    {   
+        const cm_aggregate * pAggr = aggrList[i];
+
+        cout << pAggr->pDesc->getName() << " [" << pAggr->getCount(pItem);
+
+        if (pAggr->isAddSupported())
+        {
+            cout << "/" << pAggr->maxCount;
+        }
+        cout << "]" << endl;
+    }
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // cm_simple_item_descriptor
@@ -627,16 +648,16 @@ void cm_simple_item_descriptor::do_cmd(int argc,
             break;
             
         case CM_PRT:
-            print(pItem, "");
-            break;
+            return print(pItem, "");
 
         case CM_SET:
-            set(pItem, argv[1]);
-            break;
+            return set(pItem, argv[1]);
 
         case CM_SETDEF:
-            setdef(pItem);
-            break;
+            return setdef(pItem);
+
+        case CM_HELP:
+            return help(pItem);
 
         default:
             cout << "Unknown operation '" << argv[0] << "'" << endl;
@@ -814,9 +835,9 @@ cm_aggregate::CM_GET_INDEX_RESULT cm_aggregate::getIndex(int argc,
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-// Traverse the items in the array.
-// pParentItem: pointer to parent item; from this component can calculate
-//              the addresses of the items it links to the composite.
+// Return address of the first item in the item array.
+// pParentItem: pointer to parent item; from this the aggregate obtains the
+//              address of the first item in the array that it links to the parent.
 //
 unsigned char * cm_contained_aggregate::getFirstItem(unsigned char * pParentItem) const
 {
@@ -826,7 +847,7 @@ unsigned char * cm_contained_aggregate::getFirstItem(unsigned char * pParentItem
 
 // Return the number of items in the component's array.
 // For a contained component, the count is fixed at maxCount.
-unsigned cm_contained_aggregate::getCount(unsigned char * pParentItem) const
+unsigned cm_contained_aggregate::getCount(const unsigned char * pParentItem) const
 {
     return maxCount;
 }
@@ -838,9 +859,9 @@ unsigned cm_contained_aggregate::getCount(unsigned char * pParentItem) const
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-// Traverse the items in the array.
-// pParentItem: pointer to parent item; from this component can calculate
-//              the addresses of the items it links to the composite.
+// Return address of the first item in the item array.
+// pParentItem: pointer to parent item; from this the aggregate obtains the
+//              address of the first item in the array that it links to the parent.
 //
 unsigned char * cm_owned_aggregate::getFirstItem(unsigned char * pParentItem) const
 {
@@ -851,7 +872,7 @@ unsigned char * cm_owned_aggregate::getFirstItem(unsigned char * pParentItem) co
 // Return the number of items in the component's array
 // xxx giving a fixed size to counters would simplify this, but
 // introduces a dependency on the application programmer doing the right thing
-unsigned cm_owned_aggregate::getCount(unsigned char * pParentItem) const
+unsigned cm_owned_aggregate::getCount(const unsigned char * pParentItem) const
 {
     unsigned int c;
 
@@ -914,9 +935,10 @@ eCmOp getOp(const char * word)
     if (strcmp(word, "prt") == 0)     return CM_PRT;
     if (strcmp(word, "set") == 0)     return CM_SET;
     if (strcmp(word, "setdef") == 0)  return CM_SETDEF;
-    if (strcmp(word, "load") == 0)    return  CM_LOAD;
+    if (strcmp(word, "load") == 0)    return CM_LOAD;
     if (strcmp(word, "save") == 0)    return CM_SAVE;
     if (strcmp(word, "<") == 0)       return CM_RESET_CTXT;
+    if (strcmp(word, "?") == 0)       return CM_HELP;
 
     // If no match, it's not an operation
     return CM_OP_NONE;
