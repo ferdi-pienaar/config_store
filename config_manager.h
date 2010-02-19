@@ -75,10 +75,10 @@ public:
 
     virtual void do_cmd(int argc, char *argv[], unsigned char * pItem, struct t_cm_context & ctxt ) const = 0;
     virtual cm_item_len getLen() const {return len;}
-    virtual cm_item_len getTlvLen(unsigned char * pItem) const = 0;
-    virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf) const = 0;
+    virtual cm_item_len getTlvLen(const unsigned char * pItem) const = 0;
+    virtual void writeTlv(const unsigned char * pItem, unsigned char ** ppBuf) const = 0;
     virtual int loadFromTlv(FILE * fp, unsigned char * pItem) const = 0;
-    virtual void print(unsigned char * pItem, string prefix) const = 0;
+    virtual void print(const unsigned char * pItem, string prefix) const = 0;
     virtual void setdef(unsigned char * pItem) const = 0;
     virtual void help(const unsigned char * pItem) const = 0;
 
@@ -132,7 +132,7 @@ public:
     const unsigned int         offset;    // Offset [bytes] of items (or pointer to items) within the composite item
 
     CM_GET_INDEX_RESULT getIndex(int argc, char ** argv, unsigned char * pParentItem, unsigned int & itemIndex) const;
-    virtual unsigned char * getFirstItem(unsigned char * pParentItem) const = 0;
+    virtual unsigned char * getFirstItem(const unsigned char * pParentItem) const = 0;
     virtual unsigned getCount(const unsigned char * pParentItem) const = 0;
     virtual bool isAddSupported() const = 0;
     virtual void setCount(unsigned char * pParentItem, unsigned int) const = 0;
@@ -149,7 +149,7 @@ public:
                            unsigned int o):
                            cm_aggregate(d,c,o){}
 
-    unsigned char * getFirstItem(unsigned char * pParentItem) const;
+    unsigned char * getFirstItem(const unsigned char * pParentItem) const;
     virtual unsigned getCount(const unsigned char * pParentItem) const;
     bool isAddSupported() const {return false;}
     void setCount(unsigned char * pParentItem, unsigned int) const {assert(isAddSupported());} // add operation doesn't apply
@@ -171,7 +171,7 @@ public:
                        const cm_contained_aggregate * cComp):
                        cm_aggregate(d,c,o), pCounterComp(cComp){}
 
-    unsigned char * getFirstItem(unsigned char * pParentItem) const;
+    unsigned char * getFirstItem(const unsigned char * pParentItem) const;
     virtual unsigned getCount(const unsigned char * pParentItem) const;
     bool isAddSupported() const {return true;}
     void setCount(unsigned char * pParentItem, unsigned int) const;
@@ -187,8 +187,8 @@ class cm_composite_item_descriptor : public cm_item_descriptor
     const cm_aggregate * const * aggrList;  // Array of pointers to aggregates (pointers, because abstract cm_aggregate can't be instantiated)
     const unsigned short         aggrCount; // Number of aggregates in the list (number of descriptors, not items)
 
-    virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf) const;
-    virtual cm_item_len getTlvLen(unsigned char * pItem) const;
+    virtual void writeTlv(const unsigned char * pItem, unsigned char ** ppBuf) const;
+    virtual cm_item_len getTlvLen(const unsigned char * pItem) const;
     virtual int loadFromTlv(FILE * fp, unsigned char * pItem) const;
 
 
@@ -205,7 +205,7 @@ public:
 
     ~cm_composite_item_descriptor(){};
     void do_cmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
-    void print(unsigned char * pItem, string prefix) const;
+    void print(const unsigned char * pItem, string prefix) const;
     void setdef(unsigned char * pItem) const;
     virtual void help(const unsigned char * pItem) const;
     void add(int argc, char *argv[], unsigned char * pItem) const;
@@ -229,8 +229,8 @@ class cm_simple_item_descriptor : public cm_item_descriptor
     const CM_SETDEF_FPTR pSetDef;
     const CM_PRT_FPTR    pPrt;
 
-    virtual void writeTlv(unsigned char * pItem, unsigned char ** ppBuf) const;
-    virtual cm_item_len getTlvLen(unsigned char * pItem) const;
+    virtual void writeTlv(const unsigned char * pItem, unsigned char ** ppBuf) const;
+    virtual cm_item_len getTlvLen(const unsigned char * pItem) const;
     virtual int loadFromTlv(FILE * fp, unsigned char * pItem) const;
 
 public:
@@ -249,7 +249,7 @@ public:
     ~cm_simple_item_descriptor(){};
 
     void do_cmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
-    void print(unsigned char * pItem, string prefix) const;
+    void print(const unsigned char * pItem, string prefix) const;
     void set(unsigned char * pItem, string val) const;
     void setdef(unsigned char * pItem) const;
     virtual void help(const unsigned char * pItem) const {cout << "len " << getLen() << endl;}

@@ -387,16 +387,16 @@ void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * p
 
 /// Return total length of TLV item:
 //  The number of bytes taken up by T + L + V.
-cm_item_len cm_composite_item_descriptor::getTlvLen(unsigned char * pItem) const
+cm_item_len cm_composite_item_descriptor::getTlvLen(const unsigned char * pItem) const
 {
     cm_item_len tlvLen = sizeof(cm_descriptor_id) + sizeof(cm_item_len);
     
     // For each aggregate, and for each of the array of items under it...
     for (int i = 0; i < aggrCount; i++)
     {            
-        const cm_aggregate * pAggr      = aggrList[i];
-        unsigned char *      pFirstItem = pAggr->getFirstItem(pItem);
-        unsigned int         itemCount  = pAggr->getCount(pItem);
+        const cm_aggregate *  pAggr      = aggrList[i];
+        const unsigned char * pFirstItem = pAggr->getFirstItem(pItem);
+        unsigned int          itemCount  = pAggr->getCount(pItem);
 
         for (unsigned j = 0; j < itemCount; j++)
         {
@@ -413,7 +413,7 @@ cm_item_len cm_composite_item_descriptor::getTlvLen(unsigned char * pItem) const
 //  xxx add param, bufsize, to do a buffer overflow check.
 //  xxx if we want to write directly to NVRAM, we need to implement a method
 //  that does that...
-void cm_composite_item_descriptor::writeTlv(unsigned char *pItem, unsigned char ** ppBuf) const
+void cm_composite_item_descriptor::writeTlv(const unsigned char *pItem, unsigned char ** ppBuf) const
 {
     // The L field in TLV excludes this item's T+L fields
     cm_item_len componentLen = getTlvLen(pItem) - sizeof(len) - sizeof(id);
@@ -427,9 +427,9 @@ void cm_composite_item_descriptor::writeTlv(unsigned char *pItem, unsigned char 
     // Now write V, which is the TLVs of all components
     for (int i = 0; i < aggrCount; i++)
     {            
-        const cm_aggregate * pAggr      = aggrList[i];
-        unsigned char *      pFirstItem = pAggr->getFirstItem(pItem);
-        unsigned int         itemCount  = pAggr->getCount(pItem);
+        const cm_aggregate *  pAggr      = aggrList[i];
+        const unsigned char * pFirstItem = pAggr->getFirstItem(pItem);
+        unsigned int          itemCount  = pAggr->getCount(pItem);
 
         for (unsigned j = 0; j < itemCount; j++)
         {
@@ -529,7 +529,7 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) 
 
 // Delegate print command to components
 // 
-void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix) const
+void cm_composite_item_descriptor::print(const unsigned char * pItem, string prefix) const
 {
     char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
 
@@ -538,9 +538,9 @@ void cm_composite_item_descriptor::print(unsigned char * pItem, string prefix) c
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < aggrCount; i++)
     {            
-        const cm_aggregate * pAggr      = aggrList[i];
-        unsigned char *      pFirstItem = pAggr->getFirstItem(pItem);
-        unsigned int         itemCount  = pAggr->getCount(pItem);
+        const cm_aggregate *  pAggr      = aggrList[i];
+        const unsigned char * pFirstItem = pAggr->getFirstItem(pItem);
+        unsigned int          itemCount  = pAggr->getCount(pItem);
 
         for (unsigned j = 0; j < itemCount; j++)
         {
@@ -668,7 +668,7 @@ void cm_simple_item_descriptor::do_cmd(int argc,
 // An item does not print its own name, since
 // it may be preceded by an index, which is known
 // to the item's composite but not to the item.
-void cm_simple_item_descriptor::print(unsigned char * pItem, string prefix) const
+void cm_simple_item_descriptor::print(const unsigned char * pItem, string prefix) const
 {
     cout << prefix;
 
@@ -725,7 +725,7 @@ void cm_simple_item_descriptor::setdef(unsigned char * pItem) const
 //  to NVRAM.
 //  xxx if we want to write directly to NVRAM, we need to implement a method
 //  that does that...
-void cm_simple_item_descriptor::writeTlv(unsigned char *pItem, unsigned char ** ppBuf) const
+void cm_simple_item_descriptor::writeTlv(const unsigned char *pItem, unsigned char ** ppBuf) const
 {
     memcpy(*ppBuf, &id, sizeof(id));   // write Type (i.e. the ID)
     *ppBuf += sizeof(id);              // advance the memory pointer
@@ -740,7 +740,7 @@ void cm_simple_item_descriptor::writeTlv(unsigned char *pItem, unsigned char ** 
 /// Return total length of TLV item:
 //  The number of bytes taken up by T + L + V.
 //  (For a simple item, there's no dependency on pItem, the RAM contents.)
-cm_item_len cm_simple_item_descriptor::getTlvLen(unsigned char * pItem) const
+cm_item_len cm_simple_item_descriptor::getTlvLen(const unsigned char * pItem) const
 {
     return sizeof(cm_descriptor_id) + sizeof(cm_item_len) + getLen();
 }
@@ -839,9 +839,9 @@ cm_aggregate::CM_GET_INDEX_RESULT cm_aggregate::getIndex(int argc,
 // pParentItem: pointer to parent item; from this the aggregate obtains the
 //              address of the first item in the array that it links to the parent.
 //
-unsigned char * cm_contained_aggregate::getFirstItem(unsigned char * pParentItem) const
+unsigned char * cm_contained_aggregate::getFirstItem(const unsigned char * pParentItem) const
 {
-   return pParentItem + offset;
+    return (unsigned char *)(pParentItem + offset);
 }
 
 
@@ -863,7 +863,7 @@ unsigned cm_contained_aggregate::getCount(const unsigned char * pParentItem) con
 // pParentItem: pointer to parent item; from this the aggregate obtains the
 //              address of the first item in the array that it links to the parent.
 //
-unsigned char * cm_owned_aggregate::getFirstItem(unsigned char * pParentItem) const
+unsigned char * cm_owned_aggregate::getFirstItem(const unsigned char * pParentItem) const
 {
     return *(unsigned char **)(pParentItem + offset); // location is a pointer to the OWNED item
 }
