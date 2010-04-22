@@ -162,14 +162,14 @@ public:
 class cm_owned_aggregate : public cm_aggregate
 {
 private:
-    const cm_contained_aggregate * pCounterComp; // the counter for this owned component
+    const cm_contained_aggregate * pCounterAggr; // the counter for this owned component
     
 public:
     cm_owned_aggregate(const cm_item_descriptor * d,
                        unsigned short c,
                        unsigned int o,
-                       const cm_contained_aggregate * cComp):
-                       cm_aggregate(d,c,o), pCounterComp(cComp){}
+                       const cm_contained_aggregate * cntAggr):
+                       cm_aggregate(d,c,o), pCounterAggr(cntAggr){}
 
     unsigned char * getFirstItem(const unsigned char * pParentItem) const;
     virtual unsigned getCount(const unsigned char * pParentItem) const;

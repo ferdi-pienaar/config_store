@@ -876,13 +876,13 @@ unsigned cm_owned_aggregate::getCount(const unsigned char * pParentItem) const
 {
     unsigned int c;
 
-    switch (pCounterComp->pDesc->getLen()) 
+    switch (pCounterAggr->pDesc->getLen()) 
     { 
         case 1:
             {
                 unsigned char v;
 
-                memcpy(&v, pParentItem + pCounterComp->offset, sizeof(v));
+                memcpy(&v, pParentItem + pCounterAggr->offset, sizeof(v));
                 c = v;
             }
             break;
@@ -891,13 +891,13 @@ unsigned cm_owned_aggregate::getCount(const unsigned char * pParentItem) const
             { 
                 unsigned short v;
 
-                memcpy(&v, pParentItem + pCounterComp->offset, sizeof(v));
+                memcpy(&v, pParentItem + pCounterAggr->offset, sizeof(v));
                 c = v;
             }
             break;
        
         case 4:
-            memcpy(&c, pParentItem + pCounterComp->offset, sizeof(c)); 
+            memcpy(&c, pParentItem + pCounterAggr->offset, sizeof(c)); 
             break;
 
         default:
@@ -915,7 +915,7 @@ void cm_owned_aggregate::setCount(unsigned char * pParentItem, unsigned int coun
     // Sanity check: if add/del operation not supported, the setCount() is meaningless
     assert(isAddSupported());
     
-    memcpy(pParentItem + pCounterComp->offset, &count, sizeof(count));
+    memcpy(pParentItem + pCounterAggr->offset, &count, sizeof(count));
 }
 
 // During iteration, return name of current item -- by default, just convert the iteration index
