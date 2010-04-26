@@ -169,6 +169,10 @@ void config_manager::load()
 // argv array of strings containing name elements
 // pItem - pointer to RAM at which item is located
 //
+// xxx refactor and bugfix: the context should be updated
+//     continuously -- currently the string includes only the LAST word
+//     in the input string.
+//
  void cm_composite_item_descriptor::do_cmd(int argc,
                                            char *argv[],
                                            unsigned char * pItem,
@@ -355,7 +359,7 @@ void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * p
 
         if (cnt == 0)
         {
-            cout << "'Currently no '" <<pAggr->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
+            cout << "Currently no '" <<pAggr->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
             return;
         }
 
