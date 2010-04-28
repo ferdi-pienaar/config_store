@@ -54,7 +54,8 @@ TEST(initNoFile, config_manager)
     FILE * fp;
     config_manager cm(&c1);
     unsigned char expectedTlv [20] =
-    /* T   L     T    L    V        T    L    V    */
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V        T    L    V    */
     { 1,0, 16,0, 1,0, 4,0, 0,0,0,0, 2,0, 4,0, 0,0,0,0};
     unsigned char actualTlv [20];
     
@@ -64,9 +65,9 @@ TEST(initNoFile, config_manager)
     char * commandWord[] = {"save"};
     cm.do_cmd(1, commandWord);
 
-    if ((fp = fopen("cfg.bin", "rb")) == NULL)
+    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
     {
-        FAIL("Couldn't open cfg.bin");
+        FAIL("Couldn't open file");
     }
 
     fread(actualTlv, sizeof(actualTlv), 1, fp);
@@ -74,6 +75,90 @@ TEST(initNoFile, config_manager)
     CHECK(memcmp(expectedTlv, actualTlv, sizeof(expectedTlv)) == 0);
     fclose(fp);    
 }
+
+
+TEST(load, config_manager)
+{
+    FILE * fp;
+    config_manager cm(&c1);
+    unsigned char tlv[20] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V        T    L    V    */
+    { 1,0, 16,0, 1,0, 4,0, 0,0,0,0, 2,0, 4,0, 0,0,0,0};
+    unsigned char savedTlv[20];
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);    
+
+    cm.init(NULL, NULL);
+
+    char * commandWord[] = {"save"};
+    cm.do_cmd(1, commandWord);
+
+    // See what CM made of the file it loaded
+    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fread(savedTlv, sizeof(savedTlv), 1, fp);
+
+    CHECK(memcmp(tlv, savedTlv, sizeof(savedTlv)) == 0);
+    fclose(fp);    
+    
+}
+
+// Unknown type in file: the descriptor has no T=9, so it's ignored by cfg_man when found in file.
+TEST(loadUnknown, config_manager)
+{
+    FILE * fp;
+    config_manager cm(&c1);
+    unsigned char tlv[28] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V        T    L    V       T    L    V    */
+    { 1,0, 24,0, 1,0, 4,0, 0,0,0,0, 9,0, 4,0, 0,0,0,0, 2,0, 4,0, 0,0,0,0};
+    unsigned char expectedTlv[20] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V        T    L    V    */
+    { 1,0, 16,0, 1,0, 4,0, 0,0,0,0, 2,0, 4,0, 0,0,0,0};
+    unsigned char savedTlv[20];
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);    
+
+    cm.init(NULL, NULL);
+
+    char * commandWord[] = {"save"};
+    cm.do_cmd(1, commandWord);
+
+    // See what CM made of the file it loaded
+    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fread(savedTlv, sizeof(savedTlv), 1, fp);
+
+    CHECK(memcmp(expectedTlv, savedTlv, sizeof(savedTlv)) == 0);
+    fclose(fp);    
+    
+}
+
+
 
 
 

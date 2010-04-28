@@ -123,7 +123,7 @@ void config_manager::save()
     #endif
 
     FILE * fp;
-    fp = fopen("cfg.bin", "wb");  // open file for binary write
+    fp = fopen(CFG_FILE_NAME, "wb");  // open file for binary write
 
     fwrite(buf, 1, tlvLen, fp);
 
@@ -135,7 +135,7 @@ void config_manager::save()
 void config_manager::load()
 {
     FILE * fp;
-    if ((fp = fopen("cfg.bin", "rb")) == NULL)  // open file for binary read
+    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)  // open file for binary read
     {
         cout << "No config file." << endl;
         return;

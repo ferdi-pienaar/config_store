@@ -5,6 +5,8 @@
 #include <stdint.h> // uint8_t, etc
 #include <iostream>
 
+#define CFG_FILE_NAME "cfg.bin"
+
 using namespace std;
 
 // xxx throughout I've provisionally avoided the use of references; revise this.
