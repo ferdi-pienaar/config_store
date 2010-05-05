@@ -485,31 +485,31 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) 
             }
         }
 
-        // When we start with a new item type (or the 1st one), reset array index and pFirstItem,
-        // and, if necessary, allocate memory for expected number of items
-        if (firstComp || (compId != prevCompId))
-        {
-            // xxx here, check if itemIdx matches the count, i.e. did we read as many items as we should have?
-            firstComp = false;
-
-            // Allocate memory for owned items -- xxx note we assume the count has been populated correctly
-            if (pAggr->isAddSupported() && (pAggr->getCount(pItem) > 0))
-            {
-                ppItems = (unsigned char **)(pItem + pAggr->offset);
-
-                *ppItems = (unsigned char *)malloc(pAggr->pDesc->getLen() * pAggr->getCount(pItem));
-
-                DBG_PRT("load: for %d items, alloc %p to %p\n", pAggr->getCount(pItem), *ppItems, ppItems);
-            }
-
-            pFirstItem = pAggr->getFirstItem(pItem);
-            itemIdx = 0;
-        }
-
         if (i < aggrCount)
         {            
             // Found a match, so delegate the reading to the corresponding component
             DBG_PRT("component '%s' matches, itemIdx %d\n", pAggr->pDesc->getName().c_str(), itemIdx);
+
+            // When we start with a new item type (or the 1st one), reset array index and pFirstItem,
+            // and, if necessary, allocate memory for expected number of items
+            if (firstComp || (compId != prevCompId))
+            {
+                // xxx here, check if itemIdx matches the count, i.e. did we read as many items as we should have?
+                firstComp = false;
+
+                // Allocate memory for owned items -- xxx note we assume the count has been populated correctly
+                if (pAggr->isAddSupported() && (pAggr->getCount(pItem) > 0))
+                {
+                    ppItems = (unsigned char **)(pItem + pAggr->offset);
+
+                    *ppItems = (unsigned char *)malloc(pAggr->pDesc->getLen() * pAggr->getCount(pItem));
+
+                    DBG_PRT("load: for %d items, alloc %p to %p\n", pAggr->getCount(pItem), *ppItems, ppItems);
+                }
+
+                pFirstItem = pAggr->getFirstItem(pItem);
+                itemIdx = 0;
+            }
 
             bytesRead += pAggr->pDesc->loadFromTlv(fp, pFirstItem + itemIdx++ * pAggr->pDesc->getLen());
         }

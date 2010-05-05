@@ -115,14 +115,15 @@ TEST(load, config_manager)
     
 }
 
-// Unknown type in file: the descriptor has no T=9, so it's ignored by cfg_man when found in file.
+// Unknown type in file: the descriptor has no T=9, so it's ignored by cfg_man when found in file,
+// but the item following it is loaded.
 TEST(loadUnknown, config_manager)
 {
     FILE * fp;
     config_manager cm(&c1);
     unsigned char tlv[28] =
     /* The following assumes little-endian integers */
-    /*T    L     T    L    V        T    L    V       T    L    V    */
+    /*T    L     T    L    V        T    L    V        T    L    V    */
     { 1,0, 24,0, 1,0, 4,0, 0,0,0,0, 9,0, 4,0, 0,0,0,0, 2,0, 4,0, 0,0,0,0};
     unsigned char expectedTlv[20] =
     /* The following assumes little-endian integers */
