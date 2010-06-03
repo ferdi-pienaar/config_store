@@ -52,7 +52,7 @@ struct t_cm_context;
 // have global applicability only.
 //
 // The recursion code should then be present in only 1 place:
-// cm_composite_item_descriptor::do_cmd
+// cm_composite_item_descriptor::doCmd
 //  Following commands are executed by a simple:    set, setdef, prt
 //  Following commands are executed by a composite: setdef, add, del, prt
 
@@ -75,7 +75,7 @@ public:
                        name(iname), len(ilen), id(iid){}
     virtual ~cm_item_descriptor(){}
 
-    virtual void do_cmd(int argc, char *argv[], unsigned char * pItem, struct t_cm_context & ctxt ) const = 0;
+    virtual void doCmd(int argc, char *argv[], unsigned char * pItem, struct t_cm_context & ctxt ) const = 0;
     virtual cm_item_len getLen() const {return len;}
     virtual cm_item_len getTlvLen(const unsigned char * pItem) const = 0;
     virtual void writeTlv(const unsigned char * pItem, unsigned char ** ppBuf) const = 0;
@@ -192,7 +192,7 @@ class cm_composite_item_descriptor : public cm_item_descriptor
     virtual void writeTlv(const unsigned char * pItem, unsigned char ** ppBuf) const;
     virtual cm_item_len getTlvLen(const unsigned char * pItem) const;
     virtual int loadFromTlv(FILE * fp, unsigned char * pItem) const;
-
+    void getComponent(int * pArgc, char *** pArgv, cm_item_descriptor ** ppComponent, unsigned char ** ppItem) const;
 
 public:    
     cm_composite_item_descriptor(char * name,
@@ -206,7 +206,7 @@ public:
                                  {};
 
     ~cm_composite_item_descriptor(){};
-    void do_cmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
+    void doCmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
     void print(const unsigned char * pItem, string prefix) const;
     void setdef(unsigned char * pItem) const;
     virtual void help(const unsigned char * pItem) const;
@@ -250,7 +250,7 @@ public:
                               
     ~cm_simple_item_descriptor(){};
 
-    void do_cmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
+    void doCmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
     void print(const unsigned char * pItem, string prefix) const;
     void set(unsigned char * pItem, string val) const;
     void setdef(unsigned char * pItem) const;
@@ -265,7 +265,7 @@ class config_manager
 {  
 public:
     config_manager(const cm_item_descriptor * pDesc);
-    void do_cmd(int argc, char *argv[]);
+    void doCmd(int argc, char *argv[]);
     void init(CM_READ_FROM_NVRAM pRead, CM_WRITE_TO_NVRAM pWr);
     const char * getPromptString();
 

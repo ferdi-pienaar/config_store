@@ -67,7 +67,7 @@ void config_manager::reset_ctxt()
 
 
 // Execute command words entered by client on CLI.
-void config_manager::do_cmd(int argc, char *argv[])
+void config_manager::doCmd(int argc, char *argv[])
 {
     // First treat the commands that are only applicable at the top level
     switch (getOp(argv[0]))
@@ -86,7 +86,7 @@ void config_manager::do_cmd(int argc, char *argv[])
     }
 
     // Pass command that don't apply to CM as a whole, to current context for handling
-    ctxt.pDesc->do_cmd(argc, argv, ctxt.pItem, ctxt);
+    ctxt.pDesc->doCmd(argc, argv, ctxt.pItem, ctxt);
 }
 
 
@@ -173,75 +173,27 @@ void config_manager::load()
 //     continuously -- currently the string includes only the LAST word
 //     in the input string.
 //
- void cm_composite_item_descriptor::do_cmd(int argc,
-                                           char *argv[],
-                                           unsigned char * pItem,
-                                           cm_context & ctxt) const
+ void cm_composite_item_descriptor::doCmd(int argc,
+                                          char *argv[],
+                                          unsigned char * pItem,
+                                          cm_context & ctxt) const
 {
-    eCmOp op = getOp(argv[0]);
-
-    if (op == CM_OP_NONE)
+    switch (getOp(argv[0]))
     {
-        // We haven't reached an operation-word, so pass command to component item
-        for (int i = 0; i < aggrCount; i++)
-        {            
-            const cm_aggregate * pAggr = aggrList[i];
+        case CM_OP_NONE:
+        {
+            cm_item_descriptor * pComponent; // Component of this composite identified by argc, argv
 
-            if (strcmp(argv[0], pAggr->pDesc->getName().c_str()) != 0)
+            getComponent(&argc, &argv, &pComponent, &pItem);
+
+            if (pComponent != NULL)
             {
-                // No match -- continue to next candidate
-                continue;
+                // Pass the remainder of the command to the found component
+                return pComponent->doCmd(argc, argv, pItem, ctxt);
             }
-            
-            // Found matching name: now try to get index from next word
-            unsigned int itemIdx;
-            cm_aggregate::CM_GET_INDEX_RESULT indexRes = pAggr->getIndex(argc - 1, argv + 1, pItem, itemIdx);
-
-            if (indexRes == cm_aggregate::CM_FAILED)
-            {
-                return;
-            }
-
-            DBG_PRT("cmd pItem %p offset %d idx %d len %d\n", pItem, pAggr->offset, itemIdx, pAggr->pDesc->getLen());
-
-            if (((indexRes == cm_aggregate::CM_GOT) && (argc == 2)) ||
-                ((indexRes == cm_aggregate::CM_NO_NEED) && (argc == 1)))
-            {
-                // End of input
-                // An item has been identified, so it becomes the context.
-                ctxt.pDesc = pAggr->pDesc;
-                ctxt.pItem = pAggr->getFirstItem(pItem) + itemIdx * pAggr->pDesc->getLen();
-
-                ctxt.str  += " ";
-                ctxt.str  += argv[0];
-
-                if (indexRes == cm_aggregate::CM_GOT)
-                {
-                    // Add index string, if there was one
-                    ctxt.str  += " ";
-                    ctxt.str  += argv[1];                    
-                }
-                return;
-            }
-
-            if (indexRes == cm_aggregate::CM_GOT)
-            {            
-                // Advance if there was an index in the command
-                argc--;
-                argv++;
-            }
-
-            // Pass the remainder of the command to the matching component
-            return pAggr->pDesc->do_cmd(argc-1,
-                                        argv+1,
-                                        pAggr->getFirstItem(pItem) + itemIdx * pAggr->pDesc->getLen(),
-                                        ctxt);
         }
-    }
-
-    // If we're here, it means argv[0] was an operation, or there was no match to next word in item id
-    switch (op)
-    {
+        break;
+        
         case CM_ADD:
             // Remove the word 'add' and pass the remainder to the method
             return add(argc - 1, &(argv[1]), pItem);
@@ -260,10 +212,9 @@ void config_manager::load()
             return help(pItem);
 
         default:
+            cout << "'" << argv[0] << "' operation not applicable to composite item '" << getName() << "'" << endl;
             break;
     }
-    // If we're here, failed to consume argv[0]
-    cout << "'" << argv[0] << "' operation not applicable to composite item '" << getName() << "'" << endl;
 }
 
 
@@ -625,6 +576,74 @@ void cm_composite_item_descriptor::help(const unsigned char * pItem) const
 }
 
 
+// From remaining command-line words, find matching component of this composite.
+//
+void cm_composite_item_descriptor::getComponent(int * pArgc,
+                                                char *** pArgv,
+                                                cm_item_descriptor ** ppComponent,
+                                                unsigned char ** ppItem) const
+{
+    *ppComponent = NULL; // By default, found nothing
+
+    for (int i = 0; i < aggrCount; i++)
+    {            
+        const cm_aggregate * pAggr = aggrList[i];
+
+        if (strcmp(*pArgv[0], pAggr->pDesc->getName().c_str()) != 0)
+        {
+            // No match -- continue to next candidate
+            continue;
+        }
+        
+        // Found matching name: now try to get index from next word
+        *pArgc = *pArgc - 1;
+        *pArgv = *pArgv + 1;
+        unsigned int itemIdx;
+        cm_aggregate::CM_GET_INDEX_RESULT indexRes = pAggr->getIndex(*pArgc, *pArgv, *ppItem, itemIdx);
+
+        if (indexRes == cm_aggregate::CM_FAILED)
+        {
+            return;
+        }
+
+        DBG_PRT("cmd pItem %p offset %d idx %d len %d\n", *ppItem, pAggr->offset, itemIdx, pAggr->pDesc->getLen());
+
+        #if 0
+        if (((indexRes == cm_aggregate::CM_GOT) && (*pArgc == 2)) ||
+            ((indexRes == cm_aggregate::CM_NO_NEED) && (*pArgc == 1)))
+        {
+            // End of input
+            // An item has been identified, so it becomes the context.
+            ctxt.pDesc = pAggr->pDesc;
+            ctxt.pItem = pAggr->getFirstItem(*ppItem) + itemIdx * pAggr->pDesc->getLen();
+
+            ctxt.str  += " ";
+            ctxt.str  += argv[0];
+
+            if (indexRes == cm_aggregate::CM_GOT)
+            {
+                // Add index string, if there was one
+                ctxt.str  += " ";
+                ctxt.str  += argv[1];                    
+            }
+            return;
+        }
+        #endif
+
+        if (indexRes == cm_aggregate::CM_GOT)
+        {            
+            // Advance if there was an index in the command
+            *pArgc = *pArgc - 1;
+            *pArgv = *pArgv + 1;
+        }
+
+        *ppComponent = (cm_item_descriptor *)pAggr->pDesc; // xxx fix constness issues: no typecasting should be needed here
+        *ppItem = pAggr->getFirstItem(*ppItem) + itemIdx * pAggr->pDesc->getLen();
+        break;
+    }
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // cm_simple_item_descriptor
@@ -636,10 +655,10 @@ void cm_composite_item_descriptor::help(const unsigned char * pItem) const
 // argv array of strings containing name elements
 // pItem - pointer to RAM at which item is located
 //
-void cm_simple_item_descriptor::do_cmd(int argc,
-                                       char *argv[],
-                                       unsigned char * pItem,
-                                       cm_context & ctxt) const
+void cm_simple_item_descriptor::doCmd(int argc,
+                                      char *argv[],
+                                      unsigned char * pItem,
+                                      cm_context & ctxt) const
 {
     DBG_PRT("simple cmd at %p\n", pItem);
     
@@ -674,7 +693,7 @@ void cm_simple_item_descriptor::do_cmd(int argc,
 // to the item's composite but not to the item.
 void cm_simple_item_descriptor::print(const unsigned char * pItem, string prefix) const
 {
-    cout << prefix;
+    cout << prefix << "= ";
 
     DBG_PRT("print simple %s with len %d at %p\n", name.c_str(), len, pItem);
     
@@ -937,7 +956,7 @@ eCmOp getOp(const char * word)
     if (strcmp(word, "add") == 0)     return CM_ADD;
     if (strcmp(word, "del") == 0)     return CM_DEL;
     if (strcmp(word, "prt") == 0)     return CM_PRT;
-    if (strcmp(word, "set") == 0)     return CM_SET;
+    if (strcmp(word, "=") == 0)       return CM_SET;
     if (strcmp(word, "setdef") == 0)  return CM_SETDEF;
     if (strcmp(word, "load") == 0)    return CM_LOAD;
     if (strcmp(word, "save") == 0)    return CM_SAVE;

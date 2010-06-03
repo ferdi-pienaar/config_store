@@ -74,9 +74,9 @@ TEST(printContained, cm_composite_item_descriptor)
 
     FILE * resf = fopen("testout.txt", "r");
     fgets(outstring, sizeof(outstring), resf);
-    CHECK(strncmp(outstring, "name1 03000000\n", sizeof(outstring)) == 0);
+    CHECK(strncmp(outstring, "name1 = 03000000\n", sizeof(outstring)) == 0);
     fgets(outstring, sizeof(outstring), resf);
-    CHECK(strncmp(outstring, "name2 05000000\n", sizeof(outstring)) == 0);
+    CHECK(strncmp(outstring, "name2 = 05000000\n", sizeof(outstring)) == 0);
 }
 
 
@@ -99,7 +99,7 @@ TEST(printOwnedNull, cm_composite_item_descriptor)
 
     FILE * resf = fopen("testout.txt", "r");
     fgets(outstring, sizeof(outstring), resf);
-    CHECK(strncmp(outstring, "count 00000000\n", sizeof(outstring)) == 0);
+    CHECK(strncmp(outstring, "count = 00000000\n", sizeof(outstring)) == 0);
 }
 
 
@@ -126,11 +126,11 @@ TEST(printOwnedData, cm_composite_item_descriptor)
 
     FILE * resf = fopen("testout.txt", "r");
     fgets(outstring, sizeof(outstring), resf);
-    CHECK(strncmp(outstring, "count 02000000\n", sizeof(outstring)) == 0);
+    CHECK(strncmp(outstring, "count = 02000000\n", sizeof(outstring)) == 0);
     fgets(outstring, sizeof(outstring), resf);
-    CHECK(strncmp(outstring, "owned 0 07000000\n", sizeof(outstring)) == 0);
+    CHECK(strncmp(outstring, "owned 0 = 07000000\n", sizeof(outstring)) == 0);
     fgets(outstring, sizeof(outstring), resf);
-    CHECK(strncmp(outstring, "owned 1 08000000\n", sizeof(outstring)) == 0);
+    CHECK(strncmp(outstring, "owned 1 = 08000000\n", sizeof(outstring)) == 0);
 }
 
 

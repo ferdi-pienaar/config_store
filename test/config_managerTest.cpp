@@ -48,6 +48,7 @@ const cm_aggregate * const aggrList2[] = {&ca3, &oa4};
 const cm_composite_item_descriptor c2("c2", 1, sizeof(struct m2), aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0]));
 
 
+// Verify data saved to TLV, with default data in RAM as input to the test.
 // xxx todo: delete the file cfg.bin before starting test, else this test is not independent
 TEST(initNoFile, config_manager)
 {
@@ -63,7 +64,7 @@ TEST(initNoFile, config_manager)
     cm.init(NULL, NULL);
 
     char * commandWord[] = {"save"};
-    cm.do_cmd(1, commandWord);
+    cm.doCmd(1, commandWord);
 
     if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
     {
@@ -76,7 +77,7 @@ TEST(initNoFile, config_manager)
     fclose(fp);    
 }
 
-
+// Verify what's saved to TLV, given a TLV file that's read on startup.
 TEST(load, config_manager)
 {
     FILE * fp;
@@ -100,7 +101,7 @@ TEST(load, config_manager)
     cm.init(NULL, NULL);
 
     char * commandWord[] = {"save"};
-    cm.do_cmd(1, commandWord);
+    cm.doCmd(1, commandWord);
 
     // See what CM made of the file it loaded
     if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
@@ -115,6 +116,8 @@ TEST(load, config_manager)
     
 }
 
+// Verify what's saved to TLV, given a TLV file that's read on startup that contains
+// an unknown Type value.
 // Unknown type in file: the descriptor has no T=9, so it's ignored by cfg_man when found in file,
 // but the item following it is loaded.
 TEST(loadUnknown, config_manager)
@@ -144,7 +147,7 @@ TEST(loadUnknown, config_manager)
     cm.init(NULL, NULL);
 
     char * commandWord[] = {"save"};
-    cm.do_cmd(1, commandWord);
+    cm.doCmd(1, commandWord);
 
     // See what CM made of the file it loaded
     if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
@@ -158,8 +161,5 @@ TEST(loadUnknown, config_manager)
     fclose(fp);    
     
 }
-
-
-
 
 

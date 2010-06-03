@@ -43,7 +43,7 @@ TEST(print, cm_simple_item_descriptor)
     // xxx Reading from a file and comparing the contents could be re-implemented as an assert method
     FILE * resf = fopen("testout.txt", "r");
     fgets(outstring, sizeof(outstring), resf);
-    CHECK(strncmp(outstring, "07000000\n", sizeof(outstring)) == 0);
+    CHECK(strncmp(outstring, "= 07000000\n", sizeof(outstring)) == 0);
 }
 
 
