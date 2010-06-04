@@ -99,6 +99,7 @@ typedef struct t_cm_context
 
 
 ///
+//
 // The way in which a cm_item_descriptor forms part of a composite.
 // Within a composite descriptor, there's one of these for each
 // component descriptor (i.e. one for each aggregate of component items).
@@ -141,8 +142,9 @@ public:
 };
 
 
-// In a contained aggregate, component items are contained within the composite: the item memory is allocated along
-// with that of the composite item, and the 'add' and 'del' operations don't apply.
+// In a contained aggregate, component items are contained within the composite:
+// the item memory is allocated along with that of the composite item, and the
+// 'add' and 'del' operations can't be applied to the component.
 class cm_contained_aggregate : public cm_aggregate
 {
 public:
@@ -158,9 +160,10 @@ public:
 
 };
 
-// In an owned aggregate, component items are owned but not contained by the composite: the item memory is allocated
-// by an 'add' operation and freed by a 'del' operation.  By default, the number
-// of items is 0.
+
+// In an owned aggregate, component items are owned but not contained
+// by the composite: the item memory is allocated by an 'add' operation
+// and freed by a 'del' operation.  By default, the number of items is 0.
 class cm_owned_aggregate : public cm_aggregate
 {
 private:
@@ -192,7 +195,7 @@ class cm_composite_item_descriptor : public cm_item_descriptor
     virtual void writeTlv(const unsigned char * pItem, unsigned char ** ppBuf) const;
     virtual cm_item_len getTlvLen(const unsigned char * pItem) const;
     virtual int loadFromTlv(FILE * fp, unsigned char * pItem) const;
-    void getComponent(int * pArgc, char *** pArgv, cm_item_descriptor ** ppComponent, unsigned char ** ppItem) const;
+    void getComponentItem(int * pArgc, char *** pArgv, cm_item_descriptor ** ppComponent, unsigned char ** ppItem) const;
 
 public:    
     cm_composite_item_descriptor(char * name,

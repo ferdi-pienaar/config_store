@@ -184,7 +184,7 @@ void config_manager::load()
         {
             cm_item_descriptor * pComponent; // Component of this composite identified by argc, argv
 
-            getComponent(&argc, &argv, &pComponent, &pItem);
+            getComponentItem(&argc, &argv, &pComponent, &pItem);
 
             if (pComponent != NULL)
             {
@@ -212,7 +212,7 @@ void config_manager::load()
             return help(pItem);
 
         default:
-            cout << "'" << argv[0] << "' operation not applicable to composite item '" << getName() << "'" << endl;
+            cout << "'" << argv[0] << "' operation not applicable to composite item '" << name << "'" << endl;
             break;
     }
 }
@@ -243,7 +243,7 @@ void cm_composite_item_descriptor::add(int argc, char *argv[], unsigned char * p
         
         if (!pAggr->isAddSupported())
         {
-            cout<<"Add not supported for '"<<pAggr->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
+            cout<<"Add not supported for '"<<pAggr->pDesc->getName()<<"' in '"<<name<<"'."<< endl;
             return;
         }
 
@@ -269,7 +269,7 @@ void cm_composite_item_descriptor::add(int argc, char *argv[], unsigned char * p
 
         return pAggr->setCount(pItem, cnt + 1);
     }
-    cout << "No item '" << argv[0] << " in '" << getName() << "'." << endl;
+    cout << "No item '" << argv[0] << " in '" << name << "'." << endl;
 }
 
 
@@ -302,7 +302,7 @@ void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * p
         
         if (!pAggr->isAddSupported())
         {
-            cout<<"Delete not supported for '"<<pAggr->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
+            cout<<"Delete not supported for '"<<pAggr->pDesc->getName()<<"' in '"<<name<<"'."<< endl;
             return;
         }
 
@@ -310,7 +310,7 @@ void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * p
 
         if (cnt == 0)
         {
-            cout << "Currently no '" <<pAggr->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
+            cout << "Currently no '" <<pAggr->pDesc->getName()<<"' in '"<<name<<"'."<< endl;
             return;
         }
 
@@ -475,7 +475,7 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) 
             fseek(fp, componentTlvLen, SEEK_CUR);
             bytesRead += componentTlvLen;
         }
-        DBG_PRT("composite '%s': %d read\n", getName().c_str(), bytesRead);
+        DBG_PRT("composite '%s': %d read\n", name.c_str(), bytesRead);
         prevCompId = compId;
     }
     return bytesRead;
@@ -578,10 +578,10 @@ void cm_composite_item_descriptor::help(const unsigned char * pItem) const
 
 // From remaining command-line words, find matching component of this composite.
 //
-void cm_composite_item_descriptor::getComponent(int * pArgc,
-                                                char *** pArgv,
-                                                cm_item_descriptor ** ppComponent,
-                                                unsigned char ** ppItem) const
+void cm_composite_item_descriptor::getComponentItem(int * pArgc,
+                                                    char *** pArgv,
+                                                    cm_item_descriptor ** ppComponent,
+                                                    unsigned char ** ppItem) const
 {
     *ppComponent = NULL; // By default, found nothing
 
@@ -664,12 +664,6 @@ void cm_simple_item_descriptor::doCmd(int argc,
     
     switch (getOp(argv[0]))
     {
-        case CM_OP_NONE:
-        case CM_ADD:
-        case CM_DEL:
-            cout << argv[0] << " is not an operation supported by " << getName() << endl;
-            break;
-            
         case CM_PRT:
             return print(pItem, "");
 
@@ -683,7 +677,7 @@ void cm_simple_item_descriptor::doCmd(int argc,
             return help(pItem);
 
         default:
-            cout << "Unknown operation '" << argv[0] << "'" << endl;
+            cout << "'" << argv[0] << "' operation not applicable to simple item '" << name << "'" << endl;
     }   
 }
 
@@ -724,7 +718,7 @@ void cm_simple_item_descriptor::set(unsigned char * pItem, string val) const
     }
     else
     {
-        cout << "'" << getName() << "' can't be set." << endl;
+        cout << "'" << name << "' can't be set." << endl;
     }
     cout << endl;
 }
