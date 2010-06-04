@@ -57,6 +57,7 @@ void config_manager::init(CM_READ_FROM_NVRAM pRead, CM_WRITE_TO_NVRAM pWr)
     load();
 }
 
+
 // Reset context to top level
 void config_manager::reset_ctxt()
 {
@@ -231,45 +232,41 @@ void cm_composite_item_descriptor::add(int argc, char *argv[], unsigned char * p
         return;
     }
 
-    for (int i = 0; i < aggrCount; i++)
-    {            
-        const cm_aggregate * pAggr = aggrList[i];
+    const cm_aggregate * pAggr = getAggr(argv[0]);
 
-        if (strcmp(argv[0], pAggr->pDesc->getName().c_str()) != 0)
-        {
-            // No match, continue to next candidate
-            continue;
-        }
-        
-        if (!pAggr->isAddSupported())
-        {
-            cout<<"Add not supported for '"<<pAggr->pDesc->getName()<<"' in '"<<name<<"'."<< endl;
-            return;
-        }
-
-        unsigned int cnt = pAggr->getCount(pItem); // number of items currently in array
-
-        if (cnt >= pAggr->maxCount)
-        {
-            cout<<"Can't add '"<<pAggr->pDesc->getName()<<"' (max "<<pAggr->maxCount<<")."<<endl;
-            return;
-        }  
-            
-        // Reallocate memory, and save pointer in the same location
-        unsigned char ** ppItems = (unsigned char **)(pItem + pAggr->offset);
-
-        *ppItems = (unsigned char *)realloc(*ppItems, (cnt + 1) * pAggr->pDesc->getLen());
-
-        // Initialize added item with default values. First memset to ensure
-        // counters, which have no setdef fn, are 0 (also sets pointers to owned to NULL).
-        memset(*ppItems + cnt * pAggr->pDesc->getLen(), 0, pAggr->pDesc->getLen());
-        pAggr->pDesc->setdef(*ppItems + cnt * pAggr->pDesc->getLen());
-
-        DBG_PRT("add at %p\n", *ppItems);
-
-        return pAggr->setCount(pItem, cnt + 1);
+    if (pAggr == NULL)
+    {
+        cout << "No item '" << argv[0] << " in '" << name << "'." << endl;
+        return;
     }
-    cout << "No item '" << argv[0] << " in '" << name << "'." << endl;
+    
+    if (!pAggr->isAddSupported())
+    {
+        cout<<"Add not supported for '"<<pAggr->pDesc->getName()<<"' in '"<<name<<"'."<< endl;
+        return;
+    }
+
+    unsigned int cnt = pAggr->getCount(pItem); // number of items currently in array
+
+    if (cnt >= pAggr->maxCount)
+    {
+        cout<<"Can't add '"<<pAggr->pDesc->getName()<<"' (max "<<pAggr->maxCount<<")."<<endl;
+        return;
+    }  
+        
+    // Reallocate memory, and save pointer in the same location
+    unsigned char ** ppItems = (unsigned char **)(pItem + pAggr->offset);
+
+    *ppItems = (unsigned char *)realloc(*ppItems, (cnt + 1) * pAggr->pDesc->getLen());
+
+    // Initialize added item with default values. First memset to ensure
+    // counters, which have no setdef fn, are 0 (also sets pointers to owned to NULL).
+    memset(*ppItems + cnt * pAggr->pDesc->getLen(), 0, pAggr->pDesc->getLen());
+    pAggr->pDesc->setdef(*ppItems + cnt * pAggr->pDesc->getLen());
+
+    DBG_PRT("add at %p\n", *ppItems);
+
+    return pAggr->setCount(pItem, cnt + 1);
 }
 
 
@@ -286,57 +283,54 @@ void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * p
         return;
     }    
 
-    // Find matching component name
-    for (int i = 0; i < aggrCount; i++)
-    {            
-        const cm_aggregate * pAggr = aggrList[i];
+    const cm_aggregate * pAggr = getAggr(argv[0]);
 
-        if (strcmp(argv[0], pAggr->pDesc->getName().c_str()) != 0)
-        {
-            continue; // mismatch: continue to next candidate
-        }
-
-        // Match found
-        argc--;
-        argv++;
-        
-        if (!pAggr->isAddSupported())
-        {
-            cout<<"Delete not supported for '"<<pAggr->pDesc->getName()<<"' in '"<<name<<"'."<< endl;
-            return;
-        }
-
-        unsigned int cnt = pAggr->getCount(pItem); // number of items currently in array
-
-        if (cnt == 0)
-        {
-            cout << "Currently no '" <<pAggr->pDesc->getName()<<"' in '"<<name<<"'."<< endl;
-            return;
-        }
-
-        unsigned int itemIdx;
-
-        if (pAggr->getIndex(argc, argv, pItem, itemIdx) == cm_aggregate::CM_FAILED)
-        {
-            // An index is needed but couldn't be extracted from the command
-            return;
-        }
-
-        // Reallocate memory, and save pointer in the same location
-        unsigned char ** ppItems = (unsigned char **)(pItem + pAggr->offset);
-
-        // Shift down items to occupy the memory vacated by deleted item
-        memcpy(*ppItems + itemIdx * pAggr->pDesc->getLen(),
-               *ppItems + (itemIdx + 1) * pAggr->pDesc->getLen(),
-               (cnt - itemIdx - 1) * pAggr->pDesc->getLen());
-
-        *ppItems = (unsigned char *)realloc(*ppItems, (cnt - 1) * pAggr->pDesc->getLen());
-
-        DBG_PRT("del item base %p offset %d index %d len %d\n",
-                pItem, pAggr->offset, itemIdx, pAggr->pDesc->getLen());
-
-        return pAggr->setCount(pItem, cnt - 1);
+    if (pAggr == NULL)
+    {
+        return;
     }
+
+    // Match found
+    argc--;
+    argv++;
+    
+    if (!pAggr->isAddSupported())
+    {
+        cout<<"Delete not supported for '"<<pAggr->pDesc->getName()<<"' in '"<<name<<"'."<< endl;
+        return;
+    }
+
+    unsigned int cnt = pAggr->getCount(pItem); // number of items currently in array
+
+    if (cnt == 0)
+    {
+        cout << "Currently no '" <<pAggr->pDesc->getName()<<"' in '"<<name<<"'."<< endl;
+        return;
+    }
+
+    unsigned int itemIdx = 0; // If no explicit index is needed, use 0 offset
+
+    if (pAggr->needIndex(pItem) &&
+        !pAggr->getIndex(&argc, &argv, pItem, itemIdx))
+    {
+        // An index is needed but couldn't be extracted from the command
+        return;
+    }
+
+    // Reallocate memory, and save pointer in the same location
+    unsigned char ** ppItems = (unsigned char **)(pItem + pAggr->offset);
+
+    // Shift down items to occupy the memory vacated by deleted item
+    memcpy(*ppItems + itemIdx * pAggr->pDesc->getLen(),
+           *ppItems + (itemIdx + 1) * pAggr->pDesc->getLen(),
+           (cnt - itemIdx - 1) * pAggr->pDesc->getLen());
+
+    *ppItems = (unsigned char *)realloc(*ppItems, (cnt - 1) * pAggr->pDesc->getLen());
+
+    DBG_PRT("del item base %p offset %d index %d len %d\n",
+            pItem, pAggr->offset, itemIdx, pAggr->pDesc->getLen());
+
+    return pAggr->setCount(pItem, cnt - 1);
 }
 
 
@@ -414,29 +408,17 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) 
 
     while (bytesRead < tlvLen) // xxx 
     {    
-        const cm_aggregate * pAggr;
         unsigned char *      pFirstItem;
-        unsigned char **     ppItems;
         cm_descriptor_id     compId, prevCompId;
-        int                  i;
 
         fread(&compId, sizeof(compId), 1, fp);
         bytesRead += sizeof(compId);
 
         DBG_PRT("load component ID %d\n", compId);
 
-        // Look for a component with ID matching the one read from NVRAM
-        for (i = 0; i < aggrCount; i++)
-        {            
-            pAggr = aggrList[i];
-            
-            if (compId == pAggr->pDesc->id)
-            {
-                break;
-            }
-        }
+        const cm_aggregate * pAggr = getAggr(compId);
 
-        if (i < aggrCount)
+        if (pAggr != NULL)
         {            
             // Found a match, so delegate the reading to the corresponding component
             DBG_PRT("component '%s' matches, itemIdx %d\n", pAggr->pDesc->getName().c_str(), itemIdx);
@@ -451,7 +433,7 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) 
                 // Allocate memory for owned items -- xxx note we assume the count has been populated correctly
                 if (pAggr->isAddSupported() && (pAggr->getCount(pItem) > 0))
                 {
-                    ppItems = (unsigned char **)(pItem + pAggr->offset);
+                    unsigned char ** ppItems = (unsigned char **)(pItem + pAggr->offset);
 
                     *ppItems = (unsigned char *)malloc(pAggr->pDesc->getLen() * pAggr->getCount(pItem));
 
@@ -466,7 +448,7 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) 
         }
         else
         {            
-            // We got to the end of the list without finding a match: skip over the unrecognized item
+            // ID read from file matches no component: skip over the unrecognized item
             cout << "Couldn't load unknown component ID " << compId << endl;
 
             cm_item_len componentTlvLen;
@@ -576,6 +558,38 @@ void cm_composite_item_descriptor::help(const unsigned char * pItem) const
 }
 
 
+// Look for the aggregate whose component has a matching name
+const cm_aggregate * cm_composite_item_descriptor::getAggr(const char * name) const
+{
+    for (int i = 0; i < aggrCount; i++)
+    {            
+        const cm_aggregate * pAggr = aggrList[i];
+
+        if (strcmp(name, pAggr->pDesc->getName().c_str()) == 0)
+        {
+            return pAggr;
+        }
+    }
+    return NULL;
+}
+
+
+// Look for the aggregate whose component has a matching ID
+const cm_aggregate * cm_composite_item_descriptor::getAggr(cm_descriptor_id id) const
+{
+    for (int i = 0; i < aggrCount; i++)
+    {            
+        const cm_aggregate * pAggr = aggrList[i];
+
+        if (pAggr->pDesc->id == id)
+        {
+            return pAggr;
+        }
+    }
+    return NULL;
+}
+
+
 // From remaining command-line words, find matching component of this composite.
 //
 void cm_composite_item_descriptor::getComponentItem(int * pArgc,
@@ -584,63 +598,51 @@ void cm_composite_item_descriptor::getComponentItem(int * pArgc,
                                                     unsigned char ** ppItem) const
 {
     *ppComponent = NULL; // By default, found nothing
+    const cm_aggregate * pAggr = getAggr(*pArgv[0]);
 
-    for (int i = 0; i < aggrCount; i++)
-    {            
-        const cm_aggregate * pAggr = aggrList[i];
+    if (pAggr == NULL)
+    {
+        return;
+    }
+    
+    // Found matching name: now try to get index from next word
+    *pArgc -= 1;
+    *pArgv += 1;
+    unsigned int itemIdx = 0; // If no index needed, use offset 0
 
-        if (strcmp(*pArgv[0], pAggr->pDesc->getName().c_str()) != 0)
-        {
-            // No match -- continue to next candidate
-            continue;
-        }
-        
-        // Found matching name: now try to get index from next word
-        *pArgc = *pArgc - 1;
-        *pArgv = *pArgv + 1;
-        unsigned int itemIdx;
-        cm_aggregate::CM_GET_INDEX_RESULT indexRes = pAggr->getIndex(*pArgc, *pArgv, *ppItem, itemIdx);
+    if (pAggr->needIndex(*ppItem) &&
+        !pAggr->getIndex(pArgc, pArgv, *ppItem, itemIdx))
+    {
+        // Explicit index required but not given
+        return;
+    }
 
-        if (indexRes == cm_aggregate::CM_FAILED)
-        {
-            return;
-        }
+    DBG_PRT("cmd pItem %p offset %d idx %d len %d\n", *ppItem, pAggr->offset, itemIdx, pAggr->pDesc->getLen());
 
-        DBG_PRT("cmd pItem %p offset %d idx %d len %d\n", *ppItem, pAggr->offset, itemIdx, pAggr->pDesc->getLen());
+    #if 0
+    if (((indexRes == cm_aggregate::CM_GOT) && (*pArgc == 2)) ||
+        ((indexRes == cm_aggregate::CM_NO_NEED) && (*pArgc == 1)))
+    {
+        // End of input
+        // An item has been identified, so it becomes the context.
+        ctxt.pDesc = pAggr->pDesc;
+        ctxt.pItem = pAggr->getFirstItem(*ppItem) + itemIdx * pAggr->pDesc->getLen();
 
-        #if 0
-        if (((indexRes == cm_aggregate::CM_GOT) && (*pArgc == 2)) ||
-            ((indexRes == cm_aggregate::CM_NO_NEED) && (*pArgc == 1)))
-        {
-            // End of input
-            // An item has been identified, so it becomes the context.
-            ctxt.pDesc = pAggr->pDesc;
-            ctxt.pItem = pAggr->getFirstItem(*ppItem) + itemIdx * pAggr->pDesc->getLen();
-
-            ctxt.str  += " ";
-            ctxt.str  += argv[0];
-
-            if (indexRes == cm_aggregate::CM_GOT)
-            {
-                // Add index string, if there was one
-                ctxt.str  += " ";
-                ctxt.str  += argv[1];                    
-            }
-            return;
-        }
-        #endif
+        ctxt.str  += " ";
+        ctxt.str  += argv[0];
 
         if (indexRes == cm_aggregate::CM_GOT)
-        {            
-            // Advance if there was an index in the command
-            *pArgc = *pArgc - 1;
-            *pArgv = *pArgv + 1;
+        {
+            // Add index string, if there was one
+            ctxt.str  += " ";
+            ctxt.str  += argv[1];                    
         }
-
-        *ppComponent = (cm_item_descriptor *)pAggr->pDesc; // xxx fix constness issues: no typecasting should be needed here
-        *ppItem = pAggr->getFirstItem(*ppItem) + itemIdx * pAggr->pDesc->getLen();
-        break;
+        return;
     }
+    #endif
+
+    *ppComponent = (cm_item_descriptor *)pAggr->pDesc; // xxx fix constness issues: no typecasting should be needed here
+    *ppItem = pAggr->getFirstItem(*ppItem) + itemIdx * pAggr->pDesc->getLen();
 }
 
 
@@ -802,49 +804,44 @@ int cm_simple_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) con
 ////////////////////////////////////////////////////////////////////////////////
 
 // Utility method to extract in index from an array of command words
-// Returns CM_FAILED if unable to extract an index when one is required.
-// Returns CM_GOT if able to return a valid (in-range) index, or 
-// Return CM_NO_NEED no index is needed from user, in which case the index returned is 0.
+// Returns false if unable to extract a valid (in-range) index
+// Returns true if returning a valid (in-range) index.
 //
-cm_aggregate::CM_GET_INDEX_RESULT cm_aggregate::getIndex(int argc,
-                                                         char ** argv,
-                                                         unsigned char * pParentItem,
-                                                         unsigned int & itemIdx) const
+bool cm_aggregate::getIndex(int * pArgc,
+                            char *** pArgv,
+                            const unsigned char * pParentItem,
+                            unsigned int & itemIdx) const
 {   
     bool   gotIndex = false;
-    char * pEnd;
+    char * pEnd; // pointer to char after chars accepted by strtoul
 
-    if (getCount(pParentItem) <= 1)
-    {
-        // No index from user is needed, since there are 0 or 1 items present
-        itemIdx = 0;
-        return CM_NO_NEED;
-    }
-
-    if (argc > 0)
+    if (*pArgc > 0)
     {
         // An index is needed, so try to extract one
-        itemIdx = strtoul(argv[0], &pEnd, 0);
+        itemIdx = strtoul((*pArgv)[0], &pEnd, 0);
 
-        if (pEnd > argv[0])
+        if (pEnd > (*pArgv)[0])
         {
             gotIndex = true;
+            *pArgc -= 1;
+            *pArgv += 1;
         }
     }
 
     if (!gotIndex)
     {
         cout << "'" << pDesc->getName() << "' needs index." <<endl;
-        return CM_FAILED;
+        return false;
     }
 
     if (itemIdx >= getCount(pParentItem))
     {
         cout<<"'"<<pDesc->getName()<<"' index "<<itemIdx<<" out of range (0.. "<<getCount(pParentItem)-1<<")."<<endl;
-        return CM_FAILED;
+        return false;
     }
-    return CM_GOT;
+    return true;
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////
 //

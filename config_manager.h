@@ -116,15 +116,7 @@ class cm_aggregate
 {
 protected:
     
-public:
-    typedef enum
-    {
-        CM_GOT,
-        CM_NO_NEED,
-        CM_FAILED
-        
-    } CM_GET_INDEX_RESULT;
-    
+public:   
     cm_aggregate(const cm_item_descriptor * d,
                  unsigned short c,
                  unsigned int o):
@@ -133,8 +125,8 @@ public:
     const cm_item_descriptor * pDesc;     // the component's descriptor
     const unsigned short       maxCount;  // Max number of instances of the item
     const unsigned int         offset;    // Offset [bytes] of items (or pointer to items) within the composite item
-
-    CM_GET_INDEX_RESULT getIndex(int argc, char ** argv, unsigned char * pParentItem, unsigned int & itemIndex) const;
+    bool needIndex(const unsigned char * pParentItem) const {return getCount(pParentItem) > 1;}
+    bool getIndex(int * pArgc, char *** pArgv, const unsigned char * pParentItem, unsigned int & itemIndex) const;
     virtual unsigned char * getFirstItem(const unsigned char * pParentItem) const = 0;
     virtual unsigned getCount(const unsigned char * pParentItem) const = 0;
     virtual bool isAddSupported() const = 0;
@@ -195,6 +187,8 @@ class cm_composite_item_descriptor : public cm_item_descriptor
     virtual void writeTlv(const unsigned char * pItem, unsigned char ** ppBuf) const;
     virtual cm_item_len getTlvLen(const unsigned char * pItem) const;
     virtual int loadFromTlv(FILE * fp, unsigned char * pItem) const;
+    const cm_aggregate * getAggr(const char * name) const;
+    const cm_aggregate * getAggr(cm_descriptor_id id) const;
     void getComponentItem(int * pArgc, char *** pArgv, cm_item_descriptor ** ppComponent, unsigned char ** ppItem) const;
 
 public:    
