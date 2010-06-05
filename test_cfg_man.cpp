@@ -18,9 +18,9 @@ using namespace std;
 int main()
 {
     // Initialize the config manager with the base descriptor it is to manage.
-    config_manager * cm = new config_manager(pBaseDesc);
+    config_manager * cm = config_manager::getInstance();
 
-    cm->init(NULL, NULL);
+    cm->init(pBaseDesc);
     
     while (true)
     {

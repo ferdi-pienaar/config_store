@@ -24,7 +24,7 @@ typedef enum
 } eCmOp;
 
 static eCmOp getOp(const char * word);
-cm_context * config_manager::pCtxt = NULL;
+config_manager * config_manager::instance = NULL;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -33,28 +33,30 @@ cm_context * config_manager::pCtxt = NULL;
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-// 
-config_manager::config_manager(const cm_item_descriptor * desc)
-{
-    base_desc = desc;
-}
 
+// Singleton's single access point
+config_manager * config_manager::getInstance()
+{
+    if (instance == NULL)
+    {
+        instance = new config_manager();
+    }
+    return instance;
+}
 
 // Initialize config manager: allocate and populate item memory in RAM.
 // xxx We could presumably do these things in the constructor, but
 // having an init method gives us more flexibility in delaying certain
 // actions until later; this allows us to create the CM early in the 
 // init cycle, but delay malloc and NVRAM reads until later.
-void config_manager::init(CM_READ_FROM_NVRAM pRead, CM_WRITE_TO_NVRAM pWr)
+void config_manager::init(const cm_item_descriptor * desc)
 {
+    base_desc = desc;
     ramBase = (unsigned char *)malloc(base_desc->getLen());
 
     // Set counters to 0 and pointers to NULL so load can work correctly.
     memset(ramBase, 0, base_desc->getLen());
     
-    pWriteToNvram = pWr;
-    pReadFromNvram = pRead;
-
     // xxx initialize with a constructor
     baseCtxt.pDesc = base_desc;
     baseCtxt.str = "";
@@ -202,7 +204,7 @@ void config_manager::load()
             else
             {
                 // We have a component, but there's nothing left of the command
-                config_manager::setCtxt(&ctxt);
+                config_manager::getInstance()->setCtxt(&ctxt);
                 return;
             }
         }
@@ -658,7 +660,10 @@ void cm_composite_item_descriptor::getComponentItem(int * pArgc,
         if (pAggr->getIndex(pArgc, pArgv, *ppItem, itemIdx))
         {
             // Index available, it becomes part of the context string
-            ctxt.str += "idx"; // xxx
+            char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
+
+            snprintf(indexbuf, sizeof(indexbuf), "%d ", itemIdx);
+            ctxt.str = ctxt.str + indexbuf;
         }
         else
         {
@@ -969,14 +974,6 @@ void cm_owned_aggregate::setCount(unsigned char * pParentItem, unsigned int coun
     
     memcpy(pParentItem + pCounterAggr->offset, &count, sizeof(count));
 }
-
-// During iteration, return name of current item -- by default, just convert the iteration index
-// to a string, but xxx
-#if 0
-string cm_aggregate::getCurrentItemName()
-{
-}
-#endif
 
 
 // Helper function that returns what kind of operation (if any) a word is

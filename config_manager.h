@@ -32,10 +32,6 @@ typedef unsigned short cm_item_len;
 // Identifier ID, unique within its context, used to identify it in NVRFAM
 typedef unsigned short cm_descriptor_id;
 
-// Function pointers -- types registered by user when initializing CM
-typedef void (*CM_READ_FROM_NVRAM)(unsigned char *pBuf, cm_item_len * pLen);
-typedef void (*CM_WRITE_TO_NVRAM)(const unsigned char *pBuf, cm_item_len len);
-
 // Function pointers -- types registered by user when descriptor is created
 typedef void (*CM_SET_FPTR)(unsigned char *pItem, cm_item_len len, string val);
 typedef void (*CM_SETDEF_FPTR)(unsigned char *pItem, cm_item_len len);
@@ -260,30 +256,34 @@ public:
 };
 
 
-// xxx Should be a singleton?  It would be a better solution than
-//     the hack of making pCtxt a static member.
+// This is a singleton because it avoids the following practical problem:
+// in config_manager.cpp, how do the other classes access this one to
+// modify the current context, pCtxt.  We could give each instance a
+// pointer to this object, but it seems like overkill since there SHOULD
+// only be one of them.
 // This class is the application programme's sole point of access to
 // the configurable items.
 class config_manager
 {  
 public:
-    config_manager(const cm_item_descriptor * pDesc);
     void handleCmd(int argc, char *argv[]);
-    void init(CM_READ_FROM_NVRAM pRead, CM_WRITE_TO_NVRAM pWr);
+    void init(const cm_item_descriptor * pDesc);
     const char * getPromptString();
+    static config_manager * getInstance();
 
-    static void setCtxt(cm_context * pC) {pCtxt = pC;}
+    // xxx should only be accessible to friend classes
+    void setCtxt(cm_context * pC) {pCtxt = pC;}
 
 
 private:
+    config_manager(){};
     void save();
     void load();
-    CM_READ_FROM_NVRAM pReadFromNvram; // fn installed by user to do read for CM
-    CM_WRITE_TO_NVRAM  pWriteToNvram;  // fn installed by user to do write for CM 
-    
+
+    static config_manager * instance;
     const cm_item_descriptor * base_desc;    
     unsigned char *            ramBase;
-    static cm_context * pCtxt;    // current context
+    cm_context * pCtxt;    // current context
     cm_context   tempCtxt; // context being updated to possibly replace current one
     cm_context   baseCtxt; // context representing the base, to return to
 

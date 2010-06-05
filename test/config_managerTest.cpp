@@ -53,7 +53,7 @@ const cm_composite_item_descriptor c2("c2", 1, sizeof(struct m2), aggrList2, siz
 TEST(initNoFile, config_manager)
 {
     FILE * fp;
-    config_manager cm(&c1);
+    config_manager * cm = config_manager::getInstance();
     unsigned char expectedTlv [20] =
     /* The following assumes little-endian integers */
     /*T    L     T    L    V        T    L    V    */
@@ -61,10 +61,10 @@ TEST(initNoFile, config_manager)
     unsigned char actualTlv [20];
     
 
-    cm.init(NULL, NULL);
+    cm->init(&c1);
 
     char * commandWord[] = {"save"};
-    cm.handleCmd(1, commandWord);
+    cm->handleCmd(1, commandWord);
 
     if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
     {
@@ -81,7 +81,7 @@ TEST(initNoFile, config_manager)
 TEST(load, config_manager)
 {
     FILE * fp;
-    config_manager cm(&c1);
+    config_manager * cm = config_manager::getInstance();
     unsigned char tlv[20] =
     /* The following assumes little-endian integers */
     /*T    L     T    L    V        T    L    V    */
@@ -98,10 +98,10 @@ TEST(load, config_manager)
     fwrite(tlv, sizeof(tlv), 1, fp);
     fclose(fp);    
 
-    cm.init(NULL, NULL);
+    cm->init(&c1);
 
     char * commandWord[] = {"save"};
-    cm.handleCmd(1, commandWord);
+    cm->handleCmd(1, commandWord);
 
     // See what CM made of the file it loaded
     if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
@@ -123,7 +123,7 @@ TEST(load, config_manager)
 TEST(loadUnknown, config_manager)
 {
     FILE * fp;
-    config_manager cm(&c1);
+    config_manager * cm = config_manager::getInstance();
     unsigned char tlv[28] =
     /* The following assumes little-endian integers */
     /*T    L     T    L    V        T    L    V        T    L    V    */
@@ -144,10 +144,10 @@ TEST(loadUnknown, config_manager)
     fwrite(tlv, sizeof(tlv), 1, fp);
     fclose(fp);    
 
-    cm.init(NULL, NULL);
+    cm->init(&c1);
 
     char * commandWord[] = {"save"};
-    cm.handleCmd(1, commandWord);
+    cm->handleCmd(1, commandWord);
 
     // See what CM made of the file it loaded
     if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
