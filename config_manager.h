@@ -52,7 +52,7 @@ struct t_cm_context;
 // have global applicability only.
 //
 // The recursion code should then be present in only 1 place:
-// cm_composite_item_descriptor::doCmd
+// cm_composite_item_descriptor::handleCmd
 //  Following commands are executed by a simple:    set, setdef, prt
 //  Following commands are executed by a composite: setdef, add, del, prt
 
@@ -75,7 +75,7 @@ public:
                        name(iname), len(ilen), id(iid){}
     virtual ~cm_item_descriptor(){}
 
-    virtual void doCmd(int argc, char *argv[], unsigned char * pItem, struct t_cm_context & ctxt ) const = 0;
+    virtual void handleCmd(int argc, char *argv[], unsigned char * pItem, struct t_cm_context & ctxt ) const = 0;
     virtual cm_item_len getLen() const {return len;}
     virtual cm_item_len getTlvLen(const unsigned char * pItem) const = 0;
     virtual void writeTlv(const unsigned char * pItem, unsigned char ** ppBuf) const = 0;
@@ -203,11 +203,12 @@ public:
                                  {};
 
     ~cm_composite_item_descriptor(){};
-    void doCmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
+    void handleCmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
     void print(const unsigned char * pItem, string prefix) const;
     void setdef(unsigned char * pItem) const;
     virtual void help(const unsigned char * pItem) const;
-    void add(int argc, char *argv[], unsigned char * pItem) const;
+    void handleAdd(int argc, char *argv[], unsigned char * pItem) const;
+    void add(unsigned char * pParentItem, const cm_aggregate * pAggr, unsigned int cnt) const;
     void del(int argc, char *argv[], unsigned char * pItem) const;
 
 };
@@ -247,7 +248,7 @@ public:
                               
     ~cm_simple_item_descriptor(){};
 
-    void doCmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
+    void handleCmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
     void print(const unsigned char * pItem, string prefix) const;
     void set(unsigned char * pItem, string val) const;
     void setdef(unsigned char * pItem) const;
@@ -262,7 +263,7 @@ class config_manager
 {  
 public:
     config_manager(const cm_item_descriptor * pDesc);
-    void doCmd(int argc, char *argv[]);
+    void handleCmd(int argc, char *argv[]);
     void init(CM_READ_FROM_NVRAM pRead, CM_WRITE_TO_NVRAM pWr);
     const char * getPromptString();
 

@@ -68,7 +68,7 @@ void config_manager::reset_ctxt()
 
 
 // Execute command words entered by client on CLI.
-void config_manager::doCmd(int argc, char *argv[])
+void config_manager::handleCmd(int argc, char *argv[])
 {
     // First treat the commands that are only applicable at the top level
     switch (getOp(argv[0]))
@@ -87,7 +87,7 @@ void config_manager::doCmd(int argc, char *argv[])
     }
 
     // Pass command that don't apply to CM as a whole, to current context for handling
-    ctxt.pDesc->doCmd(argc, argv, ctxt.pItem, ctxt);
+    ctxt.pDesc->handleCmd(argc, argv, ctxt.pItem, ctxt);
 }
 
 
@@ -174,10 +174,10 @@ void config_manager::load()
 //     continuously -- currently the string includes only the LAST word
 //     in the input string.
 //
- void cm_composite_item_descriptor::doCmd(int argc,
-                                          char *argv[],
-                                          unsigned char * pItem,
-                                          cm_context & ctxt) const
+ void cm_composite_item_descriptor::handleCmd(int argc,
+                                              char *argv[],
+                                              unsigned char * pItem,
+                                              cm_context & ctxt) const
 {
     switch (getOp(argv[0]))
     {
@@ -190,13 +190,13 @@ void config_manager::load()
             if (pComponent == NULL)
             {
                 // xxx Don't use argv[0] here, because it may have been modified by getComponentItem
-                cout << "Unknown in '" << name << "'" << endl;
+                cout << "Not handled in '" << name << "'" << endl;
                 return;
             }
             if (argc > 0)
             {                
                 // Pass the remainder of the command to the found component
-                return pComponent->doCmd(argc, argv, pItem, ctxt);
+                return pComponent->handleCmd(argc, argv, pItem, ctxt);
             }
             else
             {
@@ -209,7 +209,7 @@ void config_manager::load()
         
         case CM_ADD:
             // Remove the word 'add' and pass the remainder to the method
-            return add(argc - 1, &(argv[1]), pItem);
+            return handleAdd(argc - 1, &(argv[1]), pItem);
             
         case CM_DEL:
             // Remove the word 'del' and pass the remainder to the method
@@ -230,10 +230,9 @@ void config_manager::load()
 }
 
 
-// Add a component named by argc,argv to a composite.
-// This allocates memory for the new item, sets it to default values,
-// and increments the corresponding counter.
-void cm_composite_item_descriptor::add(int argc, char *argv[], unsigned char * pItem) const
+// Try to add a component named by argc,argv to a composite.
+// After verifying the operation is applicable, the item is added.
+void cm_composite_item_descriptor::handleAdd(int argc, char *argv[], unsigned char * pItem) const
 {
     DBG_PRT("add %s\n\r", argv[0]);
 
@@ -265,8 +264,20 @@ void cm_composite_item_descriptor::add(int argc, char *argv[], unsigned char * p
         return;
     }  
         
+    return add(pItem, pAggr, cnt);
+}
+
+
+// Add OWNED item.
+// @pre Add operation is supported on pAggr, and counter is in range
+// This allocates memory for the new item, sets it to default values,
+// and increments the corresponding counter.
+void cm_composite_item_descriptor::add(unsigned char * pParentItem,
+                                       const cm_aggregate * pAggr,
+                                       unsigned int cnt) const
+{
     // Reallocate memory, and save pointer in the same location
-    unsigned char ** ppItems = (unsigned char **)(pItem + pAggr->offset);
+    unsigned char ** ppItems = (unsigned char **)(pParentItem + pAggr->offset);
 
     *ppItems = (unsigned char *)realloc(*ppItems, (cnt + 1) * pAggr->pDesc->getLen());
 
@@ -277,7 +288,7 @@ void cm_composite_item_descriptor::add(int argc, char *argv[], unsigned char * p
 
     DBG_PRT("add at %p\n", *ppItems);
 
-    return pAggr->setCount(pItem, cnt + 1);
+    return pAggr->setCount(pParentItem, cnt + 1);
 }
 
 
@@ -438,7 +449,8 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) 
         if (pAggr != NULL)
         {            
             // Found a match, so delegate the reading to the corresponding component
-            DBG_PRT("component '%s' matches, itemIdx %d\n", pAggr->pDesc->getName().c_str(), itemIdx);
+            DBG_PRT("component '%s' matches, itemIdx %d\n",
+                    pAggr->pDesc->getName().c_str(), itemIdx);
 
             // When we start with a new item type (or the 1st one), reset array index and pFirstItem,
             // and, if necessary, allocate memory for expected number of items
@@ -454,7 +466,8 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) 
 
                     *ppItems = (unsigned char *)malloc(pAggr->pDesc->getLen() * pAggr->getCount(pItem));
 
-                    DBG_PRT("load: for %d items, alloc %p to %p\n", pAggr->getCount(pItem), *ppItems, ppItems);
+                    DBG_PRT("load: for %d items, alloc %p to %p\n",
+                            pAggr->getCount(pItem), *ppItems, ppItems);
                 }
 
                 pFirstItem = pAggr->getFirstItem(pItem);
@@ -508,7 +521,8 @@ void cm_composite_item_descriptor::print(const unsigned char * pItem, string pre
                 // There's only one item, so we needn't print an index
                 indexbuf[0] = 0;
             }
-            pAggr->pDesc->print(pFirstItem + j * pAggr->pDesc->getLen(), prefix + pAggr->pDesc->getName() + indexbuf + " ");
+            pAggr->pDesc->print(pFirstItem + j * pAggr->pDesc->getLen(),
+                                prefix + pAggr->pDesc->getName() + indexbuf + " ");
         }
     }
 }
@@ -609,6 +623,12 @@ const cm_aggregate * cm_composite_item_descriptor::getAggr(cm_descriptor_id id) 
 
 // From remaining command-line words, find matching component of this composite.
 // If the component does not exist, it may be created in certain cases.
+// pArgc: (input/output) number of command words
+// pArgv: (input/output) command word pointer
+// ppComponent: output, the wanted component, or 0 if command identifies none
+// ppItem: on input, the owning item
+//         on output, the wanted item
+// 
 //
 void cm_composite_item_descriptor::getComponentItem(int * pArgc,
                                                     char *** pArgv,
@@ -628,23 +648,24 @@ void cm_composite_item_descriptor::getComponentItem(int * pArgc,
     *pArgv += 1;
     unsigned int itemIdx = 0; // If no index needed, use offset 0
 
-    if (pAggr->needIndex(*ppItem) &&
-        !pAggr->getIndex(pArgc, pArgv, *ppItem, itemIdx))
+    if ((pAggr->maxCount > 1) && !pAggr->getIndex(pArgc, pArgv, *ppItem, itemIdx))
     {
-        // Explicit index required but not given
+        // Explicit index is needed if there can be more than one instance, but not given
         return;
     }
 
-    DBG_PRT("getComponentItem %p offset %d idx %d len %d\n", *ppItem, pAggr->offset, itemIdx, pAggr->pDesc->getLen());
+    DBG_PRT("getComponentItem %p offset %d idx %d len %d\n",
+            *ppItem, pAggr->offset, itemIdx, pAggr->pDesc->getLen());
 
-    if (itemIdx >= pAggr->getCount(*ppItem))
+    unsigned int cnt = pAggr->getCount(*ppItem); // Number of items currently in the aggregate
+
+    if (itemIdx >= cnt)
     {
         // Index refers to an item that doesn't exist
-        if (pAggr->isAddSupported() && (itemIdx < pAggr->maxCount))
+        if (pAggr->isAddSupported() && (itemIdx == cnt) && (itemIdx < pAggr->maxCount))
         {
             // Index refers to an item to create
-            cout<<"xxx Make it?"<<endl;
-            return;
+            add(*ppItem, pAggr, cnt);
         }
         else
         {
@@ -669,10 +690,10 @@ void cm_composite_item_descriptor::getComponentItem(int * pArgc,
 // argv array of strings containing name elements
 // pItem - pointer to RAM at which item is located
 //
-void cm_simple_item_descriptor::doCmd(int argc,
-                                      char *argv[],
-                                      unsigned char * pItem,
-                                      cm_context & ctxt) const
+void cm_simple_item_descriptor::handleCmd(int argc,
+                                          char *argv[],
+                                          unsigned char * pItem,
+                                          cm_context & ctxt) const
 {
     DBG_PRT("simple cmd at %p\n", pItem);
     
@@ -724,7 +745,8 @@ void cm_simple_item_descriptor::print(const unsigned char * pItem, string prefix
 // Set.
 void cm_simple_item_descriptor::set(unsigned char * pItem, string val) const
 {
-    DBG_PRT("set simple %s at %p to value %s\n", name.c_str(), pItem, val.c_str());
+    DBG_PRT("set simple %s at %p to value %s\n",
+            name.c_str(), pItem, val.c_str());
 
     if (pSet != NULL)
     {

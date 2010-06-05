@@ -64,7 +64,7 @@ TEST(initNoFile, config_manager)
     cm.init(NULL, NULL);
 
     char * commandWord[] = {"save"};
-    cm.doCmd(1, commandWord);
+    cm.handleCmd(1, commandWord);
 
     if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
     {
@@ -101,7 +101,7 @@ TEST(load, config_manager)
     cm.init(NULL, NULL);
 
     char * commandWord[] = {"save"};
-    cm.doCmd(1, commandWord);
+    cm.handleCmd(1, commandWord);
 
     // See what CM made of the file it loaded
     if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
@@ -147,7 +147,7 @@ TEST(loadUnknown, config_manager)
     cm.init(NULL, NULL);
 
     char * commandWord[] = {"save"};
-    cm.doCmd(1, commandWord);
+    cm.handleCmd(1, commandWord);
 
     // See what CM made of the file it loaded
     if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)

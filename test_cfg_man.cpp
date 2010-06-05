@@ -40,7 +40,7 @@ int main()
         while (NULL != (param[++wordCnt] = strtok(NULL, WORD_DELIMITERS)))
         {}
 
-        cm->doCmd(wordCnt, param);
+        cm->handleCmd(wordCnt, param);
     }
 }
 

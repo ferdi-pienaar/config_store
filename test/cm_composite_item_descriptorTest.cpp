@@ -142,7 +142,7 @@ TEST(addFirst, cm_composite_item_descriptor)
     char * commandWord = "owned";
 
     
-    c2.add(1, &commandWord, (unsigned char *)&mem);
+    c2.handleAdd(1, &commandWord, (unsigned char *)&mem);
 
     // Counter is incremented and ptr to owned item is no longer NULL
     CHECK(mem.cnt == 1);
