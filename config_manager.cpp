@@ -24,6 +24,7 @@ typedef enum
 } eCmOp;
 
 static eCmOp getOp(const char * word);
+cm_context * config_manager::pCtxt = NULL;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -54,16 +55,12 @@ void config_manager::init(CM_READ_FROM_NVRAM pRead, CM_WRITE_TO_NVRAM pWr)
     pWriteToNvram = pWr;
     pReadFromNvram = pRead;
 
+    // xxx initialize with a constructor
+    baseCtxt.pDesc = base_desc;
+    baseCtxt.str = "";
+    baseCtxt.pItem = ramBase;
+    
     load();
-}
-
-
-// Reset context to top level
-void config_manager::reset_ctxt()
-{
-    ctxt.str   = base_desc->getName();
-    ctxt.pDesc = base_desc;
-    ctxt.pItem = ramBase;
 }
 
 
@@ -80,21 +77,25 @@ void config_manager::handleCmd(int argc, char *argv[])
             return save();
 
         case CM_RESET_CTXT:
-            return reset_ctxt();
+            pCtxt = &baseCtxt;
+            return;
 
         default:
             break;
     }
 
+    // Start with the current base, then add to it
+    tempCtxt = *pCtxt;
+
     // Pass command that don't apply to CM as a whole, to current context for handling
-    ctxt.pDesc->handleCmd(argc, argv, ctxt.pItem, ctxt);
+    pCtxt->pDesc->handleCmd(argc, argv, pCtxt->pItem, tempCtxt);
 }
 
 
 // Get a prompt string to display to user, representing the current context
 const char * config_manager::getPromptString()
 {
-    return ctxt.str.c_str();
+    return pCtxt->str.c_str();
 }
 
 
@@ -154,7 +155,7 @@ void config_manager::load()
     base_desc->loadFromTlv(fp, ramBase);
 
     // Reset context, since a reload re-allocates memory and makes current context invalid
-    reset_ctxt();
+    pCtxt = &baseCtxt;
 
     fclose(fp);
 }
@@ -185,7 +186,7 @@ void config_manager::load()
         {
             cm_item_descriptor * pComponent; // Component of this composite identified by argc, argv
 
-            getComponentItem(&argc, &argv, &pComponent, &pItem);
+            getComponentItem(&argc, &argv, &pComponent, &pItem, ctxt);
 
             if (pComponent == NULL)
             {
@@ -201,7 +202,7 @@ void config_manager::load()
             else
             {
                 // We have a component, but there's nothing left of the command
-                cout << "xxx set context" << endl;
+                config_manager::setCtxt(&ctxt);
                 return;
             }
         }
@@ -633,7 +634,8 @@ const cm_aggregate * cm_composite_item_descriptor::getAggr(cm_descriptor_id id) 
 void cm_composite_item_descriptor::getComponentItem(int * pArgc,
                                                     char *** pArgv,
                                                     cm_item_descriptor ** ppComponent,
-                                                    unsigned char ** ppItem) const
+                                                    unsigned char ** ppItem,
+                                                    cm_context & ctxt) const
 {
     *ppComponent = NULL; // By default, found nothing
     const cm_aggregate * pAggr = getAggr(*pArgv[0]);
@@ -642,16 +644,27 @@ void cm_composite_item_descriptor::getComponentItem(int * pArgc,
     {
         return;
     }
+
+    ctxt.str += pAggr->pDesc->getName() + " ";
     
     // Found matching name: now try to get index from next word
     *pArgc -= 1;
     *pArgv += 1;
     unsigned int itemIdx = 0; // If no index needed, use offset 0
 
-    if ((pAggr->maxCount > 1) && !pAggr->getIndex(pArgc, pArgv, *ppItem, itemIdx))
+    if (pAggr->maxCount > 1)
     {
-        // Explicit index is needed if there can be more than one instance, but not given
-        return;
+        // Explicit index is needed if there can be more than one instance
+        if (pAggr->getIndex(pArgc, pArgv, *ppItem, itemIdx))
+        {
+            // Index available, it becomes part of the context string
+            ctxt.str += "idx"; // xxx
+        }
+        else
+        {
+            // The necessary index was not in the command
+            return;
+        }
     }
 
     DBG_PRT("getComponentItem %p offset %d idx %d len %d\n",
@@ -676,6 +689,8 @@ void cm_composite_item_descriptor::getComponentItem(int * pArgc,
 
     *ppComponent = (cm_item_descriptor *)pAggr->pDesc; // xxx fix constness issues: no typecasting should be needed here
     *ppItem = pAggr->getFirstItem(*ppItem) + itemIdx * pAggr->pDesc->getLen();
+    ctxt.pDesc = *ppComponent;
+    ctxt.pItem = *ppItem;
 }
 
 

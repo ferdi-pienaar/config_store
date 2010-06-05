@@ -189,7 +189,11 @@ class cm_composite_item_descriptor : public cm_item_descriptor
     virtual int loadFromTlv(FILE * fp, unsigned char * pItem) const;
     const cm_aggregate * getAggr(const char * name) const;
     const cm_aggregate * getAggr(cm_descriptor_id id) const;
-    void getComponentItem(int * pArgc, char *** pArgv, cm_item_descriptor ** ppComponent, unsigned char ** ppItem) const;
+    void getComponentItem(int * pArgc,
+                          char *** pArgv,
+                          cm_item_descriptor ** ppComponent,
+                          unsigned char ** ppItem,
+                          cm_context & ctxt) const;
 
 public:    
     cm_composite_item_descriptor(char * name,
@@ -256,7 +260,8 @@ public:
 };
 
 
-// xxx Should be a singleton?
+// xxx Should be a singleton?  It would be a better solution than
+//     the hack of making pCtxt a static member.
 // This class is the application programme's sole point of access to
 // the configurable items.
 class config_manager
@@ -267,18 +272,22 @@ public:
     void init(CM_READ_FROM_NVRAM pRead, CM_WRITE_TO_NVRAM pWr);
     const char * getPromptString();
 
+    static void setCtxt(cm_context * pC) {pCtxt = pC;}
+
+
 private:
     void save();
     void load();
-    void reset_ctxt();
     CM_READ_FROM_NVRAM pReadFromNvram; // fn installed by user to do read for CM
     CM_WRITE_TO_NVRAM  pWriteToNvram;  // fn installed by user to do write for CM 
     
     const cm_item_descriptor * base_desc;    
     unsigned char *            ramBase;
+    static cm_context * pCtxt;    // current context
+    cm_context   tempCtxt; // context being updated to possibly replace current one
+    cm_context   baseCtxt; // context representing the base, to return to
 
-    // Current context
-    cm_context ctxt;
+
 };
 
 #endif // CFG_MAN_H
