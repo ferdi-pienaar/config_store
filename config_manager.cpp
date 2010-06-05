@@ -187,10 +187,22 @@ void config_manager::load()
 
             getComponentItem(&argc, &argv, &pComponent, &pItem);
 
-            if (pComponent != NULL)
+            if (pComponent == NULL)
             {
+                // xxx Don't use argv[0] here, because it may have been modified by getComponentItem
+                cout << "Unknown in '" << name << "'" << endl;
+                return;
+            }
+            if (argc > 0)
+            {                
                 // Pass the remainder of the command to the found component
                 return pComponent->doCmd(argc, argv, pItem, ctxt);
+            }
+            else
+            {
+                // We have a component, but there's nothing left of the command
+                cout << "xxx set context" << endl;
+                return;
             }
         }
         break;
@@ -212,8 +224,7 @@ void config_manager::load()
         case CM_HELP:
             return help(pItem);
 
-        default:
-            cout << "'" << argv[0] << "' operation not applicable to composite item '" << name << "'" << endl;
+        default: 
             break;
     }
 }
@@ -314,6 +325,12 @@ void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * p
         !pAggr->getIndex(&argc, &argv, pItem, itemIdx))
     {
         // An index is needed but couldn't be extracted from the command
+        return;
+    }
+
+    if (itemIdx >= pAggr->getCount(pItem))
+    {
+        cout<<"Index "<<itemIdx<<" out of range (0.. "<<pAggr->getCount(pItem)-1<<")."<<endl;
         return;
     }
 
@@ -591,6 +608,7 @@ const cm_aggregate * cm_composite_item_descriptor::getAggr(cm_descriptor_id id) 
 
 
 // From remaining command-line words, find matching component of this composite.
+// If the component does not exist, it may be created in certain cases.
 //
 void cm_composite_item_descriptor::getComponentItem(int * pArgc,
                                                     char *** pArgv,
@@ -617,29 +635,23 @@ void cm_composite_item_descriptor::getComponentItem(int * pArgc,
         return;
     }
 
-    DBG_PRT("cmd pItem %p offset %d idx %d len %d\n", *ppItem, pAggr->offset, itemIdx, pAggr->pDesc->getLen());
+    DBG_PRT("getComponentItem %p offset %d idx %d len %d\n", *ppItem, pAggr->offset, itemIdx, pAggr->pDesc->getLen());
 
-    #if 0
-    if (((indexRes == cm_aggregate::CM_GOT) && (*pArgc == 2)) ||
-        ((indexRes == cm_aggregate::CM_NO_NEED) && (*pArgc == 1)))
+    if (itemIdx >= pAggr->getCount(*ppItem))
     {
-        // End of input
-        // An item has been identified, so it becomes the context.
-        ctxt.pDesc = pAggr->pDesc;
-        ctxt.pItem = pAggr->getFirstItem(*ppItem) + itemIdx * pAggr->pDesc->getLen();
-
-        ctxt.str  += " ";
-        ctxt.str  += argv[0];
-
-        if (indexRes == cm_aggregate::CM_GOT)
+        // Index refers to an item that doesn't exist
+        if (pAggr->isAddSupported() && (itemIdx < pAggr->maxCount))
         {
-            // Add index string, if there was one
-            ctxt.str  += " ";
-            ctxt.str  += argv[1];                    
+            // Index refers to an item to create
+            cout<<"xxx Make it?"<<endl;
+            return;
         }
-        return;
+        else
+        {
+            cout<<"Index "<<itemIdx<<" out of range"<<endl;
+            return;
+        }
     }
-    #endif
 
     *ppComponent = (cm_item_descriptor *)pAggr->pDesc; // xxx fix constness issues: no typecasting should be needed here
     *ppItem = pAggr->getFirstItem(*ppItem) + itemIdx * pAggr->pDesc->getLen();
@@ -811,35 +823,24 @@ bool cm_aggregate::getIndex(int * pArgc,
                             char *** pArgv,
                             const unsigned char * pParentItem,
                             unsigned int & itemIdx) const
-{   
-    bool   gotIndex = false;
-    char * pEnd; // pointer to char after chars accepted by strtoul
-
+{
     if (*pArgc > 0)
     {
+        char * pEnd; // pointer to char after chars accepted by strtoul
+
         // An index is needed, so try to extract one
         itemIdx = strtoul((*pArgv)[0], &pEnd, 0);
 
         if (pEnd > (*pArgv)[0])
         {
-            gotIndex = true;
             *pArgc -= 1;
             *pArgv += 1;
+            return true;
         }
     }
 
-    if (!gotIndex)
-    {
-        cout << "'" << pDesc->getName() << "' needs index." <<endl;
-        return false;
-    }
-
-    if (itemIdx >= getCount(pParentItem))
-    {
-        cout<<"'"<<pDesc->getName()<<"' index "<<itemIdx<<" out of range (0.. "<<getCount(pParentItem)-1<<")."<<endl;
-        return false;
-    }
-    return true;
+    cout << "'" << pDesc->getName() << "' needs index." <<endl;
+    return false;
 }
 
 
