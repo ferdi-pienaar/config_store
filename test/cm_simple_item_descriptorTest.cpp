@@ -1,10 +1,17 @@
 // Unit test using open-source unit test framework
+// These tests use the cm_simple_item_descriptor's public interface
+// to test it.  This includes redirecting to a file output that it sends to
+// stdout, so that it can be read from the file and compared to the
+// expected output.
+// We also read/write the items themselves. 
+//
 
 #include "TestHarness.h"
 #include "config_manager.h"  // Unit under test
 #include "config_manager_util.h"     // Extensions to unit under test (generic "set" functions)
 
 #include <string>
+using namespace std;
 
 
 int main()

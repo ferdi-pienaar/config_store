@@ -18,52 +18,63 @@ void cm_setdef(unsigned char *pItem, cm_item_len len)
 }
 
 // signed int
+// pItem - pointer to memory containing an integer.
+// len - number of bytes the integer consists of
+//
+// Since integers are kept in the order prescribed by the given
+// system (little-endian or big-endian), we just typecast it
+// it correctly and print.
+//
 void cm_prt_int(const unsigned char *pItem, cm_item_len len)
 {
-    int v;
-    
     switch (len)
     {
-        case 1: // xxx replace with something from std C file yyy for portability
-            v = *((char *)pItem);
+        case sizeof(int8_t):
+            printf("%d", *((int8_t *)pItem));
             break;
 
-        case 2:            
-            v = *((short *)pItem);
+        case sizeof(int16_t):            
+            printf("%d", *((int16_t *)pItem));
             break;
             
-        case 4:            
-            v = *((int *)pItem);
+        case sizeof(int32_t):            
+            printf("%d", *((int32_t *)pItem));
             break;
 
         default:
             assert(0);
     }
-
-    printf("%d", v);
 }
 
 void cm_set_int(unsigned char *pItem, cm_item_len len, string val)
 {
-    long int v = strtol(val.c_str(), NULL, 0);
+    char * pEnd; // pointer to char after chars accepted by strtol
 
-    // xxx just return if v not initialized
-    // xxx Sanity check on len
-    
+    long int v = strtol(val.c_str(), &pEnd, 0);
+
+    // Just return if v not initialized, i.e. if nothing read/
+    // Can I rely on val.c_str returning the same address on
+    // subsequent calls?
+    if (pEnd == val.c_str())
+    {
+        cout << "Not an integer." << endl;
+    }
+   
     switch (len)
     {
-        case 1: // xxx replace with something from std C file yyy
-            char cv = (char)v;
+        case sizeof(int8_t):
+            int8_t cv = (int8_t)v;
             memcpy(pItem, &cv, sizeof(cv));
             break;
 
-        case 2:            
-            short sv = (short)v;
+        case sizeof(int16_t):            
+            int16_t sv = (int16_t)v;
             memcpy(pItem, &sv, sizeof(sv));
             break;
             
-        case 4:            
-            memcpy(pItem, &v, sizeof(v));
+        case sizeof(int32_t):
+            int32_t lv = (int32_t)v;
+            memcpy(pItem, &lv, sizeof(lv));
             break;
 
         default:

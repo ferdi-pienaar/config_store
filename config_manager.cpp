@@ -61,7 +61,10 @@ void config_manager::init(const cm_item_descriptor * desc)
     baseCtxt.pDesc = base_desc;
     baseCtxt.str = "";
     baseCtxt.pItem = ramBase;
-    
+    // This could be done in the constructor, but I do it here to make
+    // unit tests independent (since the constructor can't be forced
+    // to run at the beginning of each unit tests).
+    pCtxt = &baseCtxt;
     load();
 }
 
@@ -173,9 +176,6 @@ void config_manager::load()
 // argv array of strings containing name elements
 // pItem - pointer to RAM at which item is located
 //
-// xxx refactor and bugfix: the context should be updated
-//     continuously -- currently the string includes only the LAST word
-//     in the input string.
 //
  void cm_composite_item_descriptor::handleCmd(int argc,
                                               char *argv[],
@@ -478,6 +478,8 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) 
             }
 
             bytesRead += pAggr->pDesc->loadFromTlv(fp, pFirstItem + itemIdx++ * pAggr->pDesc->getLen());
+
+            // xxx itemIdx may not exceed pAggr->maxCount
         }
         else
         {            
@@ -514,7 +516,7 @@ void cm_composite_item_descriptor::print(const unsigned char * pItem, string pre
 
         for (unsigned j = 0; j < itemCount; j++)
         {
-            if (pAggr->getCount(pItem) > 1)
+            if (pAggr->maxCount > 1)
             {
                 // There's more than one item, so print the index to distinguish among them
                 snprintf(indexbuf, sizeof(indexbuf), " %d", j);
@@ -966,7 +968,7 @@ unsigned cm_owned_aggregate::getCount(const unsigned char * pParentItem) const
 
 
 // Set value in RAM that records the number of items in the array of items
-// xxx enforce, run-time of compile-time, that counters are unsigned int sized.
+// xxx enforce, run-time or compile-time, that counters are unsigned int sized.
 void cm_owned_aggregate::setCount(unsigned char * pParentItem, unsigned int count) const
 {
     // Sanity check: if add/del operation not supported, the setCount() is meaningless

@@ -1,10 +1,17 @@
 // Unit test using open-source unit test framework
+// These tests the config manager as a whole, using the following interfaces:
+// 1. Input: character strings passed to config_manager::handleCmd
+// 2. Input/output: the binary file containing TLV data used by config_manager
+//    for non-volatile storage
+//
+//
 
 #include "TestHarness.h"
 #include "config_manager.h"  // Unit under test
 #include "config_manager_util.h"     // Extensions to unit under test (generic "set" functions)
 
 #include <string>
+using namespace std;
 
 
 int main()
@@ -41,7 +48,7 @@ struct m2
 
 // second test set metadata
 const cm_simple_item_descriptor s3("count", 3, sizeof(int), NULL, NULL, NULL);
-const cm_simple_item_descriptor s4("owned", 4, sizeof(int), NULL, NULL, NULL);
+const cm_simple_item_descriptor s4("owned", 4, sizeof(int), cm_set_int, NULL, NULL);
 const cm_contained_aggregate ca3(&s3, 1, offsetof(struct m2, cnt));
 const cm_owned_aggregate oa4(&s4, 10, offsetof(struct m2, owned), &ca3);
 const cm_aggregate * const aggrList2[] = {&ca3, &oa4};
@@ -49,8 +56,7 @@ const cm_composite_item_descriptor c2("c2", 1, sizeof(struct m2), aggrList2, siz
 
 
 // Verify data saved to TLV, with default data in RAM as input to the test.
-// xxx todo: delete the file cfg.bin before starting test, else this test is not independent
-TEST(initNoFile, config_manager)
+TEST(saveContained, config_manager)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -59,7 +65,9 @@ TEST(initNoFile, config_manager)
     /*T    L     T    L    V        T    L    V    */
     { 1,0, 16,0, 1,0, 4,0, 0,0,0,0, 2,0, 4,0, 0,0,0,0};
     unsigned char actualTlv [20];
-    
+
+    // Remove the bin file to ensure RAM is init'd with default values
+    remove(CFG_FILE_NAME);
 
     cm->init(&c1);
 
@@ -77,8 +85,9 @@ TEST(initNoFile, config_manager)
     fclose(fp);    
 }
 
+
 // Verify what's saved to TLV, given a TLV file that's read on startup.
-TEST(load, config_manager)
+TEST(loadContained, config_manager)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -113,14 +122,14 @@ TEST(load, config_manager)
 
     CHECK(memcmp(tlv, savedTlv, sizeof(savedTlv)) == 0);
     fclose(fp);    
-    
 }
+
 
 // Verify what's saved to TLV, given a TLV file that's read on startup that contains
 // an unknown Type value.
 // Unknown type in file: the descriptor has no T=9, so it's ignored by cfg_man when found in file,
 // but the item following it is loaded.
-TEST(loadUnknown, config_manager)
+TEST(loadUnknownContained, config_manager)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -159,7 +168,239 @@ TEST(loadUnknown, config_manager)
 
     CHECK(memcmp(expectedTlv, savedTlv, sizeof(savedTlv)) == 0);
     fclose(fp);    
-    
+}
+
+// Verify what's saved to TLV, given a TLV file that's read on startup that's
+// missing an element of a structure.
+// The element that's not in the TLV is saved to TLV, populated with default value.
+TEST(loadMissingContained, config_manager)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    unsigned char tlv[28] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V    */
+    { 1,0, 8,0, 2,0, 4,0, 0,0,0,0};
+    unsigned char expectedTlv[20] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V        T    L    V    */
+    { 1,0, 16,0, 1,0, 4,0, 0,0,0,0, 2,0, 4,0, 0,0,0,0};
+    unsigned char savedTlv[20];
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);    
+
+    cm->init(&c1);
+
+    char * commandWord[] = {"save"};
+    cm->handleCmd(1, commandWord);
+
+    // See what CM made of the file it loaded
+    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fread(savedTlv, sizeof(savedTlv), 1, fp);
+
+    CHECK(memcmp(expectedTlv, savedTlv, sizeof(savedTlv)) == 0);
+    fclose(fp);    
 }
 
 
+// Verify data saved to TLV, with default data in RAM as input to the test.
+TEST(saveOwned, config_manager)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    unsigned char expectedTlv [12] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V        T    L    V    */
+    { 1,0, 8,0,  3,0, 4,0, 0,0,0,0};
+    unsigned char actualTlv [12];
+
+
+    // Remove the bin file to ensure RAM is init'd with default values
+    remove(CFG_FILE_NAME);    
+
+    cm->init(&c2);
+
+    char * commandWord[] = {"save"};
+    cm->handleCmd(1, commandWord);
+
+    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fread(actualTlv, sizeof(actualTlv), 1, fp);
+
+    CHECK(memcmp(expectedTlv, actualTlv, sizeof(expectedTlv)) == 0);
+    fclose(fp);    
+}
+
+
+// From default RAM start, do implicit add and check what's saved to TLV
+TEST(implicitAdd, config_manager)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    unsigned char expectedTlv [20] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V        T    L    V    */
+    { 1,0, 16,0, 3,0, 4,0, 1,0,0,0, 4,0, 4,0, 0,0,0,0};
+    unsigned char actualTlv [20];
+
+
+    // Remove the bin file to ensure RAM is init'd with default values
+    remove(CFG_FILE_NAME);    
+
+    cm->init(&c2);
+
+    char * commandWord[] = {"owned", "0"}; // reference owned item 0, causing implicit add
+    cm->handleCmd(2, commandWord);
+
+    char * commandWord2[] = {"save"};
+    cm->handleCmd(1, commandWord2);
+
+    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fread(actualTlv, sizeof(actualTlv), 1, fp);
+
+    CHECK(memcmp(expectedTlv, actualTlv, sizeof(expectedTlv)) == 0);
+    fclose(fp);    
+}
+
+// From default RAM start, do implicit add and set and check what's saved to TLV
+TEST(implicitAddnSet, config_manager)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    unsigned char expectedTlv [20] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V        T    L    V    */
+    { 1,0, 16,0, 3,0, 4,0, 1,0,0,0, 4,0, 4,0, 7,0,0,0};
+    unsigned char actualTlv [20];
+
+
+    // Remove the bin file to ensure RAM is init'd with default values
+    remove(CFG_FILE_NAME);    
+
+    cm->init(&c2);
+
+    char * commandWord[] = {"owned", "0", "=", "7"}; // set item 0, causing implicit add
+    cm->handleCmd(4, commandWord);
+
+    char * commandWord2[] = {"save"};
+    cm->handleCmd(1, commandWord2);
+
+    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fread(actualTlv, sizeof(actualTlv), 1, fp);
+
+    CHECK(memcmp(expectedTlv, actualTlv, sizeof(expectedTlv)) == 0);
+    fclose(fp);    
+}
+
+// From default RAM start, do explicit add and check what's saved to TLV
+TEST(explicitAdd, config_manager)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    unsigned char expectedTlv [20] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V        T    L    V    */
+    { 1,0, 16,0, 3,0, 4,0, 1,0,0,0, 4,0, 4,0, 0,0,0,0};
+    unsigned char actualTlv [20];
+
+
+    // Remove the bin file to ensure RAM is init'd with default values
+    remove(CFG_FILE_NAME);    
+
+    cm->init(&c2);
+
+    char * commandWord[] = {"add", "owned"};
+    cm->handleCmd(2, commandWord);
+
+    char * commandWord2[] = {"save"};
+    cm->handleCmd(1, commandWord2);
+
+    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fread(actualTlv, sizeof(actualTlv), 1, fp);
+
+    CHECK(memcmp(expectedTlv, actualTlv, sizeof(expectedTlv)) == 0);
+    fclose(fp);    
+}
+
+// Verify what's saved to TLV, given a TLV file that's read on startup,
+// and a delete operation.
+TEST(del, config_manager)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    unsigned char tlv[20] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V        T    L    V    */
+    { 1,0, 16,0, 3,0, 4,0, 1,0,0,0, 4,0, 4,0, 0,0,0,0};
+    unsigned char expectedTlv [12] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V      */
+    { 1,0, 8,0,  3,0, 4,0, 0,0,0,0};
+    unsigned char savedTlv[12];
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);
+
+    cm->init(&c2);
+
+    char * commandWord[] = {"del", "owned"};
+    cm->handleCmd(2, commandWord);
+
+    char * commandWord2[] = {"save"};
+    cm->handleCmd(1, commandWord2);
+
+    // See what CM made of the file it loaded
+    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fread(savedTlv, sizeof(savedTlv), 1, fp);
+
+    CHECK(memcmp(expectedTlv, savedTlv, sizeof(savedTlv)) == 0);
+    fclose(fp);    
+}
+
+// xxx We need to decide what to do when loading:
+// Which is authoritative, the cnt for owned items, or the
+// actual number of owned items?
+// In other words, do we create as many owned items as the
+// cnt found in the TLV (and set cnt as read from TLV), OR do
+// we create as many items as we can read from TLV, and set
+// cnt accordingly, OR do we fail to load if there is incoherence
+// in the TLV between the cnt and actual number of owned items.
+//

@@ -7,8 +7,6 @@
 
 #define CFG_FILE_NAME "cfg.bin"
 
-using namespace std;
-
 // xxx throughout I've provisionally avoided the use of references; revise this.
 
 
@@ -33,7 +31,7 @@ typedef unsigned short cm_item_len;
 typedef unsigned short cm_descriptor_id;
 
 // Function pointers -- types registered by user when descriptor is created
-typedef void (*CM_SET_FPTR)(unsigned char *pItem, cm_item_len len, string val);
+typedef void (*CM_SET_FPTR)(unsigned char *pItem, cm_item_len len, std::string val);
 typedef void (*CM_SETDEF_FPTR)(unsigned char *pItem, cm_item_len len);
 typedef void (*CM_PRT_FPTR)(const unsigned char *pItem, cm_item_len len);
 
@@ -59,7 +57,7 @@ class cm_item_descriptor
 private:
     
 protected: // xxx these are protected because I want to access them from the derived classes
-    const string           name;     // name by which item is addressed on CLI
+    const std::string      name;     // name by which item is addressed on CLI
     const cm_item_len      len;      // Number of bytes occupied by an item in RAM
 
 
@@ -67,7 +65,7 @@ public:
     const cm_descriptor_id id;       // ID (unique within the context of the component's composite) of item in NVRAM    
 
 
-    cm_item_descriptor(string iname, cm_descriptor_id iid, cm_item_len ilen):
+    cm_item_descriptor(std::string iname, cm_descriptor_id iid, cm_item_len ilen):
                        name(iname), len(ilen), id(iid){}
     virtual ~cm_item_descriptor(){}
 
@@ -76,11 +74,11 @@ public:
     virtual cm_item_len getTlvLen(const unsigned char * pItem) const = 0;
     virtual void writeTlv(const unsigned char * pItem, unsigned char ** ppBuf) const = 0;
     virtual int loadFromTlv(FILE * fp, unsigned char * pItem) const = 0;
-    virtual void print(const unsigned char * pItem, string prefix) const = 0;
+    virtual void print(const unsigned char * pItem, std::string prefix) const = 0;
     virtual void setdef(unsigned char * pItem) const = 0;
     virtual void help(const unsigned char * pItem) const = 0;
 
-    string getName() const {return name;}
+    std::string getName() const {return name;}
 
 };
 
@@ -88,7 +86,7 @@ public:
 // xxx should not be exported
 typedef struct t_cm_context
 {
-    string                     str;
+    std::string                str;
     const cm_item_descriptor * pDesc;
     unsigned char *            pItem;
 } cm_context;
@@ -204,7 +202,7 @@ public:
 
     ~cm_composite_item_descriptor(){};
     void handleCmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
-    void print(const unsigned char * pItem, string prefix) const;
+    void print(const unsigned char * pItem, std::string prefix) const;
     void setdef(unsigned char * pItem) const;
     virtual void help(const unsigned char * pItem) const;
     void handleAdd(int argc, char *argv[], unsigned char * pItem) const;
@@ -249,10 +247,10 @@ public:
     ~cm_simple_item_descriptor(){};
 
     void handleCmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
-    void print(const unsigned char * pItem, string prefix) const;
-    void set(unsigned char * pItem, string val) const;
+    void print(const unsigned char * pItem, std::string prefix) const;
+    void set(unsigned char * pItem, std::string val) const;
     void setdef(unsigned char * pItem) const;
-    virtual void help(const unsigned char * pItem) const {cout << "len " << getLen() << endl;}
+    virtual void help(const unsigned char * pItem) const {std::cout << "len " << getLen() << std::endl;}
 };
 
 
@@ -276,7 +274,7 @@ public:
 
 
 private:
-    config_manager(){};
+    config_manager(){pCtxt = &baseCtxt; ramBase = NULL; base_desc = NULL;}
     void save();
     void load();
 
