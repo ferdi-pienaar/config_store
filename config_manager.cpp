@@ -192,9 +192,8 @@ void config_manager::load()
 
             if (pComponent == NULL)
             {
-                // xxx Don't use argv[0] here, because it may have been modified by getComponentItem
-                cout << "Not handled in '" << name << "'" << endl;
-                return;
+                // Unhandled word
+                break;
             }
             if (argc > 0)
             {                
@@ -216,7 +215,7 @@ void config_manager::load()
             
         case CM_DEL:
             // Remove the word 'del' and pass the remainder to the method
-            return del(argc - 1, &(argv[1]), pItem);
+            return handleDel(argc - 1, &(argv[1]), pItem);
             
         case CM_PRT:
             return print(pItem, "");
@@ -230,6 +229,9 @@ void config_manager::load()
         default: 
             break;
     }
+
+    // Don't use argv[0] here, because it may have been modified by getComponentItem
+    cout << "Not handled in '" << name << "'" << endl;
 }
 
 
@@ -237,7 +239,7 @@ void config_manager::load()
 // After verifying the operation is applicable, the item is added.
 void cm_composite_item_descriptor::handleAdd(int argc, char *argv[], unsigned char * pItem) const
 {
-    DBG_PRT("add %s\n\r", argv[0]);
+    DBG_PRT("handleAdd %s\n\r", argv[0]);
 
     if (argc != 1)
     {
@@ -297,9 +299,9 @@ void cm_composite_item_descriptor::add(unsigned char * pParentItem,
 
 // Del an owned component named by argc,argv from a composite
 // xxx When all items deleted, set pointer to owned mem to NULL for later sanity checks?
-void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * pItem) const
+void cm_composite_item_descriptor::handleDel(int argc, char *argv[], unsigned char * pItem) const
 {
-    DBG_PRT("del %s\n\r", argv[0]);
+    DBG_PRT("handleDel %s\n\r", argv[0]);
 
     if ((argc != 1) && (argc != 2))
     {
@@ -348,20 +350,44 @@ void cm_composite_item_descriptor::del(int argc, char *argv[], unsigned char * p
         return;
     }
 
+    return del(pItem, pAggr, itemIdx, cnt);
+}
+
+
+// Del OWNED item.
+// @pre Add operation is supported on pAggr, and counter is in range
+// This re-allocates the necessary memory, updates the counter if necessary,
+// and sets the pointer to the memory to NULL if it's all been freed.
+void cm_composite_item_descriptor::del(unsigned char * pParentItem,
+                                       const cm_aggregate * pAggr,
+                                       unsigned int itemIdx,
+                                       unsigned int cnt) const
+{
     // Reallocate memory, and save pointer in the same location
-    unsigned char ** ppItems = (unsigned char **)(pItem + pAggr->offset);
+    unsigned char ** ppItems = (unsigned char **)(pParentItem + pAggr->offset);
 
     // Shift down items to occupy the memory vacated by deleted item
-    memcpy(*ppItems + itemIdx * pAggr->pDesc->getLen(),
-           *ppItems + (itemIdx + 1) * pAggr->pDesc->getLen(),
-           (cnt - itemIdx - 1) * pAggr->pDesc->getLen());
+    memmove(*ppItems + itemIdx * pAggr->pDesc->getLen(),
+            *ppItems + (itemIdx + 1) * pAggr->pDesc->getLen(),
+            (cnt - itemIdx - 1) * pAggr->pDesc->getLen());
 
     *ppItems = (unsigned char *)realloc(*ppItems, (cnt - 1) * pAggr->pDesc->getLen());
 
-    DBG_PRT("del item base %p offset %d index %d len %d\n",
-            pItem, pAggr->offset, itemIdx, pAggr->pDesc->getLen());
+    // xxx realloc should return NULL if memory to be allocated is 0, but it doesn't seem to...
+    if (cnt == 1)
+    {
+        if (*ppItems != NULL)
+        {
+            cout << "realloc problem?" << endl;
+        }
+        
+        *ppItems = NULL;
+    }
 
-    return pAggr->setCount(pItem, cnt - 1);
+    DBG_PRT("del item base %p offset %d index %d len %d\n",
+            pParentItem, pAggr->offset, itemIdx, pAggr->pDesc->getLen());
+
+    return pAggr->setCount(pParentItem, cnt - 1);
 }
 
 
@@ -425,6 +451,7 @@ void cm_composite_item_descriptor::writeTlv(const unsigned char *pItem, unsigned
 // using what it finds in the file to initialize the object's configurable items.
 // xxx after each read, check how much was read.
 // xxx shouldn't the i < aggrCount test come BEFORE allocating memory?
+//
 int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) const
 {
     cm_item_len  tlvLen;
@@ -933,29 +960,35 @@ unsigned char * cm_owned_aggregate::getFirstItem(const unsigned char * pParentIt
 // introduces a dependency on the application programmer doing the right thing
 unsigned cm_owned_aggregate::getCount(const unsigned char * pParentItem) const
 {
-    unsigned int c;
+    if (pCounterAggr == NULL)
+    {
+        // If there's no counter, then count is just 0 (absence) or 1 (presence)
+        return (getFirstItem(pParentItem) == NULL) ? 0 : 1;
+    }
+    
+    uint32_t c;
 
     switch (pCounterAggr->pDesc->getLen()) 
     { 
-        case 1:
+        case sizeof(uint8_t):
             {
-                unsigned char v;
+                uint8_t v;
 
                 memcpy(&v, pParentItem + pCounterAggr->offset, sizeof(v));
                 c = v;
             }
             break;
        
-        case 2:
+        case sizeof(uint16_t):
             { 
-                unsigned short v;
+                uint16_t v;
 
                 memcpy(&v, pParentItem + pCounterAggr->offset, sizeof(v));
                 c = v;
             }
             break;
        
-        case 4:
+        case sizeof(uint32_t):
             memcpy(&c, pParentItem + pCounterAggr->offset, sizeof(c)); 
             break;
 
@@ -973,6 +1006,12 @@ void cm_owned_aggregate::setCount(unsigned char * pParentItem, unsigned int coun
 {
     // Sanity check: if add/del operation not supported, the setCount() is meaningless
     assert(isAddSupported());
+
+    if (pCounterAggr == NULL)
+    {
+        // There may not be a counter -- don't need one if maxCount == 0
+        return;
+    }
     
     memcpy(pParentItem + pCounterAggr->offset, &count, sizeof(count));
 }

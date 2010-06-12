@@ -207,7 +207,11 @@ public:
     virtual void help(const unsigned char * pItem) const;
     void handleAdd(int argc, char *argv[], unsigned char * pItem) const;
     void add(unsigned char * pParentItem, const cm_aggregate * pAggr, unsigned int cnt) const;
-    void del(int argc, char *argv[], unsigned char * pItem) const;
+    void handleDel(int argc, char *argv[], unsigned char * pItem) const;
+    void del(unsigned char * pParentItem,
+             const cm_aggregate * pAggr,
+             unsigned int itemIdx,
+             unsigned int cnt) const;
 
 };
 

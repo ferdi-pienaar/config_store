@@ -13,6 +13,7 @@
 
 #define NUM_CLI_PORT      4
 #define MAX_LEN_USER_NAME 16
+#define MAX_LEN_LOCATION_NAME 16
 
 typedef struct
 {
@@ -22,6 +23,24 @@ typedef struct
 
 } tUser;
 
+
+typedef struct
+{
+    char           name[MAX_LEN_LOCATION_NAME];
+    
+} tLocation;
+
+
+// Contains two optional ways of describing home location:
+// simple address or a location structure.
+typedef struct
+{
+    unsigned long * pAddr;
+    tLocation     * pLoc;
+    
+} tHome;
+
+
 typedef struct
 {
     unsigned long  addr;
@@ -29,7 +48,7 @@ typedef struct
 
     unsigned int   userCount;
     tUser        * users;
-
+    tHome          home;
     
 } tDevice;
 

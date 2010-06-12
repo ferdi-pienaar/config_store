@@ -169,7 +169,7 @@ TEST(delNull, cm_composite_item_descriptor)
     char * commandWord[] = {"owned", "1"};
 
     
-    c2.del(2, commandWord, (unsigned char *)&mem);
+    c2.handleDel(2, commandWord, (unsigned char *)&mem);
 
     // The fails since there's nothing to delete; verify count remains unchanged
     CHECK(mem.cnt == 0);
@@ -191,7 +191,7 @@ TEST(delEnd, cm_composite_item_descriptor)
     mem.cnt = NUM_OWNED;
     mem.owned = owned;
     
-    c2.del(2, commandWord, (unsigned char *)&mem);
+    c2.handleDel(2, commandWord, (unsigned char *)&mem);
 
     // Counter is decremented
     CHECK(mem.cnt == NUM_OWNED - 1);
@@ -217,7 +217,7 @@ TEST(delFirst, cm_composite_item_descriptor)
     mem.cnt = NUM_OWNED;
     mem.owned = owned;
     
-    c2.del(2, commandWord, (unsigned char *)&mem);
+    c2.handleDel(2, commandWord, (unsigned char *)&mem);
 
     // Counter is decremented
     CHECK(mem.cnt == NUM_OWNED - 1);
@@ -241,7 +241,7 @@ TEST(delOnly, cm_composite_item_descriptor)
     mem.cnt = NUM_OWNED;
     mem.owned = owned;
     
-    c2.del(2, commandWord, (unsigned char *)&mem);
+    c2.handleDel(2, commandWord, (unsigned char *)&mem);
 
     // Counter is decremented to 0
     CHECK(mem.cnt == 0);

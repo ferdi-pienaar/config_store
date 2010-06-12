@@ -25,63 +25,90 @@ using namespace std;
 // These are saved to NVRAM.
 enum
 {
-    DEVICE_USER_NAME = 0,
-    DEVICE_USER_ID = 1,
-    DEVICE_USER_TEMP = 2,
+    USER_NAME = 0,
+    USER_ID = 1,
+    USER_TEMP = 2,
 };
 
 enum
 {
-    DEVICE_IPADDR  = 0,
-    DEVICE_CLIPORT = 1,
-    DEVICE_USERCOUNT = 2,
-    DEVICE_USER = 3,
+    HOME_LOCATION_NAME = 0,
+};
+
+
+enum
+{
+    HOME_ADDR = 0,
+    HOME_LOC = 1,
+};
+
+enum
+{
+    IPADDR  = 0,
+    CLIPORT = 1,
+    USERCOUNT = 2,
+    USER = 3,
+    HOME = 4,
     
 };
 
 // xxx should be a naming convention: camelCase, or underscores; order in which things are defined, etc.
 
 const cm_simple_item_descriptor ip_address = cm_simple_item_descriptor("ipaddr",
-                                                                 DEVICE_IPADDR,
+                                                                 IPADDR,
                                                                  sizeof(unsigned long), // xxx define SIZEOF macro
                                                                  cm_set_int,
                                                                  cm_setdef,
                                                                  cm_prt_int);
 
 const cm_simple_item_descriptor port = cm_simple_item_descriptor("port", 
-                                                            DEVICE_CLIPORT,
+                                                            CLIPORT,
                                                             sizeof(unsigned short), // xxx
                                                             cm_set_int,
                                                             cm_setdef,
                                                             cm_prt_int);
 
 const cm_simple_item_descriptor userCnt = cm_simple_item_descriptor("usercnt", 
-                                                              DEVICE_USERCOUNT,
+                                                              USERCOUNT,
                                                               sizeof(unsigned int), // xxx
                                                               NULL, // No set fn used for counter
                                                               NULL, // No setdef fn used for counter
                                                               cm_prt_int);
 
 const cm_simple_item_descriptor user_name = cm_simple_item_descriptor("name", 
-                                                               DEVICE_USER_NAME,
+                                                               USER_NAME,
                                                                MAX_LEN_USER_NAME, // xxx
                                                                NULL, // xxx set
                                                                cm_setdef,
                                                                NULL /* xxx prt */);
 
 const cm_simple_item_descriptor user_id = cm_simple_item_descriptor("id", 
-                                                             DEVICE_USER_ID,
+                                                             USER_ID,
                                                              sizeof(unsigned long), // xxx
                                                              cm_set_int, // xxx unsigned
                                                              cm_setdef,
                                                              cm_prt_int /* xxx unsigned */);
 
 const cm_simple_item_descriptor user_temp = cm_simple_item_descriptor("temp", 
-                                                               DEVICE_USER_TEMP,
+                                                               USER_TEMP,
                                                                sizeof(short), // xxx
                                                                cm_set_int, // xxx set
                                                                cm_setdef,
                                                                cm_prt_int);
+
+const cm_simple_item_descriptor home_addr = cm_simple_item_descriptor("addr", 
+                                                               HOME_ADDR,
+                                                               sizeof(unsigned long), // xxx
+                                                               cm_set_int, // xxx set
+                                                               cm_setdef,
+                                                               cm_prt_int);
+
+const cm_simple_item_descriptor home_loc_name = cm_simple_item_descriptor("name", 
+                                                               HOME_LOCATION_NAME,
+                                                               MAX_LEN_LOCATION_NAME, // xxx
+                                                               NULL, // xxx set
+                                                               cm_setdef,
+                                                               NULL); // xxx prt
 
 /* We define this one separately because we want to reference it in two places */
 const cm_contained_aggregate userCntAggr = cm_contained_aggregate(&userCnt, 1, offsetof(tDevice, userCount));
@@ -91,7 +118,7 @@ const cm_contained_aggregate userNameAggr(&user_name, 1, offsetof(tUser, name));
 const cm_contained_aggregate userIdAggr(&user_id, 1, offsetof(tUser, id));
 const cm_contained_aggregate userTempAggr(&user_temp, 1, offsetof(tUser, temperature));
 
-const cm_aggregate * const deviceUserAggrList[] = 
+const cm_aggregate * const userAggrList[] = 
 {
     &userNameAggr,
     &userIdAggr,
@@ -100,15 +127,55 @@ const cm_aggregate * const deviceUserAggrList[] =
 
 const cm_composite_item_descriptor user = cm_composite_item_descriptor(
     "user", 
-    DEVICE_USER,
+    USER,
     sizeof(tUser),
-    deviceUserAggrList,
-    sizeof(deviceUserAggrList)/sizeof(deviceUserAggrList[0])
+    userAggrList,
+    sizeof(userAggrList)/sizeof(userAggrList[0])
 );
+
+
+const cm_contained_aggregate homeLocNameAggr(&home_loc_name, 1, offsetof(tLocation, name));
+
+// The last param is NULL because the owned item has no corresponding counter
+const cm_owned_aggregate homeAddrAggr(&home_addr, 1, offsetof(tHome, pAddr), NULL);
+
+const cm_aggregate * const homeLocAggrList[] = 
+{
+    &homeLocNameAggr,
+};
+
+
+const cm_composite_item_descriptor home_loc = cm_composite_item_descriptor(
+    "loc", 
+    HOME_LOC,
+    sizeof(tLocation),
+    homeLocAggrList,
+    sizeof(homeLocAggrList)/sizeof(homeLocAggrList[0])
+);
+
+// The last param is NULL because the owned item has no corresponding counter
+const cm_owned_aggregate homeLocAggr(&home_loc, 1, offsetof(tHome, pLoc), NULL);
+
+const cm_aggregate * const homeAggrList[] = 
+{
+    &homeAddrAggr,
+    &homeLocAggr,
+};
+
+const cm_composite_item_descriptor home = cm_composite_item_descriptor(
+    "home", 
+    HOME,
+    sizeof(tHome),
+    homeAggrList,
+    sizeof(homeAggrList)/sizeof(homeAggrList[0])
+);
+
+
 
 const cm_contained_aggregate ipaddressAggr(&ip_address, 1, offsetof(tDevice, addr));
 const cm_contained_aggregate portAggr(&port, NUM_CLI_PORT, offsetof(tDevice, cliPort));
 const cm_owned_aggregate userAggr(&user, 3 /* xxx max number of users */, offsetof(tDevice, users), &userCntAggr);
+const cm_contained_aggregate homeAggr(&home, 1 , offsetof(tDevice, home));
 
 const cm_aggregate * const deviceAggrList[] = 
 {
@@ -116,6 +183,7 @@ const cm_aggregate * const deviceAggrList[] =
     &portAggr,
     &userCntAggr,
     &userAggr,
+    &homeAggr,
 };
 
 const cm_composite_item_descriptor deviceDesc = cm_composite_item_descriptor(
