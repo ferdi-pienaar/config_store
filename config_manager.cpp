@@ -734,38 +734,6 @@ void cm_composite_item_descriptor::getComponentItem(int * pArgc,
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-//
-// argc number of items in argv
-// argv array of strings containing name elements
-// pItem - pointer to RAM at which item is located
-//
-void cm_simple_item_descriptor::handleCmd(int argc,
-                                          char *argv[],
-                                          unsigned char * pItem,
-                                          cm_context & ctxt) const
-{
-    DBG_PRT("simple cmd at %p\n", pItem);
-    
-    switch (getOp(argv[0]))
-    {
-        case CM_PRT:
-            return print(pItem, "");
-
-        case CM_SET:
-            return set(pItem, argv[1]);
-
-        case CM_SETDEF:
-            return setdef(pItem);
-
-        case CM_HELP:
-            return help(pItem);
-
-        default:
-            cout << "'" << argv[0] << "' operation not applicable to simple item '" << name << "'" << endl;
-    }   
-}
-
-
 // An item does not print its own name, since
 // it may be preceded by an index, which is known
 // to the item's composite but not to the item.
@@ -791,8 +759,46 @@ void cm_simple_item_descriptor::print(const unsigned char * pItem, string prefix
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
+//
+// cm_basic_item_descriptor
+//
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// argc number of items in argv
+// argv array of strings containing name elements
+// pItem - pointer to RAM at which item is located
+//
+void cm_basic_item_descriptor::handleCmd(int argc,
+                                         char *argv[],
+                                         unsigned char * pItem,
+                                         cm_context & ctxt) const
+{
+    DBG_PRT("simple cmd at %p\n", pItem);
+    
+    switch (getOp(argv[0]))
+    {
+        case CM_PRT:
+            return print(pItem, "");
+
+        case CM_SET:
+            return set(pItem, argv[1]);
+
+        case CM_SETDEF:
+            return setdef(pItem);
+
+        case CM_HELP:
+            return help(pItem);
+
+        default:
+            cout << "'" << argv[0] << "' operation not applicable to basic item '" << name << "'" << endl;
+    }   
+}
+
+
 // Set.
-void cm_simple_item_descriptor::set(unsigned char * pItem, string val) const
+void cm_basic_item_descriptor::set(unsigned char * pItem, string val) const
 {
     DBG_PRT("set simple %s at %p to value %s\n",
             name.c_str(), pItem, val.c_str());
@@ -813,7 +819,7 @@ void cm_simple_item_descriptor::set(unsigned char * pItem, string val) const
 // xxx for owned counters, no modification should be allowed.
 // But we should check that for a counter, no setdef or set
 // is installed.
-void cm_simple_item_descriptor::setdef(unsigned char * pItem) const
+void cm_basic_item_descriptor::setdef(unsigned char * pItem) const
 {
     if (pSetDef != NULL)
     {
@@ -827,7 +833,7 @@ void cm_simple_item_descriptor::setdef(unsigned char * pItem) const
 //  to NVRAM.
 //  xxx if we want to write directly to NVRAM, we need to implement a method
 //  that does that...
-void cm_simple_item_descriptor::writeTlv(const unsigned char *pItem, unsigned char ** ppBuf) const
+void cm_basic_item_descriptor::writeTlv(const unsigned char *pItem, unsigned char ** ppBuf) const
 {
     memcpy(*ppBuf, &id, sizeof(id));   // write Type (i.e. the ID)
     *ppBuf += sizeof(id);              // advance the memory pointer
@@ -842,7 +848,7 @@ void cm_simple_item_descriptor::writeTlv(const unsigned char *pItem, unsigned ch
 /// Return total length of TLV item:
 //  The number of bytes taken up by T + L + V.
 //  (For a simple item, there's no dependency on pItem, the RAM contents.)
-cm_item_len cm_simple_item_descriptor::getTlvLen(const unsigned char * pItem) const
+cm_item_len cm_basic_item_descriptor::getTlvLen(const unsigned char * pItem) const
 {
     return sizeof(cm_descriptor_id) + sizeof(cm_item_len) + getLen();
 }
@@ -853,7 +859,7 @@ cm_item_len cm_simple_item_descriptor::getTlvLen(const unsigned char * pItem) co
 // This method reads L, and moves forward in the file by that many bytes,
 // using what it finds in the file to initialize the object's configurable items.
 // xxx after each read, check how much was read.
-int cm_simple_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) const
+int cm_basic_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) const
 {
     cm_item_len tlvLen;
     

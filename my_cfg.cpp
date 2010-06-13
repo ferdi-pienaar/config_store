@@ -54,56 +54,56 @@ enum
 
 // xxx should be a naming convention: camelCase, or underscores; order in which things are defined, etc.
 
-const cm_simple_item_descriptor ip_address = cm_simple_item_descriptor("ipaddr",
+const cm_basic_item_descriptor ip_address = cm_basic_item_descriptor("ipaddr",
                                                                  IPADDR,
                                                                  sizeof(unsigned long), // xxx define SIZEOF macro
                                                                  cm_set_int,
                                                                  cm_setdef,
                                                                  cm_prt_int);
 
-const cm_simple_item_descriptor port = cm_simple_item_descriptor("port", 
+const cm_basic_item_descriptor port = cm_basic_item_descriptor("port", 
                                                             CLIPORT,
                                                             sizeof(unsigned short), // xxx
                                                             cm_set_int,
                                                             cm_setdef,
                                                             cm_prt_int);
 
-const cm_simple_item_descriptor userCnt = cm_simple_item_descriptor("usercnt", 
+const cm_basic_item_descriptor userCnt = cm_basic_item_descriptor("usercnt", 
                                                               USERCOUNT,
                                                               sizeof(unsigned int), // xxx
                                                               NULL, // No set fn used for counter
                                                               NULL, // No setdef fn used for counter
                                                               cm_prt_int);
 
-const cm_simple_item_descriptor user_name = cm_simple_item_descriptor("name", 
+const cm_basic_item_descriptor user_name = cm_basic_item_descriptor("name", 
                                                                USER_NAME,
                                                                MAX_LEN_USER_NAME, // xxx
                                                                NULL, // xxx set
                                                                cm_setdef,
                                                                NULL /* xxx prt */);
 
-const cm_simple_item_descriptor user_id = cm_simple_item_descriptor("id", 
+const cm_basic_item_descriptor user_id = cm_basic_item_descriptor("id", 
                                                              USER_ID,
                                                              sizeof(unsigned long), // xxx
                                                              cm_set_int, // xxx unsigned
                                                              cm_setdef,
                                                              cm_prt_int /* xxx unsigned */);
 
-const cm_simple_item_descriptor user_temp = cm_simple_item_descriptor("temp", 
+const cm_basic_item_descriptor user_temp = cm_basic_item_descriptor("temp", 
                                                                USER_TEMP,
                                                                sizeof(short), // xxx
                                                                cm_set_int, // xxx set
                                                                cm_setdef,
                                                                cm_prt_int);
 
-const cm_simple_item_descriptor home_addr = cm_simple_item_descriptor("addr", 
+const cm_basic_item_descriptor home_addr = cm_basic_item_descriptor("addr", 
                                                                HOME_ADDR,
                                                                sizeof(unsigned long), // xxx
                                                                cm_set_int, // xxx set
                                                                cm_setdef,
                                                                cm_prt_int);
 
-const cm_simple_item_descriptor home_loc_name = cm_simple_item_descriptor("name", 
+const cm_basic_item_descriptor home_loc_name = cm_basic_item_descriptor("name", 
                                                                HOME_LOCATION_NAME,
                                                                MAX_LEN_LOCATION_NAME, // xxx
                                                                NULL, // xxx set

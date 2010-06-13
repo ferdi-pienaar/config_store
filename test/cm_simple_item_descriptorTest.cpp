@@ -1,5 +1,5 @@
 // Unit test using open-source unit test framework
-// These tests use the cm_simple_item_descriptor's public interface
+// These tests use the cm_basic_item_descriptor's public interface
 // to test it.  This includes redirecting to a file output that it sends to
 // stdout, so that it can be read from the file and compared to the
 // expected output.
@@ -22,20 +22,20 @@ int main()
 }
 
 
-TEST(getLen, cm_simple_item_descriptor)
+TEST(getLen, cm_basic_item_descriptor)
 {
-    cm_simple_item_descriptor d("d01", 1 , 55, NULL, NULL, NULL);
+    cm_basic_item_descriptor d("d01", 1 , 55, NULL, NULL, NULL);
     CHECK(d.getLen() == 55);
 }
 
 
-TEST(print, cm_simple_item_descriptor)
+TEST(print, cm_basic_item_descriptor)
 {
     string prefix = "";
     unsigned mem = 7;
     char outstring[64];
     
-    cm_simple_item_descriptor d("d01", 1 , sizeof(mem), NULL, NULL, NULL);
+    cm_basic_item_descriptor d("d01", 1 , sizeof(mem), NULL, NULL, NULL);
 
     // Redirect STDOUT to a file, so the test can examine what UUT writes there
     if (freopen("testout.txt", "w", stdout) == NULL)
@@ -54,11 +54,11 @@ TEST(print, cm_simple_item_descriptor)
 }
 
 
-TEST(set, cm_simple_item_descriptor)
+TEST(set, cm_basic_item_descriptor)
 {
     int mem = 0;
 
-    cm_simple_item_descriptor d("d01", 1 , sizeof(mem), cm_set_int, NULL, NULL);
+    cm_basic_item_descriptor d("d01", 1 , sizeof(mem), cm_set_int, NULL, NULL);
     
     d.set((unsigned char *)&mem, "4");
     CHECK(mem == 4);    

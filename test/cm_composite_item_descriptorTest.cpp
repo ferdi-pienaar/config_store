@@ -32,8 +32,8 @@ struct m
 };
 
 // first test set metadata
-const cm_simple_item_descriptor s1("name1", 1, sizeof(int), NULL, NULL, NULL);
-const cm_simple_item_descriptor s2("name2", 2, sizeof(int), NULL, NULL, NULL);
+const cm_basic_item_descriptor s1("name1", 1, sizeof(int), NULL, NULL, NULL);
+const cm_basic_item_descriptor s2("name2", 2, sizeof(int), NULL, NULL, NULL);
 const cm_contained_aggregate ca1(&s1, 1, offsetof(struct m, m1));
 const cm_contained_aggregate ca2(&s2, 1, offsetof(struct m, m2));
 const cm_aggregate * const aggrList1[] = {&ca1, &ca2};
@@ -48,8 +48,8 @@ struct m2
 };
 
 // second test set metadata
-const cm_simple_item_descriptor s3("count", 1, sizeof(int), NULL, NULL, NULL);
-const cm_simple_item_descriptor s4("owned", 2, sizeof(int), NULL, NULL, NULL);
+const cm_basic_item_descriptor s3("count", 1, sizeof(int), NULL, NULL, NULL);
+const cm_basic_item_descriptor s4("owned", 2, sizeof(int), NULL, NULL, NULL);
 const cm_contained_aggregate ca3(&s3, 1, offsetof(struct m2, cnt));
 const cm_owned_aggregate oa4(&s4, 10, offsetof(struct m2, owned), &ca3);
 const cm_aggregate * const aggrList2[] = {&ca3, &oa4};

@@ -219,6 +219,27 @@ public:
 // xxx methods (apart from constructor) are private (not for user), but config_manager is friend?
 class cm_simple_item_descriptor : public cm_item_descriptor
 {
+    const CM_PRT_FPTR    pPrt;
+
+public:
+        
+    cm_simple_item_descriptor(char * name,
+                              cm_descriptor_id id,
+                              cm_item_len l,
+                              CM_PRT_FPTR pf):
+                              cm_item_descriptor(name, id, l),
+                              pPrt(pf){};
+                              
+    virtual ~cm_simple_item_descriptor() {};
+
+    void print(const unsigned char * pItem, std::string prefix) const;
+    void help(const unsigned char * pItem) const {std::cout << "len " << getLen() << std::endl;}
+};
+
+
+// xxx methods (apart from constructor) are private (not for user), but config_manager is friend?
+class cm_basic_item_descriptor : public cm_simple_item_descriptor
+{
 
     // populate the following ptrs when creating a descriptor
     // The config manager itself provides a set for basic types
@@ -229,7 +250,6 @@ class cm_simple_item_descriptor : public cm_item_descriptor
     //
     const CM_SET_FPTR    pSet;
     const CM_SETDEF_FPTR pSetDef;
-    const CM_PRT_FPTR    pPrt;
 
     virtual void writeTlv(const unsigned char * pItem, unsigned char ** ppBuf) const;
     virtual cm_item_len getTlvLen(const unsigned char * pItem) const;
@@ -237,24 +257,40 @@ class cm_simple_item_descriptor : public cm_item_descriptor
 
 public:
         
-    cm_simple_item_descriptor(char * name,
+    cm_basic_item_descriptor(char * name,
                               cm_descriptor_id id,
                               cm_item_len l,
                               CM_SET_FPTR sf,
                               CM_SETDEF_FPTR sdf,
                               CM_PRT_FPTR pf):
-                              cm_item_descriptor(name, id, l),
+                              cm_simple_item_descriptor(name, id, l, pf),
                               pSet(sf),
-                              pSetDef(sdf),
-                              pPrt(pf){};
+                              pSetDef(sdf){};
                               
-    ~cm_simple_item_descriptor(){};
+    ~cm_basic_item_descriptor(){};
 
     void handleCmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
-    void print(const unsigned char * pItem, std::string prefix) const;
     void set(unsigned char * pItem, std::string val) const;
     void setdef(unsigned char * pItem) const;
-    virtual void help(const unsigned char * pItem) const {std::cout << "len " << getLen() << std::endl;}
+};
+
+
+// xxx methods (apart from constructor) are private (not for user), but config_manager is friend?
+class cm_cntr_item_descriptor : public cm_simple_item_descriptor
+{
+    virtual void writeTlv(const unsigned char * pItem, unsigned char ** ppBuf) const {}
+    virtual cm_item_len getTlvLen(const unsigned char * pItem) const {return 0;}
+    virtual int loadFromTlv(FILE * fp, unsigned char * pItem) const {assert(0);}
+
+public:
+        
+    cm_cntr_item_descriptor(char * name,
+                            cm_descriptor_id id,
+                            cm_item_len l,
+                            CM_PRT_FPTR pf):
+                            cm_simple_item_descriptor(name, id, l, pf){};
+                              
+    ~cm_cntr_item_descriptor(){};
 };
 
 
