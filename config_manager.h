@@ -25,10 +25,10 @@
 // Because it determines the longest possible length of any item in NVRAM,
 // it's also big enough to be used for the length of items in RAM
 // (which are shorter, as the exclude the Id and Length fields saved to NVRAM).
-typedef unsigned short cm_item_len;
+typedef uint16_t cm_item_len;
 
 // Identifier ID, unique within its context, used to identify it in NVRFAM
-typedef unsigned short cm_descriptor_id;
+typedef uint16_t cm_descriptor_id;
 
 // Function pointers -- types registered by user when descriptor is created
 typedef void (*CM_SET_FPTR)(unsigned char *pItem, cm_item_len len, std::string val);
@@ -63,7 +63,6 @@ protected: // xxx these are protected because I want to access them from the der
 
 public:     
     const cm_descriptor_id id;       // ID (unique within the context of the component's composite) of item in NVRAM    
-
 
     cm_item_descriptor(std::string iname, cm_descriptor_id iid, cm_item_len ilen):
                        name(iname), len(ilen), id(iid){}
@@ -206,7 +205,7 @@ public:
     void setdef(unsigned char * pItem) const;
     virtual void help(const unsigned char * pItem) const;
     void handleAdd(int argc, char *argv[], unsigned char * pItem) const;
-    void add(unsigned char * pParentItem, const cm_aggregate * pAggr, unsigned int cnt) const;
+    unsigned char * add(unsigned char * pParentItem, const cm_aggregate * pAggr) const;
     void handleDel(int argc, char *argv[], unsigned char * pItem) const;
     void del(unsigned char * pParentItem,
              const cm_aggregate * pAggr,
@@ -222,7 +221,6 @@ class cm_simple_item_descriptor : public cm_item_descriptor
     const CM_PRT_FPTR    pPrt;
 
 public:
-        
     cm_simple_item_descriptor(char * name,
                               cm_descriptor_id id,
                               cm_item_len l,
@@ -256,16 +254,15 @@ class cm_basic_item_descriptor : public cm_simple_item_descriptor
     virtual int loadFromTlv(FILE * fp, unsigned char * pItem) const;
 
 public:
-        
     cm_basic_item_descriptor(char * name,
-                              cm_descriptor_id id,
-                              cm_item_len l,
-                              CM_SET_FPTR sf,
-                              CM_SETDEF_FPTR sdf,
-                              CM_PRT_FPTR pf):
-                              cm_simple_item_descriptor(name, id, l, pf),
-                              pSet(sf),
-                              pSetDef(sdf){};
+                             cm_descriptor_id id,
+                             cm_item_len l,
+                             CM_SET_FPTR sf,
+                             CM_SETDEF_FPTR sdf,
+                             CM_PRT_FPTR pf):
+                             cm_simple_item_descriptor(name, id, l, pf),
+                             pSet(sf),
+                             pSetDef(sdf){};
                               
     ~cm_basic_item_descriptor(){};
 
@@ -283,7 +280,6 @@ class cm_cntr_item_descriptor : public cm_simple_item_descriptor
     virtual int loadFromTlv(FILE * fp, unsigned char * pItem) const {assert(0);}
 
 public:
-        
     cm_cntr_item_descriptor(char * name,
                             cm_descriptor_id id,
                             cm_item_len l,
@@ -291,6 +287,11 @@ public:
                             cm_simple_item_descriptor(name, id, l, pf){};
                               
     ~cm_cntr_item_descriptor(){};
+    void handleCmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
+    // A counter's setdef does nothing: it is set to 0 as a side-effect of
+    // freeing the corresponding owned items.
+    void setdef(unsigned char * pItem) const {};
+
 };
 
 
@@ -312,7 +313,6 @@ public:
     // xxx should only be accessible to friend classes
     void setCtxt(cm_context * pC) {pCtxt = pC;}
 
-
 private:
     config_manager(){pCtxt = &baseCtxt; ramBase = NULL; base_desc = NULL;}
     void save();
@@ -324,7 +324,6 @@ private:
     cm_context * pCtxt;    // current context
     cm_context   tempCtxt; // context being updated to possibly replace current one
     cm_context   baseCtxt; // context representing the base, to return to
-
 
 };
 

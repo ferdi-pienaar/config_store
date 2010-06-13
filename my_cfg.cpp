@@ -68,11 +68,9 @@ const cm_basic_item_descriptor port = cm_basic_item_descriptor("port",
                                                             cm_setdef,
                                                             cm_prt_int);
 
-const cm_basic_item_descriptor userCnt = cm_basic_item_descriptor("usercnt", 
+const cm_cntr_item_descriptor userCnt = cm_cntr_item_descriptor("usercnt", 
                                                               USERCOUNT,
                                                               sizeof(unsigned int), // xxx
-                                                              NULL, // No set fn used for counter
-                                                              NULL, // No setdef fn used for counter
                                                               cm_prt_int);
 
 const cm_basic_item_descriptor user_name = cm_basic_item_descriptor("name", 
