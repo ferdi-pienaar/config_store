@@ -32,9 +32,8 @@ enum
 
 enum
 {
-    HOME_LOCATION_NAME = 0,
+    HOME_LOC_NAME = 0,
 };
-
 
 enum
 {
@@ -58,14 +57,14 @@ const cm_basic_item_descriptor ip_address = cm_basic_item_descriptor("ipaddr",
                                                                  IPADDR,
                                                                  sizeof(unsigned long), // xxx define SIZEOF macro
                                                                  cm_set_int,
-                                                                 cm_setdef,
+                                                                 NULL, // setdef
                                                                  cm_prt_int);
 
 const cm_basic_item_descriptor port = cm_basic_item_descriptor("port", 
                                                             CLIPORT,
                                                             sizeof(unsigned short), // xxx
                                                             cm_set_int,
-                                                            cm_setdef,
+                                                            NULL, // setdef
                                                             cm_prt_int);
 
 const cm_cntr_item_descriptor userCnt = cm_cntr_item_descriptor("usercnt", 
@@ -76,37 +75,37 @@ const cm_cntr_item_descriptor userCnt = cm_cntr_item_descriptor("usercnt",
 const cm_basic_item_descriptor user_name = cm_basic_item_descriptor("name", 
                                                                USER_NAME,
                                                                MAX_LEN_USER_NAME, // xxx
-                                                               NULL, // xxx set
-                                                               cm_setdef,
-                                                               NULL /* xxx prt */);
+                                                               cm_set_str,
+                                                               NULL, // setdef
+                                                               cm_prt_str);
 
 const cm_basic_item_descriptor user_id = cm_basic_item_descriptor("id", 
                                                              USER_ID,
                                                              sizeof(unsigned long), // xxx
                                                              cm_set_int, // xxx unsigned
-                                                             cm_setdef,
+                                                             NULL, // setdef
                                                              cm_prt_int /* xxx unsigned */);
 
 const cm_basic_item_descriptor user_temp = cm_basic_item_descriptor("temp", 
                                                                USER_TEMP,
                                                                sizeof(short), // xxx
                                                                cm_set_int, // xxx set
-                                                               cm_setdef,
+                                                               setdef_temp, // setdef
                                                                cm_prt_int);
 
 const cm_basic_item_descriptor home_addr = cm_basic_item_descriptor("addr", 
                                                                HOME_ADDR,
                                                                sizeof(unsigned long), // xxx
                                                                cm_set_int, // xxx set
-                                                               cm_setdef,
+                                                               NULL, // setdef
                                                                cm_prt_int);
 
 const cm_basic_item_descriptor home_loc_name = cm_basic_item_descriptor("name", 
-                                                               HOME_LOCATION_NAME,
+                                                               HOME_LOC_NAME,
                                                                MAX_LEN_LOCATION_NAME, // xxx
-                                                               NULL, // xxx set
-                                                               cm_setdef,
-                                                               NULL); // xxx prt
+                                                               cm_set_str,
+                                                               NULL, // setdef
+                                                               cm_prt_str);
 
 /* We define this one separately because we want to reference it in two places */
 const cm_contained_aggregate userCntAggr = cm_contained_aggregate(&userCnt, 1, offsetof(tDevice, userCount));
@@ -179,7 +178,7 @@ const cm_aggregate * const deviceAggrList[] =
 {
     &ipaddressAggr,
     &portAggr,
-    &userCntAggr,
+    &userCntAggr,  // Inserting the counter here is optional: if you do, it is printed with the others
     &userAggr,
     &homeAggr,
 };

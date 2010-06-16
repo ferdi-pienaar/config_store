@@ -22,16 +22,16 @@ int main()
 	return 0;
 }
 
-
-// first test set, CONTAINED
-// first test set data structure
+////////////////////////////////////////////////////////////////////////////////
+// test set 1, CONTAINED
+// test set 1 data structure
 struct m
 {
     int m1;
     int m2;
 };
 
-// first test set metadata
+// test set 1 metadata
 const cm_basic_item_descriptor s1("name1", 1, sizeof(int), NULL, NULL, NULL);
 const cm_basic_item_descriptor s2("name2", 2, sizeof(int), NULL, NULL, NULL);
 const cm_contained_aggregate ca1(&s1, 1, offsetof(struct m, m1));
@@ -39,21 +39,39 @@ const cm_contained_aggregate ca2(&s2, 1, offsetof(struct m, m2));
 const cm_aggregate * const aggrList1[] = {&ca1, &ca2};
 const cm_composite_item_descriptor c1("c1", 1, sizeof(struct m), aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0]));
 
-// second test set, OWNED.
-// second test set data structure
+////////////////////////////////////////////////////////////////////////////////
+// test set 2, OWNED with a visible (printing) counter
+// test set 2 data structure
 struct m2
 {
     unsigned cnt;
     int *    owned;
 };
 
-// second test set metadata
+// test set 2 metadata
 const cm_basic_item_descriptor s3("count", 1, sizeof(int), NULL, NULL, NULL);
 const cm_basic_item_descriptor s4("owned", 2, sizeof(int), NULL, NULL, NULL);
 const cm_contained_aggregate ca3(&s3, 1, offsetof(struct m2, cnt));
 const cm_owned_aggregate oa4(&s4, 10, offsetof(struct m2, owned), &ca3);
 const cm_aggregate * const aggrList2[] = {&ca3, &oa4};
 const cm_composite_item_descriptor c2("c2", 1, sizeof(struct m2), aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0]));
+
+// xxx test set 3, OWNED with a non-printing counter
+
+////////////////////////////////////////////////////////////////////////////////
+// test set 4, OWNED with no counter => cntr for cm_owned_aggregate() is NULL
+// test set 4 data structure
+struct m4
+{
+    int * owned;
+};
+
+// test set 4 metadata
+const cm_basic_item_descriptor s7("owned", 1, sizeof(int), NULL, NULL, NULL);
+// maxCnt = 1 and cntAggr = NULL
+const cm_owned_aggregate oa7(&s7, 1, offsetof(struct m4, owned), NULL);
+const cm_aggregate * const aggrList4[] = {&oa7};
+const cm_composite_item_descriptor c4("c4", 1, sizeof(struct m4), aggrList4, sizeof(aggrList4)/sizeof(aggrList4[0]));
 
 
 TEST(getLen, cm_composite_item_descriptor)
@@ -161,6 +179,27 @@ TEST(addFirst, cm_composite_item_descriptor)
 }
 
 
+TEST(addAnother, cm_composite_item_descriptor)
+{
+    string prefix = "";
+    char outstring[64];
+    struct m2 mem = {0, NULL}; // Test data
+    char * commandWord = "owned";
+
+    
+    c2.handleAdd(1, &commandWord, (unsigned char *)&mem);
+    c2.handleAdd(1, &commandWord, (unsigned char *)&mem);
+
+    // Counter is incremented and ptr to owned item is no longer NULL
+    CHECK(mem.cnt == 2);
+    CHECK(mem.owned != NULL);
+
+    // Items initialized to "default default"
+    CHECK(mem.owned[0] == 0);
+    CHECK(mem.owned[1] == 0);
+}
+
+
 TEST(delNull, cm_composite_item_descriptor)
 {
     string prefix = "";
@@ -178,6 +217,7 @@ TEST(delNull, cm_composite_item_descriptor)
 
 TEST(delEnd, cm_composite_item_descriptor)
 {
+    #undef NUM_OWNED
     #define NUM_OWNED 2
 
     string prefix = "";
@@ -203,6 +243,7 @@ TEST(delEnd, cm_composite_item_descriptor)
 
 TEST(delFirst, cm_composite_item_descriptor)
 {
+    #undef NUM_OWNED
     #define NUM_OWNED 2
 
     string prefix = "";
@@ -229,6 +270,7 @@ TEST(delFirst, cm_composite_item_descriptor)
 
 TEST(delOnly, cm_composite_item_descriptor)
 {
+    #undef NUM_OWNED
     #define NUM_OWNED 1
 
     string prefix = "";
@@ -246,9 +288,26 @@ TEST(delOnly, cm_composite_item_descriptor)
     // Counter is decremented to 0
     CHECK(mem.cnt == 0);
 
-    // xxx And the pointer to owned is set to NULL after owned memory freed??
-    // Currently, we don't do this.
-    // CHECK(mem.owned == NULL);
+    // And the pointer to owned is set to NULL after owned memory freed
+    CHECK(mem.owned == NULL);
+}
+
+
+// Add an sole, uncounted OWNed item
+TEST(addOnly, cm_composite_item_descriptor)
+{
+    string prefix = "";
+    char outstring[64];
+    struct m4 mem = {NULL};
+    char * commandWord = "owned";
+    
+    c4.handleAdd(1, &commandWord, (unsigned char *)&mem);
+
+    // Pointer updated
+    CHECK(mem.owned != NULL);
+
+    // Item initialized to "default default"
+    CHECK(*(mem.owned) == 0);
 }
 
 

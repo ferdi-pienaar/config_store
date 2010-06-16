@@ -10,13 +10,6 @@
 
 using namespace std;
 
-
-// The default setdef function, which fills the item with 0 bytes.
-void cm_setdef(unsigned char *pItem, cm_item_len len)
-{
-    memset(pItem, 0, len);
-}
-
 // signed int
 // pItem - pointer to memory containing an integer.
 // len - number of bytes the integer consists of
@@ -46,6 +39,15 @@ void cm_prt_int(const unsigned char *pItem, cm_item_len len)
     }
 }
 
+
+// signed int
+// pItem - pointer to memory to write an integer to.
+// len - number of bytes the integer consists of
+// val - a string representing the new value
+//
+// Integers are kept in the order prescribed by the given
+// system (little-endian or big-endian).
+//
 void cm_set_int(unsigned char *pItem, cm_item_len len, string val)
 {
     char * pEnd; // pointer to char after chars accepted by strtol
@@ -83,4 +85,24 @@ void cm_set_int(unsigned char *pItem, cm_item_len len, string val)
 }
             
 
-            
+// C-style string
+// pItem - pointer to memory containing an integer.
+// len - number of bytes the string consists of
+//
+//
+void cm_prt_str(const unsigned char *pItem, cm_item_len len)
+{
+    printf("'%s'", (char *)pItem);
+}
+
+
+// C-style string
+// pItem - pointer to memory to write the chars to.
+// len - number of bytes the string consists of
+// val - a string representing the new value
+//
+void cm_set_str(unsigned char *pItem, cm_item_len len, string val)
+{
+    snprintf((char *)pItem, len, val.c_str());
+}
+

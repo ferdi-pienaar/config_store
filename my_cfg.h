@@ -1,5 +1,6 @@
 #include <iostream>
 #include "config_manager.h"
+#include "my_cfg_fn.h" // User-written functions "plugged in" to config_manager
 
 // Data structures for managed items, living in RAM.
 // The user code does define instance of these data types.

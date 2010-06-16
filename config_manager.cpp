@@ -17,7 +17,7 @@ typedef enum
     CM_SETDEF,
     CM_LOAD,
     CM_SAVE,
-    CM_HELP,     // xxx
+    CM_HELP,       //
     CM_RESET_CTXT, // return context to top level
     CM_OP_NONE,
 
@@ -32,7 +32,6 @@ config_manager * config_manager::instance = NULL;
 // config_manager
 //
 ////////////////////////////////////////////////////////////////////////////////
-
 
 // Singleton's single access point
 config_manager * config_manager::getInstance()
@@ -129,11 +128,9 @@ void config_manager::save()
     }
     #endif
 
-    FILE * fp;
-    fp = fopen(CFG_FILE_NAME, "wb");  // open file for binary write
+    FILE * fp = fopen(CFG_FILE_NAME, "wb");  // open file for binary write
 
     fwrite(buf, 1, tlvLen, fp);
-
     fclose(fp);
 }
 
@@ -141,8 +138,9 @@ void config_manager::save()
 // Load data in NVRAM, in TLV format, to configurable items in RAM.
 void config_manager::load()
 {
-    FILE * fp;
-    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)  // open file for binary read
+    FILE * fp = fopen(CFG_FILE_NAME, "rb");  // open file for binary read
+    
+    if (fp == NULL)
     {
         cout << "No config file." << endl;
         return;
@@ -164,6 +162,7 @@ void config_manager::load()
 
     fclose(fp);
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -192,7 +191,7 @@ void config_manager::load()
 
             if (pComponent == NULL)
             {
-                // Unhandled word
+                // Unhandled word(s): not a command, and also doesn't identify a component
                 break;
             }
             if (argc > 0)
@@ -251,7 +250,7 @@ void cm_composite_item_descriptor::handleAdd(int argc, char *argv[], unsigned ch
 
     if (pAggr == NULL)
     {
-        cout << "No item '" << argv[0] << " in '" << name << "'." << endl;
+        cout << "No item '" << argv[0] << "' in '" << name << "'." << endl;
         return;
     }
     
@@ -283,16 +282,25 @@ unsigned char * cm_composite_item_descriptor::add(unsigned char * pParentItem,
     unsigned cnt = pAggr->getCount(pParentItem);
     unsigned char ** ppItems = (unsigned char **)(pParentItem + pAggr->offset);
 
-    *ppItems = (unsigned char *)realloc(*ppItems, (cnt + 1) * pAggr->pDesc->getLen());
+    uint8_t * pNewMem = (uint8_t *)realloc(*ppItems, (cnt + 1) * pAggr->pDesc->getLen());
 
-    unsigned char * pNewItem = *ppItems + cnt * pAggr->pDesc->getLen();
+    if (pNewMem == NULL)
+    {
+        cout << "No " << pAggr->pDesc->getLen() << " for " << pAggr->pDesc->getName() << endl;
+        return NULL;
+    }
+
+    // Memory successfully allocated, so reference the (possibly new) memory
+    *ppItems = pNewMem;
+
+    unsigned char * pNewItem = pNewMem + cnt * pAggr->pDesc->getLen();
 
     // Initialize added item with default values. First memset to ensure
     // counters, which have no setdef fn, are 0 (also sets pointers to owned to NULL).
     memset(pNewItem, 0, pAggr->pDesc->getLen());
     pAggr->pDesc->setdef(pNewItem);
 
-    DBG_PRT("add at %p\n", *ppItems);
+    DBG_PRT("add at %p\n", pNewMem);
 
     pAggr->setCount(pParentItem, cnt + 1);
     return pNewItem;
@@ -300,7 +308,6 @@ unsigned char * cm_composite_item_descriptor::add(unsigned char * pParentItem,
 
 
 // Del an owned component named by argc,argv from a composite
-// xxx When all items deleted, set pointer to owned mem to NULL for later sanity checks?
 void cm_composite_item_descriptor::handleDel(int argc, char *argv[], unsigned char * pItem) const
 {
     DBG_PRT("handleDel %s\n\r", argv[0]);
@@ -315,7 +322,8 @@ void cm_composite_item_descriptor::handleDel(int argc, char *argv[], unsigned ch
     const cm_aggregate * pAggr = getAggr(argv[0]);
 
     if (pAggr == NULL)
-    {
+    {        
+        cout << "No item '" << argv[0] << "' in '" << name << "'." << endl;
         return;
     }
 
@@ -339,8 +347,7 @@ void cm_composite_item_descriptor::handleDel(int argc, char *argv[], unsigned ch
 
     unsigned int itemIdx = 0; // If no explicit index is needed, use 0 offset
 
-    if (pAggr->needIndex(pItem) &&
-        !pAggr->getIndex(&argc, &argv, pItem, itemIdx))
+    if (pAggr->needIndex(pItem) && !pAggr->getIndex(&argc, &argv, pItem, itemIdx))
     {
         // An index is needed but couldn't be extracted from the command
         return;
@@ -378,11 +385,6 @@ void cm_composite_item_descriptor::del(unsigned char * pParentItem,
     // xxx realloc should return NULL if memory to be allocated is 0, but it doesn't seem to...
     if (cnt == 1)
     {
-        if (*ppItems != NULL)
-        {
-            cout << "realloc problem?" << endl;
-        }
-        
         *ppItems = NULL;
     }
 
@@ -451,10 +453,12 @@ void cm_composite_item_descriptor::writeTlv(const unsigned char *pItem, unsigned
 // so it's not checked here again.
 // This method reads L, and moves forward in the file by that many bytes,
 // using what it finds in the file to initialize the object's configurable items.
+// @return number of bytes read
+//
 // xxx after each read, check how much was read.
 // xxx shouldn't the i < aggrCount test come BEFORE allocating memory?
 //
-int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) const
+unsigned int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) const
 {
     cm_item_len  tlvLen;
     
@@ -463,13 +467,12 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) 
 
     DBG_PRT("composite load %d bytes to %p\n", tlvLen, pItem);
 
-    bool         firstComp = true;
-    unsigned int itemIdx; // number of items read of a given type, i.e. offset in the item array
+    unsigned char * pFirstItem = NULL; // first item in an aggregate's array
 
     while (bytesRead < tlvLen) // xxx 
-    {    
-        unsigned char *      pFirstItem;
-        cm_descriptor_id     compId, prevCompId;
+    {        
+        unsigned int      itemIdx; // number of items read of a given type, i.e. offset in the item array
+        cm_descriptor_id  compId, prevCompId;
 
         fread(&compId, sizeof(compId), 1, fp);
         bytesRead += sizeof(compId);
@@ -485,9 +488,8 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) 
 
             // When we start with a new item type (or the 1st one),
             // reset array index and pFirstItem
-            if (firstComp || (compId != prevCompId))
+            if ((pFirstItem == NULL) || (compId != prevCompId))
             {
-                firstComp = false;
                 pFirstItem = pAggr->getFirstItem(pItem);
                 itemIdx = 0;
             }
@@ -502,7 +504,16 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) 
             {
                 pCompItem = pFirstItem + itemIdx++ * pAggr->pDesc->getLen();
             }
-            bytesRead += pAggr->pDesc->loadFromTlv(fp, pCompItem);
+
+            if (pCompItem != NULL)
+            {
+                bytesRead += pAggr->pDesc->loadFromTlv(fp, pCompItem);
+            }
+            else
+            {
+                // Couldn't allocate memory for the item, so skip the file contents
+                bytesRead += skipTlvItem(fp);
+            }
 
             // xxx itemIdx may not exceed pAggr->maxCount
         }
@@ -510,16 +521,29 @@ int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) 
         {            
             // ID read from file matches no component: skip over the unrecognized item
             cout << "Couldn't load unknown component ID " << compId << endl;
-
-            cm_item_len componentTlvLen;
-            fread(&componentTlvLen, sizeof(componentTlvLen), 1, fp);
-            bytesRead += sizeof(componentTlvLen);
-            fseek(fp, componentTlvLen, SEEK_CUR);
-            bytesRead += componentTlvLen;
+            bytesRead += skipTlvItem(fp);
         }
         DBG_PRT("composite '%s': %d read\n", name.c_str(), bytesRead);
         prevCompId = compId;
     }
+    return bytesRead;
+}
+
+
+// Having read the Type (ID) of an item from the TLV file, skip over the L
+// and V.
+// @return number of bytes moved ahead in the file
+//
+unsigned int cm_composite_item_descriptor::skipTlvItem(FILE * fp) const
+{
+    cm_item_len tlvLen;
+    
+    fread(&tlvLen, sizeof(tlvLen), 1, fp);
+    cm_item_len bytesRead = sizeof(tlvLen);
+
+    fseek(fp, tlvLen, SEEK_CUR);
+    bytesRead += tlvLen;
+
     return bytesRead;
 }
 
@@ -587,14 +611,11 @@ void cm_composite_item_descriptor::setdef(unsigned char * pItem) const
         {
             unsigned char ** ppItems = (unsigned char **)(pItem + pAggr->offset);
 
-            assert(*ppItems != NULL);
-            
             DBG_PRT("setdef free %p\n", *ppItems);
 
+            assert(*ppItems != NULL);
             free(*ppItems);
-
-            *ppItems = NULL; // xxx for future sanity checks
-
+            *ppItems = NULL;
             pAggr->setCount(pItem, 0);
         }
     }
@@ -790,7 +811,7 @@ void cm_basic_item_descriptor::handleCmd(int argc,
             return help(pItem);
 
         default:
-            cout << "'" << argv[0] << "' operation not applicable to basic item '" << name << "'" << endl;
+            cout << "'" << argv[0] << "' not handled by basic item '" << name << "'" << endl;
     }   
 }
 
@@ -819,6 +840,11 @@ void cm_basic_item_descriptor::setdef(unsigned char * pItem) const
     if (pSetDef != NULL)
     {
         pSetDef(pItem, len);
+    }
+    else
+    {
+        // The fefault default is all bits set to 0
+        memset(pItem, 0, len);
     }
 }
 
@@ -855,7 +881,7 @@ cm_item_len cm_basic_item_descriptor::getTlvLen(const unsigned char * pItem) con
 // This method reads L, and moves forward in the file by that many bytes,
 // using what it finds in the file to initialize the object's configurable items.
 // xxx after each read, check how much was read.
-int cm_basic_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) const
+unsigned int cm_basic_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) const
 {
     cm_item_len tlvLen;
     
@@ -876,7 +902,7 @@ int cm_basic_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) cons
     // action to perform in this case?  Yes, but it would be dependent on
     // endian-ness, and for big-endian systems we'd have to know if we were
     // reading an integer or not.
-    fread(pItem, tlvLen, 1, fp); // xxx ptr, size, count, stream
+    fread(pItem, tlvLen, 1, fp);
 
     return sizeof(tlvLen) + tlvLen;
 }
@@ -908,7 +934,7 @@ void cm_cntr_item_descriptor::handleCmd(int argc,
             return help(pItem);
 
         default:
-            cout << "'" << argv[0] << "' operation not applicable to cntr item '" << name << "'" << endl;
+            cout << "'" << argv[0] << "' not handled by counter '" << name << "'" << endl;
     }   
 }
 
@@ -1027,7 +1053,6 @@ unsigned cm_owned_aggregate::getCount(const unsigned char * pParentItem) const
 
         default:
             assert(0);
-       
     }
     return c;
 }
@@ -1044,8 +1069,7 @@ void cm_owned_aggregate::setCount(unsigned char * pParentItem, unsigned int coun
     {
         // There may not be a counter -- don't need one if maxCount == 0
         return;
-    }
-    
+    }   
     memcpy(pParentItem + pCounterAggr->offset, &count, sizeof(count));
 }
 

@@ -72,7 +72,7 @@ public:
     virtual cm_item_len getLen() const {return len;}
     virtual cm_item_len getTlvLen(const unsigned char * pItem) const = 0;
     virtual void writeTlv(const unsigned char * pItem, unsigned char ** ppBuf) const = 0;
-    virtual int loadFromTlv(FILE * fp, unsigned char * pItem) const = 0;
+    virtual unsigned int loadFromTlv(FILE * fp, unsigned char * pItem) const = 0;
     virtual void print(const unsigned char * pItem, std::string prefix) const = 0;
     virtual void setdef(unsigned char * pItem) const = 0;
     virtual void help(const unsigned char * pItem) const = 0;
@@ -111,9 +111,9 @@ protected:
     
 public:   
     cm_aggregate(const cm_item_descriptor * d,
-                 unsigned short c,
+                 unsigned short maxc,
                  unsigned int o):
-                 pDesc(d), maxCount(c), offset(o){};
+                 pDesc(d), maxCount(maxc), offset(o){};
 
     const cm_item_descriptor * pDesc;     // the component's descriptor
     const unsigned short       maxCount;  // Max number of instances of the item
@@ -134,9 +134,9 @@ class cm_contained_aggregate : public cm_aggregate
 {
 public:
     cm_contained_aggregate(const cm_item_descriptor * d,
-                           unsigned short c,
+                           unsigned short maxc,
                            unsigned int o):
-                           cm_aggregate(d,c,o){}
+                           cm_aggregate(d, maxc, o){}
 
     unsigned char * getFirstItem(const unsigned char * pParentItem) const;
     virtual unsigned getCount(const unsigned char * pParentItem) const;
@@ -156,10 +156,10 @@ private:
     
 public:
     cm_owned_aggregate(const cm_item_descriptor * d,
-                       unsigned short c,
+                       unsigned short maxc,
                        unsigned int o,
                        const cm_contained_aggregate * cntAggr):
-                       cm_aggregate(d,c,o), pCounterAggr(cntAggr){}
+                       cm_aggregate(d, maxc, o), pCounterAggr(cntAggr){}
 
     unsigned char * getFirstItem(const unsigned char * pParentItem) const;
     virtual unsigned getCount(const unsigned char * pParentItem) const;
@@ -179,7 +179,8 @@ class cm_composite_item_descriptor : public cm_item_descriptor
 
     virtual void writeTlv(const unsigned char * pItem, unsigned char ** ppBuf) const;
     virtual cm_item_len getTlvLen(const unsigned char * pItem) const;
-    virtual int loadFromTlv(FILE * fp, unsigned char * pItem) const;
+    virtual unsigned int loadFromTlv(FILE * fp, unsigned char * pItem) const;
+    unsigned int skipTlvItem(FILE * fp) const;
     const cm_aggregate * getAggr(const char * name) const;
     const cm_aggregate * getAggr(cm_descriptor_id id) const;
     void getComponentItem(int * pArgc,
@@ -251,7 +252,7 @@ class cm_basic_item_descriptor : public cm_simple_item_descriptor
 
     virtual void writeTlv(const unsigned char * pItem, unsigned char ** ppBuf) const;
     virtual cm_item_len getTlvLen(const unsigned char * pItem) const;
-    virtual int loadFromTlv(FILE * fp, unsigned char * pItem) const;
+    virtual unsigned int loadFromTlv(FILE * fp, unsigned char * pItem) const;
 
 public:
     cm_basic_item_descriptor(char * name,
@@ -277,7 +278,7 @@ class cm_cntr_item_descriptor : public cm_simple_item_descriptor
 {
     virtual void writeTlv(const unsigned char * pItem, unsigned char ** ppBuf) const {}
     virtual cm_item_len getTlvLen(const unsigned char * pItem) const {return 0;}
-    virtual int loadFromTlv(FILE * fp, unsigned char * pItem) const {assert(0);}
+    virtual unsigned int loadFromTlv(FILE * fp, unsigned char * pItem) const {assert(0);}
 
 public:
     cm_cntr_item_descriptor(char * name,
