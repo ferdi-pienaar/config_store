@@ -43,6 +43,7 @@ config_manager * config_manager::getInstance()
     return instance;
 }
 
+
 // Initialize config manager: allocate and populate item memory in RAM.
 // xxx We could presumably do these things in the constructor, but
 // having an init method gives us more flexibility in delaying certain
@@ -93,6 +94,14 @@ void config_manager::handleCmd(int argc, char *argv[])
 
     // Pass command that don't apply to CM as a whole, to current context for handling
     pCtxt->pDesc->handleCmd(argc, argv, pCtxt->pItem, tempCtxt);
+}
+
+
+// Modify context, i.e. current location in the tree of nodes
+void config_manager::setCtxt(cm_context * pC)
+{
+    DBG_PRT("setCtxt\n");
+    pCtxt = pC;
 }
 
 
@@ -181,6 +190,7 @@ void config_manager::load()
                                               unsigned char * pItem,
                                               cm_context & ctxt) const
 {
+    DBG_PRT("composite::handleCmd: %s\n", argv[0]);
     switch (getOp(argv[0]))
     {
         case CM_OP_NONE:
@@ -192,6 +202,7 @@ void config_manager::load()
             if (pComponent == NULL)
             {
                 // Unhandled word(s): not a command, and also doesn't identify a component
+                DBG_PRT("composite::handleCmd: unhandled\n");
                 break;
             }
             if (argc > 0)
@@ -238,7 +249,7 @@ void config_manager::load()
 // After verifying the operation is applicable, the item is added.
 void cm_composite_item_descriptor::handleAdd(int argc, char *argv[], unsigned char * pItem) const
 {
-    DBG_PRT("handleAdd %s\n\r", argv[0]);
+    DBG_PRT("handleAdd %s\n", argv[0]);
 
     if (argc != 1)
     {
@@ -310,7 +321,7 @@ unsigned char * cm_composite_item_descriptor::add(unsigned char * pParentItem,
 // Del an owned component named by argc,argv from a composite
 void cm_composite_item_descriptor::handleDel(int argc, char *argv[], unsigned char * pItem) const
 {
-    DBG_PRT("handleDel %s\n\r", argv[0]);
+    DBG_PRT("handleDel %s\n", argv[0]);
 
     if ((argc != 1) && (argc != 2))
     {
@@ -374,22 +385,23 @@ void cm_composite_item_descriptor::del(unsigned char * pParentItem,
 {
     // Reallocate memory, and save pointer in the same location
     unsigned char ** ppItems = (unsigned char **)(pParentItem + pAggr->offset);
+    cm_item_len      componentLen = pAggr->pDesc->getLen();    
+
+    DBG_PRT("del item base %p offset %d index %d len %d\n",
+            pParentItem, pAggr->offset, itemIdx, componentLen);
 
     // Shift down items to occupy the memory vacated by deleted item
-    memmove(*ppItems + itemIdx * pAggr->pDesc->getLen(),
-            *ppItems + (itemIdx + 1) * pAggr->pDesc->getLen(),
-            (cnt - itemIdx - 1) * pAggr->pDesc->getLen());
+    memmove(*ppItems + itemIdx * componentLen,
+            *ppItems + (itemIdx + 1) * componentLen,
+            (cnt - itemIdx - 1) * componentLen);
 
-    *ppItems = (unsigned char *)realloc(*ppItems, (cnt - 1) * pAggr->pDesc->getLen());
+    *ppItems = (unsigned char *)realloc(*ppItems, (cnt - 1) * componentLen);
 
     // xxx realloc should return NULL if memory to be allocated is 0, but it doesn't seem to...
     if (cnt == 1)
     {
         *ppItems = NULL;
     }
-
-    DBG_PRT("del item base %p offset %d index %d len %d\n",
-            pParentItem, pAggr->offset, itemIdx, pAggr->pDesc->getLen());
 
     return pAggr->setCount(pParentItem, cnt - 1);
 }
@@ -554,7 +566,7 @@ void cm_composite_item_descriptor::print(const unsigned char * pItem, string pre
 {
     char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
 
-    DBG_PRT("print composite %s with len %d\n", name.c_str(), len);
+    DBG_PRT("print composite %s len %d\n", name.c_str(), len);
 
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < aggrCount; i++)
@@ -720,10 +732,10 @@ void cm_composite_item_descriptor::getComponentItem(int * pArgc,
         }
     }
 
-    DBG_PRT("getComponentItem %p offset %d idx %d len %d\n",
-            *ppItem, pAggr->offset, itemIdx, pAggr->pDesc->getLen());
-
     unsigned int cnt = pAggr->getCount(*ppItem); // Number of items currently in the aggregate
+
+    DBG_PRT("getComponentItem %p offset %d idx %d cnt %d len %d\n",
+            *ppItem, pAggr->offset, itemIdx, cnt, pAggr->pDesc->getLen());
 
     if (itemIdx >= cnt)
     {
@@ -760,7 +772,7 @@ void cm_simple_item_descriptor::print(const unsigned char * pItem, string prefix
 {
     cout << prefix << "= ";
 
-    DBG_PRT("print simple %s with len %d at %p\n", name.c_str(), len, pItem);
+    DBG_PRT("print simple %s len %d at %p\n", name.c_str(), len, pItem);
     
     if (pPrt == NULL)
     {
@@ -906,6 +918,7 @@ unsigned int cm_basic_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pI
 
     return sizeof(tlvLen) + tlvLen;
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////
 //

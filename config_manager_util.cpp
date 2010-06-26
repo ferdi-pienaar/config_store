@@ -92,7 +92,7 @@ void cm_set_int(unsigned char *pItem, cm_item_len len, string val)
 //
 void cm_prt_str(const unsigned char *pItem, cm_item_len len)
 {
-    printf("'%s'", (char *)pItem);
+    printf("%s", (char *)pItem);
 }
 
 

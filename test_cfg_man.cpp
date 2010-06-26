@@ -1,9 +1,6 @@
 /*
- Test framework accepts inputs from stdin; CM produces output to stdout.
- @todo wrap around this a script framework for automated testing, that
- feeds inputs to stdin and receives results for comparision from stdout.
- TBD: create tests that can verify that data is correctly saved
- to NVRAM.
+  Manual test framework that accepts inputs from stdin; CM produces output to stdout.
+ 
  */
 #include <iostream>
 #include "config_manager.h"

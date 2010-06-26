@@ -197,8 +197,7 @@ public:
                                  unsigned short aggrCount):
                                  cm_item_descriptor(name, id, l), // init base class
                                  aggrList(aggrList),         // init data member
-                                 aggrCount(aggrCount)
-                                 {};
+                                 aggrCount(aggrCount){};
 
     ~cm_composite_item_descriptor(){};
     void handleCmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
@@ -312,10 +311,10 @@ public:
     static config_manager * getInstance();
 
     // xxx should only be accessible to friend classes
-    void setCtxt(cm_context * pC) {pCtxt = pC;}
+    void setCtxt(cm_context * pC);
 
 private:
-    config_manager(){pCtxt = &baseCtxt; ramBase = NULL; base_desc = NULL;}
+    config_manager():base_desc(NULL), ramBase(NULL), pCtxt(&baseCtxt){}
     void save();
     void load();
 
