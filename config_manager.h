@@ -311,19 +311,19 @@ public:
     static config_manager * getInstance();
 
     // xxx should only be accessible to friend classes
-    void setCtxt(cm_context * pC);
+    void resetCtxt();
+    void updateCtxt(cm_context * pC);
 
 private:
-    config_manager():base_desc(NULL), ramBase(NULL), pCtxt(&baseCtxt){}
+    config_manager():base_desc(NULL), ramBase(NULL){}
     void save();
     void load();
 
     static config_manager * instance;
     const cm_item_descriptor * base_desc;    
     unsigned char *            ramBase;
-    cm_context * pCtxt;    // current context
     cm_context   tempCtxt; // context being updated to possibly replace current one
-    cm_context   baseCtxt; // context representing the base, to return to
+    cm_context   currCtxt; // current context
 
 };
 

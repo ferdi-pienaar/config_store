@@ -1,0 +1,4 @@
+Is it a bug that we create things as we go, even if the command may finally be bad syntax?
+
+Strings can't contain spaces, because that's seen as a new word...
+

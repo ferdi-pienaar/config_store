@@ -1,0 +1,34 @@
+- Unit tests to verify that a user's initialization of cfg_man is correct, i.e.
+  it's a generic test, that verifies some things that are done in my_cfg.cpp.
+- Extend utils to unsigned int, strings, hexstrings, etc.
+- Can we avoid saving the unused parts of strings to TLV?  Descriptor could
+  contain a ptr for a getLen fn, which is NULL in most cases, but the user could
+  install strlen for strings.  If NULL, the default is to use the full length of the item
+  from the descriptor.
+
+- Re-organize my_cfg.cpp into a logical order.
+- Having an ID in a counter descriptor is not needed, since it's not saved to TLV.
+- Do we support counters that are not 4 bytes -- do both setCnt and getCnt handle it?
+
+- Add tests for the following case:
+  If maxCnt for owned is 1, then the counter is superfluous -- not only do we not need to
+  display it, but there's no reason for it to exist.
+- Provide context-sensitive help in a way that could be used for "tabbing out" input strings.
+- Strategy for making fewer methods public: do we need friends, or interface classes...
+- Make C-friendly: a C-friendly wrapper?
+- Verify ROM-ability of meta-data, which is const.
+  An easy way to achieve ROMability would be to place the things we want in
+  ROM, in plain old structs, which we make const and init at compile-time.  This would probably
+  only mean we'd have one additional level of indirection, but few other negative effects.
+  Probably my classes derived from cm_item_descriptor, although all data
+  is const, are no ROMable, since they are derived classes, with constructors, etc.  A
+  compiler may exist which can ROM them, but that's not guaranteed, and I don't know
+  of any way to verify it other than making a build for a specific target and seeing
+  what data is allocated to which memory address ranges.
+- Use of c99 types in stdint.h, e.g. uint8_t, uint_fast8_t, uint_least8_t
+- Should I be using malloc, or new?
+- Generate from XML descriptors
+- Is there superfluous info in the TLV files?  At least for simple types, if I know the type
+  I already know the length.  What do we do if a simple item's size is not what's expected?
+- Test for memory leaks.  How?
+

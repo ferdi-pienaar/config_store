@@ -54,17 +54,14 @@ void config_manager::init(const cm_item_descriptor * desc)
     base_desc = desc;
     ramBase = (unsigned char *)malloc(base_desc->getLen());
 
-    // Set counters to 0 and pointers to NULL so load can work correctly.
-    memset(ramBase, 0, base_desc->getLen());
-    
-    // xxx initialize with a constructor
-    baseCtxt.pDesc = base_desc;
-    baseCtxt.str = "";
-    baseCtxt.pItem = ramBase;
     // This could be done in the constructor, but I do it here to make
     // unit tests independent (since the constructor can't be forced
     // to run at the beginning of each unit tests).
-    pCtxt = &baseCtxt;
+    resetCtxt();
+
+    // Set counters to 0 and pointers to NULL on fresh memory before setdef
+    memset(ramBase, 0, base_desc->getLen());
+    base_desc->setdef(ramBase);
     load();
 }
 
@@ -82,33 +79,44 @@ void config_manager::handleCmd(int argc, char *argv[])
             return save();
 
         case CM_RESET_CTXT:
-            pCtxt = &baseCtxt;
-            return;
+            return resetCtxt();
 
         default:
             break;
     }
 
     // Start with the current base, then add to it
-    tempCtxt = *pCtxt;
+    tempCtxt = currCtxt;
 
     // Pass command that don't apply to CM as a whole, to current context for handling
-    pCtxt->pDesc->handleCmd(argc, argv, pCtxt->pItem, tempCtxt);
+    currCtxt.pDesc->handleCmd(argc, argv, currCtxt.pItem, tempCtxt);
 }
 
 
-// Modify context, i.e. current location in the tree of nodes
-void config_manager::setCtxt(cm_context * pC)
+// Set context back to base
+void config_manager::resetCtxt()
 {
-    DBG_PRT("setCtxt\n");
-    pCtxt = pC;
+    DBG_PRT("resetCtxt\n");
+
+    currCtxt.pDesc = base_desc;
+    currCtxt.str = "";
+    currCtxt.pItem = ramBase;
+}
+
+
+// Modify the current context
+void config_manager::updateCtxt(cm_context * pC)
+{
+    DBG_PRT("updateCtxt\n");
+
+    currCtxt = *pC;
 }
 
 
 // Get a prompt string to display to user, representing the current context
 const char * config_manager::getPromptString()
 {
-    return pCtxt->str.c_str();
+    return currCtxt.str.c_str();
 }
 
 
@@ -165,11 +173,10 @@ void config_manager::load()
     // Before loading, thus allocating new memory, call setdef to free owned memory
     base_desc->setdef(ramBase);
     base_desc->loadFromTlv(fp, ramBase);
+    fclose(fp);
 
     // Reset context, since a reload re-allocates memory and makes current context invalid
-    pCtxt = &baseCtxt;
-
-    fclose(fp);
+    resetCtxt();
 }
 
 
@@ -213,7 +220,7 @@ void config_manager::load()
             else
             {
                 // We have a component, but there's nothing left of the command
-                config_manager::getInstance()->setCtxt(&ctxt);
+                config_manager::getInstance()->updateCtxt(&ctxt);
                 return;
             }
         }
@@ -814,7 +821,11 @@ void cm_basic_item_descriptor::handleCmd(int argc,
             return print(pItem, "");
 
         case CM_SET:
-            return set(pItem, argv[1]);
+            if (argc == 2)
+            {
+                set(pItem, argv[1]);
+            }
+            return;
 
         case CM_SETDEF:
             return setdef(pItem);
@@ -828,11 +839,10 @@ void cm_basic_item_descriptor::handleCmd(int argc,
 }
 
 
-// Set.
+// Set item to a value input as string on command line
 void cm_basic_item_descriptor::set(unsigned char * pItem, string val) const
 {
-    DBG_PRT("set simple %s at %p to value %s\n",
-            name.c_str(), pItem, val.c_str());
+    DBG_PRT("set simple %s at %p to '%s'\n", name.c_str(), pItem, val.c_str());
 
     if (pSet != NULL)
     {
