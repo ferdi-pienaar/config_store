@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<item name=""> <!-- The name used in C structure definitions, or is it derived from the command line name, w decoration? -->
+  <item-type></item-type> <!-- identify counter here?  Or is a counter an item that's a child element of a counter element?
+                           Simple or composite should be clear from the context.
+                           Counters have the property of being displayed, or not. -->
+  <name> </name> <!-- Name used on command line -->
+  <id> </id>   <!-- ID used in TLV -->
+  <aggregate> 
+    <type>contained</type> <!-- Owned or contained -->
+    <count>2</count>
+    <item>
+      <name></name>
+      <id> </id>
+      <print-function>cm_prt_int</print-function> <!-- could the function be an attribute? -->
+      <set-function>cm_set_int</set-function>
+      <setdef-function></setdef-function>
+    </item>
+  </aggregate>
+
+  <!-- A counter aggr needs ID metadata so it can be referenced by the corresponding owned aggregate -->
+  <aggregate id="usercnt"> 
+    <type>contained</type> <!-- Owned or contained -->
+    <count>1</count>
+    <item>
+      <name>usercnt</name>
+      <id> </id>
+      <!-- If a counter has no print function, then it needn't be in the composite's aggregate list? -->
+      <print-function>cm_prt_int</print-function> <!-- could the function be an attribute? -->
+      <set-function>cm_set_int</set-function>
+      <setdef-function></setdef-function>
+    </item>
+  </aggregate>
+
+  <aggregate> 
+    <type>owned</type> <!-- Owned or contained -->
+    <count>10</count>
+    <!-- xxx A reference to the counter aggr - note that the counter isn't contained here, but in the parent -->
+    <counter ref="usercnt"/>
+    <item>
+      <name>user</name>
+      <id></id>
+      <print-function></print-function> <!-- could the function be an attribute? -->
+      <set-function></set-function>
+      <setdef-function></setdef-function>
+    </item>
+  </aggregate>
+</item>
+
+<!--
+ Should the user specify the IDs?
+ - yes, the user has to keep track of the IDs.
+ - no, it's too complicated.  The script should at least supply default IDs.
+   Maybe the parser should also take as input the previous version of the xml
+   file and report potential problems with changing IDs, or other types of changes?
+   Alternatively, the script generates IDs.  It compares the previous and latest XML
+   files, and generates a new ID if a component has been modified in a manner
+   that requires a new ID.
+   Maybe supplying the ID is optional; if none is supplied, the script generates
+   one.
+
+   Note that the .h file generated should be readable.  It should include comments
+   from the XML.  For each simple item, give the name of the set, prt and setdef
+   functions.  For a counter, say what it's counting.
+
+   Probably the user should be able to specify different target .h files.  The c
+   file, containing initializations, doesn't have to be as human-friendly, so
+   it could be a single big file.
+
+   We probably want some re-use of things defined in the XML, i.e.
+   we wouldn't want to have to redefine basic structures like IP-address
+   each time they're used in a different context.  This suggests we should break
+   the XML up - instead of one block containing everything, at least 2 blocks,
+   with one referencing the other.
+   
+-->

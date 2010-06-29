@@ -31,4 +31,5 @@
 - Is there superfluous info in the TLV files?  At least for simple types, if I know the type
   I already know the length.  What do we do if a simple item's size is not what's expected?
 - Test for memory leaks.  How?
+- Set more than one component of a composite in a single command?
 

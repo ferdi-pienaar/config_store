@@ -32,12 +32,17 @@ int main()
             continue;
         }
 
-        param[0] = strtok(cmd, WORD_DELIMITERS);
+        if ((param[0] = strtok(cmd, WORD_DELIMITERS)) != NULL)
+        {
+            wordCnt = 1;
 
-        while (NULL != (param[++wordCnt] = strtok(NULL, WORD_DELIMITERS)))
-        {}
+            while (NULL != (param[wordCnt] = strtok(NULL, WORD_DELIMITERS)))
+            {
+                wordCnt++;
+            }
 
-        cm->handleCmd(wordCnt, param);
+            cm->handleCmd(wordCnt, param);
+        }
     }
 }
 

@@ -608,7 +608,7 @@ void cm_composite_item_descriptor::print(const unsigned char * pItem, string pre
 // For OWNED components, free owned memory before setting
 // the corresponding counter to 0.
 // This means that we should not clear the counter first
-// (which is why no setdef fn is installed for a counter), since pAggr->getCount
+// (which is why a counter's setdef method does nothing), since pAggr->getCount
 // for an owned component depends on the counter still being set.
 void cm_composite_item_descriptor::setdef(unsigned char * pItem) const
 {    
@@ -641,7 +641,7 @@ void cm_composite_item_descriptor::setdef(unsigned char * pItem) const
 }
 
 
-// Give name of each component
+// Give name of each component, current count, and maxcount if OWNed.
 void cm_composite_item_descriptor::help(const unsigned char * pItem) const
 {
     for (int i = 0; i < aggrCount; i++)
@@ -698,7 +698,6 @@ const cm_aggregate * cm_composite_item_descriptor::getAggr(cm_descriptor_id id) 
 // ppComponent: output, the wanted component, or 0 if command identifies none
 // ppItem: on input, the owning item
 //         on output, the wanted item
-// 
 //
 void cm_composite_item_descriptor::getComponentItem(int * pArgc,
                                                     char *** pArgv,
