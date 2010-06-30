@@ -9,7 +9,7 @@
     <type>contained</type> <!-- Owned or contained -->
     <count>2</count>
     <item>
-      <name></name>
+      <name>port</name>
       <id> </id>
       <print-function>cm_prt_int</print-function> <!-- could the function be an attribute? -->
       <set-function>cm_set_int</set-function>
