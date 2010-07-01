@@ -31,7 +31,7 @@ typedef uint16_t cm_item_len;
 typedef uint16_t cm_descriptor_id;
 
 // Function pointers -- types registered by user when descriptor is created
-typedef void (*CM_SET_FPTR)(unsigned char *pItem, cm_item_len len, std::string val);
+typedef bool (*CM_SET_FPTR)(unsigned char *pItem, cm_item_len len, std::string val);
 typedef void (*CM_SETDEF_FPTR)(unsigned char *pItem, cm_item_len len);
 typedef void (*CM_PRT_FPTR)(const unsigned char *pItem, cm_item_len len);
 
@@ -68,7 +68,7 @@ public:
                        name(iname), len(ilen), id(iid){}
     virtual ~cm_item_descriptor(){}
 
-    virtual void handleCmd(int argc, char *argv[], unsigned char * pItem, struct t_cm_context & ctxt ) const = 0;
+    virtual bool handleCmd(int argc, char *argv[], unsigned char * pItem, struct t_cm_context & ctxt ) const = 0;
     virtual cm_item_len getLen() const {return len;}
     virtual cm_item_len getTlvLen(const unsigned char * pItem) const = 0;
     virtual void writeTlv(const unsigned char * pItem, unsigned char ** ppBuf) const = 0;
@@ -200,14 +200,14 @@ public:
                                  aggrCount(aggrCount){};
 
     ~cm_composite_item_descriptor(){};
-    void handleCmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
+    bool handleCmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
     void print(const unsigned char * pItem, std::string prefix) const;
     void setdef(unsigned char * pItem) const;
     virtual void help(const unsigned char * pItem) const;
-    void handleAdd(int argc, char *argv[], unsigned char * pItem) const;
+    bool handleAdd(int argc, char *argv[], unsigned char * pItem) const;
     unsigned char * add(unsigned char * pParentItem, const cm_aggregate * pAggr) const;
-    void handleDel(int argc, char *argv[], unsigned char * pItem) const;
-    void del(unsigned char * pParentItem,
+    bool handleDel(int argc, char *argv[], unsigned char * pItem) const;
+    bool del(unsigned char * pParentItem,
              const cm_aggregate * pAggr,
              unsigned int itemIdx,
              unsigned int cnt) const;
@@ -266,8 +266,8 @@ public:
                               
     ~cm_basic_item_descriptor(){};
 
-    void handleCmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
-    void set(unsigned char * pItem, std::string val) const;
+    bool handleCmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
+    bool set(unsigned char * pItem, std::string val) const;
     void setdef(unsigned char * pItem) const;
 };
 
@@ -287,7 +287,7 @@ public:
                             cm_simple_item_descriptor(name, id, l, pf){};
                               
     ~cm_cntr_item_descriptor(){};
-    void handleCmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
+    bool handleCmd(int argc, char *argv[], unsigned char * pItem, cm_context & ctxt) const;
     // A counter's setdef does nothing: it is set to 0 as a side-effect of
     // freeing the corresponding owned items.
     void setdef(unsigned char * pItem) const {};

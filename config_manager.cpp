@@ -192,10 +192,10 @@ void config_manager::load()
 // pItem - pointer to RAM at which item is located
 //
 //
- void cm_composite_item_descriptor::handleCmd(int argc,
-                                              char *argv[],
-                                              unsigned char * pItem,
-                                              cm_context & ctxt) const
+bool cm_composite_item_descriptor::handleCmd(int argc,
+                                             char *argv[],
+                                             unsigned char * pItem,
+                                             cm_context & ctxt) const
 {
     DBG_PRT("composite::handleCmd: %s\n", argv[0]);
     switch (getOp(argv[0]))
@@ -221,7 +221,7 @@ void config_manager::load()
             {
                 // We have a component, but there's nothing left of the command
                 config_manager::getInstance()->updateCtxt(&ctxt);
-                return;
+                return true;
             }
         }
         break;
@@ -235,13 +235,16 @@ void config_manager::load()
             return handleDel(argc - 1, &(argv[1]), pItem);
             
         case CM_PRT:
-            return print(pItem, "");
+            print(pItem, "");
+            return true;
 
         case CM_SETDEF:
-            return setdef(pItem);
+            setdef(pItem);
+            return true;
 
         case CM_HELP:
-            return help(pItem);
+            help(pItem);
+            return true; // xxx true?
 
         default: 
             break;
@@ -249,19 +252,20 @@ void config_manager::load()
 
     // Don't use argv[0] here, because it may have been modified by getComponentItem
     cout << "Not handled in '" << name << "'" << endl;
+    return false;
 }
 
 
 // Try to add a component named by argc,argv to a composite.
 // After verifying the operation is applicable, the item is added.
-void cm_composite_item_descriptor::handleAdd(int argc, char *argv[], unsigned char * pItem) const
+bool cm_composite_item_descriptor::handleAdd(int argc, char *argv[], unsigned char * pItem) const
 {
     DBG_PRT("handleAdd %s\n", argv[0]);
 
     if (argc != 1)
     {
         cout << argc << " parameters for 'add'." << endl;
-        return;
+        return false;
     }
 
     const cm_aggregate * pAggr = getAggr(argv[0]);
@@ -269,23 +273,26 @@ void cm_composite_item_descriptor::handleAdd(int argc, char *argv[], unsigned ch
     if (pAggr == NULL)
     {
         cout << "No item '" << argv[0] << "' in '" << name << "'." << endl;
-        return;
+        return false;
     }
     
     if (!pAggr->isAddSupported())
     {
         cout<<"Add not supported for '"<<pAggr->pDesc->getName()<<"' in '"<<name<<"'."<< endl;
-        return;
+        return false;
     }
 
     if (pAggr->getCount(pItem) >= pAggr->maxCount)
     {
         cout<<"Can't add '"<<pAggr->pDesc->getName()<<"' (max "<<pAggr->maxCount<<")."<<endl;
-        return;
+        return false;
     }  
         
-    add(pItem, pAggr);
-    return;
+    if (add(pItem, pAggr) == NULL)
+    {
+        return false;
+    }
+    return true;
 }
 
 
@@ -293,6 +300,7 @@ void cm_composite_item_descriptor::handleAdd(int argc, char *argv[], unsigned ch
 // @pre Add operation is supported on pAggr, and counter is in range
 // This allocates memory for the new item, sets it to default values,
 // and increments the corresponding counter.
+// @return pointer to new allocated memory, or NULL in case of failure
 unsigned char * cm_composite_item_descriptor::add(unsigned char * pParentItem,
                                                   const cm_aggregate * pAggr) const
 {
@@ -326,7 +334,7 @@ unsigned char * cm_composite_item_descriptor::add(unsigned char * pParentItem,
 
 
 // Del an owned component named by argc,argv from a composite
-void cm_composite_item_descriptor::handleDel(int argc, char *argv[], unsigned char * pItem) const
+bool cm_composite_item_descriptor::handleDel(int argc, char *argv[], unsigned char * pItem) const
 {
     DBG_PRT("handleDel %s\n", argv[0]);
 
@@ -334,7 +342,7 @@ void cm_composite_item_descriptor::handleDel(int argc, char *argv[], unsigned ch
     {
         // Provide item name and, optionally, index
         cout << argc << " parameters for 'del'." << endl;
-        return;
+        return false;
     }    
 
     const cm_aggregate * pAggr = getAggr(argv[0]);
@@ -342,7 +350,7 @@ void cm_composite_item_descriptor::handleDel(int argc, char *argv[], unsigned ch
     if (pAggr == NULL)
     {        
         cout << "No item '" << argv[0] << "' in '" << name << "'." << endl;
-        return;
+        return false;
     }
 
     // Match found
@@ -352,7 +360,7 @@ void cm_composite_item_descriptor::handleDel(int argc, char *argv[], unsigned ch
     if (!pAggr->isAddSupported())
     {
         cout<<"Delete not supported for '"<<pAggr->pDesc->getName()<<"' in '"<<name<<"'."<< endl;
-        return;
+        return false;
     }
 
     unsigned int cnt = pAggr->getCount(pItem); // number of items currently in array
@@ -360,7 +368,7 @@ void cm_composite_item_descriptor::handleDel(int argc, char *argv[], unsigned ch
     if (cnt == 0)
     {
         cout << "Currently no '" <<pAggr->pDesc->getName()<<"' in '"<<name<<"'."<< endl;
-        return;
+        return false;
     }
 
     unsigned int itemIdx = 0; // If no explicit index is needed, use 0 offset
@@ -368,13 +376,13 @@ void cm_composite_item_descriptor::handleDel(int argc, char *argv[], unsigned ch
     if (pAggr->needIndex(pItem) && !pAggr->getIndex(&argc, &argv, pItem, itemIdx))
     {
         // An index is needed but couldn't be extracted from the command
-        return;
+        return false;
     }
 
     if (itemIdx >= pAggr->getCount(pItem))
     {
         cout<<"Index "<<itemIdx<<" out of range (0.. "<<pAggr->getCount(pItem)-1<<")."<<endl;
-        return;
+        return false;
     }
 
     return del(pItem, pAggr, itemIdx, cnt);
@@ -385,7 +393,7 @@ void cm_composite_item_descriptor::handleDel(int argc, char *argv[], unsigned ch
 // @pre Add operation is supported on pAggr, and counter is in range
 // This re-allocates the necessary memory, updates the counter if necessary,
 // and sets the pointer to the memory to NULL if it's all been freed.
-void cm_composite_item_descriptor::del(unsigned char * pParentItem,
+bool cm_composite_item_descriptor::del(unsigned char * pParentItem,
                                        const cm_aggregate * pAggr,
                                        unsigned int itemIdx,
                                        unsigned int cnt) const
@@ -410,7 +418,8 @@ void cm_composite_item_descriptor::del(unsigned char * pParentItem,
         *ppItems = NULL;
     }
 
-    return pAggr->setCount(pParentItem, cnt - 1);
+    pAggr->setCount(pParentItem, cnt - 1);
+    return true;
 }
 
 
@@ -807,7 +816,7 @@ void cm_simple_item_descriptor::print(const unsigned char * pItem, string prefix
 // argv array of strings containing name elements
 // pItem - pointer to RAM at which item is located
 //
-void cm_basic_item_descriptor::handleCmd(int argc,
+bool cm_basic_item_descriptor::handleCmd(int argc,
                                          char *argv[],
                                          unsigned char * pItem,
                                          cm_context & ctxt) const
@@ -817,41 +826,45 @@ void cm_basic_item_descriptor::handleCmd(int argc,
     switch (getOp(argv[0]))
     {
         case CM_PRT:
-            return print(pItem, "");
+            print(pItem, "");
+            return true;
 
         case CM_SET:
             if (argc == 2)
             {
-                set(pItem, argv[1]);
+                return set(pItem, argv[1]);
             }
-            return;
+            break;
 
         case CM_SETDEF:
-            return setdef(pItem);
+            setdef(pItem);
+            return true;
 
         case CM_HELP:
-            return help(pItem);
+            help(pItem);
+            return true; // true?
 
         default:
             cout << "'" << argv[0] << "' not handled by basic item '" << name << "'" << endl;
-    }   
+    }
+    return false;
 }
 
 
 // Set item to a value input as string on command line
-void cm_basic_item_descriptor::set(unsigned char * pItem, string val) const
+bool cm_basic_item_descriptor::set(unsigned char * pItem, string val) const
 {
     DBG_PRT("set simple %s at %p to '%s'\n", name.c_str(), pItem, val.c_str());
 
     if (pSet != NULL)
     {
-        pSet(pItem, len, val);
+        return pSet(pItem, len, val);
     }
     else
     {
         cout << "'" << name << "' can't be set." << endl;
+        return false;
     }
-    cout << endl;
 }
 
 
@@ -940,7 +953,7 @@ unsigned int cm_basic_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pI
 // argv array of strings containing name elements
 // pItem - pointer to RAM at which item is located
 //
-void cm_cntr_item_descriptor::handleCmd(int argc,
+bool cm_cntr_item_descriptor::handleCmd(int argc,
                                         char *argv[],
                                         unsigned char * pItem,
                                         cm_context & ctxt) const
@@ -950,14 +963,17 @@ void cm_cntr_item_descriptor::handleCmd(int argc,
     switch (getOp(argv[0]))
     {
         case CM_PRT:
-            return print(pItem, "");
+            print(pItem, "");
+            return true;
 
         case CM_HELP:
-            return help(pItem);
+            help(pItem);
+            return true; // xxx true
 
         default:
             cout << "'" << argv[0] << "' not handled by counter '" << name << "'" << endl;
-    }   
+    }
+    return false;
 }
 
 

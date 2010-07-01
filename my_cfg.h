@@ -1,7 +1,3 @@
-#include <iostream>
-#include "config_manager.h"
-#include "my_cfg_fn.h" // User-written functions "plugged in" to config_manager
-
 // Data structures for managed items, living in RAM.
 // The user code does define instance of these data types.
 // The user application accesses this in two ways:
@@ -11,6 +7,9 @@
 //    cfg_man to modify the data.  RAM data is never written to directly
 //    (xxx can we enforce this rule?).
 // 
+#include <iostream>
+#include "config_manager.h"
+#include "my_cfg_fn.h" // User-written functions "plugged in" to config_manager
 
 #define NUM_CLI_PORT      4
 #define MAX_LEN_USER_NAME 16

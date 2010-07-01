@@ -1,11 +1,11 @@
+// Functions implemented by the application programmer, to extend
+// the features provided by the config_manager.
+//
+
 #include <iostream>
 #include "config_manager.h"
 #include "my_cfg_fn.h"
 using namespace std;
-
-// functions implemented by the application programmer, to extend
-// the features provided by the config_manager.
-//
 
 
 //

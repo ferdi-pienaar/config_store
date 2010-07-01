@@ -32,4 +32,5 @@
   I already know the length.  What do we do if a simple item's size is not what's expected?
 - Test for memory leaks.  How?
 - Set more than one component of a composite in a single command?
+- Display members of an array by giving array name without index
 

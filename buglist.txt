@@ -1,4 +1,34 @@
-Is it a bug that we create things as we go, even if the command may finally be bad syntax?
+Is it a bug that we create things as we go, even if the command may finally be bad 
+syntax, or simply a help query?  But the alternative is to get much sophisticated, 
+and pre-analyze the complete command and decide whether we'll add as we go, or 
+not.
+And/or, we should undo adds that were done as a result of commands with bad 
+syntax, but that's likely even more difficult, since we'd have to keep a record 
+of what we added.
+Perhaps we can do an exploratory tree traversal, before actually executing the 
+command.  In other words, because commands now have side-effects, we can't 
+simply try to execute them as before, and just fail if there's something wrong. 
+This won't work, because we already have executed side effects (i.e. added OWNed
+components).  But how do we evaluate if a command that implicitly does an add 
+is correct, if we don't actually do the add?  We'd have to say, for the rest of 
+the command, "would the remainder of this command be valid if applied to an 
+item filled with default data", since a new item is filled with default data.  
+The only way I can think of to do that is to temporarily allocate and set to 
+default a new item.  We'd have to then free the temp element as we unwound the 
+stack.  This suggests an alternate implementation: allocate elements as we go, 
+but if the called command-handling functions return an error, then undo the 
+add. Maybe the only modification the function APIs need, is a return code. 
+We'd need a way to know if getComponentItem did an add, so we could reverse it 
+-- or it should not do the add, but give a return code indicating an add is 
+required (and approved).  We'd still have to take care of help requests, which
+should have no side-effects even if valid and successful.
+Help in any case needs a re-think, since it shouldn't be necessary to provide 
+an index when asking for help, so perhaps help needs to work differently to 
+other commands, since it's applicable to metadata rather than actual data.
+Implementing the exploratory tree traversal: should we have a bunch of check
+functions to call, or instead pass a parameter to our existing tree traversal 
+functions, indicating if they should execute or just check?  The dual function 
+approach is cleaner, but is bound to result in some code duplication.
 
 Strings can't contain spaces, because that's seen as a new word...
 

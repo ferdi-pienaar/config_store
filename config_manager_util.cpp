@@ -48,7 +48,7 @@ void cm_prt_int(const unsigned char *pItem, cm_item_len len)
 // Integers are kept in the order prescribed by the given
 // system (little-endian or big-endian).
 //
-void cm_set_int(unsigned char *pItem, cm_item_len len, string val)
+bool cm_set_int(unsigned char *pItem, cm_item_len len, string val)
 {
     char * pEnd; // pointer to char after chars accepted by strtol
 
@@ -60,6 +60,7 @@ void cm_set_int(unsigned char *pItem, cm_item_len len, string val)
     if (pEnd == val.c_str())
     {
         cout << "Not an integer." << endl;
+        return false;
     }
    
     switch (len)
@@ -67,20 +68,21 @@ void cm_set_int(unsigned char *pItem, cm_item_len len, string val)
         case sizeof(int8_t):
             int8_t cv = (int8_t)v;
             memcpy(pItem, &cv, sizeof(cv));
-            break;
+            return true;
 
         case sizeof(int16_t):            
             int16_t sv = (int16_t)v;
             memcpy(pItem, &sv, sizeof(sv));
-            break;
+            return true;
             
         case sizeof(int32_t):
             int32_t lv = (int32_t)v;
             memcpy(pItem, &lv, sizeof(lv));
-            break;
+            return true;
 
         default:
             assert(0);
+            return false;
     }
 }
             
@@ -100,8 +102,9 @@ void cm_prt_str(const unsigned char *pItem, cm_item_len len)
 // len - number of bytes the string consists of
 // val - a string representing the new value
 //
-void cm_set_str(unsigned char *pItem, cm_item_len len, string val)
+bool cm_set_str(unsigned char *pItem, cm_item_len len, string val)
 {
     snprintf((char *)pItem, len, val.c_str());
+    return true;
 }
 
