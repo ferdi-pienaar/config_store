@@ -202,20 +202,35 @@ bool cm_composite_item_descriptor::handleCmd(int argc,
     {
         case CM_OP_NONE:
         {
-            cm_item_descriptor * pComponent; // Component of this composite identified by argc, argv
+            cm_aggregate *  pAggr;                // Component of this composite identified by argc, argv
+            unsigned char * pParentItem = pItem;  // Remember location of parent, we may need it to delete side-effect
+            bool            added;                // Did getComponentItem create a new item?
 
-            getComponentItem(&argc, &argv, &pComponent, &pItem, ctxt);
-
-            if (pComponent == NULL)
+            if (!getComponentItem(&argc, &argv, &pAggr, &pItem, ctxt, added))
             {
                 // Unhandled word(s): not a command, and also doesn't identify a component
-                DBG_PRT("composite::handleCmd: unhandled\n");
+                DBG_PRT("composite::handleCmd: no component\n");
                 break;
             }
+            
+            // A component was found
             if (argc > 0)
             {                
                 // Pass the remainder of the command to the found component
-                return pComponent->handleCmd(argc, argv, pItem, ctxt);
+                if (!pAggr->pDesc->handleCmd(argc, argv, pItem, ctxt))
+                {
+                    // Component says the command is invalid
+                    if (added)
+                    {
+                        // Free memory allocated as a side-effect of an invalid command
+                        del(pParentItem,
+                            pAggr,
+                            pAggr->getCount(pParentItem) - 1,
+                            pAggr->getCount(pParentItem));                        
+                    }
+                    return false;
+                }
+                return true;
             }
             else
             {
@@ -379,31 +394,34 @@ bool cm_composite_item_descriptor::handleDel(int argc, char *argv[], unsigned ch
         return false;
     }
 
-    if (itemIdx >= pAggr->getCount(pItem))
+    if (itemIdx >= cnt)
     {
         cout<<"Index "<<itemIdx<<" out of range (0.. "<<pAggr->getCount(pItem)-1<<")."<<endl;
         return false;
     }
 
-    return del(pItem, pAggr, itemIdx, cnt);
+    del(pItem, pAggr, itemIdx, cnt);
+    return true;
 }
 
 
 // Del OWNED item.
-// @pre Add operation is supported on pAggr, and counter is in range
+// @pre Add operation is supported on pAggr, and item count is > 0 and
+//      index < item count.
 // This re-allocates the necessary memory, updates the counter if necessary,
 // and sets the pointer to the memory to NULL if it's all been freed.
-bool cm_composite_item_descriptor::del(unsigned char * pParentItem,
+void cm_composite_item_descriptor::del(unsigned char * pParentItem,
                                        const cm_aggregate * pAggr,
                                        unsigned int itemIdx,
                                        unsigned int cnt) const
 {
     // Reallocate memory, and save pointer in the same location
     unsigned char ** ppItems = (unsigned char **)(pParentItem + pAggr->offset);
-    cm_item_len      componentLen = pAggr->pDesc->getLen();    
+    cm_item_len      componentLen = pAggr->pDesc->getLen();
 
-    DBG_PRT("del item base %p offset %d index %d len %d\n",
-            pParentItem, pAggr->offset, itemIdx, componentLen);
+    DBG_PRT("del at %p index %d len %d\n", *ppItems, itemIdx, componentLen);
+
+    assert(*ppItems != NULL);
 
     // Shift down items to occupy the memory vacated by deleted item
     memmove(*ppItems + itemIdx * componentLen,
@@ -419,7 +437,6 @@ bool cm_composite_item_descriptor::del(unsigned char * pParentItem,
     }
 
     pAggr->setCount(pParentItem, cnt - 1);
-    return true;
 }
 
 
@@ -457,10 +474,10 @@ void cm_composite_item_descriptor::writeTlv(const unsigned char *pItem, unsigned
     cm_item_len componentLen = getTlvLen(pItem) - sizeof(len) - sizeof(id);
     
     // First write own Type and Length
-    memcpy(*ppBuf, &id, sizeof(id));             // write Type (i.e. the ID)
-    *ppBuf += sizeof(id);                        // advance the memory pointer
-    memcpy(*ppBuf, &componentLen, sizeof(len));  // write Length (of Value to follow)
-    *ppBuf += sizeof(len);                       // advance the memory pointer
+    memcpy(*ppBuf, &id, sizeof(id));                     // write Type (i.e. the ID)
+    *ppBuf += sizeof(id);                                // advance the memory pointer
+    memcpy(*ppBuf, &componentLen, sizeof(componentLen)); // write Length (of Value to follow)
+    *ppBuf += sizeof(len);                               // advance the memory pointer
     
     // Now write V, which is the TLVs of all components
     for (int i = 0; i < aggrCount; i++)
@@ -477,7 +494,7 @@ void cm_composite_item_descriptor::writeTlv(const unsigned char *pItem, unsigned
 }
 
 
-// Calling function called this function because the ID matches,
+// This method is called if the TLV field T (the item ID) matches,
 // so it's not checked here again.
 // This method reads L, and moves forward in the file by that many bytes,
 // using what it finds in the file to initialize the object's configurable items.
@@ -708,31 +725,33 @@ const cm_aggregate * cm_composite_item_descriptor::getAggr(cm_descriptor_id id) 
 // ppItem: on input, the owning item
 //         on output, the wanted item
 //
-void cm_composite_item_descriptor::getComponentItem(int * pArgc,
+bool cm_composite_item_descriptor::getComponentItem(int * pArgc,
                                                     char *** pArgv,
-                                                    cm_item_descriptor ** ppComponent,
+                                                    cm_aggregate ** ppAggr,
                                                     unsigned char ** ppItem,
-                                                    cm_context & ctxt) const
+                                                    cm_context & ctxt,
+                                                    bool & added) const
 {
-    *ppComponent = NULL; // By default, found nothing
-    const cm_aggregate * pAggr = getAggr(*pArgv[0]);
+    added = false; // By default, didn't add a new component
+    
+    *ppAggr = (cm_aggregate *)getAggr(*pArgv[0]); // xxx fix constness -- avoid cast here.  A variable ptr to ptr to const
 
-    if (pAggr == NULL)
+    if (*ppAggr == NULL)
     {
-        return;
+        return false;
     }
 
-    ctxt.str += pAggr->pDesc->getName() + " ";
+    ctxt.str += (*ppAggr)->pDesc->getName() + " ";
     
     // Found matching name: now try to get index from next word
     *pArgc -= 1;
     *pArgv += 1;
     unsigned int itemIdx = 0; // If no index needed, use offset 0
 
-    if (pAggr->maxCount > 1)
+    if ((*ppAggr)->maxCount > 1)
     {
         // Explicit index is needed if there can be more than one instance
-        if (pAggr->getIndex(pArgc, pArgv, *ppItem, itemIdx))
+        if ((*ppAggr)->getIndex(pArgc, pArgv, *ppItem, itemIdx))
         {
             // Index available, it becomes part of the context string
             char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
@@ -743,34 +762,35 @@ void cm_composite_item_descriptor::getComponentItem(int * pArgc,
         else
         {
             // The necessary index was not in the command
-            return;
+            return false;
         }
     }
 
-    unsigned int cnt = pAggr->getCount(*ppItem); // Number of items currently in the aggregate
+    unsigned int cnt = (*ppAggr)->getCount(*ppItem); // Number of items currently in the aggregate
 
     DBG_PRT("getComponentItem %p offset %d idx %d cnt %d len %d\n",
-            *ppItem, pAggr->offset, itemIdx, cnt, pAggr->pDesc->getLen());
+            *ppItem, (*ppAggr)->offset, itemIdx, cnt, (*ppAggr)->pDesc->getLen());
 
     if (itemIdx >= cnt)
     {
         // Index refers to an item that doesn't exist
-        if (pAggr->isAddSupported() && (itemIdx == cnt) && (itemIdx < pAggr->maxCount))
+        if ((*ppAggr)->isAddSupported() && (itemIdx == cnt) && (itemIdx < (*ppAggr)->maxCount))
         {
             // Index refers to an item to create
-            add(*ppItem, pAggr);
+            add(*ppItem, *ppAggr);
+            added = true;
         }
         else
         {
             cout<<"Index "<<itemIdx<<" out of range"<<endl;
-            return;
+            return false;
         }
     }
 
-    *ppComponent = (cm_item_descriptor *)pAggr->pDesc; // xxx fix constness issues: no typecasting should be needed here
-    *ppItem = pAggr->getFirstItem(*ppItem) + itemIdx * pAggr->pDesc->getLen();
-    ctxt.pDesc = *ppComponent;
+    *ppItem = (*ppAggr)->getFirstItem(*ppItem) + itemIdx * (*ppAggr)->pDesc->getLen();
+    ctxt.pDesc = (*ppAggr)->pDesc;
     ctxt.pItem = *ppItem;
+    return true;
 }
 
 
@@ -910,7 +930,7 @@ cm_item_len cm_basic_item_descriptor::getTlvLen(const unsigned char * pItem) con
 }
 
 
-// Calling function called this function because the ID matches,
+// This method is called if the TLV field T (the item ID) matches,
 // so it's not checked here again.
 // This method reads L, and moves forward in the file by that many bytes,
 // using what it finds in the file to initialize the object's configurable items.
@@ -984,8 +1004,8 @@ bool cm_cntr_item_descriptor::handleCmd(int argc,
 ////////////////////////////////////////////////////////////////////////////////
 
 // Utility method to extract in index from an array of command words
-// Returns false if unable to extract a valid (in-range) index
-// Returns true if returning a valid (in-range) index.
+// @return false if unable to extract a valid (in-range) index,
+//         true if returning a valid (in-range) index.
 //
 bool cm_aggregate::getIndex(int * pArgc,
                             char *** pArgv,

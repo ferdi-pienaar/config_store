@@ -8,8 +8,8 @@
 
 
 #include "TestHarness.h"
-#include "config_manager.h"  // Unit under test
-#include "config_manager_util.h"     // Extensions to unit under test (generic "set" functions)
+#include "config_manager.h"       // Unit under test
+#include "config_manager_util.h"  // Extensions to unit under test (generic "set" functions)
 
 #include <string>
 using namespace std;
@@ -17,9 +17,9 @@ using namespace std;
 
 int main()
 {
-	TestResult tr;
-	TestRegistry::runAllTests(tr);
-	return 0;
+    TestResult tr;
+    TestRegistry::runAllTests(tr);
+    return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -50,7 +50,7 @@ struct m2
 
 // test set 2 metadata
 const cm_basic_item_descriptor s3("count", 1, sizeof(int), NULL, NULL, NULL);
-const cm_basic_item_descriptor s4("owned", 2, sizeof(int), NULL, NULL, NULL);
+const cm_basic_item_descriptor s4("owned", 2, sizeof(int), cm_set_int, NULL, NULL);
 const cm_contained_aggregate ca3(&s3, 1, offsetof(struct m2, cnt));
 const cm_owned_aggregate oa4(&s4, 10, offsetof(struct m2, owned), &ca3);
 const cm_aggregate * const aggrList2[] = {&ca3, &oa4};
@@ -162,8 +162,6 @@ TEST(printOwnedData, cm_composite_item_descriptor)
 
 TEST(addFirst, cm_composite_item_descriptor)
 {
-    string prefix = "";
-    char outstring[64];
     struct m2 mem = {0, NULL}; // Test data
     char * commandWord = "owned";
 
@@ -181,8 +179,6 @@ TEST(addFirst, cm_composite_item_descriptor)
 
 TEST(addAnother, cm_composite_item_descriptor)
 {
-    string prefix = "";
-    char outstring[64];
     struct m2 mem = {0, NULL}; // Test data
     char * commandWord = "owned";
 
@@ -202,8 +198,6 @@ TEST(addAnother, cm_composite_item_descriptor)
 
 TEST(delNull, cm_composite_item_descriptor)
 {
-    string prefix = "";
-    char outstring[64];
     struct m2 mem = {0, NULL};
     char * commandWord[] = {"owned", "1"};
 
@@ -215,13 +209,12 @@ TEST(delNull, cm_composite_item_descriptor)
 }
 
 
+// Delete the 2nd of two owned items; the first is unchanged
 TEST(delEnd, cm_composite_item_descriptor)
 {
     #undef NUM_OWNED
     #define NUM_OWNED 2
 
-    string prefix = "";
-    char outstring[64];
     struct m2 mem;
     char * commandWord[] = {"owned", "1"};
 
@@ -241,13 +234,12 @@ TEST(delEnd, cm_composite_item_descriptor)
 }
 
 
+// Delete the 1st of two owned items; the 2nd moves down
 TEST(delFirst, cm_composite_item_descriptor)
 {
     #undef NUM_OWNED
     #define NUM_OWNED 2
 
-    string prefix = "";
-    char outstring[64];
     struct m2 mem;
     char * commandWord[] = {"owned", "0"};
 
@@ -268,13 +260,11 @@ TEST(delFirst, cm_composite_item_descriptor)
 }
 
 
-TEST(delOnly, cm_composite_item_descriptor)
+TEST(delSingle, cm_composite_item_descriptor)
 {
     #undef NUM_OWNED
     #define NUM_OWNED 1
 
-    string prefix = "";
-    char outstring[64];
     struct m2 mem;
     char * commandWord[] = {"owned", "0"};
 
@@ -293,11 +283,9 @@ TEST(delOnly, cm_composite_item_descriptor)
 }
 
 
-// Add an sole, uncounted OWNed item
+// Add the sole, uncounted OWNed item
 TEST(addOnly, cm_composite_item_descriptor)
 {
-    string prefix = "";
-    char outstring[64];
     struct m4 mem = {NULL};
     char * commandWord = "owned";
     
@@ -311,5 +299,54 @@ TEST(addOnly, cm_composite_item_descriptor)
 }
 
 
+// Delete the sole, uncounted OWNed item
+TEST(delOnly, cm_composite_item_descriptor)
+{
+    struct m4 mem;
+    char * commandWord = "owned";
+    
+    // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
+    int * owned = (int *)malloc(NUM_OWNED * sizeof(int));
+    
+    mem.owned = owned;
+
+    c4.handleDel(1, &commandWord, (unsigned char *)&mem);
+
+    // And the pointer to owned is set to NULL after owned memory freed
+    CHECK(mem.owned == NULL);
+}
+
+
+// Allocate memory as side-effect of set command
+TEST(implicitAdd, cm_composite_item_descriptor)
+{
+    struct m2 mem = {0, NULL}; // Test data
+    char * commandWord[] = {"owned", "0", "=", "42"};
+    cm_context ctxt;
+
+    
+    c2.handleCmd(4, commandWord, (unsigned char *)&mem, ctxt);
+
+    // Counter is incremented and ptr to owned item is no longer NULL
+    CHECK(mem.cnt == 1);
+    CHECK(mem.owned != NULL);
+    CHECK(mem.owned[0] == 42);
+}
+ 
+
+// Do not (permanently) allocate memory as side-effect of executing invalid command
+TEST(implicitAddFail, cm_composite_item_descriptor)
+{
+    struct m2 mem = {0, NULL}; // Test data
+    char * commandWord[] = {"owned", "0", "blabla"};
+    cm_context ctxt;
+
+    
+    c2.handleCmd(3, commandWord, (unsigned char *)&mem, ctxt);
+
+    // Counter is not incremented and ptr to owned item is NULL
+    CHECK(mem.cnt == 0);
+    CHECK(mem.owned == NULL);
+}
 
 

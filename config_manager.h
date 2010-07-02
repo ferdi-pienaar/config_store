@@ -183,11 +183,12 @@ class cm_composite_item_descriptor : public cm_item_descriptor
     unsigned int skipTlvItem(FILE * fp) const;
     const cm_aggregate * getAggr(const char * name) const;
     const cm_aggregate * getAggr(cm_descriptor_id id) const;
-    void getComponentItem(int * pArgc,
+    bool getComponentItem(int * pArgc,
                           char *** pArgv,
-                          cm_item_descriptor ** ppComponent,
+                          cm_aggregate ** ppAggr,
                           unsigned char ** ppItem,
-                          cm_context & ctxt) const;
+                          cm_context & ctxt,
+                          bool & added) const;
 
 public:    
     cm_composite_item_descriptor(char * name,
@@ -207,7 +208,7 @@ public:
     bool handleAdd(int argc, char *argv[], unsigned char * pItem) const;
     unsigned char * add(unsigned char * pParentItem, const cm_aggregate * pAggr) const;
     bool handleDel(int argc, char *argv[], unsigned char * pItem) const;
-    bool del(unsigned char * pParentItem,
+    void del(unsigned char * pParentItem,
              const cm_aggregate * pAggr,
              unsigned int itemIdx,
              unsigned int cnt) const;

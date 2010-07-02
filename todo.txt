@@ -6,13 +6,9 @@
   install strlen for strings.  If NULL, the default is to use the full length of the item
   from the descriptor.
 
-- Re-organize my_cfg.cpp into a logical order.
 - Having an ID in a counter descriptor is not needed, since it's not saved to TLV.
 - Do we support counters that are not 4 bytes -- do both setCnt and getCnt handle it?
-
-- Add tests for the following case:
-  If maxCnt for owned is 1, then the counter is superfluous -- not only do we not need to
-  display it, but there's no reason for it to exist.
+  
 - Provide context-sensitive help in a way that could be used for "tabbing out" input strings.
 - Strategy for making fewer methods public: do we need friends, or interface classes...
 - Make C-friendly: a C-friendly wrapper?

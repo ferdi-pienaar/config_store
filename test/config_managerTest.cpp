@@ -7,8 +7,8 @@
 //
 
 #include "TestHarness.h"
-#include "config_manager.h"  // Unit under test
-#include "config_manager_util.h"     // Extensions to unit under test (generic "set" functions)
+#include "config_manager.h"       // Unit under test
+#include "config_manager_util.h"  // Extensions to unit under test (generic "set" functions)
 
 #include <string>
 using namespace std;
