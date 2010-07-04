@@ -1,4 +1,5 @@
 #include "config_manager.h"
+#include "config_manager_util.h"
 #include <sstream>
 using namespace std;
 
@@ -52,7 +53,7 @@ config_manager * config_manager::getInstance()
 void config_manager::init(const cm_item_descriptor * desc)
 {
     base_desc = desc;
-    ramBase = (unsigned char *)malloc(base_desc->getLen());
+    ramBase = (uint8_t *)malloc(base_desc->getLen());
 
     // This could be done in the constructor, but I do it here to make
     // unit tests independent (since the constructor can't be forced
@@ -127,14 +128,14 @@ void config_manager::save()
 
     
     // Allocate a temporary buffer to contain TLV format data
-    unsigned char * buf = new unsigned char[tlvLen];
+    uint8_t * buf = new uint8_t[tlvLen];
 
     // xxx debug
     memset(buf, 0x5a, tlvLen);
 
     cout << "Allocated buffer " << tlvLen << endl;
 
-    unsigned char * pBuf = buf; // this copy is modified by writeTlv
+    uint8_t * pBuf = buf; // this copy is modified by writeTlv
 
     base_desc->writeTlv(ramBase, &pBuf);
 
@@ -194,7 +195,7 @@ void config_manager::load()
 //
 bool cm_composite_item_descriptor::handleCmd(int argc,
                                              char *argv[],
-                                             unsigned char * pItem,
+                                             uint8_t * pItem,
                                              cm_context & ctxt) const
 {
     DBG_PRT("composite::handleCmd: %s\n", argv[0]);
@@ -202,9 +203,9 @@ bool cm_composite_item_descriptor::handleCmd(int argc,
     {
         case CM_OP_NONE:
         {
-            cm_aggregate *  pAggr;                // Component of this composite identified by argc, argv
-            unsigned char * pParentItem = pItem;  // Remember location of parent, we may need it to delete side-effect
-            bool            added;                // Did getComponentItem create a new item?
+            cm_aggregate * pAggr;               // Component of this composite identified by argc, argv
+            uint8_t *      pParentItem = pItem; // Remember parent, we may need it to undo side-effect
+            bool           added;               // Did getComponentItem create a new item?
 
             if (!getComponentItem(&argc, &argv, &pAggr, &pItem, ctxt, added))
             {
@@ -273,7 +274,7 @@ bool cm_composite_item_descriptor::handleCmd(int argc,
 
 // Try to add a component named by argc,argv to a composite.
 // After verifying the operation is applicable, the item is added.
-bool cm_composite_item_descriptor::handleAdd(int argc, char *argv[], unsigned char * pItem) const
+bool cm_composite_item_descriptor::handleAdd(int argc, char *argv[], uint8_t * pItem) const
 {
     DBG_PRT("handleAdd %s\n", argv[0]);
 
@@ -316,12 +317,14 @@ bool cm_composite_item_descriptor::handleAdd(int argc, char *argv[], unsigned ch
 // This allocates memory for the new item, sets it to default values,
 // and increments the corresponding counter.
 // @return pointer to new allocated memory, or NULL in case of failure
-unsigned char * cm_composite_item_descriptor::add(unsigned char * pParentItem,
-                                                  const cm_aggregate * pAggr) const
+uint8_t * cm_composite_item_descriptor::add(uint8_t * pParentItem,
+                                            const cm_aggregate * pAggr) const
 {
     // Reallocate memory, and save pointer in the same location
-    unsigned cnt = pAggr->getCount(pParentItem);
-    unsigned char ** ppItems = (unsigned char **)(pParentItem + pAggr->offset);
+    unsigned   cnt     = pAggr->getCount(pParentItem);
+    uint8_t ** ppItems = (uint8_t **)(pParentItem + pAggr->offset);
+
+    assert(pAggr->isAddSupported());
 
     uint8_t * pNewMem = (uint8_t *)realloc(*ppItems, (cnt + 1) * pAggr->pDesc->getLen());
 
@@ -334,7 +337,7 @@ unsigned char * cm_composite_item_descriptor::add(unsigned char * pParentItem,
     // Memory successfully allocated, so reference the (possibly new) memory
     *ppItems = pNewMem;
 
-    unsigned char * pNewItem = pNewMem + cnt * pAggr->pDesc->getLen();
+    uint8_t * pNewItem = pNewMem + cnt * pAggr->pDesc->getLen();
 
     // Initialize added item with default values. First memset to ensure
     // counters, which have no setdef fn, are 0 (also sets pointers to owned to NULL).
@@ -349,7 +352,7 @@ unsigned char * cm_composite_item_descriptor::add(unsigned char * pParentItem,
 
 
 // Del an owned component named by argc,argv from a composite
-bool cm_composite_item_descriptor::handleDel(int argc, char *argv[], unsigned char * pItem) const
+bool cm_composite_item_descriptor::handleDel(int argc, char *argv[], uint8_t * pItem) const
 {
     DBG_PRT("handleDel %s\n", argv[0]);
 
@@ -406,21 +409,24 @@ bool cm_composite_item_descriptor::handleDel(int argc, char *argv[], unsigned ch
 
 
 // Del OWNED item.
-// @pre Add operation is supported on pAggr, and item count is > 0 and
-//      index < item count.
 // This re-allocates the necessary memory, updates the counter if necessary,
 // and sets the pointer to the memory to NULL if it's all been freed.
-void cm_composite_item_descriptor::del(unsigned char * pParentItem,
+void cm_composite_item_descriptor::del(uint8_t * pParentItem,
                                        const cm_aggregate * pAggr,
                                        unsigned int itemIdx,
                                        unsigned int cnt) const
 {
     // Reallocate memory, and save pointer in the same location
-    unsigned char ** ppItems = (unsigned char **)(pParentItem + pAggr->offset);
-    cm_item_len      componentLen = pAggr->pDesc->getLen();
+    uint8_t **  ppItems      = (uint8_t **)(pParentItem + pAggr->offset);
+    cm_item_len componentLen = pAggr->pDesc->getLen();
 
     DBG_PRT("del at %p index %d len %d\n", *ppItems, itemIdx, componentLen);
 
+    // Sanity check input parameters
+    assert(cnt > 0);
+    assert(itemIdx < cnt);
+    assert(pAggr->isAddSupported());
+    
     assert(*ppItems != NULL);
 
     // Shift down items to occupy the memory vacated by deleted item
@@ -428,7 +434,7 @@ void cm_composite_item_descriptor::del(unsigned char * pParentItem,
             *ppItems + (itemIdx + 1) * componentLen,
             (cnt - itemIdx - 1) * componentLen);
 
-    *ppItems = (unsigned char *)realloc(*ppItems, (cnt - 1) * componentLen);
+    *ppItems = (uint8_t *)realloc(*ppItems, (cnt - 1) * componentLen);
 
     // xxx realloc should return NULL if memory to be allocated is 0, but it doesn't seem to...
     if (cnt == 1)
@@ -442,16 +448,16 @@ void cm_composite_item_descriptor::del(unsigned char * pParentItem,
 
 /// Return total length of TLV item:
 //  The number of bytes taken up by T + L + V.
-cm_item_len cm_composite_item_descriptor::getTlvLen(const unsigned char * pItem) const
+cm_item_len cm_composite_item_descriptor::getTlvLen(const uint8_t * pItem) const
 {
     cm_item_len tlvLen = sizeof(cm_descriptor_id) + sizeof(cm_item_len);
     
     // For each aggregate, and for each of the array of items under it...
     for (int i = 0; i < aggrCount; i++)
     {            
-        const cm_aggregate *  pAggr      = aggrList[i];
-        const unsigned char * pFirstItem = pAggr->getFirstItem(pItem);
-        unsigned int          itemCount  = pAggr->getCount(pItem);
+        const cm_aggregate * pAggr      = aggrList[i];
+        const uint8_t *      pFirstItem = pAggr->getFirstItem(pItem);
+        unsigned int         itemCount  = pAggr->getCount(pItem);
 
         for (unsigned j = 0; j < itemCount; j++)
         {
@@ -468,7 +474,7 @@ cm_item_len cm_composite_item_descriptor::getTlvLen(const unsigned char * pItem)
 //  xxx add param, bufsize, to do a buffer overflow check.
 //  xxx if we want to write directly to NVRAM, we need to implement a method
 //  that does that...
-void cm_composite_item_descriptor::writeTlv(const unsigned char *pItem, unsigned char ** ppBuf) const
+void cm_composite_item_descriptor::writeTlv(const uint8_t *pItem, uint8_t ** ppBuf) const
 {
     // The L field in TLV excludes this item's T+L fields
     cm_item_len componentLen = getTlvLen(pItem) - sizeof(len) - sizeof(id);
@@ -482,9 +488,9 @@ void cm_composite_item_descriptor::writeTlv(const unsigned char *pItem, unsigned
     // Now write V, which is the TLVs of all components
     for (int i = 0; i < aggrCount; i++)
     {            
-        const cm_aggregate *  pAggr      = aggrList[i];
-        const unsigned char * pFirstItem = pAggr->getFirstItem(pItem);
-        unsigned int          itemCount  = pAggr->getCount(pItem);
+        const cm_aggregate * pAggr      = aggrList[i];
+        const uint8_t *      pFirstItem = pAggr->getFirstItem(pItem);
+        unsigned int         itemCount  = pAggr->getCount(pItem);
 
         for (unsigned j = 0; j < itemCount; j++)
         {
@@ -501,9 +507,8 @@ void cm_composite_item_descriptor::writeTlv(const unsigned char *pItem, unsigned
 // @return number of bytes read
 //
 // xxx after each read, check how much was read.
-// xxx shouldn't the i < aggrCount test come BEFORE allocating memory?
 //
-unsigned int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) const
+unsigned int cm_composite_item_descriptor::loadFromTlv(FILE * fp, uint8_t * pItem) const
 {
     cm_item_len  tlvLen;
     
@@ -512,7 +517,7 @@ unsigned int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char 
 
     DBG_PRT("composite load %d bytes to %p\n", tlvLen, pItem);
 
-    unsigned char * pFirstItem = NULL; // first item in an aggregate's array
+    uint8_t * pFirstItem = NULL; // first item in an aggregate's array
 
     while (bytesRead < tlvLen) // xxx 
     {        
@@ -526,7 +531,7 @@ unsigned int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char 
 
         const cm_aggregate * pAggr = getAggr(compId);
 
-        if (pAggr != NULL)
+        if ((pAggr != NULL) && (pAggr->getCount(pItem) < pAggr->maxCount))
         {            
             // Found a match, so delegate the reading to the corresponding component
             DBG_PRT("component '%s' matches, itemIdx %d\n", pAggr->pDesc->getName().c_str(), itemIdx);
@@ -539,7 +544,7 @@ unsigned int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char 
                 itemIdx = 0;
             }
 
-            unsigned char * pCompItem;
+            uint8_t * pCompItem;
 
             if (pAggr->isAddSupported())
             {
@@ -564,7 +569,7 @@ unsigned int cm_composite_item_descriptor::loadFromTlv(FILE * fp, unsigned char 
         }
         else
         {            
-            // ID read from file matches no component: skip over the unrecognized item
+            // Unrecognized item or too many instances of item: skip over the item
             cout << "Couldn't load unknown component ID " << compId << endl;
             bytesRead += skipTlvItem(fp);
         }
@@ -595,7 +600,7 @@ unsigned int cm_composite_item_descriptor::skipTlvItem(FILE * fp) const
 
 // Delegate print command to components
 // 
-void cm_composite_item_descriptor::print(const unsigned char * pItem, string prefix) const
+void cm_composite_item_descriptor::print(const uint8_t * pItem, string prefix) const
 {
     char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
 
@@ -604,9 +609,9 @@ void cm_composite_item_descriptor::print(const unsigned char * pItem, string pre
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < aggrCount; i++)
     {            
-        const cm_aggregate *  pAggr      = aggrList[i];
-        const unsigned char * pFirstItem = pAggr->getFirstItem(pItem);
-        unsigned int          itemCount  = pAggr->getCount(pItem);
+        const cm_aggregate * pAggr      = aggrList[i];
+        const uint8_t *      pFirstItem = pAggr->getFirstItem(pItem);
+        unsigned int         itemCount  = pAggr->getCount(pItem);
 
         for (unsigned j = 0; j < itemCount; j++)
         {
@@ -636,13 +641,13 @@ void cm_composite_item_descriptor::print(const unsigned char * pItem, string pre
 // This means that we should not clear the counter first
 // (which is why a counter's setdef method does nothing), since pAggr->getCount
 // for an owned component depends on the counter still being set.
-void cm_composite_item_descriptor::setdef(unsigned char * pItem) const
+void cm_composite_item_descriptor::setdef(uint8_t * pItem) const
 {    
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < aggrCount; i++)
     {            
         const cm_aggregate * pAggr      = aggrList[i];
-        unsigned char *      pFirstItem = pAggr->getFirstItem(pItem);
+        uint8_t *            pFirstItem = pAggr->getFirstItem(pItem);
         unsigned int         itemCount  = pAggr->getCount(pItem);
 
         // Set each item to default
@@ -654,7 +659,7 @@ void cm_composite_item_descriptor::setdef(unsigned char * pItem) const
         // If necessary, free the block of memory where the items were, and set counter to 0
         if ((itemCount > 0) && pAggr->isAddSupported())
         {
-            unsigned char ** ppItems = (unsigned char **)(pItem + pAggr->offset);
+            uint8_t ** ppItems = (uint8_t **)(pItem + pAggr->offset);
 
             DBG_PRT("setdef free %p\n", *ppItems);
 
@@ -668,7 +673,7 @@ void cm_composite_item_descriptor::setdef(unsigned char * pItem) const
 
 
 // Give name of each component, current count, and maxcount if OWNed.
-void cm_composite_item_descriptor::help(const unsigned char * pItem) const
+void cm_composite_item_descriptor::help(const uint8_t * pItem) const
 {
     for (int i = 0; i < aggrCount; i++)
     {   
@@ -728,7 +733,7 @@ const cm_aggregate * cm_composite_item_descriptor::getAggr(cm_descriptor_id id) 
 bool cm_composite_item_descriptor::getComponentItem(int * pArgc,
                                                     char *** pArgv,
                                                     cm_aggregate ** ppAggr,
-                                                    unsigned char ** ppItem,
+                                                    uint8_t ** ppItem,
                                                     cm_context & ctxt,
                                                     bool & added) const
 {
@@ -803,7 +808,7 @@ bool cm_composite_item_descriptor::getComponentItem(int * pArgc,
 // An item does not print its own name, since
 // it may be preceded by an index, which is known
 // to the item's composite but not to the item.
-void cm_simple_item_descriptor::print(const unsigned char * pItem, string prefix) const
+void cm_simple_item_descriptor::print(const uint8_t * pItem, string prefix) const
 {
     cout << prefix << "= ";
 
@@ -812,10 +817,7 @@ void cm_simple_item_descriptor::print(const unsigned char * pItem, string prefix
     if (pPrt == NULL)
     {
         // No function installed so default print function: hex chars
-        for (int i = 0; i < len; i++)
-        {
-            printf("%02x", pItem[i]);
-        }
+        cm_prt_hexstr(pItem, len);
     }
     else
     {
@@ -838,7 +840,7 @@ void cm_simple_item_descriptor::print(const unsigned char * pItem, string prefix
 //
 bool cm_basic_item_descriptor::handleCmd(int argc,
                                          char *argv[],
-                                         unsigned char * pItem,
+                                         uint8_t * pItem,
                                          cm_context & ctxt) const
 {
     DBG_PRT("simple cmd at %p\n", pItem);
@@ -872,7 +874,7 @@ bool cm_basic_item_descriptor::handleCmd(int argc,
 
 
 // Set item to a value input as string on command line
-bool cm_basic_item_descriptor::set(unsigned char * pItem, string val) const
+bool cm_basic_item_descriptor::set(uint8_t * pItem, string val) const
 {
     DBG_PRT("set simple %s at %p to '%s'\n", name.c_str(), pItem, val.c_str());
 
@@ -889,7 +891,7 @@ bool cm_basic_item_descriptor::set(unsigned char * pItem, string val) const
 
 
 // Set configurable item to its default value.
-void cm_basic_item_descriptor::setdef(unsigned char * pItem) const
+void cm_basic_item_descriptor::setdef(uint8_t * pItem) const
 {
     if (pSetDef != NULL)
     {
@@ -908,7 +910,7 @@ void cm_basic_item_descriptor::setdef(unsigned char * pItem) const
 //  to NVRAM.
 //  xxx if we want to write directly to NVRAM, we need to implement a method
 //  that does that...
-void cm_basic_item_descriptor::writeTlv(const unsigned char *pItem, unsigned char ** ppBuf) const
+void cm_basic_item_descriptor::writeTlv(const uint8_t *pItem, uint8_t ** ppBuf) const
 {
     memcpy(*ppBuf, &id, sizeof(id));   // write Type (i.e. the ID)
     *ppBuf += sizeof(id);              // advance the memory pointer
@@ -924,7 +926,7 @@ void cm_basic_item_descriptor::writeTlv(const unsigned char *pItem, unsigned cha
 /// Return total length of TLV item:
 //  The number of bytes taken up by T + L + V.
 //  (For a simple item, there's no dependency on pItem, the RAM contents.)
-cm_item_len cm_basic_item_descriptor::getTlvLen(const unsigned char * pItem) const
+cm_item_len cm_basic_item_descriptor::getTlvLen(const uint8_t * pItem) const
 {
     return sizeof(cm_descriptor_id) + sizeof(cm_item_len) + getLen();
 }
@@ -935,7 +937,7 @@ cm_item_len cm_basic_item_descriptor::getTlvLen(const unsigned char * pItem) con
 // This method reads L, and moves forward in the file by that many bytes,
 // using what it finds in the file to initialize the object's configurable items.
 // xxx after each read, check how much was read.
-unsigned int cm_basic_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pItem) const
+unsigned int cm_basic_item_descriptor::loadFromTlv(FILE * fp, uint8_t * pItem) const
 {
     cm_item_len tlvLen;
     
@@ -975,7 +977,7 @@ unsigned int cm_basic_item_descriptor::loadFromTlv(FILE * fp, unsigned char * pI
 //
 bool cm_cntr_item_descriptor::handleCmd(int argc,
                                         char *argv[],
-                                        unsigned char * pItem,
+                                        uint8_t * pItem,
                                         cm_context & ctxt) const
 {
     DBG_PRT("cntr cmd at %p\n", pItem);
@@ -1009,7 +1011,7 @@ bool cm_cntr_item_descriptor::handleCmd(int argc,
 //
 bool cm_aggregate::getIndex(int * pArgc,
                             char *** pArgv,
-                            const unsigned char * pParentItem,
+                            const uint8_t * pParentItem,
                             unsigned int & itemIdx) const
 {
     if (*pArgc > 0)
@@ -1042,15 +1044,15 @@ bool cm_aggregate::getIndex(int * pArgc,
 // pParentItem: pointer to parent item; from this the aggregate obtains the
 //              address of the first item in the array that it links to the parent.
 //
-unsigned char * cm_contained_aggregate::getFirstItem(const unsigned char * pParentItem) const
+uint8_t * cm_contained_aggregate::getFirstItem(const uint8_t * pParentItem) const
 {
-    return (unsigned char *)(pParentItem + offset);
+    return (uint8_t *)(pParentItem + offset);
 }
 
 
 // Return the number of items in the component's array.
 // For a contained component, the count is fixed at maxCount.
-unsigned cm_contained_aggregate::getCount(const unsigned char * pParentItem) const
+unsigned cm_contained_aggregate::getCount(const uint8_t * pParentItem) const
 {
     return maxCount;
 }
@@ -1066,16 +1068,16 @@ unsigned cm_contained_aggregate::getCount(const unsigned char * pParentItem) con
 // pParentItem: pointer to parent item; from this the aggregate obtains the
 //              address of the first item in the array that it links to the parent.
 //
-unsigned char * cm_owned_aggregate::getFirstItem(const unsigned char * pParentItem) const
+uint8_t * cm_owned_aggregate::getFirstItem(const uint8_t * pParentItem) const
 {
-    return *(unsigned char **)(pParentItem + offset); // location is a pointer to the OWNED item
+    return *(uint8_t **)(pParentItem + offset); // location is a pointer to the OWNED item
 }
 
 
 // Return the number of items in the component's array
 // xxx giving a fixed size to counters would simplify this, but
 // introduces a dependency on the application programmer doing the right thing
-unsigned cm_owned_aggregate::getCount(const unsigned char * pParentItem) const
+unsigned cm_owned_aggregate::getCount(const uint8_t * pParentItem) const
 {
     if (pCounterAggr == NULL)
     {
@@ -1118,7 +1120,7 @@ unsigned cm_owned_aggregate::getCount(const unsigned char * pParentItem) const
 
 // Set value in RAM that records the number of items in the array of items
 // xxx enforce, run-time or compile-time, that counters are unsigned int sized.
-void cm_owned_aggregate::setCount(unsigned char * pParentItem, unsigned int count) const
+void cm_owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) const
 {
     // Sanity check: if add/del operation not supported, the setCount() is meaningless
     assert(isAddSupported());

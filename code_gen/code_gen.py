@@ -13,7 +13,23 @@ import sys
 def get_child_elements(parent):
     """Return a list of child nodes that are elements, not text (incl carriage returns) or comments."""
     return [node for node in parent.childNodes if node.nodeType == minidom.Node.ELEMENT_NODE]
-
+    
+    
+class Id_generator():
+    """Generate ID for TLV.  This is the simplest thing that could work, but not the best solution"""
+    def __init__(self):
+        self.id = 0
+        
+    def get_id(self):
+        id_string = str(self.id)
+        self.id += 1
+        return id_string
+        
+        
+def get_element_val(element):
+    """Get the value of an element, i.e. the first of its nodes of type TEXT_NODE"""
+    return [node.data for node in element.childNodes if node.nodeType == minidom.Node.TEXT_NODE][0]
+    
 
 def process_item(item, prefix):
     """Process XML element with tag 'item'.  Return the item's name; it's useful to the aggregate it's in"""
@@ -22,14 +38,21 @@ def process_item(item, prefix):
     # For all the elements within the item: name, ID, aggregates(s), etc...
     for element in get_child_elements(item):
         print "TAGNAME", element.tagName
-        # print element.toxml()
+        # print element.toxml()      
         # Assume each item has at least one "name" child element
         if (element.tagName == "name"):
-            nameText = [node.data for node in element.childNodes if node.nodeType == minidom.Node.TEXT_NODE][0]
+            nameText = get_element_val(element)
+            
+        if (element.tagName == "print-function"):
+            prt_fn = get_element_val(element)
+            print "prt_fn", prt_fn
+            
         if (element.tagName == "aggregate"):
            newPrefix = prefix + nameText
            print "NEWPREFIX", newPrefix
            aggr_list.append(process_aggregate(element, newPrefix))
+
+        
             
     if len(aggr_list) > 0:
         # Composite item
@@ -42,10 +65,12 @@ def process_item(item, prefix):
         fout.write(aggr_list_string)
         desc_init = "\nconst cm_composite_item_descriptor " + prefix + nameText + " = cm_composite_item_descriptor\n"
         desc_init += "(\n    \"" + nameText + "\",\n"
+        desc_init += "    " + id_gen.get_id() + ",\n"
     else:
         # Simple item
         desc_init = "\nconst cm_basic_item_descriptor " + prefix + nameText + " = cm_basic_item_descriptor\n"
         desc_init += "(\n    \"" + nameText + "\",\n"
+        desc_init += "    " + id_gen.get_id() + ",\n"
     
     desc_init += ");\n"
     fout.write(desc_init)
@@ -71,6 +96,8 @@ fout = open(outfname, "w")
 print "Reading", sys.argv[1]
 
 xmldoc = minidom.parse(f).documentElement
+
+id_gen = Id_generator()
 
 if (xmldoc.tagName == "item"):
     process_item(xmldoc, "device")

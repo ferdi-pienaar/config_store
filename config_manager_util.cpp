@@ -18,7 +18,7 @@ using namespace std;
 // system (little-endian or big-endian), we just typecast it
 // it correctly and print.
 //
-void cm_prt_int(const unsigned char *pItem, cm_item_len len)
+void cm_prt_int(const uint8_t *pItem, cm_item_len len)
 {
     switch (len)
     {
@@ -48,7 +48,7 @@ void cm_prt_int(const unsigned char *pItem, cm_item_len len)
 // Integers are kept in the order prescribed by the given
 // system (little-endian or big-endian).
 //
-bool cm_set_int(unsigned char *pItem, cm_item_len len, string val)
+bool cm_set_int(uint8_t *pItem, cm_item_len len, string val)
 {
     char * pEnd; // pointer to char after chars accepted by strtol
 
@@ -88,10 +88,10 @@ bool cm_set_int(unsigned char *pItem, cm_item_len len, string val)
             
 
 // C-style string
-// pItem - pointer to memory containing an integer.
+// pItem - pointer to memory containing a NULL-terminated string
 // len - number of bytes the string consists of
 //
-void cm_prt_str(const unsigned char *pItem, cm_item_len len)
+void cm_prt_str(const uint8_t *pItem, cm_item_len len)
 {
     printf("%s", (char *)pItem);
 }
@@ -102,9 +102,24 @@ void cm_prt_str(const unsigned char *pItem, cm_item_len len)
 // len - number of bytes the string consists of
 // val - a string representing the new value
 //
-bool cm_set_str(unsigned char *pItem, cm_item_len len, string val)
+bool cm_set_str(uint8_t *pItem, cm_item_len len, string val)
 {
     snprintf((char *)pItem, len, val.c_str());
     return true;
 }
+
+
+// Print memory as array of hex bytes
+// pItem - pointer to memory
+// len - number of bytes
+//
+void cm_prt_hexstr(const uint8_t *pItem, cm_item_len len)
+{
+    for (cm_item_len i = 0; i < len; i++)
+    {
+        printf("%02x", pItem[i]);
+    }
+}
+
+
 

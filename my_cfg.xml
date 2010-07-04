@@ -39,7 +39,7 @@
     <item>
       <name>user</name>
       <id></id>
-      <print-function></print-function> <!-- could the function be an attribute? -->
+      <print-function>cm_set_int</print-function> <!-- could the function be an attribute? -->
       <set-function></set-function>
       <setdef-function></setdef-function>
     </item>

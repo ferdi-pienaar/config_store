@@ -22,7 +22,7 @@
 using namespace std;
 
 
-/* Start of composite item device */
+// Start of composite item device
 enum
 {
     IPADDR  = 0,
@@ -67,7 +67,7 @@ const cm_cntr_item_descriptor userCnt = cm_cntr_item_descriptor
                                                               
 const cm_contained_aggregate userCntAggr = cm_contained_aggregate(&userCnt, 1, offsetof(tDevice, userCount));
 
-/* Start of composite item user */
+// Start of composite item user
 enum
 {
     USER_NAME = 0,
@@ -104,8 +104,8 @@ const cm_basic_item_descriptor user_temp = cm_basic_item_descriptor
     "temp", 
     USER_TEMP,
     sizeof(short), // xxx
-    cm_set_int, // xxx set
-    setdef_temp, // setdef
+    cm_set_int,
+    setdef_temp,
     cm_prt_int
 );
                                                                
@@ -130,7 +130,7 @@ const cm_composite_item_descriptor user = cm_composite_item_descriptor
 
 const cm_owned_aggregate userAggr(&user, 3 /* xxx max number of users */, offsetof(tDevice, users), &userCntAggr);
 
-/* Start of composite item home */
+// Start of composite item home
 enum
 {
     HOME_ADDR = 0,
@@ -150,7 +150,7 @@ const cm_basic_item_descriptor home_addr = cm_basic_item_descriptor
 // The last param is NULL because the owned item has no corresponding counter
 const cm_owned_aggregate homeAddrAggr(&home_addr, 1, offsetof(tHome, pAddr), NULL);
 
-/* Start of composite item home location */
+// Start of composite item home location
 enum
 {
     HOME_LOC_NAME = 0,

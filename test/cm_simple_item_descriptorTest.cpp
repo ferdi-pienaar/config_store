@@ -42,7 +42,7 @@ TEST(print, cm_basic_item_descriptor)
     {
         cout << "redirecting stdout failed" << endl;
     }
-    d.print((unsigned char *)&mem, prefix);
+    d.print((uint8_t *)&mem, prefix);
 
     // I tried using /dev/stdout instead of /dev/console -- that didn't work (no output to console was produced)
     freopen("/dev/console", "w", stdout);
@@ -60,7 +60,7 @@ TEST(set, cm_basic_item_descriptor)
 
     cm_basic_item_descriptor d("d01", 1 , sizeof(mem), cm_set_int, NULL, NULL);
     
-    d.set((unsigned char *)&mem, "4");
+    d.set((uint8_t *)&mem, "4");
     CHECK(mem == 4);    
 }
 

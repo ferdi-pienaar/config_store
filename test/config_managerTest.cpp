@@ -21,7 +21,7 @@ int main()
 	return 0;
 }
 
-
+////////////////////////////////////////////////////////////////////////////////
 // first test set, CONTAINED
 // first test set data structure
 struct m
@@ -38,6 +38,8 @@ const cm_contained_aggregate ca2(&s2, 1, offsetof(struct m, m2));
 const cm_aggregate * const aggrList1[] = {&ca1, &ca2};
 const cm_composite_item_descriptor c1("c1", 1, sizeof(struct m), aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0]));
 
+
+////////////////////////////////////////////////////////////////////////////////
 // second test set, OWNED.
 // second test set data structure
 struct m2
@@ -50,7 +52,7 @@ struct m2
 const cm_cntr_item_descriptor s3("count", 3, sizeof(int), NULL);
 const cm_basic_item_descriptor s4("owned", 4, sizeof(int), cm_set_int, NULL, NULL);
 const cm_contained_aggregate ca3(&s3, 1, offsetof(struct m2, cnt));
-const cm_owned_aggregate oa4(&s4, 10, offsetof(struct m2, owned), &ca3);
+const cm_owned_aggregate oa4(&s4, 2, offsetof(struct m2, owned), &ca3);
 const cm_aggregate * const aggrList2[] = {&ca3, &oa4};
 const cm_composite_item_descriptor c2("c2", 1, sizeof(struct m2), aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0]));
 
@@ -60,11 +62,11 @@ TEST(saveContained, config_manager)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
-    unsigned char expectedTlv [20] =
+    uint8_t expectedTlv [20] =
     /* The following assumes little-endian integers */
     /*T    L     T    L    V        T    L    V    */
     { 1,0, 16,0, 1,0, 4,0, 0,0,0,0, 2,0, 4,0, 0,0,0,0};
-    unsigned char actualTlv [20];
+    uint8_t actualTlv [20];
 
     // Remove the bin file to ensure RAM is init'd with default values
     remove(CFG_FILE_NAME);
@@ -91,11 +93,11 @@ TEST(loadContained, config_manager)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
-    unsigned char tlv[20] =
+    uint8_t tlv[20] =
     /* The following assumes little-endian integers */
     /*T    L     T    L    V        T    L    V    */
     { 1,0, 16,0, 1,0, 4,0, 0,0,0,0, 2,0, 4,0, 0,0,0,0};
-    unsigned char savedTlv[20];
+    uint8_t savedTlv[20];
 
 
     /* Create config file to be loaded */
@@ -133,15 +135,15 @@ TEST(loadUnknownContained, config_manager)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
-    unsigned char tlv[28] =
+    uint8_t tlv[28] =
     /* The following assumes little-endian integers */
     /*T    L     T    L    V        T    L    V        T    L    V    */
     { 1,0, 24,0, 1,0, 4,0, 0,0,0,0, 9,0, 4,0, 0,0,0,0, 2,0, 4,0, 0,0,0,0};
-    unsigned char expectedTlv[20] =
+    uint8_t expectedTlv[20] =
     /* The following assumes little-endian integers */
     /*T    L     T    L    V        T    L    V    */
     { 1,0, 16,0, 1,0, 4,0, 0,0,0,0, 2,0, 4,0, 0,0,0,0};
-    unsigned char savedTlv[20];
+    uint8_t savedTlv[20];
 
 
     /* Create config file to be loaded */
@@ -170,6 +172,7 @@ TEST(loadUnknownContained, config_manager)
     fclose(fp);    
 }
 
+
 // Verify what's saved to TLV, given a TLV file that's read on startup that's
 // missing an element of a structure.
 // The element that's not in the TLV is saved to TLV, populated with default value.
@@ -177,15 +180,15 @@ TEST(loadMissingContained, config_manager)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
-    unsigned char tlv[28] =
+    uint8_t tlv[12] =
     /* The following assumes little-endian integers */
     /*T    L     T    L    V    */
     { 1,0, 8,0, 2,0, 4,0, 0,0,0,0};
-    unsigned char expectedTlv[20] =
+    uint8_t expectedTlv[20] =
     /* The following assumes little-endian integers */
     /*T    L     T    L    V        T    L    V    */
     { 1,0, 16,0, 1,0, 4,0, 0,0,0,0, 2,0, 4,0, 0,0,0,0};
-    unsigned char savedTlv[20];
+    uint8_t savedTlv[20];
 
 
     /* Create config file to be loaded */
@@ -198,6 +201,50 @@ TEST(loadMissingContained, config_manager)
     fclose(fp);    
 
     cm->init(&c1);
+
+    char * commandWord[] = {"save"};
+    cm->handleCmd(1, commandWord);
+
+    // See what CM made of the file it loaded
+    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fread(savedTlv, sizeof(savedTlv), 1, fp);
+
+    CHECK(memcmp(expectedTlv, savedTlv, sizeof(savedTlv)) == 0);
+    fclose(fp);    
+}
+
+
+// Verify what's saved to TLV, given a TLV file that's read on startup that
+// has more than the max number of an OWNED component.
+//
+TEST(loadTooManyOwned, config_manager)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    uint8_t tlv[28] =
+    /*T    L     T    L    V        T    L    V        T    L    V       */
+    { 1,0, 24,0, 4,0, 4,0, 7,0,0,0, 4,0, 4,0, 8,0,0,0, 4,0, 4,0, 9,0,0,0};
+    uint8_t expectedTlv[20] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V        T    L    V    */
+    { 1,0, 16,0, 4,0, 4,0, 7,0,0,0, 4,0, 4,0, 8,0,0,0};
+    uint8_t savedTlv[20];
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);    
+
+    cm->init(&c2);
 
     char * commandWord[] = {"save"};
     cm->handleCmd(1, commandWord);
@@ -220,11 +267,11 @@ TEST(saveOwned, config_manager)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
-    unsigned char expectedTlv [4] =
+    uint8_t expectedTlv [4] =
     /* The following assumes little-endian integers */
     /*T    L     T    L    V        T    L    V    */
     { 1,0, 0,0};
-    unsigned char actualTlv [4];
+    uint8_t actualTlv [4];
 
 
     // Remove the bin file to ensure RAM is init'd with default values
@@ -252,11 +299,11 @@ TEST(implicitAdd, config_manager)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
-    unsigned char expectedTlv [12] =
+    uint8_t expectedTlv [12] =
     /* The following assumes little-endian integers */
     /*T    L    T    L    V    */
     { 1,0, 8,0, 4,0, 4,0, 0,0,0,0};
-    unsigned char actualTlv [12];
+    uint8_t actualTlv [12];
 
 
     // Remove the bin file to ensure RAM is init'd with default values
@@ -286,11 +333,11 @@ TEST(implicitAddnSet, config_manager)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
-    unsigned char expectedTlv [12] =
+    uint8_t expectedTlv [12] =
     /* The following assumes little-endian integers */
     /*T    L    T    L    V    */
     { 1,0, 8,0, 4,0, 4,0, 7,0,0,0};
-    unsigned char actualTlv [12];
+    uint8_t actualTlv [12];
 
 
     // Remove the bin file to ensure RAM is init'd with default values
@@ -320,11 +367,11 @@ TEST(explicitAdd, config_manager)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
-    unsigned char expectedTlv [12] =
+    uint8_t expectedTlv [12] =
     /* The following assumes little-endian integers */
     /*T    L    T    L    V    */
     { 1,0, 8,0, 4,0, 4,0, 0,0,0,0};
-    unsigned char actualTlv [12];
+    uint8_t actualTlv [12];
 
 
     // Remove the bin file to ensure RAM is init'd with default values
@@ -355,15 +402,15 @@ TEST(del, config_manager)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
-    unsigned char tlv[12] =
+    uint8_t tlv[12] =
     /* The following assumes little-endian integers */
     /*T    L     T    L    V    */
     { 1,0, 8,0, 4,0, 4,0, 0,0,0,0};
-    unsigned char expectedTlv [4] =
+    uint8_t expectedTlv [4] =
     /* The following assumes little-endian integers */
     /*T    L  */
     { 1,0, 0,0};
-    unsigned char savedTlv[4];
+    uint8_t savedTlv[4];
 
 
     /* Create config file to be loaded */

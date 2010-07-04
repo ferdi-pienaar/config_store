@@ -94,7 +94,7 @@ TEST(printContained, cm_composite_item_descriptor)
     {
         cout << "redirecting stdout failed" << endl;
     }
-    c1.print((unsigned char *)&mem, prefix);
+    c1.print((uint8_t *)&mem, prefix);
 
     freopen("/dev/console", "w", stdout);
 
@@ -119,7 +119,7 @@ TEST(printOwnedNull, cm_composite_item_descriptor)
     {
         cout << "redirecting stdout failed" << endl;
     }
-    c2.print((unsigned char *)&mem, prefix);
+    c2.print((uint8_t *)&mem, prefix);
 
     freopen("/dev/console", "w", stdout);
 
@@ -146,7 +146,7 @@ TEST(printOwnedData, cm_composite_item_descriptor)
     {
         cout << "redirecting stdout failed" << endl;
     }
-    c2.print((unsigned char *)&mem, prefix);
+    c2.print((uint8_t *)&mem, prefix);
 
     freopen("/dev/console", "w", stdout);
 
@@ -166,7 +166,7 @@ TEST(addFirst, cm_composite_item_descriptor)
     char * commandWord = "owned";
 
     
-    c2.handleAdd(1, &commandWord, (unsigned char *)&mem);
+    c2.handleAdd(1, &commandWord, (uint8_t *)&mem);
 
     // Counter is incremented and ptr to owned item is no longer NULL
     CHECK(mem.cnt == 1);
@@ -183,8 +183,8 @@ TEST(addAnother, cm_composite_item_descriptor)
     char * commandWord = "owned";
 
     
-    c2.handleAdd(1, &commandWord, (unsigned char *)&mem);
-    c2.handleAdd(1, &commandWord, (unsigned char *)&mem);
+    c2.handleAdd(1, &commandWord, (uint8_t *)&mem);
+    c2.handleAdd(1, &commandWord, (uint8_t *)&mem);
 
     // Counter is incremented and ptr to owned item is no longer NULL
     CHECK(mem.cnt == 2);
@@ -202,7 +202,7 @@ TEST(delNull, cm_composite_item_descriptor)
     char * commandWord[] = {"owned", "1"};
 
     
-    c2.handleDel(2, commandWord, (unsigned char *)&mem);
+    c2.handleDel(2, commandWord, (uint8_t *)&mem);
 
     // The fails since there's nothing to delete; verify count remains unchanged
     CHECK(mem.cnt == 0);
@@ -224,7 +224,7 @@ TEST(delEnd, cm_composite_item_descriptor)
     mem.cnt = NUM_OWNED;
     mem.owned = owned;
     
-    c2.handleDel(2, commandWord, (unsigned char *)&mem);
+    c2.handleDel(2, commandWord, (uint8_t *)&mem);
 
     // Counter is decremented
     CHECK(mem.cnt == NUM_OWNED - 1);
@@ -250,7 +250,7 @@ TEST(delFirst, cm_composite_item_descriptor)
     mem.cnt = NUM_OWNED;
     mem.owned = owned;
     
-    c2.handleDel(2, commandWord, (unsigned char *)&mem);
+    c2.handleDel(2, commandWord, (uint8_t *)&mem);
 
     // Counter is decremented
     CHECK(mem.cnt == NUM_OWNED - 1);
@@ -273,7 +273,7 @@ TEST(delSingle, cm_composite_item_descriptor)
     mem.cnt = NUM_OWNED;
     mem.owned = owned;
     
-    c2.handleDel(2, commandWord, (unsigned char *)&mem);
+    c2.handleDel(2, commandWord, (uint8_t *)&mem);
 
     // Counter is decremented to 0
     CHECK(mem.cnt == 0);
@@ -289,7 +289,7 @@ TEST(addOnly, cm_composite_item_descriptor)
     struct m4 mem = {NULL};
     char * commandWord = "owned";
     
-    c4.handleAdd(1, &commandWord, (unsigned char *)&mem);
+    c4.handleAdd(1, &commandWord, (uint8_t *)&mem);
 
     // Pointer updated
     CHECK(mem.owned != NULL);
@@ -310,7 +310,7 @@ TEST(delOnly, cm_composite_item_descriptor)
     
     mem.owned = owned;
 
-    c4.handleDel(1, &commandWord, (unsigned char *)&mem);
+    c4.handleDel(1, &commandWord, (uint8_t *)&mem);
 
     // And the pointer to owned is set to NULL after owned memory freed
     CHECK(mem.owned == NULL);
@@ -325,7 +325,7 @@ TEST(implicitAdd, cm_composite_item_descriptor)
     cm_context ctxt;
 
     
-    c2.handleCmd(4, commandWord, (unsigned char *)&mem, ctxt);
+    c2.handleCmd(4, commandWord, (uint8_t *)&mem, ctxt);
 
     // Counter is incremented and ptr to owned item is no longer NULL
     CHECK(mem.cnt == 1);
@@ -342,7 +342,7 @@ TEST(implicitAddFail, cm_composite_item_descriptor)
     cm_context ctxt;
 
     
-    c2.handleCmd(3, commandWord, (unsigned char *)&mem, ctxt);
+    c2.handleCmd(3, commandWord, (uint8_t *)&mem, ctxt);
 
     // Counter is not incremented and ptr to owned item is NULL
     CHECK(mem.cnt == 0);
