@@ -5,6 +5,9 @@
                            Counters have the property of being displayed, or not. -->
   <name> </name> <!-- Name used on command line -->
   <id> </id>   <!-- ID used in TLV -->
+  <!-- It seems to be fairly common to use a tag like <aggregates> to enclose the list of aggregates,
+       although I don't see why it's necessary.
+     -->
   <aggregate> 
     <type>contained</type> <!-- Owned or contained -->
     <count>2</count>

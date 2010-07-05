@@ -569,7 +569,7 @@ unsigned int cm_composite_item_descriptor::loadFromTlv(FILE * fp, uint8_t * pIte
         }
         else
         {            
-            // Unrecognized item or too many instances of item: skip over the item
+            // Unrecognized item or too many instances of item: skip it
             cout << "Couldn't load unknown component ID " << compId << endl;
             bytesRead += skipTlvItem(fp);
         }

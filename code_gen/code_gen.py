@@ -26,73 +26,95 @@ class Id_generator():
         return id_string
         
         
-def get_element_val(element):
-    """Get the value of an element, i.e. the first of its nodes of type TEXT_NODE"""
+def get_element_content(element):
+    """Get the content of an element, i.e. the first of its nodes of type TEXT_NODE"""
     return [node.data for node in element.childNodes if node.nodeType == minidom.Node.TEXT_NODE][0]
     
 
-def process_item(item, prefix):
-    """Process XML element with tag 'item'.  Return the item's name; it's useful to the aggregate it's in"""
-    print "process_item", item, "PREFIX",prefix
-    aggr_list = []
-    # For all the elements within the item: name, ID, aggregates(s), etc...
-    for element in get_child_elements(item):
-        print "TAGNAME", element.tagName
-        # print element.toxml()      
-        # Assume each item has at least one "name" child element
-        if (element.tagName == "name"):
-            nameText = get_element_val(element)
-            
-        if (element.tagName == "print-function"):
-            prt_fn = get_element_val(element)
-            print "prt_fn", prt_fn
-            
-        if (element.tagName == "aggregate"):
-           newPrefix = prefix + nameText
-           print "NEWPREFIX", newPrefix
-           aggr_list.append(process_aggregate(element, newPrefix))
-
+class Item():
+    """Class representing some properties of an item; we don't need to represent all, because
+       minidom's Node does most of the job for us, such as the parent/child relationships."""
+       
+    def __init__(self):
+        self.aggr_list = []
         
-            
-    if len(aggr_list) > 0:
-        # Composite item
-        aggr_list_string = "\n// List of aggregates in composite item " + nameText + "\n"
-        aggr_list_string += "const cm_aggregate * const " + nameText + "aggrList[] = {\n"
-        for aggr in aggr_list:
+       
+    def process(self, node, prefix):
+        """Process a minidom Node representing an XML element with tag 'item'.
+           Return the item's name; it's useful to the aggregate it's in.
+        """
+        self.prefix = prefix
+        print "process_item", node, "PREFIX",prefix
+        # For all the elements within the item: name, ID, aggregates(s), etc...
+        for element in get_child_elements(node):
+            print "TAGNAME", element.tagName
+            # print element.toxml()      
+            # Assume each item has at least one "name" child element
+            if (element.tagName == "name"):
+                self.nameText = get_element_content(element)
+                
+            if (element.tagName == "print-function"):
+                prt_fn = get_element_content(element)
+                print "prt_fn", prt_fn
+                
+            if (element.tagName == "aggregate"):
+               newPrefix = prefix + self.nameText
+               print "NEWPREFIX", newPrefix
+               self.aggr_list.append(process_aggregate(element, newPrefix))
+                    
+        if len(self.aggr_list) > 0:
+            desc_init_str = self.get_composite_init_str()
+            decl_str = "composite struct\n"
+
+        else:
+            # Simple item
+            desc_init_str = self.get_simple_init_str()
+            decl_str = "component member\n"
+
+        finit.write(desc_init_str)
+        fdecl.write(decl_str)
+        return self.nameText
+                
+    def get_simple_init_str(self):
+        """Simple"""
+        prt_str = "\nconst cm_basic_item_descriptor " + self.prefix + self.nameText + " = cm_basic_item_descriptor\n"
+        prt_str += "(\n    \"" + self.nameText + "\",\n"
+        prt_str += "    " + id_gen.get_id() + ",\n);\n"
+        return prt_str
+        
+    def get_composite_init_str(self):
+        """ Composite item"""
+        aggr_list_string = "\n// List of aggregates in composite item " + self.nameText + "\n"
+        aggr_list_string += "const cm_aggregate * const " + self.nameText + "aggrList[] = {\n"
+        for aggr in self.aggr_list:
             # list of aggregates in this composite item
             aggr_list_string += "    &" + aggr + ",\n"
         aggr_list_string += "};\n"
-        fout.write(aggr_list_string)
-        desc_init = "\nconst cm_composite_item_descriptor " + prefix + nameText + " = cm_composite_item_descriptor\n"
-        desc_init += "(\n    \"" + nameText + "\",\n"
-        desc_init += "    " + id_gen.get_id() + ",\n"
-    else:
-        # Simple item
-        desc_init = "\nconst cm_basic_item_descriptor " + prefix + nameText + " = cm_basic_item_descriptor\n"
-        desc_init += "(\n    \"" + nameText + "\",\n"
-        desc_init += "    " + id_gen.get_id() + ",\n"
-    
-    desc_init += ");\n"
-    fout.write(desc_init)
-    return nameText
+        prt_str = aggr_list_string
+        prt_str += "\nconst cm_composite_item_descriptor " + self.prefix + self.nameText + " = cm_composite_item_descriptor\n"
+        prt_str += "(\n    \"" + self.nameText + "\",\n"
+        prt_str += "    " + id_gen.get_id() + ",\n);\n"
+        return prt_str        
 
 
 def process_aggregate(aggr, prefix):
     """Process XML element with tag 'aggregate'. Return the aggregate's name; it's useful to the composite item it's in"""
     print "process_aggregate", aggr, prefix
+    
     # Assume each aggregate has at least 1 "item" child element
-    item = [node for node in get_child_elements(aggr) if node.tagName == "item"][0]
-    item_name = process_item(item, prefix)
+    itemNode = [node for node in get_child_elements(aggr) if node.tagName == "item"][0]
+    item = Item()
+    item_name = item.process(itemNode, prefix)
     
     aggr_name = item_name + "_aggregate"
     aggr_init = "\nconst cm_"+ "aggregate " + aggr_name + "(" + ");\n"
-    fout.write(aggr_init)
+    finit.write(aggr_init)
     return aggr_name
 
 
 f = open(sys.argv[1])
-outfname = "out.cpp"
-fout = open(outfname, "w")
+finit = open("out.cpp", "w")
+fdecl = open("out.h", "w")
 print "Reading", sys.argv[1]
 
 xmldoc = minidom.parse(f).documentElement
@@ -100,9 +122,11 @@ xmldoc = minidom.parse(f).documentElement
 id_gen = Id_generator()
 
 if (xmldoc.tagName == "item"):
-    process_item(xmldoc, "device")
+    item = Item()
+    item.process(xmldoc, "device")
 else:
     print "Root element is", xmldoc.tagName
 
 f.close()
-fout.close()
+finit.close()
+fdecl.close()
