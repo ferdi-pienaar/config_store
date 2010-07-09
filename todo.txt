@@ -29,4 +29,8 @@
 - Test for memory leaks.  How?
 - Set more than one component of a composite in a single command?
 - Display members of an array by giving array name without index
+- An example of a bitmap item, just to show how the set and prt functions look
+- The XML file is generated not by hand, but by a graphical tool that shows the relationships
+  between the data (OWNED and CONTAINED relationships).  
+- XML schema
 

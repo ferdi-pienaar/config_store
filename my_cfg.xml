@@ -42,9 +42,28 @@
     <item>
       <name>user</name>
       <id></id>
-      <print-function>cm_set_int</print-function> <!-- could the function be an attribute? -->
-      <set-function></set-function>
-      <setdef-function></setdef-function>
+      <aggregate> 
+        <type>contained</type> <!-- Owned or contained -->
+        <count>2</count>
+        <item>
+          <name>addr</name>
+          <id> </id>
+          <print-function>cm_prt_int</print-function> <!-- could the function be an attribute? -->
+          <set-function>cm_set_int</set-function>
+          <setdef-function></setdef-function>
+        </item>
+      </aggregate>
+      <aggregate> 
+        <type>contained</type> <!-- Owned or contained -->
+        <count>2</count>
+        <item>
+          <name>temp</name>
+          <id> </id>
+          <print-function>cm_prt_int</print-function> <!-- could the function be an attribute? -->
+          <set-function>cm_set_int</set-function>
+          <setdef-function></setdef-function>
+        </item>
+      </aggregate>
     </item>
   </aggregate>
 </item>

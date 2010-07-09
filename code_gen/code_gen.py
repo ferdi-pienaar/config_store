@@ -5,6 +5,7 @@ describing the contents of those structures.
 
 Usage: python code_gen.py [source XML file]
 
+
 """
 
 from xml.dom import minidom
@@ -33,62 +34,91 @@ def get_element_content(element):
 
 class Item():
     """Class representing some properties of an item; we don't need to represent all, because
-       minidom's Node does most of the job for us, such as the parent/child relationships."""
-       
-    def __init__(self):
-        self.aggr_list = []
-        
-       
-    def process(self, node, prefix):
-        """Process a minidom Node representing an XML element with tag 'item'.
-           Return the item's name; it's useful to the aggregate it's in.
-        """
+       minidom's Element does most of the job for us, such as the parent/child relationships.
+       """       
+    def __init__(self, element, prefix):
+        self.element = element
         self.prefix = prefix
-        print "process_item", node, "PREFIX",prefix
+
         # For all the elements within the item: name, ID, aggregates(s), etc...
-        for element in get_child_elements(node):
-            print "TAGNAME", element.tagName
-            # print element.toxml()      
+        for element in get_child_elements(self.element):   
             # Assume each item has at least one "name" child element
             if (element.tagName == "name"):
                 self.nameText = get_element_content(element)
                 
             if (element.tagName == "print-function"):
-                prt_fn = get_element_content(element)
-                print "prt_fn", prt_fn
-                
-            if (element.tagName == "aggregate"):
-               newPrefix = prefix + self.nameText
-               print "NEWPREFIX", newPrefix
-               self.aggr_list.append(process_aggregate(element, newPrefix))
-                    
-        if len(self.aggr_list) > 0:
-            desc_init_str = self.get_composite_init_str()
-            decl_str = "composite struct\n"
+                self.prt_fn = get_element_content(element)
 
+        
+    def get_aggr_list(self):
+        """Return the list of child elements with tagName aggregate"""
+        return  [element for element in get_child_elements(self.element) if element.tagName == "aggregate"]
+        
+        
+    def print_init_str(self):
+        """.
+           Return the item's name; it's useful to the aggregate it's in.
+        """
+        print "print_init_str", self.element, "PREFIX", self.prefix
+        aggr_name_list = []
+        if len(self.get_aggr_list()) > 0:
+            
+            finit.write("\n// Start composite")
         else:
             # Simple item
             desc_init_str = self.get_simple_init_str()
-            decl_str = "component member\n"
+        
+        for aggrElement in self.get_aggr_list():
+           newPrefix = self.prefix + self.nameText
+           print "NEWPREFIX", newPrefix
+           aggr = Aggregate(aggrElement, newPrefix)
+           aggr_name_list.append(aggr.init_str())
+                    
+        if len(aggr_name_list) > 0:
+            desc_init_str = self.get_composite_init_str(aggr_name_list)
+
 
         finit.write(desc_init_str)
-        fdecl.write(decl_str)
         return self.nameText
+
+        
+    def print_decl_str(self):
+        """
+        """
+        print "print_decl_str", self.element, "PREFIX", self.prefix, "NAME", self.nameText
+        if len(self.get_aggr_list()) > 0:
+            decl_str = "\ntypedef struct\n{\n"
+        for aggrElement in self.get_aggr_list():
+            newPrefix = self.prefix + self.nameText
+            print "NEWPREFIX", newPrefix
+            aggr = Aggregate(aggrElement, newPrefix)
+            decl_str += "    " + aggr.decl_str() + ";\n"
+                    
+        if len(self.get_aggr_list()) > 0:
+            struct_name = "t_"+self.nameText
+            decl_str += "}" + struct_name +";\n"
+            fdecl.write(decl_str)
+            
+            return struct_name + " " + self.nameText
+        else:
+            return "xxx simple type " + self.nameText
                 
+        
     def get_simple_init_str(self):
         """Simple"""
         prt_str = "\nconst cm_basic_item_descriptor " + self.prefix + self.nameText + " = cm_basic_item_descriptor\n"
         prt_str += "(\n    \"" + self.nameText + "\",\n"
-        prt_str += "    " + id_gen.get_id() + ",\n);\n"
+        prt_str += "    " + id_gen.get_id() + ",\n"
+        prt_str += "    " + self.prt_fn + ",\n);\n"
         return prt_str
         
-    def get_composite_init_str(self):
+    def get_composite_init_str(self, aggr_name_list):
         """ Composite item"""
         aggr_list_string = "\n// List of aggregates in composite item " + self.nameText + "\n"
         aggr_list_string += "const cm_aggregate * const " + self.nameText + "aggrList[] = {\n"
-        for aggr in self.aggr_list:
+        for aggr_name in aggr_name_list:
             # list of aggregates in this composite item
-            aggr_list_string += "    &" + aggr + ",\n"
+            aggr_list_string += "    &" + aggr_name + ",\n"
         aggr_list_string += "};\n"
         prt_str = aggr_list_string
         prt_str += "\nconst cm_composite_item_descriptor " + self.prefix + self.nameText + " = cm_composite_item_descriptor\n"
@@ -97,36 +127,47 @@ class Item():
         return prt_str        
 
 
-def process_aggregate(aggr, prefix):
-    """Process XML element with tag 'aggregate'. Return the aggregate's name; it's useful to the composite item it's in"""
-    print "process_aggregate", aggr, prefix
+class Aggregate():
+    """Class represent XML element with tagName 'aggregate'"""
+    def __init__(self, element, prefix):
+        self.element = element
+        self.prefix = prefix
     
-    # Assume each aggregate has at least 1 "item" child element
-    itemNode = [node for node in get_child_elements(aggr) if node.tagName == "item"][0]
-    item = Item()
-    item_name = item.process(itemNode, prefix)
-    
-    aggr_name = item_name + "_aggregate"
-    aggr_init = "\nconst cm_"+ "aggregate " + aggr_name + "(" + ");\n"
-    finit.write(aggr_init)
-    return aggr_name
+    def init_str(self):
+        print "aggregate init_str"
+        # Assume each aggregate has at least 1 "item" child element
+        itemElement = [element for element in get_child_elements(self.element) if element.tagName == "item"][0]
+        item = Item(itemElement, self.prefix)
+        item_name = item.print_init_str()
+        
+        aggr_name = item_name + "_aggregate"
+        aggr_init = "\nconst cm_"+ "aggregate " + aggr_name + "(" + ");\n"
+        finit.write(aggr_init)
+        return aggr_name
+        
+    def decl_str(self):
+        print "aggregate decl_str"
+        # Assume each aggregate has at least 1 "item" child element
+        itemElement = [element for element in get_child_elements(self.element) if element.tagName == "item"][0]
+        item = Item(itemElement, self.prefix)
+        item_name = item.print_decl_str()
+        return item_name
 
 
 f = open(sys.argv[1])
 finit = open("out.cpp", "w")
 fdecl = open("out.h", "w")
 print "Reading", sys.argv[1]
-
 xmldoc = minidom.parse(f).documentElement
-
-id_gen = Id_generator()
+f.close()
 
 if (xmldoc.tagName == "item"):
-    item = Item()
-    item.process(xmldoc, "device")
+    id_gen = Id_generator()
+    item = Item(xmldoc, "device")
+    item.print_init_str()
+    item.print_decl_str()
 else:
-    print "Root element is", xmldoc.tagName
+    print "Root element is not an item:", xmldoc.tagName
 
-f.close()
 finit.close()
 fdecl.close()
