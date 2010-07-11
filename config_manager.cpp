@@ -86,8 +86,8 @@ void config_manager::handleCmd(int argc, char *argv[])
             break;
     }
 
-    // Start with the current base, then add to it
-    tempCtxt = currCtxt;
+    // This may become the new context: a modifiable copy of the current context
+    cm_context tempCtxt = currCtxt;
 
     // Pass command that don't apply to CM as a whole, to current context for handling
     currCtxt.pDesc->handleCmd(argc, argv, currCtxt.pItem, tempCtxt);
@@ -167,9 +167,13 @@ void config_manager::load()
     cm_descriptor_id id;    
     fread(&id, sizeof(id), 1, fp);
 
-    printf("Load id %#x\n", id);
+    if (id != base_desc->id)
+    {
+        cout << "Can't load unknown base ID " << id << endl;
+        return;
+    }
 
-    // xxx if top-level ID is unexpected, stop?
+    printf("Load id %#x\n", id);
 
     // Before loading, thus allocating new memory, call setdef to free owned memory
     base_desc->setdef(ramBase);
@@ -215,30 +219,28 @@ bool cm_composite_item_descriptor::handleCmd(int argc,
             }
             
             // A component was found
-            if (argc > 0)
-            {                
-                // Pass the remainder of the command to the found component
-                if (!pAggr->pDesc->handleCmd(argc, argv, pItem, ctxt))
-                {
-                    // Component says the command is invalid
-                    if (added)
-                    {
-                        // Free memory allocated as a side-effect of an invalid command
-                        del(pParentItem,
-                            pAggr,
-                            pAggr->getCount(pParentItem) - 1,
-                            pAggr->getCount(pParentItem));                        
-                    }
-                    return false;
-                }
-                return true;
-            }
-            else
+            if (argc == 0)
             {
                 // We have a component, but there's nothing left of the command
                 config_manager::getInstance()->updateCtxt(&ctxt);
                 return true;
             }
+            
+            // Pass the remainder of the command to the found component
+            if (!pAggr->pDesc->handleCmd(argc, argv, pItem, ctxt))
+            {
+                // Component says the command is invalid
+                if (added)
+                {
+                    // Free memory allocated as a side-effect of an invalid command
+                    del(pParentItem,
+                        pAggr,
+                        pAggr->getCount(pParentItem) - 1,
+                        pAggr->getCount(pParentItem));                        
+                }
+                return false;
+            }
+            return true;
         }
         break;
         
@@ -531,13 +533,24 @@ unsigned int cm_composite_item_descriptor::loadFromTlv(FILE * fp, uint8_t * pIte
 
         const cm_aggregate * pAggr = getAggr(compId);
 
-        if ((pAggr != NULL) && (pAggr->getCount(pItem) < pAggr->maxCount))
+        if (pAggr == NULL)
+        {            
+            // Unrecognized item: skip it
+            cout << "Can't load unknown ID " << compId << endl;
+            bytesRead += skipTlvItem(fp);
+        }
+        else if (pAggr->isAddSupported() && (pAggr->getCount(pItem) == pAggr->maxCount))
+        {
+            // Maximum number of these item already loaded: skip it
+            cout << "Can't load more than " << pAggr->maxCount << " " << pAggr->pDesc->getName() << endl;
+            bytesRead += skipTlvItem(fp);
+        }
+        else
         {            
             // Found a match, so delegate the reading to the corresponding component
             DBG_PRT("component '%s' matches, itemIdx %d\n", pAggr->pDesc->getName().c_str(), itemIdx);
 
-            // When we start with a new item type (or the 1st one),
-            // reset array index and pFirstItem
+            // New item type (or the 1st one), so reset array index and pFirstItem
             if ((pFirstItem == NULL) || (compId != prevCompId))
             {
                 pFirstItem = pAggr->getFirstItem(pItem);
@@ -564,14 +577,6 @@ unsigned int cm_composite_item_descriptor::loadFromTlv(FILE * fp, uint8_t * pIte
                 // Couldn't allocate memory for the item, so skip the file contents
                 bytesRead += skipTlvItem(fp);
             }
-
-            // xxx itemIdx may not exceed pAggr->maxCount
-        }
-        else
-        {            
-            // Unrecognized item or too many instances of item: skip it
-            cout << "Couldn't load unknown component ID " << compId << endl;
-            bytesRead += skipTlvItem(fp);
         }
         DBG_PRT("composite '%s': %d read\n", name.c_str(), bytesRead);
         prevCompId = compId;
@@ -580,8 +585,7 @@ unsigned int cm_composite_item_descriptor::loadFromTlv(FILE * fp, uint8_t * pIte
 }
 
 
-// Having read the Type (ID) of an item from the TLV file, skip over the L
-// and V.
+// Having read the Type (ID) of an item from the TLV file, skip L and V.
 // @return number of bytes moved ahead in the file
 //
 unsigned int cm_composite_item_descriptor::skipTlvItem(FILE * fp) const
@@ -592,9 +596,7 @@ unsigned int cm_composite_item_descriptor::skipTlvItem(FILE * fp) const
     cm_item_len bytesRead = sizeof(tlvLen);
 
     fseek(fp, tlvLen, SEEK_CUR);
-    bytesRead += tlvLen;
-
-    return bytesRead;
+    return bytesRead += tlvLen;
 }
 
 

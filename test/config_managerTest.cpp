@@ -442,12 +442,3 @@ TEST(del, config_manager)
     fclose(fp);    
 }
 
-// xxx We need to decide what to do when loading:
-// Which is authoritative, the cnt for owned items, or the
-// actual number of owned items?
-// In other words, do we create as many owned items as the
-// cnt found in the TLV (and set cnt as read from TLV), OR do
-// we create as many items as we can read from TLV, and set
-// cnt accordingly, OR do we fail to load if there is incoherence
-// in the TLV between the cnt and actual number of owned items.
-//

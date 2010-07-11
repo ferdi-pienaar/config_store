@@ -323,7 +323,6 @@ private:
     static config_manager * instance;
     const cm_item_descriptor * base_desc;    
     uint8_t *    ramBase;
-    cm_context   tempCtxt; // context being updated to possibly replace current one
     cm_context   currCtxt; // current context
 
 };

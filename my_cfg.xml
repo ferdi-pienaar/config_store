@@ -8,12 +8,25 @@
   <!-- It seems to be fairly common to use a tag like <aggregates> to enclose the list of aggregates,
        although I don't see why it's necessary.
      -->
+   <aggregate> 
+    <type>contained</type> <!-- Owned or contained -->
+    <count>1</count>
+    <item>
+      <name>address</name>
+      <id> </id>
+      <type>uint32_t</type>
+      <print-function>cm_prt_int</print-function>
+      <set-function>cm_set_int</set-function>
+      <setdef-function></setdef-function>
+    </item>
+  </aggregate>
   <aggregate> 
     <type>contained</type> <!-- Owned or contained -->
-    <count>2</count>
+    <count>4</count>
     <item>
       <name>port</name>
       <id> </id>
+      <type>uint16_t</type>
       <print-function>cm_prt_int</print-function> <!-- could the function be an attribute? -->
       <set-function>cm_set_int</set-function>
       <setdef-function></setdef-function>
@@ -27,6 +40,7 @@
     <item>
       <name>usercnt</name>
       <id> </id>
+      <type>uint16_t</type>
       <!-- If a counter has no print function, then it needn't be in the composite's aggregate list? -->
       <print-function>cm_prt_int</print-function> <!-- could the function be an attribute? -->
       <set-function>cm_set_int</set-function>
@@ -46,8 +60,9 @@
         <type>contained</type> <!-- Owned or contained -->
         <count>2</count>
         <item>
-          <name>addr</name>
+          <name>id</name>
           <id> </id>
+          <type>uint32_t</type>
           <print-function>cm_prt_int</print-function> <!-- could the function be an attribute? -->
           <set-function>cm_set_int</set-function>
           <setdef-function></setdef-function>
@@ -59,6 +74,7 @@
         <item>
           <name>temp</name>
           <id> </id>
+          <type>uint16_t</type>
           <print-function>cm_prt_int</print-function> <!-- could the function be an attribute? -->
           <set-function>cm_set_int</set-function>
           <setdef-function></setdef-function>

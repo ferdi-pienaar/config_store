@@ -41,13 +41,15 @@ class Item():
         self.prefix = prefix
 
         # For all the elements within the item: name, ID, aggregates(s), etc...
-        for element in get_child_elements(self.element):   
-            # Assume each item has at least one "name" child element
+        for element in get_child_elements(self.element):
             if (element.tagName == "name"):
                 self.nameText = get_element_content(element)
                 
             if (element.tagName == "print-function"):
-                self.prt_fn = get_element_content(element)
+                self.prt_fn = get_element_content(element)            
+            
+            if (element.tagName == "type"):
+                self.type = get_element_content(element)
 
         
     def get_aggr_list(self):
@@ -77,13 +79,15 @@ class Item():
         if len(aggr_name_list) > 0:
             desc_init_str = self.get_composite_init_str(aggr_name_list)
 
-
         finit.write(desc_init_str)
         return self.nameText
 
         
     def print_decl_str(self):
         """
+        If composite, print the struct, using component aggregates to print
+        the members, and return the structure name to the parent aggregate.
+        If simple, return the name to parent aggregate.
         """
         print "print_decl_str", self.element, "PREFIX", self.prefix, "NAME", self.nameText
         if len(self.get_aggr_list()) > 0:
@@ -96,18 +100,18 @@ class Item():
                     
         if len(self.get_aggr_list()) > 0:
             struct_name = "t_"+self.nameText
-            decl_str += "}" + struct_name +";\n"
+            decl_str += "} " + struct_name +";\n"
             fdecl.write(decl_str)
-            
             return struct_name + " " + self.nameText
         else:
-            return "xxx simple type " + self.nameText
+            return self.type + " " + self.nameText
                 
         
     def get_simple_init_str(self):
         """Simple"""
         prt_str = "\nconst cm_basic_item_descriptor " + self.prefix + self.nameText + " = cm_basic_item_descriptor\n"
         prt_str += "(\n    \"" + self.nameText + "\",\n"
+        prt_str += "    sizeof(" + self.type + "),\n"
         prt_str += "    " + id_gen.get_id() + ",\n"
         prt_str += "    " + self.prt_fn + ",\n);\n"
         return prt_str
@@ -131,15 +135,21 @@ class Aggregate():
     """Class represent XML element with tagName 'aggregate'"""
     def __init__(self, element, prefix):
         self.element = element
-        self.prefix = prefix
+        self.prefix = prefix        
+        # For all the elements within the aggregate...
+        for element in get_child_elements(self.element):
+            if (element.tagName == "item"):
+                self.item = Item(element, prefix)
+                
+            if (element.tagName == "count"):
+                self.countText = get_element_content(element)            
+            
+            if (element.tagName == "type"):
+                self.type = get_element_content(element)
     
     def init_str(self):
         print "aggregate init_str"
-        # Assume each aggregate has at least 1 "item" child element
-        itemElement = [element for element in get_child_elements(self.element) if element.tagName == "item"][0]
-        item = Item(itemElement, self.prefix)
-        item_name = item.print_init_str()
-        
+        item_name = self.item.print_init_str()
         aggr_name = item_name + "_aggregate"
         aggr_init = "\nconst cm_"+ "aggregate " + aggr_name + "(" + ");\n"
         finit.write(aggr_init)
@@ -147,11 +157,11 @@ class Aggregate():
         
     def decl_str(self):
         print "aggregate decl_str"
-        # Assume each aggregate has at least 1 "item" child element
-        itemElement = [element for element in get_child_elements(self.element) if element.tagName == "item"][0]
-        item = Item(itemElement, self.prefix)
-        item_name = item.print_decl_str()
-        return item_name
+        item_name = self.item.print_decl_str()
+        if int(self.countText) > 1:
+            return item_name + "[" + self.countText + "]"
+        else:
+            return item_name
 
 
 f = open(sys.argv[1])

@@ -21,6 +21,11 @@
 #include "config_manager_util.h"
 using namespace std;
 
+// We can get the size of a member of a type without having to declare a variable of that type
+// Using it means that if we change the type of a simple CONTAINED item
+// in the .h file, we don't have to change it here, too.
+#define SIZEOF(s,m) ((size_t) sizeof(((s *)0)->m))
+
 
 // Start of composite item device
 enum
@@ -35,12 +40,12 @@ enum
 
 const cm_basic_item_descriptor ip_address = cm_basic_item_descriptor
 (
-"ipaddr",
-IPADDR,
-sizeof(unsigned long), // xxx define SIZEOF macro
-cm_set_int,
-NULL, // setdef
-cm_prt_int
+    "ipaddr",
+    IPADDR,
+    SIZEOF(tDevice, addr),
+    cm_set_int,
+    NULL, // setdef
+    cm_prt_int
 );
                                                                  
 const cm_contained_aggregate ipaddressAggr(&ip_address, 1, offsetof(tDevice, addr));
@@ -49,7 +54,7 @@ const cm_basic_item_descriptor port = cm_basic_item_descriptor
 (
     "port", 
     CLIPORT,
-    sizeof(unsigned short), // xxx
+    SIZEOF(tDevice, cliPort[0]), // the number of elements in the array are taken into account in the aggregate below
     cm_set_int,
     NULL, // setdef
     cm_prt_int
@@ -61,7 +66,7 @@ const cm_cntr_item_descriptor userCnt = cm_cntr_item_descriptor
 (
     "usercnt", 
     USERCOUNT,
-    sizeof(unsigned int), // xxx
+    SIZEOF(tDevice, userCount),
     cm_prt_int
 );
                                                               
@@ -79,7 +84,7 @@ const cm_basic_item_descriptor user_name = cm_basic_item_descriptor
 (
     "name", 
     USER_NAME,
-    MAX_LEN_USER_NAME, // xxx
+    SIZEOF(tUser, name),
     cm_set_str,
     NULL, // setdef
     cm_prt_str
@@ -91,7 +96,7 @@ const cm_basic_item_descriptor user_id = cm_basic_item_descriptor
 (
     "id", 
     USER_ID,
-    sizeof(unsigned long), // xxx
+    SIZEOF(tUser, id),
     cm_set_int, // xxx unsigned
     NULL, // setdef
     cm_prt_int /* xxx unsigned */
@@ -103,7 +108,7 @@ const cm_basic_item_descriptor user_temp = cm_basic_item_descriptor
 (
     "temp", 
     USER_TEMP,
-    sizeof(short), // xxx
+    SIZEOF(tUser, temperature),
     cm_set_int,
     setdef_temp,
     cm_prt_int
