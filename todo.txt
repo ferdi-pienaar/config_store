@@ -1,3 +1,4 @@
+- Method giving client code access to the controlled memory
 - Unit tests to verify that a user's initialization of cfg_man is correct, i.e.
   it's a generic test, that verifies some things that are done in my_cfg.cpp.
 - Extend utils to unsigned int, strings, hexstrings, etc.
@@ -10,6 +11,7 @@
 - Do we support counters that are not 4 bytes -- do both setCnt and getCnt handle it?
   
 - Provide context-sensitive help in a way that could be used for "tabbing out" input strings.
+  Step 1: respond to inputs without a carriage return.
 - Strategy for making fewer methods public: do we need friends, or interface classes...
 - Make C-friendly: a C-friendly wrapper?
 - Verify ROM-ability of meta-data, which is const.

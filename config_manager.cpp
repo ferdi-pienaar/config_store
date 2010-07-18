@@ -125,7 +125,6 @@ const char * config_manager::getPromptString()
 void config_manager::save()
 {
     cm_item_len tlvLen = base_desc->getTlvLen(ramBase);
-
     
     // Allocate a temporary buffer to contain TLV format data
     uint8_t * buf = new uint8_t[tlvLen];
@@ -169,7 +168,7 @@ void config_manager::load()
 
     if (id != base_desc->id)
     {
-        cout << "Can't load unknown base ID " << id << endl;
+        printf("Can't load id %#x\n", id);
         return;
     }
 
@@ -207,9 +206,9 @@ bool cm_composite_item_descriptor::handleCmd(int argc,
     {
         case CM_OP_NONE:
         {
-            cm_aggregate * pAggr;               // Component of this composite identified by argc, argv
-            uint8_t *      pParentItem = pItem; // Remember parent, we may need it to undo side-effect
-            bool           added;               // Did getComponentItem create a new item?
+            const cm_aggregate * pAggr;               // Component of this composite identified by argc, argv
+            uint8_t *            pParentItem = pItem; // Remember parent, we may need it to undo side-effect
+            bool                 added;               // Did getComponentItem create a new item?
 
             if (!getComponentItem(&argc, &argv, &pAggr, &pItem, ctxt, added))
             {
@@ -734,14 +733,14 @@ const cm_aggregate * cm_composite_item_descriptor::getAggr(cm_descriptor_id id) 
 //
 bool cm_composite_item_descriptor::getComponentItem(int * pArgc,
                                                     char *** pArgv,
-                                                    cm_aggregate ** ppAggr,
+                                                    const cm_aggregate ** ppAggr,
                                                     uint8_t ** ppItem,
                                                     cm_context & ctxt,
                                                     bool & added) const
 {
     added = false; // By default, didn't add a new component
     
-    *ppAggr = (cm_aggregate *)getAggr(*pArgv[0]); // xxx fix constness -- avoid cast here.  A variable ptr to ptr to const
+    *ppAggr = getAggr(*pArgv[0]);
 
     if (*ppAggr == NULL)
     {
@@ -1087,36 +1086,20 @@ unsigned cm_owned_aggregate::getCount(const uint8_t * pParentItem) const
         return (getFirstItem(pParentItem) == NULL) ? 0 : 1;
     }
     
-    uint32_t c;
-
     switch (pCounterAggr->pDesc->getLen()) 
     { 
         case sizeof(uint8_t):
-            {
-                uint8_t v;
-
-                memcpy(&v, pParentItem + pCounterAggr->offset, sizeof(v));
-                c = v;
-            }
-            break;
+            return (unsigned)(*(pParentItem + pCounterAggr->offset));
        
         case sizeof(uint16_t):
-            { 
-                uint16_t v;
-
-                memcpy(&v, pParentItem + pCounterAggr->offset, sizeof(v));
-                c = v;
-            }
-            break;
+            return (unsigned)(*((uint16_t *)(pParentItem + pCounterAggr->offset)));
        
         case sizeof(uint32_t):
-            memcpy(&c, pParentItem + pCounterAggr->offset, sizeof(c)); 
-            break;
+            return (unsigned)(*((uint32_t *)(pParentItem + pCounterAggr->offset)));
 
         default:
             assert(0);
     }
-    return c;
 }
 
 

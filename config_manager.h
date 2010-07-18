@@ -185,7 +185,7 @@ class cm_composite_item_descriptor : public cm_item_descriptor
     const cm_aggregate * getAggr(cm_descriptor_id id) const;
     bool getComponentItem(int * pArgc,
                           char *** pArgv,
-                          cm_aggregate ** ppAggr,
+                          const cm_aggregate ** ppAggr,
                           uint8_t ** ppItem,
                           cm_context & ctxt,
                           bool & added) const;

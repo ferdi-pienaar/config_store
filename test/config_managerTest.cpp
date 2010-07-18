@@ -57,6 +57,22 @@ const cm_aggregate * const aggrList2[] = {&ca3, &oa4};
 const cm_composite_item_descriptor c2("c2", 1, sizeof(struct m2), aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0]));
 
 
+////////////////////////////////////////////////////////////////////////////////
+// third test set, CONTAINED
+// third test set data structure
+#define T3_ARRAY_SIZE 2
+struct m3
+{
+    short int m1[T3_ARRAY_SIZE];
+};
+
+// third test set metadata
+const cm_basic_item_descriptor s5("name1", 1, sizeof(short int), NULL, NULL, NULL);
+const cm_contained_aggregate ca5(&s5, T3_ARRAY_SIZE, offsetof(struct m3, m1));
+const cm_aggregate * const aggrList3[] = {&ca5};
+const cm_composite_item_descriptor c3("c3", 1, sizeof(struct m3), aggrList3, sizeof(aggrList3)/sizeof(aggrList3[0]));
+
+
 // Verify data saved to TLV, with default data in RAM as input to the test.
 TEST(saveContained, config_manager)
 {
@@ -245,6 +261,50 @@ TEST(loadTooManyOwned, config_manager)
     fclose(fp);    
 
     cm->init(&c2);
+
+    char * commandWord[] = {"save"};
+    cm->handleCmd(1, commandWord);
+
+    // See what CM made of the file it loaded
+    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fread(savedTlv, sizeof(savedTlv), 1, fp);
+
+    CHECK(memcmp(expectedTlv, savedTlv, sizeof(savedTlv)) == 0);
+    fclose(fp);    
+}
+
+
+// Verify what's saved to TLV, given a TLV file that's read on startup that
+// has more than the max number of a CONTAINED component.
+//
+TEST(loadTooManyContained, config_manager)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    uint8_t tlv[24] =
+    /*T    L     T    L    V    T    L    V    T    L    V       */
+    { 1,0, 18,0, 1,0, 2,0, 7,0, 1,0, 2,0, 8,0, 1,0, 2,0, 9,0};
+    uint8_t expectedTlv[16] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V    T    L    V    */
+    { 1,0, 12,0, 1,0, 2,0, 7,0, 1,0, 2,0, 8,0};
+    uint8_t savedTlv[16];
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);    
+
+    cm->init(&c3);
 
     char * commandWord[] = {"save"};
     cm->handleCmd(1, commandWord);
