@@ -285,7 +285,7 @@ TEST(loadTooManyContained, config_manager)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
-    uint8_t tlv[24] =
+    uint8_t tlv[22] =
     /*T    L     T    L    V    T    L    V    T    L    V       */
     { 1,0, 18,0, 1,0, 2,0, 7,0, 1,0, 2,0, 8,0, 1,0, 2,0, 9,0};
     uint8_t expectedTlv[16] =

@@ -518,11 +518,13 @@ unsigned int cm_composite_item_descriptor::loadFromTlv(FILE * fp, uint8_t * pIte
 
     DBG_PRT("composite load %d bytes to %p\n", tlvLen, pItem);
 
-    uint8_t * pFirstItem = NULL; // first item in an aggregate's array
+    bool         first   = true; // Is this the first component item?
+    unsigned int itemIdx = 0;    // number of items read of a given type, i.e. offset in the item array
 
-    while (bytesRead < tlvLen) // xxx 
+    // While enough unread bytes remain of the composite for T+L fields of a component.
+    // bytesRead already includes the L field of the composite item, so we don't add sizeof(L) here.
+    while (bytesRead + sizeof(cm_descriptor_id) <= tlvLen) 
     {        
-        unsigned int      itemIdx; // number of items read of a given type, i.e. offset in the item array
         cm_descriptor_id  compId, prevCompId;
 
         fread(&compId, sizeof(compId), 1, fp);
@@ -538,47 +540,60 @@ unsigned int cm_composite_item_descriptor::loadFromTlv(FILE * fp, uint8_t * pIte
             cout << "Can't load unknown ID " << compId << endl;
             bytesRead += skipTlvItem(fp);
         }
-        else if (pAggr->isAddSupported() && (pAggr->getCount(pItem) == pAggr->maxCount))
-        {
-            // Maximum number of these item already loaded: skip it
-            cout << "Can't load more than " << pAggr->maxCount << " " << pAggr->pDesc->getName() << endl;
-            bytesRead += skipTlvItem(fp);
-        }
         else
         {            
             // Found a match, so delegate the reading to the corresponding component
             DBG_PRT("component '%s' matches, itemIdx %d\n", pAggr->pDesc->getName().c_str(), itemIdx);
 
+            uint8_t * pFirstItem; // first item in an aggregate's array
+
             // New item type (or the 1st one), so reset array index and pFirstItem
-            if ((pFirstItem == NULL) || (compId != prevCompId))
-            {
+            if (first || (compId != prevCompId))
+            {                
+                first = false;
                 pFirstItem = pAggr->getFirstItem(pItem);
                 itemIdx = 0;
             }
 
-            uint8_t * pCompItem;
-
-            if (pAggr->isAddSupported())
+            if (itemIdx == pAggr->maxCount)
             {
-                pCompItem = add(pItem, pAggr); 
-            }
-            else
-            {
-                pCompItem = pFirstItem + itemIdx++ * pAggr->pDesc->getLen();
-            }
-
-            if (pCompItem != NULL)
-            {
-                bytesRead += pAggr->pDesc->loadFromTlv(fp, pCompItem);
-            }
-            else
-            {
-                // Couldn't allocate memory for the item, so skip the file contents
+                // Maximum number of these item already loaded: skip it
+                cout << "Can't load more than " << pAggr->maxCount << " " << pAggr->pDesc->getName() << endl;
                 bytesRead += skipTlvItem(fp);
+            }
+            else
+            {
+                uint8_t * pCompItem; // component item in RAM
+
+                if (pAggr->isAddSupported())
+                {
+                    pCompItem = add(pItem, pAggr); 
+                }
+                else
+                {
+                    pCompItem = pFirstItem + itemIdx * pAggr->pDesc->getLen();
+                }
+
+                if (pCompItem != NULL)
+                {
+                    bytesRead += pAggr->pDesc->loadFromTlv(fp, pCompItem);
+                    itemIdx++;
+                }
+                else
+                {
+                    // Couldn't allocate memory for the item, so skip the file contents
+                    bytesRead += skipTlvItem(fp);
+                }
             }
         }
         DBG_PRT("composite '%s': %d read\n", name.c_str(), bytesRead);
         prevCompId = compId;
+    }
+    
+    // Sanity check on coherence of the data read from the TLV file: xxx should we abort the read?
+    if (bytesRead != tlvLen + sizeof(tlvLen))
+    {
+        cout << "Item contains " << bytesRead - sizeof(tlvLen) << ", not " << tlvLen <<"!" << endl;
     }
     return bytesRead;
 }
@@ -1065,7 +1080,8 @@ unsigned cm_contained_aggregate::getCount(const uint8_t * pParentItem) const
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-// Return address of the first item in the item array.
+// Return address of the first item in the item array, or NULL if there are
+// no items allocated.
 // pParentItem: pointer to parent item; from this the aggregate obtains the
 //              address of the first item in the array that it links to the parent.
 //
