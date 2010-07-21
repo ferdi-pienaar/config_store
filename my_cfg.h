@@ -56,5 +56,5 @@ typedef struct
 // A pointer to the base descriptor is needed by the code that initializes config_manager
 extern const cm_item_descriptor * pBaseDesc;
  
-
+#define GET_DEVICE_CONFIG ((tDevice *)config_manager::getInstance()->getConfig())
 

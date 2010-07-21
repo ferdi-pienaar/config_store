@@ -309,6 +309,7 @@ public:
     void handleCmd(int argc, char *argv[]);
     void init(const cm_item_descriptor * pDesc);
     const char * getPromptString();
+    void * getConfig(){return (void *)ramBase;}
     static config_manager * getInstance();
 
     // xxx should only be accessible to friend classes

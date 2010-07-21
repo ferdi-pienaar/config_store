@@ -38,6 +38,8 @@ const cm_contained_aggregate ca2(&s2, 1, offsetof(struct m, m2));
 const cm_aggregate * const aggrList1[] = {&ca1, &ca2};
 const cm_composite_item_descriptor c1("c1", 1, sizeof(struct m), aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0]));
 
+#define GET_C1_CONFIG ((struct m *)config_manager::getInstance()->getConfig())
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // second test set, OWNED.
@@ -56,6 +58,8 @@ const cm_owned_aggregate oa4(&s4, 2, offsetof(struct m2, owned), &ca3);
 const cm_aggregate * const aggrList2[] = {&ca3, &oa4};
 const cm_composite_item_descriptor c2("c2", 1, sizeof(struct m2), aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0]));
 
+#define GET_C2_CONFIG ((struct m2 *)config_manager::getInstance()->getConfig())
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // third test set, CONTAINED
@@ -71,6 +75,8 @@ const cm_basic_item_descriptor s5("name1", 1, sizeof(short int), NULL, NULL, NUL
 const cm_contained_aggregate ca5(&s5, T3_ARRAY_SIZE, offsetof(struct m3, m1));
 const cm_aggregate * const aggrList3[] = {&ca5};
 const cm_composite_item_descriptor c3("c3", 1, sizeof(struct m3), aggrList3, sizeof(aggrList3)/sizeof(aggrList3[0]));
+
+#define GET_C3_CONFIG ((struct m3 *)config_manager::getInstance()->getConfig())
 
 
 // Verify data saved to TLV, with default data in RAM as input to the test.
@@ -104,7 +110,7 @@ TEST(saveContained, config_manager)
 }
 
 
-// Verify what's saved to TLV, given a TLV file that's read on startup.
+// Verify what's loaded into memory, given TLV file that's read on startup.
 TEST(loadContained, config_manager)
 {
     FILE * fp;
@@ -112,8 +118,7 @@ TEST(loadContained, config_manager)
     uint8_t tlv[20] =
     /* The following assumes little-endian integers */
     /*T    L     T    L    V        T    L    V    */
-    { 1,0, 16,0, 1,0, 4,0, 0,0,0,0, 2,0, 4,0, 0,0,0,0};
-    uint8_t savedTlv[20];
+    { 1,0, 16,0, 1,0, 4,0, 8,0,0,0, 2,0, 4,0, 9,0,0,0};
 
 
     /* Create config file to be loaded */
@@ -123,27 +128,69 @@ TEST(loadContained, config_manager)
     }
 
     fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);    
+    fclose(fp);
 
     cm->init(&c1);
 
-    char * commandWord[] = {"save"};
-    cm->handleCmd(1, commandWord);
+    CHECK(GET_C1_CONFIG->m1 == 8);
+    CHECK(GET_C1_CONFIG->m2 == 9);
+}
 
-    // See what CM made of the file it loaded
-    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
+
+// Verify what's loaded into memory, given TLV file that's read on startup.
+TEST(loadContainedArray, config_manager)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    uint8_t tlv[16] =
+    /*T    L     T    L    V    T    L    V */
+    { 1,0, 12,0, 1,0, 2,0, 7,0, 1,0, 2,0, 8,0};
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
     {
         FAIL("Couldn't open file");
     }
 
-    fread(savedTlv, sizeof(savedTlv), 1, fp);
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);
 
-    CHECK(memcmp(tlv, savedTlv, sizeof(savedTlv)) == 0);
-    fclose(fp);    
+    cm->init(&c3);
+
+    CHECK(GET_C3_CONFIG->m1[0] == 7);
+    CHECK(GET_C3_CONFIG->m1[1] == 8);
 }
 
 
-// Verify what's saved to TLV, given a TLV file that's read on startup that contains
+// Verify what's loaded into memory, given TLV file that's read on startup.
+TEST(loadOwned, config_manager)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    uint8_t tlv[20] =
+    /*T    L     T    L    V        T    L    V      */
+    { 1,0, 16,0, 4,0, 4,0, 7,0,0,0, 4,0, 4,0, 8,0,0,0};
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);
+
+    cm->init(&c2);
+
+    CHECK(GET_C2_CONFIG->cnt == 2);
+    CHECK(GET_C2_CONFIG->owned[0] == 7);
+    CHECK(GET_C2_CONFIG->owned[1] == 8);
+}
+
+
+// Verify what's loaded into memory, given a TLV file that's read on startup that contains
 // an unknown Type value.
 // Unknown type in file: the descriptor has no T=9, so it's ignored by cfg_man when found in file,
 // but the item following it is loaded.
@@ -262,6 +309,8 @@ TEST(loadTooManyOwned, config_manager)
 
     cm->init(&c2);
 
+    CHECK(GET_C2_CONFIG->cnt == 2);
+
     char * commandWord[] = {"save"};
     cm->handleCmd(1, commandWord);
 
@@ -371,8 +420,13 @@ TEST(implicitAdd, config_manager)
 
     cm->init(&c2);
 
+    CHECK(GET_C2_CONFIG->cnt == 0);
+    CHECK(GET_C2_CONFIG->owned == NULL);   
+
     char * commandWord[] = {"owned", "0"}; // reference owned item 0, causing implicit add
     cm->handleCmd(2, commandWord);
+
+    CHECK(GET_C2_CONFIG->cnt == 1);
 
     char * commandWord2[] = {"save"};
     cm->handleCmd(1, commandWord2);
@@ -405,8 +459,14 @@ TEST(implicitAddnSet, config_manager)
 
     cm->init(&c2);
 
+    CHECK(GET_C2_CONFIG->cnt == 0);
+    CHECK(GET_C2_CONFIG->owned == NULL);   
+
     char * commandWord[] = {"owned", "0", "=", "7"}; // set item 0, causing implicit add
     cm->handleCmd(4, commandWord);
+
+    CHECK(GET_C2_CONFIG->cnt == 1);
+    CHECK(GET_C2_CONFIG->owned[0] == 7);   
 
     char * commandWord2[] = {"save"};
     cm->handleCmd(1, commandWord2);
@@ -439,8 +499,14 @@ TEST(explicitAdd, config_manager)
 
     cm->init(&c2);
 
+    CHECK(GET_C2_CONFIG->cnt == 0);
+    CHECK(GET_C2_CONFIG->owned == NULL);
+
     char * commandWord[] = {"add", "owned"};
     cm->handleCmd(2, commandWord);
+
+    CHECK(GET_C2_CONFIG->cnt == 1);
+    CHECK(GET_C2_CONFIG->owned != NULL);
 
     char * commandWord2[] = {"save"};
     cm->handleCmd(1, commandWord2);
@@ -464,8 +530,8 @@ TEST(del, config_manager)
     config_manager * cm = config_manager::getInstance();
     uint8_t tlv[12] =
     /* The following assumes little-endian integers */
-    /*T    L     T    L    V    */
-    { 1,0, 8,0, 4,0, 4,0, 0,0,0,0};
+    /*T    L    T    L    V    */
+    { 1,0, 8,0, 4,0, 4,0, 5,0,0,0};
     uint8_t expectedTlv [4] =
     /* The following assumes little-endian integers */
     /*T    L  */
@@ -484,8 +550,14 @@ TEST(del, config_manager)
 
     cm->init(&c2);
 
+    CHECK(GET_C2_CONFIG->cnt == 1);
+    CHECK(GET_C2_CONFIG->owned[0] == 5);
+
     char * commandWord[] = {"del", "owned"};
     cm->handleCmd(2, commandWord);
+
+    CHECK(GET_C2_CONFIG->cnt == 0);
+    CHECK(GET_C2_CONFIG->owned == NULL);
 
     char * commandWord2[] = {"save"};
     cm->handleCmd(1, commandWord2);
