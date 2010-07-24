@@ -519,7 +519,7 @@ unsigned int cm_composite_item_descriptor::loadFromTlv(FILE * fp, uint8_t * pIte
     DBG_PRT("composite load %d bytes to %p\n", tlvLen, pItem);
 
     bool         first   = true; // Is this the first component item?
-    unsigned int itemIdx = 0;    // number of items read of a given type, i.e. offset in the item array
+    unsigned int itemIdx;        // number of items read of a given type, i.e. offset in the item array
 
     // While enough unread bytes remain of the composite for T+L fields of a component.
     // bytesRead already includes the L field of the composite item, so we don't add sizeof(L) here.
@@ -532,60 +532,30 @@ unsigned int cm_composite_item_descriptor::loadFromTlv(FILE * fp, uint8_t * pIte
 
         DBG_PRT("load component ID %d\n", compId);
 
-        const cm_aggregate * pAggr = getAggr(compId);
 
-        if (pAggr == NULL)
-        {            
-            // Unrecognized item: skip it
-            cout << "Can't load unknown ID " << compId << endl;
+        // New item type (or the 1st one), so reset array index
+        if (first || (compId != prevCompId))
+        {                
+            first = false;
+            itemIdx = 0;
+        }
+
+        const cm_aggregate * pAggr;
+        uint8_t * pCompItem = pItem;
+
+        bool ret = getComponentItem(compId, itemIdx, &pAggr, &pCompItem);
+
+        if (!ret)
+        {
+            // skip because we couldn't find the item, or index is out of range, or...
             bytesRead += skipTlvItem(fp);
         }
         else
-        {            
-            // Found a match, so delegate the reading to the corresponding component
-            DBG_PRT("component '%s' matches, itemIdx %d\n", pAggr->pDesc->getName().c_str(), itemIdx);
-
-            uint8_t * pFirstItem; // first item in an aggregate's array
-
-            // New item type (or the 1st one), so reset array index and pFirstItem
-            if (first || (compId != prevCompId))
-            {                
-                first = false;
-                pFirstItem = pAggr->getFirstItem(pItem);
-                itemIdx = 0;
-            }
-
-            if (itemIdx == pAggr->maxCount)
-            {
-                // Maximum number of these item already loaded: skip it
-                cout << "Can't load more than " << pAggr->maxCount << " " << pAggr->pDesc->getName() << endl;
-                bytesRead += skipTlvItem(fp);
-            }
-            else
-            {
-                uint8_t * pCompItem; // component item in RAM
-
-                if (pAggr->isAddSupported())
-                {
-                    pCompItem = add(pItem, pAggr); 
-                }
-                else
-                {
-                    pCompItem = pFirstItem + itemIdx * pAggr->pDesc->getLen();
-                }
-
-                if (pCompItem != NULL)
-                {
-                    bytesRead += pAggr->pDesc->loadFromTlv(fp, pCompItem);
-                    itemIdx++;
-                }
-                else
-                {
-                    // Couldn't allocate memory for the item, so skip the file contents
-                    bytesRead += skipTlvItem(fp);
-                }
-            }
+        {
+            bytesRead += pAggr->pDesc->loadFromTlv(fp, pCompItem);
+            itemIdx++;
         }
+
         DBG_PRT("composite '%s': %d read\n", name.c_str(), bytesRead);
         prevCompId = compId;
     }
@@ -593,7 +563,8 @@ unsigned int cm_composite_item_descriptor::loadFromTlv(FILE * fp, uint8_t * pIte
     // Sanity check on coherence of the data read from the TLV file: xxx should we abort the read?
     if (bytesRead != tlvLen + sizeof(tlvLen))
     {
-        cout << "Item contains " << bytesRead - sizeof(tlvLen) << ", not " << tlvLen <<"!" << endl;
+        cout << "'" << name << "' contains " << bytesRead - sizeof(tlvLen) << ", not "
+             << tlvLen <<"!" << endl;
     }
     return bytesRead;
 }
@@ -739,12 +710,16 @@ const cm_aggregate * cm_composite_item_descriptor::getAggr(cm_descriptor_id id) 
 
 
 // From remaining command-line words, find matching component of this composite.
-// If the component does not exist, it may be created in certain cases.
-// pArgc: (input/output) number of command words
-// pArgv: (input/output) command word pointer
-// ppComponent: output, the wanted component, or 0 if command identifies none
+// If the component does not exist, it is created in certain cases.
+// pArgc: (in/out) number of command words
+// pArgv: (in/out) command word pointer
+// ppAggr: out, the wanted aggregate, or 0 if command identifies none
 // ppItem: on input, the owning item
 //         on output, the wanted item
+// ctxt:   (in/out)
+// added: (out) did this function allocate memory for the item?
+//
+// @return true if item is returned
 //
 bool cm_composite_item_descriptor::getComponentItem(int * pArgc,
                                                     char *** pArgv,
@@ -813,6 +788,45 @@ bool cm_composite_item_descriptor::getComponentItem(int * pArgc,
     ctxt.pItem = *ppItem;
     return true;
 }
+
+//
+// xxx we call getFirstItem each time; that's not strictly necessary
+//     since we could pass it as input param
+bool cm_composite_item_descriptor::getComponentItem(cm_descriptor_id id,
+                                                    unsigned idx,
+                                                    const cm_aggregate ** ppAggr,
+                                                    uint8_t ** ppItem) const
+{
+    *ppAggr = getAggr(id);
+
+    if (*ppAggr == NULL)
+    {
+        return false;
+    }
+
+    if (idx == (*ppAggr)->maxCount)
+    {
+        // Maximum number of these item already loaded: skip it
+        // xxx maybe need special return code, not just bool cout << "Can't load more than " << pAggr->maxCount << " " << pAggr->pDesc->getName() << endl;
+        return false;
+    }
+
+    if ((*ppAggr)->isAddSupported())
+    {
+        *ppItem = add(*ppItem, *ppAggr); 
+    }
+    else
+    {
+        *ppItem = (*ppAggr)->getFirstItem(*ppItem) + idx * (*ppAggr)->pDesc->getLen();
+    }
+
+    if (*ppItem == NULL)
+    {
+        return false;
+    }
+    return true;
+}
+
 
 
 ////////////////////////////////////////////////////////////////////////////////

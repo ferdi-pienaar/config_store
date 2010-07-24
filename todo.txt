@@ -1,4 +1,3 @@
-- Method giving client code access to the controlled memory
 - Unit tests to verify that a user's initialization of cfg_man is correct, i.e.
   it's a generic test, that verifies some things that are done in my_cfg.cpp.
 - Extend utils to unsigned int, strings, hexstrings, etc.
@@ -28,6 +27,8 @@
 - Generate from XML descriptors
 - Is there superfluous info in the TLV files?  At least for simple types, if I know the type
   I already know the length.  What do we do if a simple item's size is not what's expected?
+  We should just discard it: correct truncation would depend on knowing if the 
+  item is an integer or a character array (string or hex string)
 - Test for memory leaks.  How?
 - Set more than one component of a composite in a single command?
 - Display members of an array by giving array name without index
