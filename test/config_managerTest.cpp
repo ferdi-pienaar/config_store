@@ -22,17 +22,27 @@ int main()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// first test set, CONTAINED
-// first test set data structure
+// test set 1, CONTAINED
+// test set 1 data structure
 struct m
 {
     int m1;
     int m2;
 };
 
-// first test set metadata
+// test set 1 user-defined functions
+void setdef_t1(uint8_t *pItem, cm_item_len len)
+{
+    // Sanity check
+    assert(len == sizeof(int));
+
+    *((int *)pItem) = 7;
+}
+
+
+// test set 1 metadata
 const cm_basic_item_descriptor s1("name1", 1, sizeof(int), NULL, NULL, NULL);
-const cm_basic_item_descriptor s2("name2", 2, sizeof(int), NULL, NULL, NULL);
+const cm_basic_item_descriptor s2("name2", 2, sizeof(int), NULL, setdef_t1, NULL);
 const cm_contained_aggregate ca1(&s1, 1, offsetof(struct m, m1));
 const cm_contained_aggregate ca2(&s2, 1, offsetof(struct m, m2));
 const cm_aggregate * const aggrList1[] = {&ca1, &ca2};
@@ -42,15 +52,15 @@ const cm_composite_item_descriptor c1("c1", 1, sizeof(struct m), aggrList1, size
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// second test set, OWNED.
-// second test set data structure
+// test set 2, OWNED.
+// test set 2 data structure
 struct m2
 {
     unsigned cnt;
     int *    owned;
 };
 
-// second test set metadata
+// test set 2 metadata
 const cm_cntr_item_descriptor s3("count", 3, sizeof(int), NULL);
 const cm_basic_item_descriptor s4("owned", 4, sizeof(int), cm_set_int, NULL, NULL);
 const cm_contained_aggregate ca3(&s3, 1, offsetof(struct m2, cnt));
@@ -62,15 +72,15 @@ const cm_composite_item_descriptor c2("c2", 1, sizeof(struct m2), aggrList2, siz
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// third test set, CONTAINED
-// third test set data structure
+// test set 3, CONTAINED
+// test set 3 data structure
 #define T3_ARRAY_SIZE 2
 struct m3
 {
     short int m1[T3_ARRAY_SIZE];
 };
 
-// third test set metadata
+// test set 3 metadata
 const cm_basic_item_descriptor s5("name1", 1, sizeof(short int), NULL, NULL, NULL);
 const cm_contained_aggregate ca5(&s5, T3_ARRAY_SIZE, offsetof(struct m3, m1));
 const cm_aggregate * const aggrList3[] = {&ca5};
@@ -87,7 +97,7 @@ TEST(saveContained, config_manager)
     uint8_t expectedTlv [20] =
     /* The following assumes little-endian integers */
     /*T    L     T    L    V        T    L    V    */
-    { 1,0, 16,0, 1,0, 4,0, 0,0,0,0, 2,0, 4,0, 0,0,0,0};
+    { 1,0, 16,0, 1,0, 4,0, 0,0,0,0, 2,0, 4,0, 7,0,0,0};
     uint8_t actualTlv [20];
 
     // Remove the bin file to ensure RAM is init'd with default values
@@ -134,6 +144,34 @@ TEST(loadContained, config_manager)
 
     CHECK(GET_C1_CONFIG->m1 == 8);
     CHECK(GET_C1_CONFIG->m2 == 9);
+}
+
+
+// Verify what's loaded into memory, given TLV file with L of 2nd simple
+// component that doesn't match the item descriptor.
+TEST(loadChangedSimpleLen, config_manager)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    uint8_t tlv[20] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V        T    L    V    */
+    { 1,0, 14,0, 1,0, 4,0, 8,0,0,0, 2,0, 2,0, 9,0};
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);
+
+    cm->init(&c1);
+
+    CHECK(GET_C1_CONFIG->m1 == 8);
+    CHECK(GET_C1_CONFIG->m2 == 7); // Default; not read from the file, because TLV's L is bad
 }
 
 

@@ -206,11 +206,11 @@ bool cm_composite_item_descriptor::handleCmd(int argc,
     {
         case CM_OP_NONE:
         {
-            const cm_aggregate * pAggr;               // Component of this composite identified by argc, argv
-            uint8_t *            pParentItem = pItem; // Remember parent, we may need it to undo side-effect
-            bool                 added;               // Did getComponentItem create a new item?
+            const cm_aggregate * pAggr;           // Component of this composite identified by argc, argv
+            uint8_t *            pComponentItem;  // pointer to component RAM
+            bool                 added;           // Did getComponentItem create a new item?
 
-            if (!getComponentItem(&argc, &argv, &pAggr, &pItem, ctxt, added))
+            if (!getComponentItem(&argc, &argv, &pAggr, pItem, &pComponentItem, ctxt, added))
             {
                 // Unhandled word(s): not a command, and also doesn't identify a component
                 DBG_PRT("composite::handleCmd: no component\n");
@@ -226,16 +226,13 @@ bool cm_composite_item_descriptor::handleCmd(int argc,
             }
             
             // Pass the remainder of the command to the found component
-            if (!pAggr->pDesc->handleCmd(argc, argv, pItem, ctxt))
+            if (!pAggr->pDesc->handleCmd(argc, argv, pComponentItem, ctxt))
             {
                 // Component says the command is invalid
                 if (added)
                 {
                     // Free memory allocated as a side-effect of an invalid command
-                    del(pParentItem,
-                        pAggr,
-                        pAggr->getCount(pParentItem) - 1,
-                        pAggr->getCount(pParentItem));                        
+                    del(pItem, pAggr, pAggr->getCount(pItem) - 1, pAggr->getCount(pItem));                        
                 }
                 return false;
             }
@@ -532,7 +529,6 @@ unsigned int cm_composite_item_descriptor::loadFromTlv(FILE * fp, uint8_t * pIte
 
         DBG_PRT("load component ID %d\n", compId);
 
-
         // New item type (or the 1st one), so reset array index
         if (first || (compId != prevCompId))
         {                
@@ -541,18 +537,16 @@ unsigned int cm_composite_item_descriptor::loadFromTlv(FILE * fp, uint8_t * pIte
         }
 
         const cm_aggregate * pAggr;
-        uint8_t * pCompItem = pItem;
+        uint8_t *            pComponentItem;
 
-        bool ret = getComponentItem(compId, itemIdx, &pAggr, &pCompItem);
-
-        if (!ret)
+        if (!getComponentItem(compId, itemIdx, &pAggr, pItem, &pComponentItem))
         {
-            // skip because we couldn't find the item, or index is out of range, or...
+            // skip because we couldn't find the item, index is out of range, or couldn't malloc
             bytesRead += skipTlvItem(fp);
         }
         else
         {
-            bytesRead += pAggr->pDesc->loadFromTlv(fp, pCompItem);
+            bytesRead += pAggr->pDesc->loadFromTlv(fp, pComponentItem);
             itemIdx++;
         }
 
@@ -714,8 +708,8 @@ const cm_aggregate * cm_composite_item_descriptor::getAggr(cm_descriptor_id id) 
 // pArgc: (in/out) number of command words
 // pArgv: (in/out) command word pointer
 // ppAggr: out, the wanted aggregate, or 0 if command identifies none
-// ppItem: on input, the owning item
-//         on output, the wanted item
+// pParentItem: (in) the owning item
+// ppItem: (out) the wanted item
 // ctxt:   (in/out)
 // added: (out) did this function allocate memory for the item?
 //
@@ -724,6 +718,7 @@ const cm_aggregate * cm_composite_item_descriptor::getAggr(cm_descriptor_id id) 
 bool cm_composite_item_descriptor::getComponentItem(int * pArgc,
                                                     char *** pArgv,
                                                     const cm_aggregate ** ppAggr,
+                                                    uint8_t * pParentItem,
                                                     uint8_t ** ppItem,
                                                     cm_context & ctxt,
                                                     bool & added) const
@@ -747,7 +742,7 @@ bool cm_composite_item_descriptor::getComponentItem(int * pArgc,
     if ((*ppAggr)->maxCount > 1)
     {
         // Explicit index is needed if there can be more than one instance
-        if ((*ppAggr)->getIndex(pArgc, pArgv, *ppItem, itemIdx))
+        if ((*ppAggr)->getIndex(pArgc, pArgv, pParentItem, itemIdx))
         {
             // Index available, it becomes part of the context string
             char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
@@ -762,7 +757,7 @@ bool cm_composite_item_descriptor::getComponentItem(int * pArgc,
         }
     }
 
-    unsigned int cnt = (*ppAggr)->getCount(*ppItem); // Number of items currently in the aggregate
+    unsigned int cnt = (*ppAggr)->getCount(pParentItem); // Number of items currently in the aggregate
 
     DBG_PRT("getComponentItem %p offset %d idx %d cnt %d len %d\n",
             *ppItem, (*ppAggr)->offset, itemIdx, cnt, (*ppAggr)->pDesc->getLen());
@@ -773,7 +768,7 @@ bool cm_composite_item_descriptor::getComponentItem(int * pArgc,
         if ((*ppAggr)->isAddSupported() && (itemIdx == cnt) && (itemIdx < (*ppAggr)->maxCount))
         {
             // Index refers to an item to create
-            add(*ppItem, *ppAggr);
+            add(pParentItem, *ppAggr);
             added = true;
         }
         else
@@ -783,18 +778,28 @@ bool cm_composite_item_descriptor::getComponentItem(int * pArgc,
         }
     }
 
-    *ppItem = (*ppAggr)->getFirstItem(*ppItem) + itemIdx * (*ppAggr)->pDesc->getLen();
+    *ppItem = (*ppAggr)->getFirstItem(pParentItem) + itemIdx * (*ppAggr)->pDesc->getLen();
     ctxt.pDesc = (*ppAggr)->pDesc;
     ctxt.pItem = *ppItem;
     return true;
 }
 
+
 //
-// xxx we call getFirstItem each time; that's not strictly necessary
-//     since we could pass it as input param
+// From ID and index, find matching component of this composite.
+// If the component does not exist, it is created in certain cases.
+// id: (in) component item's ID
+// idx: (in) index of wanted component
+// ppAggr: out, the wanted aggregate, or 0 if command identifies none
+// pParentItem: (in) the owning item
+// ppItem: (out) the wanted item
+//
+// @return true if item is returned
+//
 bool cm_composite_item_descriptor::getComponentItem(cm_descriptor_id id,
                                                     unsigned idx,
                                                     const cm_aggregate ** ppAggr,
+                                                    uint8_t * pParentItem,
                                                     uint8_t ** ppItem) const
 {
     *ppAggr = getAggr(id);
@@ -813,11 +818,11 @@ bool cm_composite_item_descriptor::getComponentItem(cm_descriptor_id id,
 
     if ((*ppAggr)->isAddSupported())
     {
-        *ppItem = add(*ppItem, *ppAggr); 
+        *ppItem = add(pParentItem, *ppAggr); 
     }
     else
     {
-        *ppItem = (*ppAggr)->getFirstItem(*ppItem) + idx * (*ppAggr)->pDesc->getLen();
+        *ppItem = (*ppAggr)->getFirstItem(pParentItem) + idx * (*ppAggr)->pDesc->getLen();
     }
 
     if (*ppItem == NULL)
@@ -826,7 +831,6 @@ bool cm_composite_item_descriptor::getComponentItem(cm_descriptor_id id,
     }
     return true;
 }
-
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -982,14 +986,16 @@ unsigned int cm_basic_item_descriptor::loadFromTlv(FILE * fp, uint8_t * pItem) c
         cout << "TLV len " << tlvLen << ", expected " << getLen() << endl;
 
         fseek(fp, tlvLen, SEEK_CUR);
+
+        // xxx Could we handle the case where len > tlvLen?  Is there a reasonable
+        // action to perform in this case?  Yes, but it would be dependent on
+        // endian-ness, and for big-endian systems we'd have to know if we were
+        // reading an integer or not.
     }
-
-    // xxx Could we handle the case where len > tlvLen?  Is there a reasonable
-    // action to perform in this case?  Yes, but it would be dependent on
-    // endian-ness, and for big-endian systems we'd have to know if we were
-    // reading an integer or not.
-    fread(pItem, tlvLen, 1, fp);
-
+    else
+    {
+        fread(pItem, tlvLen, 1, fp);
+    }
     return sizeof(tlvLen) + tlvLen;
 }
 

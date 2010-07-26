@@ -186,12 +186,14 @@ class cm_composite_item_descriptor : public cm_item_descriptor
     bool getComponentItem(int * pArgc,
                           char *** pArgv,
                           const cm_aggregate ** ppAggr,
+                          uint8_t * pParentItem,
                           uint8_t ** ppItem,
                           cm_context & ctxt,
                           bool & added) const;
     bool getComponentItem(cm_descriptor_id id,
                           unsigned idx,
                           const cm_aggregate ** ppAggr,
+                          uint8_t * pParentItem,
                           uint8_t ** ppItem) const;
 
 public:    
