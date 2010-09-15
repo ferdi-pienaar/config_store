@@ -9,7 +9,6 @@
 // 
 #include <iostream>
 #include "config_manager.h"
-#include "my_cfg_fn.h" // User-written functions "plugged in" to config_manager
 
 #define NUM_CLI_PORT      4
 #define MAX_LEN_USER_NAME 16

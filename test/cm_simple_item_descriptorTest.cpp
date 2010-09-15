@@ -14,6 +14,16 @@
 using namespace std;
 
 
+// setdef function used in tests
+void setint11(uint8_t *pItem, cm_item_len len)
+{
+    // Sanity check
+    assert(len == sizeof(int));
+
+    *((int *)pItem) = 11;
+}    
+
+
 int main()
 {
 	TestResult tr;
@@ -62,6 +72,28 @@ TEST(set, cm_basic_item_descriptor)
     
     d.set((uint8_t *)&mem, "4");
     CHECK(mem == 4);    
+}
+
+
+TEST(setdef, cm_basic_item_descriptor)
+{
+    int mem = 8;
+
+    cm_basic_item_descriptor d("d01", 1 , sizeof(mem), NULL, setint11, NULL);
+    
+    d.setdef((uint8_t *)&mem);
+    CHECK(mem == 11);    
+}
+
+
+TEST(setdefFunc, cm_basic_item_descriptor)
+{
+    int mem = 8;
+
+    cm_basic_item_descriptor d("d01", 1 , sizeof(mem), NULL, NULL, NULL);
+    
+    d.setdef((uint8_t *)&mem);
+    CHECK(mem == 0);    
 }
 
 

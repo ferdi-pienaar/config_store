@@ -1,3 +1,4 @@
+/// config manager def
 #include "config_manager.h"
 #include "config_manager_util.h"
 #include <sstream>
@@ -67,7 +68,9 @@ void config_manager::init(const cm_item_descriptor * desc)
 }
 
 
-// Execute command words entered by client on CLI.
+/// Execute command words entered by client on CLI cpp file
+/// @param argc number of command words
+/// @param argv command word array
 void config_manager::handleCmd(int argc, char *argv[])
 {
     // First treat the commands that are only applicable at the top level
@@ -444,8 +447,7 @@ void cm_composite_item_descriptor::del(uint8_t * pParentItem,
 }
 
 
-/// Return total length of TLV item:
-//  The number of bytes taken up by T + L + V.
+/// Return total length of TLV item, the number of bytes in T + L + V.
 cm_item_len cm_composite_item_descriptor::getTlvLen(const uint8_t * pItem) const
 {
     cm_item_len tlvLen = sizeof(cm_descriptor_id) + sizeof(cm_item_len);
@@ -933,7 +935,7 @@ void cm_basic_item_descriptor::setdef(uint8_t * pItem) const
     }
     else
     {
-        // The fefault default is all bits set to 0
+        // The default default is all bits set to 0
         memset(pItem, 0, len);
     }
 }
@@ -957,8 +959,7 @@ void cm_basic_item_descriptor::writeTlv(const uint8_t *pItem, uint8_t ** ppBuf) 
 }
 
 
-/// Return total length of TLV item:
-//  The number of bytes taken up by T + L + V.
+/// Return total length of TLV item, the number of bytes in T + L + V.
 //  (For a simple item, there's no dependency on pItem, the RAM contents.)
 cm_item_len cm_basic_item_descriptor::getTlvLen(const uint8_t * pItem) const
 {
@@ -983,14 +984,11 @@ unsigned int cm_basic_item_descriptor::loadFromTlv(FILE * fp, uint8_t * pItem) c
     {
         // Item larger than expected: we don't truncate, we leave
         // the item as unchanged, but move forward in the file.
+        // xxx Could we handle the case where len > tlvLen?  No, for big-endian
+        // systems we'd have to know if we were reading an integer or not.
         cout << "TLV len " << tlvLen << ", expected " << getLen() << endl;
 
         fseek(fp, tlvLen, SEEK_CUR);
-
-        // xxx Could we handle the case where len > tlvLen?  Is there a reasonable
-        // action to perform in this case?  Yes, but it would be dependent on
-        // endian-ness, and for big-endian systems we'd have to know if we were
-        // reading an integer or not.
     }
     else
     {
@@ -1059,6 +1057,7 @@ bool cm_aggregate::getIndex(int * pArgc,
 
         if (pEnd > (*pArgv)[0])
         {
+            // Success: strtoul read an unsigned integer from the input
             *pArgc -= 1;
             *pArgv += 1;
             return true;

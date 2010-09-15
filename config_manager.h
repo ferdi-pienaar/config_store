@@ -50,19 +50,20 @@ struct t_cm_context;
 //  Following commands are executed by a simple:    set, setdef, prt
 //  Following commands are executed by a composite: setdef, add, del, prt
 
-// Descriptor of configurable item (either simple or compound)
+////////////////////////////////////////////////////////////////////////////////
+/// Descriptor of configurable item (either simple or compound).
 // xxx methods are private (not for user), but config_manager is friend?
 class cm_item_descriptor
 {
 private:
     
 protected: // xxx these are protected because I want to access them from the derived classes
-    const std::string      name;     // name by which item is addressed on CLI
-    const cm_item_len      len;      // Number of bytes occupied by an item in RAM
+    const std::string      name; ///< name by which item is addressed on CLI
+    const cm_item_len      len;  ///< Number of bytes occupied by an item in RAM and NVRAM
 
 
 public:     
-    const cm_descriptor_id id;       // ID (unique within the context of the component's composite) of item in NVRAM    
+    const cm_descriptor_id id;   ///< ID (unique within the context of the component's composite) of item in NVRAM    
 
     cm_item_descriptor(std::string iname, cm_descriptor_id iid, cm_item_len ilen):
                        name(iname), len(ilen), id(iid){}
@@ -91,13 +92,18 @@ typedef struct t_cm_context
 } cm_context;
 
 
-///
-//
-// The way in which a cm_item_descriptor forms part of a composite.
-// Within a composite descriptor, there's one of these for each
-// component descriptor (i.e. one for each aggregate of component items).
-//  It may be CONTAINED or OWNED.
-//  There may be one or more instances (i.e. single item or an array of items).
+////////////////////////////////////////////////////////////////////////////////
+/// The way in which a component cm_item_descriptor forms part of a composite.
+/// Within a composite descriptor, there's an aggregate for each
+/// component descriptor (i.e. one for each aggregate of component items).
+/// These are the aspects of the relationship between composite and component
+/// that are controlled by the aggregate:
+/// - Components may be contained (memory allocated as part of the same
+///   structure as the composite) or owned (memory allocated separately
+///   from that of the component, and just referenced by the composite).
+/// - There may be one or more instances (i.e. single item or an array of items).
+/// - Offset, of the item itself (if embedded) or of a pointer to the item
+///   (if owned)
 // xxx we could embed this class in cm_composite_item_descriptor, but then
 // client could not create component lists at init.  The constructor for this
 // class has to be exposed to the client programmer.
@@ -115,21 +121,24 @@ public:
                  unsigned int o):
                  pDesc(d), maxCount(maxc), offset(o){};
 
-    const cm_item_descriptor * pDesc;     // the component's descriptor
-    const unsigned short       maxCount;  // Max number of instances of the item
-    const unsigned int         offset;    // Offset [bytes] of items (or pointer to items) within the composite item
+    const cm_item_descriptor * pDesc;     ///< the component's descriptor
+    const unsigned short       maxCount;  ///< Max number of instances of the item
+    const unsigned int         offset;    ///< Offset [bytes] of items, or pointer to items, within the composite item
     bool needIndex(const uint8_t * pParentItem) const {return getCount(pParentItem) > 1;}
     bool getIndex(int * pArgc, char *** pArgv, const uint8_t * pParentItem, unsigned int & itemIndex) const;
+    /// returns address of the first item in the array
     virtual uint8_t * getFirstItem(const uint8_t * pParentItem) const = 0;
+    /// returns number of items currently in the aggregate
     virtual unsigned getCount(const uint8_t * pParentItem) const = 0;
     virtual bool isAddSupported() const = 0;
     virtual void setCount(uint8_t * pParentItem, unsigned int) const = 0;
 };
 
 
-// In a contained aggregate, component items are contained within the composite:
-// the item memory is allocated along with that of the composite item, and the
-// 'add' and 'del' operations can't be applied to the component.
+////////////////////////////////////////////////////////////////////////////////
+/// In a contained aggregate, component items are contained within the composite.
+/// The item memory is allocated along with that of the composite item, and the
+/// 'add' and 'del' operations can't be applied to the component.
 class cm_contained_aggregate : public cm_aggregate
 {
 public:
@@ -146,9 +155,10 @@ public:
 };
 
 
-// In an owned aggregate, component items are owned but not contained
-// by the composite: the item memory is allocated by an 'add' operation
-// and freed by a 'del' operation.  By default, the number of items is 0.
+////////////////////////////////////////////////////////////////////////////////
+/// In an owned aggregate, component items are owned but not contained
+/// by the composite. The item memory is allocated by an 'add' operation
+/// and freed by a 'del' operation.  By default, the number of items is 0.
 class cm_owned_aggregate : public cm_aggregate
 {
 private:
@@ -170,7 +180,9 @@ public:
 };
 
 
-// Composite item descriptor's contain a list of components.
+////////////////////////////////////////////////////////////////////////////////
+/// A composite descriptor consists of components, linked to the composite via
+/// aggregates.
 // xxx methods (apart from constructor) are private (not for user), but config_manager is friend?
 class cm_composite_item_descriptor : public cm_item_descriptor
 { 
@@ -222,6 +234,9 @@ public:
 };
 
 
+////////////////////////////////////////////////////////////////////////////////
+/// A simple descriptor is a leaf in the tree of descriptors, representing
+/// metadata for a single configurable item.
 // xxx methods (apart from constructor) are private (not for user), but config_manager is friend?
 class cm_simple_item_descriptor : public cm_item_descriptor
 {
@@ -302,6 +317,7 @@ public:
 };
 
 
+/// Configuration manager, managing all configurable items in the system.
 // This is a singleton because it avoids the following practical problem:
 // in config_manager.cpp, how do the other classes access this one to
 // modify the current context, pCtxt.  We could give each instance a
@@ -314,7 +330,7 @@ class config_manager
 public:
     void handleCmd(int argc, char *argv[]);
     void init(const cm_item_descriptor * pDesc);
-    const char * getPromptString();
+    const char * getPromptString(); ///< get context-dependent prompt string h file
     void * getConfig(){return (void *)ramBase;}
     static config_manager * getInstance();
 

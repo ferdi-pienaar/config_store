@@ -19,6 +19,8 @@
 #include <iostream>
 #include "my_cfg.h"
 #include "config_manager_util.h"
+#include "my_cfg_fn.h" // User-written functions "plugged in" to config_manager
+
 using namespace std;
 
 // We can get the size of a member of a type without having to declare a variable of that type
