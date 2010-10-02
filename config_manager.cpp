@@ -127,7 +127,7 @@ const char * config_manager::getPromptString()
 // Save data in RAM to NVRAM, in TLV format.
 void config_manager::save()
 {
-    cm_item_len tlvLen = base_desc->getTlvLen(ramBase);
+    cm_item_len_t tlvLen = base_desc->getTlvLen(ramBase);
     
     // Allocate a temporary buffer to contain TLV format data
     uint8_t * buf = new uint8_t[tlvLen];
@@ -166,10 +166,10 @@ void config_manager::load()
         return;
     }
 
-    cm_descriptor_id id;    
+    cm_item_id_t id;    
     fread(&id, sizeof(id), 1, fp);
 
-    if (id != base_desc->id)
+    if (id != base_desc->getId())
     {
         printf("Can't load id %#x\n", id);
         return;
@@ -192,6 +192,16 @@ void config_manager::load()
 // cm_composite_item_descriptor
 //
 ////////////////////////////////////////////////////////////////////////////////
+
+cm_composite_item_descriptor::cm_composite_item_descriptor(const cm_composite_metadata * pMeta,
+                                                           bool nonvolatile):
+pData(pMeta), pTlv(NULL)
+{
+    if (nonvolatile)
+    {
+        pTlv = new cm_composite_tlv(this);
+    }
+}
 
 //
 // argc number of items in argv
@@ -229,7 +239,7 @@ bool cm_composite_item_descriptor::handleCmd(int argc,
             }
             
             // Pass the remainder of the command to the found component
-            if (!pAggr->pDesc->handleCmd(argc, argv, pComponentItem, ctxt))
+            if (!pAggr->pData->pDesc->handleCmd(argc, argv, pComponentItem, ctxt))
             {
                 // Component says the command is invalid
                 if (added)
@@ -268,7 +278,7 @@ bool cm_composite_item_descriptor::handleCmd(int argc,
     }
 
     // Don't use argv[0] here, because it may have been modified by getComponentItem
-    cout << "Not handled in '" << name << "'" << endl;
+    cout << "Not handled in '" << getName() << "'" << endl;
     return false;
 }
 
@@ -289,19 +299,19 @@ bool cm_composite_item_descriptor::handleAdd(int argc, char *argv[], uint8_t * p
 
     if (pAggr == NULL)
     {
-        cout << "No item '" << argv[0] << "' in '" << name << "'." << endl;
+        cout << "No item '" << argv[0] << "' in '" << getName() << "'." << endl;
         return false;
     }
     
     if (!pAggr->isAddSupported())
     {
-        cout<<"Add not supported for '"<<pAggr->pDesc->getName()<<"' in '"<<name<<"'."<< endl;
+        cout<<"Add not supported for '"<<pAggr->pData->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
         return false;
     }
 
-    if (pAggr->getCount(pItem) >= pAggr->maxCount)
+    if (pAggr->getCount(pItem) >= pAggr->pData->maxCount)
     {
-        cout<<"Can't add '"<<pAggr->pDesc->getName()<<"' (max "<<pAggr->maxCount<<")."<<endl;
+        cout<<"Can't add '"<<pAggr->pData->pDesc->getName()<<"' (max "<<pAggr->pData->maxCount<<")."<<endl;
         return false;
     }  
         
@@ -323,27 +333,27 @@ uint8_t * cm_composite_item_descriptor::add(uint8_t * pParentItem,
 {
     // Reallocate memory, and save pointer in the same location
     unsigned   cnt     = pAggr->getCount(pParentItem);
-    uint8_t ** ppItems = (uint8_t **)(pParentItem + pAggr->offset);
+    uint8_t ** ppItems = (uint8_t **)(pParentItem + pAggr->pData->offset);
 
     assert(pAggr->isAddSupported());
 
-    uint8_t * pNewMem = (uint8_t *)realloc(*ppItems, (cnt + 1) * pAggr->pDesc->getLen());
+    uint8_t * pNewMem = (uint8_t *)realloc(*ppItems, (cnt + 1) * pAggr->pData->pDesc->getLen());
 
     if (pNewMem == NULL)
     {
-        cout << "No " << pAggr->pDesc->getLen() << " for " << pAggr->pDesc->getName() << endl;
+        cout << "No " << pAggr->pData->pDesc->getLen() << " for " << pAggr->pData->pDesc->getName() << endl;
         return NULL;
     }
 
     // Memory successfully allocated, so reference the (possibly new) memory
     *ppItems = pNewMem;
 
-    uint8_t * pNewItem = pNewMem + cnt * pAggr->pDesc->getLen();
+    uint8_t * pNewItem = pNewMem + cnt * pAggr->pData->pDesc->getLen();
 
     // Initialize added item with default values. First memset to ensure
     // counters, which have no setdef fn, are 0 (also sets pointers to owned to NULL).
-    memset(pNewItem, 0, pAggr->pDesc->getLen());
-    pAggr->pDesc->setdef(pNewItem);
+    memset(pNewItem, 0, pAggr->pData->pDesc->getLen());
+    pAggr->pData->pDesc->setdef(pNewItem);
 
     DBG_PRT("add at %p\n", pNewMem);
 
@@ -368,7 +378,7 @@ bool cm_composite_item_descriptor::handleDel(int argc, char *argv[], uint8_t * p
 
     if (pAggr == NULL)
     {        
-        cout << "No item '" << argv[0] << "' in '" << name << "'." << endl;
+        cout << "No item '" << argv[0] << "' in '" << getName() << "'." << endl;
         return false;
     }
 
@@ -378,7 +388,7 @@ bool cm_composite_item_descriptor::handleDel(int argc, char *argv[], uint8_t * p
     
     if (!pAggr->isAddSupported())
     {
-        cout<<"Delete not supported for '"<<pAggr->pDesc->getName()<<"' in '"<<name<<"'."<< endl;
+        cout<<"Delete not supported for '"<<pAggr->pData->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
         return false;
     }
 
@@ -386,7 +396,7 @@ bool cm_composite_item_descriptor::handleDel(int argc, char *argv[], uint8_t * p
 
     if (cnt == 0)
     {
-        cout << "Currently no '" <<pAggr->pDesc->getName()<<"' in '"<<name<<"'."<< endl;
+        cout << "Currently no '" <<pAggr->pData->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
         return false;
     }
 
@@ -418,8 +428,8 @@ void cm_composite_item_descriptor::del(uint8_t * pParentItem,
                                        unsigned int cnt) const
 {
     // Reallocate memory, and save pointer in the same location
-    uint8_t **  ppItems      = (uint8_t **)(pParentItem + pAggr->offset);
-    cm_item_len componentLen = pAggr->pDesc->getLen();
+    uint8_t **  ppItems        = (uint8_t **)(pParentItem + pAggr->pData->offset);
+    cm_item_len_t componentLen = pAggr->pData->pDesc->getLen();
 
     DBG_PRT("del at %p index %d len %d\n", *ppItems, itemIdx, componentLen);
 
@@ -448,23 +458,13 @@ void cm_composite_item_descriptor::del(uint8_t * pParentItem,
 
 
 /// Return total length of TLV item, the number of bytes in T + L + V.
-cm_item_len cm_composite_item_descriptor::getTlvLen(const uint8_t * pItem) const
+cm_item_len_t cm_composite_item_descriptor::getTlvLen(const uint8_t * pItem) const
 {
-    cm_item_len tlvLen = sizeof(cm_descriptor_id) + sizeof(cm_item_len);
-    
-    // For each aggregate, and for each of the array of items under it...
-    for (int i = 0; i < aggrCount; i++)
-    {            
-        const cm_aggregate * pAggr      = aggrList[i];
-        const uint8_t *      pFirstItem = pAggr->getFirstItem(pItem);
-        unsigned int         itemCount  = pAggr->getCount(pItem);
-
-        for (unsigned j = 0; j < itemCount; j++)
-        {
-            tlvLen += pAggr->pDesc->getTlvLen(pFirstItem + j * pAggr->pDesc->getLen());
-        }
-    }    
-    return tlvLen;
+    if (pTlv == NULL)
+    {
+        return 0;
+    }
+    return pTlv->getLen(pItem);
 }
 
 
@@ -476,26 +476,9 @@ cm_item_len cm_composite_item_descriptor::getTlvLen(const uint8_t * pItem) const
 //  that does that...
 void cm_composite_item_descriptor::writeTlv(const uint8_t *pItem, uint8_t ** ppBuf) const
 {
-    // The L field in TLV excludes this item's T+L fields
-    cm_item_len componentLen = getTlvLen(pItem) - sizeof(len) - sizeof(id);
-    
-    // First write own Type and Length
-    memcpy(*ppBuf, &id, sizeof(id));                     // write Type (i.e. the ID)
-    *ppBuf += sizeof(id);                                // advance the memory pointer
-    memcpy(*ppBuf, &componentLen, sizeof(componentLen)); // write Length (of Value to follow)
-    *ppBuf += sizeof(len);                               // advance the memory pointer
-    
-    // Now write V, which is the TLVs of all components
-    for (int i = 0; i < aggrCount; i++)
-    {            
-        const cm_aggregate * pAggr      = aggrList[i];
-        const uint8_t *      pFirstItem = pAggr->getFirstItem(pItem);
-        unsigned int         itemCount  = pAggr->getCount(pItem);
-
-        for (unsigned j = 0; j < itemCount; j++)
-        {
-            pAggr->pDesc->writeTlv(pFirstItem + j * pAggr->pDesc->getLen(), ppBuf);
-        }
+    if (pTlv != NULL)
+    {
+        pTlv->write(pItem, ppBuf);
     }
 }
 
@@ -510,76 +493,12 @@ void cm_composite_item_descriptor::writeTlv(const uint8_t *pItem, uint8_t ** ppB
 //
 unsigned int cm_composite_item_descriptor::loadFromTlv(FILE * fp, uint8_t * pItem) const
 {
-    cm_item_len  tlvLen;
-    
-    fread(&tlvLen, sizeof(tlvLen), 1, fp);
-    cm_item_len bytesRead = sizeof(tlvLen);
-
-    DBG_PRT("composite load %d bytes to %p\n", tlvLen, pItem);
-
-    bool         first   = true; // Is this the first component item?
-    unsigned int itemIdx;        // number of items read of a given type, i.e. offset in the item array
-
-    // While enough unread bytes remain of the composite for T+L fields of a component.
-    // bytesRead already includes the L field of the composite item, so we don't add sizeof(L) here.
-    while (bytesRead + sizeof(cm_descriptor_id) <= tlvLen) 
-    {        
-        cm_descriptor_id  compId, prevCompId;
-
-        fread(&compId, sizeof(compId), 1, fp);
-        bytesRead += sizeof(compId);
-
-        DBG_PRT("load component ID %d\n", compId);
-
-        // New item type (or the 1st one), so reset array index
-        if (first || (compId != prevCompId))
-        {                
-            first = false;
-            itemIdx = 0;
-        }
-
-        const cm_aggregate * pAggr;
-        uint8_t *            pComponentItem;
-
-        if (!getComponentItem(compId, itemIdx, &pAggr, pItem, &pComponentItem))
-        {
-            // skip because we couldn't find the item, index is out of range, or couldn't malloc
-            bytesRead += skipTlvItem(fp);
-        }
-        else
-        {
-            bytesRead += pAggr->pDesc->loadFromTlv(fp, pComponentItem);
-            itemIdx++;
-        }
-
-        DBG_PRT("composite '%s': %d read\n", name.c_str(), bytesRead);
-        prevCompId = compId;
-    }
-    
-    // Sanity check on coherence of the data read from the TLV file: xxx should we abort the read?
-    if (bytesRead != tlvLen + sizeof(tlvLen))
+    if (pTlv == NULL)
     {
-        cout << "'" << name << "' contains " << bytesRead - sizeof(tlvLen) << ", not "
-             << tlvLen <<"!" << endl;
+        return 0;
     }
-    return bytesRead;
+    return pTlv->load(fp, pItem);
 }
-
-
-// Having read the Type (ID) of an item from the TLV file, skip L and V.
-// @return number of bytes moved ahead in the file
-//
-unsigned int cm_composite_item_descriptor::skipTlvItem(FILE * fp) const
-{
-    cm_item_len tlvLen;
-    
-    fread(&tlvLen, sizeof(tlvLen), 1, fp);
-    cm_item_len bytesRead = sizeof(tlvLen);
-
-    fseek(fp, tlvLen, SEEK_CUR);
-    return bytesRead += tlvLen;
-}
-
 
 // Delegate print command to components
 // 
@@ -587,18 +506,18 @@ void cm_composite_item_descriptor::print(const uint8_t * pItem, string prefix) c
 {
     char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
 
-    DBG_PRT("print composite %s len %d\n", name.c_str(), len);
+    DBG_PRT("print composite %s len %d\n", getName().c_str(), getLen());
 
     // For each component, and for each of the array of items under it...
-    for (int i = 0; i < aggrCount; i++)
+    for (int i = 0; i < pData->aggrCount; i++)
     {            
-        const cm_aggregate * pAggr      = aggrList[i];
+        const cm_aggregate * pAggr      = pData->aggrList[i];
         const uint8_t *      pFirstItem = pAggr->getFirstItem(pItem);
         unsigned int         itemCount  = pAggr->getCount(pItem);
 
         for (unsigned j = 0; j < itemCount; j++)
         {
-            if (pAggr->maxCount > 1)
+            if (pAggr->pData->maxCount > 1)
             {
                 // There's more than one item, so print the index to distinguish among them
                 snprintf(indexbuf, sizeof(indexbuf), " %d", j);
@@ -608,8 +527,8 @@ void cm_composite_item_descriptor::print(const uint8_t * pItem, string prefix) c
                 // There's only one item, so we needn't print an index
                 indexbuf[0] = 0;
             }
-            pAggr->pDesc->print(pFirstItem + j * pAggr->pDesc->getLen(),
-                                prefix + pAggr->pDesc->getName() + indexbuf + " ");
+            pAggr->pData->pDesc->print(pFirstItem + j * pAggr->pData->pDesc->getLen(),
+                                       prefix + pAggr->pData->pDesc->getName() + indexbuf + " ");
         }
     }
 }
@@ -627,22 +546,22 @@ void cm_composite_item_descriptor::print(const uint8_t * pItem, string prefix) c
 void cm_composite_item_descriptor::setdef(uint8_t * pItem) const
 {    
     // For each component, and for each of the array of items under it...
-    for (int i = 0; i < aggrCount; i++)
+    for (int i = 0; i < pData->aggrCount; i++)
     {            
-        const cm_aggregate * pAggr      = aggrList[i];
+        const cm_aggregate * pAggr      = pData->aggrList[i];
         uint8_t *            pFirstItem = pAggr->getFirstItem(pItem);
         unsigned int         itemCount  = pAggr->getCount(pItem);
 
         // Set each item to default
         for (unsigned j = 0; j < itemCount; j++)
         {           
-            pAggr->pDesc->setdef(pFirstItem + j * pAggr->pDesc->getLen());
+            pAggr->pData->pDesc->setdef(pFirstItem + j * pAggr->pData->pDesc->getLen());
         }
 
         // If necessary, free the block of memory where the items were, and set counter to 0
         if ((itemCount > 0) && pAggr->isAddSupported())
         {
-            uint8_t ** ppItems = (uint8_t **)(pItem + pAggr->offset);
+            uint8_t ** ppItems = (uint8_t **)(pItem + pAggr->pData->offset);
 
             DBG_PRT("setdef free %p\n", *ppItems);
 
@@ -658,15 +577,15 @@ void cm_composite_item_descriptor::setdef(uint8_t * pItem) const
 // Give name of each component, current count, and maxcount if OWNed.
 void cm_composite_item_descriptor::help(const uint8_t * pItem) const
 {
-    for (int i = 0; i < aggrCount; i++)
+    for (int i = 0; i < pData->aggrCount; i++)
     {   
-        const cm_aggregate * pAggr = aggrList[i];
+        const cm_aggregate * pAggr = pData->aggrList[i];
 
-        cout << pAggr->pDesc->getName() << " [" << pAggr->getCount(pItem);
+        cout << pAggr->pData->pDesc->getName() << " [" << pAggr->getCount(pItem);
 
         if (pAggr->isAddSupported())
         {
-            cout << "/" << pAggr->maxCount;
+            cout << "/" << pAggr->pData->maxCount;
         }
         cout << "]" << endl;
     }
@@ -676,11 +595,11 @@ void cm_composite_item_descriptor::help(const uint8_t * pItem) const
 // Look for the aggregate whose component has a matching name
 const cm_aggregate * cm_composite_item_descriptor::getAggr(const char * name) const
 {
-    for (int i = 0; i < aggrCount; i++)
+    for (int i = 0; i < pData->aggrCount; i++)
     {            
-        const cm_aggregate * pAggr = aggrList[i];
+        const cm_aggregate * pAggr = pData->aggrList[i];
 
-        if (strcmp(name, pAggr->pDesc->getName().c_str()) == 0)
+        if (strcmp(name, pAggr->pData->pDesc->getName().c_str()) == 0)
         {
             return pAggr;
         }
@@ -690,13 +609,13 @@ const cm_aggregate * cm_composite_item_descriptor::getAggr(const char * name) co
 
 
 // Look for the aggregate whose component has a matching ID
-const cm_aggregate * cm_composite_item_descriptor::getAggr(cm_descriptor_id id) const
+const cm_aggregate * cm_composite_item_descriptor::getAggr(cm_item_id_t id) const
 {
-    for (int i = 0; i < aggrCount; i++)
+    for (int i = 0; i < pData->aggrCount; i++)
     {            
-        const cm_aggregate * pAggr = aggrList[i];
+        const cm_aggregate * pAggr = pData->aggrList[i];
 
-        if (pAggr->pDesc->id == id)
+        if (pAggr->pData->pDesc->getId() == id)
         {
             return pAggr;
         }
@@ -734,14 +653,14 @@ bool cm_composite_item_descriptor::getComponentItem(int * pArgc,
         return false;
     }
 
-    ctxt.str += (*ppAggr)->pDesc->getName() + " ";
+    ctxt.str += (*ppAggr)->pData->pDesc->getName() + " ";
     
     // Found matching name: now try to get index from next word
     *pArgc -= 1;
     *pArgv += 1;
     unsigned int itemIdx = 0; // If no index needed, use offset 0
 
-    if ((*ppAggr)->maxCount > 1)
+    if ((*ppAggr)->pData->maxCount > 1)
     {
         // Explicit index is needed if there can be more than one instance
         if ((*ppAggr)->getIndex(pArgc, pArgv, pParentItem, itemIdx))
@@ -762,12 +681,12 @@ bool cm_composite_item_descriptor::getComponentItem(int * pArgc,
     unsigned int cnt = (*ppAggr)->getCount(pParentItem); // Number of items currently in the aggregate
 
     DBG_PRT("getComponentItem %p offset %d idx %d cnt %d len %d\n",
-            *ppItem, (*ppAggr)->offset, itemIdx, cnt, (*ppAggr)->pDesc->getLen());
+            *ppItem, (*ppAggr)->pData->offset, itemIdx, cnt, (*ppAggr)->pData->pDesc->getLen());
 
     if (itemIdx >= cnt)
     {
         // Index refers to an item that doesn't exist
-        if ((*ppAggr)->isAddSupported() && (itemIdx == cnt) && (itemIdx < (*ppAggr)->maxCount))
+        if ((*ppAggr)->isAddSupported() && (itemIdx == cnt) && (itemIdx < (*ppAggr)->pData->maxCount))
         {
             // Index refers to an item to create
             add(pParentItem, *ppAggr);
@@ -780,8 +699,8 @@ bool cm_composite_item_descriptor::getComponentItem(int * pArgc,
         }
     }
 
-    *ppItem = (*ppAggr)->getFirstItem(pParentItem) + itemIdx * (*ppAggr)->pDesc->getLen();
-    ctxt.pDesc = (*ppAggr)->pDesc;
+    *ppItem = (*ppAggr)->getFirstItem(pParentItem) + itemIdx * (*ppAggr)->pData->pDesc->getLen();
+    ctxt.pDesc = (*ppAggr)->pData->pDesc;
     ctxt.pItem = *ppItem;
     return true;
 }
@@ -798,7 +717,7 @@ bool cm_composite_item_descriptor::getComponentItem(int * pArgc,
 //
 // @return true if item is returned
 //
-bool cm_composite_item_descriptor::getComponentItem(cm_descriptor_id id,
+bool cm_composite_item_descriptor::getComponentItem(cm_item_id_t id,
                                                     unsigned idx,
                                                     const cm_aggregate ** ppAggr,
                                                     uint8_t * pParentItem,
@@ -811,7 +730,7 @@ bool cm_composite_item_descriptor::getComponentItem(cm_descriptor_id id,
         return false;
     }
 
-    if (idx == (*ppAggr)->maxCount)
+    if (idx == (*ppAggr)->pData->maxCount)
     {
         // Maximum number of these item already loaded: skip it
         // xxx maybe need special return code, not just bool cout << "Can't load more than " << pAggr->maxCount << " " << pAggr->pDesc->getName() << endl;
@@ -824,7 +743,7 @@ bool cm_composite_item_descriptor::getComponentItem(cm_descriptor_id id,
     }
     else
     {
-        *ppItem = (*ppAggr)->getFirstItem(pParentItem) + idx * (*ppAggr)->pDesc->getLen();
+        *ppItem = (*ppAggr)->getFirstItem(pParentItem) + idx * (*ppAggr)->pData->pDesc->getLen();
     }
 
     if (*ppItem == NULL)
@@ -841,6 +760,16 @@ bool cm_composite_item_descriptor::getComponentItem(cm_descriptor_id id,
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+cm_simple_item_descriptor::cm_simple_item_descriptor(const cm_simple_metadata * pMeta,
+                                                     bool nonvolatile):
+pData(pMeta), pTlv(NULL)
+{
+    if (nonvolatile)
+    {
+        pTlv = new cm_simple_tlv(this);
+    }
+}
+
 // An item does not print its own name, since
 // it may be preceded by an index, which is known
 // to the item's composite but not to the item.
@@ -848,33 +777,27 @@ void cm_simple_item_descriptor::print(const uint8_t * pItem, string prefix) cons
 {
     cout << prefix << "= ";
 
-    DBG_PRT("print simple %s len %d at %p\n", name.c_str(), len, pItem);
+    DBG_PRT("print simple %s len %d at %p\n", getName().c_str(), getLen(), pItem);
     
-    if (pPrt == NULL)
+    if (pData->pPrt == NULL)
     {
         // No function installed so default print function: hex chars
-        cm_prt_hexstr(pItem, len);
+        cm_prt_hexstr(pItem, getLen());
     }
     else
     {
-        pPrt(pItem, len);
+        pData->pPrt(pItem, getLen());
     }
     cout << endl;
 }
 
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// cm_basic_item_descriptor
-//
-////////////////////////////////////////////////////////////////////////////////
 
 //
 // argc number of items in argv
 // argv array of strings containing name elements
 // pItem - pointer to RAM at which item is located
 //
-bool cm_basic_item_descriptor::handleCmd(int argc,
+bool cm_simple_item_descriptor::handleCmd(int argc,
                                          char *argv[],
                                          uint8_t * pItem,
                                          cm_context & ctxt) const
@@ -903,67 +826,67 @@ bool cm_basic_item_descriptor::handleCmd(int argc,
             return true; // true?
 
         default:
-            cout << "'" << argv[0] << "' not handled by basic item '" << name << "'" << endl;
+            cout << "'" << argv[0] << "' not handled by simple item '" << getName() << "'" << endl;
     }
     return false;
 }
 
 
 // Set item to a value input as string on command line
-bool cm_basic_item_descriptor::set(uint8_t * pItem, string val) const
+bool cm_simple_item_descriptor::set(uint8_t * pItem, string val) const
 {
-    DBG_PRT("set simple %s at %p to '%s'\n", name.c_str(), pItem, val.c_str());
+    DBG_PRT("set simple %s at %p to '%s'\n", getName().c_str(), pItem, val.c_str());
 
-    if (pSet != NULL)
+    if (pData->pSet != NULL)
     {
-        return pSet(pItem, len, val);
+        return pData->pSet(pItem, getLen(), val);
     }
     else
     {
-        cout << "'" << name << "' can't be set." << endl;
+        cout << "'" << getName() << "' can't be set." << endl;
         return false;
     }
 }
 
 
 // Set configurable item to its default value.
-void cm_basic_item_descriptor::setdef(uint8_t * pItem) const
+void cm_simple_item_descriptor::setdef(uint8_t * pItem) const
 {
-    if (pSetDef != NULL)
+    if (pData->pSetDef != NULL)
     {
-        pSetDef(pItem, len);
+        pData->pSetDef(pItem, getLen());
     }
     else
     {
         // The default default is all bits set to 0
-        memset(pItem, 0, len);
+        memset(pItem, 0, getLen());
     }
 }
 
 
-/// Write TLV to a buffer, and advance the ptr to the end of memory written to.
-//  This is useful for writing to a RAM buffer first, for subsequent write
-//  to NVRAM.
-//  xxx if we want to write directly to NVRAM, we need to implement a method
-//  that does that...
-void cm_basic_item_descriptor::writeTlv(const uint8_t *pItem, uint8_t ** ppBuf) const
+/// Return total length of TLV item, the number of bytes in T + L + V.
+cm_item_len_t cm_simple_item_descriptor::getTlvLen(const uint8_t * pItem) const
 {
-    memcpy(*ppBuf, &id, sizeof(id));   // write Type (i.e. the ID)
-    *ppBuf += sizeof(id);              // advance the memory pointer
-
-    memcpy(*ppBuf, &len, sizeof(len)); // write Length
-    *ppBuf += sizeof(len);             // advance the memory pointer
-
-    memcpy(*ppBuf, pItem, len);        // write Value
-    *ppBuf += len;
+    if (pTlv == NULL)
+    {
+        return 0;
+    }
+    return pTlv->getLen(pItem);
 }
 
 
-/// Return total length of TLV item, the number of bytes in T + L + V.
-//  (For a simple item, there's no dependency on pItem, the RAM contents.)
-cm_item_len cm_basic_item_descriptor::getTlvLen(const uint8_t * pItem) const
+/// Write item's TLV to a buffer, and advance the ptr to the end of memory written to.
+//  This is useful for writing to a RAM buffer first, for subsequent write
+//  to NVRAM.
+//  xxx add param, bufsize, to do a buffer overflow check.
+//  xxx if we want to write directly to NVRAM, we need to implement a method
+//  that does that...
+void cm_simple_item_descriptor::writeTlv(const uint8_t *pItem, uint8_t ** ppBuf) const
 {
-    return sizeof(cm_descriptor_id) + sizeof(cm_item_len) + getLen();
+    if (pTlv != NULL)
+    {
+        pTlv->write(pItem, ppBuf);
+    }
 }
 
 
@@ -971,66 +894,19 @@ cm_item_len cm_basic_item_descriptor::getTlvLen(const uint8_t * pItem) const
 // so it's not checked here again.
 // This method reads L, and moves forward in the file by that many bytes,
 // using what it finds in the file to initialize the object's configurable items.
+// @return number of bytes read
+//
 // xxx after each read, check how much was read.
-unsigned int cm_basic_item_descriptor::loadFromTlv(FILE * fp, uint8_t * pItem) const
+//
+unsigned int cm_simple_item_descriptor::loadFromTlv(FILE * fp, uint8_t * pItem) const
 {
-    cm_item_len tlvLen;
-    
-    fread(&tlvLen, sizeof(tlvLen), 1, fp);
-
-    DBG_PRT("load simple %d bytes to %p\n", tlvLen, pItem);
-
-    if (tlvLen != getLen())
+    if (pTlv == NULL)
     {
-        // Item larger than expected: we don't truncate, we leave
-        // the item as unchanged, but move forward in the file.
-        // xxx Could we handle the case where len > tlvLen?  No, for big-endian
-        // systems we'd have to know if we were reading an integer or not.
-        cout << "TLV len " << tlvLen << ", expected " << getLen() << endl;
-
-        fseek(fp, tlvLen, SEEK_CUR);
+        return 0;
     }
-    else
-    {
-        fread(pItem, tlvLen, 1, fp);
-    }
-    return sizeof(tlvLen) + tlvLen;
+    return pTlv->load(fp, pItem);
 }
 
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// cm_cntr_item_descriptor
-//
-////////////////////////////////////////////////////////////////////////////////
-
-//
-// argc number of items in argv
-// argv array of strings containing name elements
-// pItem - pointer to RAM at which item is located
-//
-bool cm_cntr_item_descriptor::handleCmd(int argc,
-                                        char *argv[],
-                                        uint8_t * pItem,
-                                        cm_context & ctxt) const
-{
-    DBG_PRT("cntr cmd at %p\n", pItem);
-    
-    switch (getOp(argv[0]))
-    {
-        case CM_PRT:
-            print(pItem, "");
-            return true;
-
-        case CM_HELP:
-            help(pItem);
-            return true; // xxx true
-
-        default:
-            cout << "'" << argv[0] << "' not handled by counter '" << name << "'" << endl;
-    }
-    return false;
-}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1064,7 +940,7 @@ bool cm_aggregate::getIndex(int * pArgc,
         }
     }
 
-    cout << "'" << pDesc->getName() << "' needs index." <<endl;
+    cout << "'" << pData->pDesc->getName() << "' needs index." <<endl;
     return false;
 }
 
@@ -1081,7 +957,7 @@ bool cm_aggregate::getIndex(int * pArgc,
 //
 uint8_t * cm_contained_aggregate::getFirstItem(const uint8_t * pParentItem) const
 {
-    return (uint8_t *)(pParentItem + offset);
+    return (uint8_t *)(pParentItem + pData->offset);
 }
 
 
@@ -1089,7 +965,7 @@ uint8_t * cm_contained_aggregate::getFirstItem(const uint8_t * pParentItem) cons
 // For a contained component, the count is fixed at maxCount.
 unsigned cm_contained_aggregate::getCount(const uint8_t * pParentItem) const
 {
-    return maxCount;
+    return pData->maxCount;
 }
 
 
@@ -1106,7 +982,7 @@ unsigned cm_contained_aggregate::getCount(const uint8_t * pParentItem) const
 //
 uint8_t * cm_owned_aggregate::getFirstItem(const uint8_t * pParentItem) const
 {
-    return *(uint8_t **)(pParentItem + offset); // location is a pointer to the OWNED item
+    return *(uint8_t **)(pParentItem + pData->offset); // location is a pointer to the OWNED item
 }
 
 
@@ -1121,16 +997,16 @@ unsigned cm_owned_aggregate::getCount(const uint8_t * pParentItem) const
         return (getFirstItem(pParentItem) == NULL) ? 0 : 1;
     }
     
-    switch (pCounterAggr->pDesc->getLen()) 
+    switch (pCounterAggr->pData->pDesc->getLen()) 
     { 
         case sizeof(uint8_t):
-            return (unsigned)(*(pParentItem + pCounterAggr->offset));
+            return (unsigned)(*(pParentItem + pCounterAggr->pData->offset));
        
         case sizeof(uint16_t):
-            return (unsigned)(*((uint16_t *)(pParentItem + pCounterAggr->offset)));
+            return (unsigned)(*((uint16_t *)(pParentItem + pCounterAggr->pData->offset)));
        
         case sizeof(uint32_t):
-            return (unsigned)(*((uint32_t *)(pParentItem + pCounterAggr->offset)));
+            return (unsigned)(*((uint32_t *)(pParentItem + pCounterAggr->pData->offset)));
 
         default:
             assert(0);
@@ -1150,7 +1026,211 @@ void cm_owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) con
         // There may not be a counter -- don't need one if maxCount == 0
         return;
     }   
-    memcpy(pParentItem + pCounterAggr->offset, &count, sizeof(count));
+    memcpy(pParentItem + pCounterAggr->pData->offset, &count, sizeof(count));
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// cm_composite_tlv
+//
+////////////////////////////////////////////////////////////////////////////////
+
+/// Write item's TLV to a buffer, and advance the ptr to the end of memory written to.
+//  This is useful for writing to a RAM buffer first, for subsequent write
+//  to NVRAM.
+//  xxx add param, bufsize, to do a buffer overflow check.
+//  xxx if we want to write directly to NVRAM, we need to implement a method
+//  that does that...
+void cm_composite_tlv::write(const uint8_t *pItem, uint8_t ** ppBuf) const
+{
+    // The L field in TLV excludes the item's T+L fields
+    cm_item_len_t componentLen = getLen(pItem) - sizeof(pDesc->getLen()) - sizeof(cm_item_len_t);
+    
+    // First write own Type and Length
+    memcpy(*ppBuf, pDesc->getIdPtr(), sizeof(cm_item_id_t)); // write Type (i.e. the ID)
+    *ppBuf += sizeof(cm_item_id_t);                          // advance the memory pointer
+    memcpy(*ppBuf, &componentLen, sizeof(componentLen));     // write Length (of Value to follow)
+    *ppBuf += sizeof(componentLen);                          // advance the memory pointer
+    
+    // Now write V, which is the TLVs of all components
+    for (int i = 0; i < pDesc->getAggrCount(); i++)
+    {            
+        const cm_aggregate * pAggr      = pDesc->getAggrList(i);
+        const uint8_t *      pFirstItem = pAggr->getFirstItem(pItem);
+        unsigned int         itemCount  = pAggr->getCount(pItem);
+
+        for (unsigned j = 0; j < itemCount; j++)
+        {
+            pAggr->pData->pDesc->writeTlv(pFirstItem + j * pAggr->pData->pDesc->getLen(), ppBuf);
+        }
+    }
+}
+
+
+// This method is called if the TLV field T (the item ID) matches,
+// so it's not checked here again.
+// This method reads L, and moves forward in the file by that many bytes,
+// using what it finds in the file to initialize the object's configurable items.
+// @return number of bytes read
+//
+// xxx after each read, check how much was read.
+// xxx sanity check: L read from the file should never be 0
+//
+unsigned int cm_composite_tlv::load(FILE * fp, uint8_t * pItem) const
+{
+    cm_item_len_t  tlvLen;
+    
+    fread(&tlvLen, sizeof(tlvLen), 1, fp);
+    cm_item_len_t bytesRead = sizeof(tlvLen);
+
+    DBG_PRT("composite load %d bytes to %p\n", tlvLen, pItem);
+
+    bool         first   = true; // Is this the first component item?
+    unsigned int itemIdx;        // number of items read of a given type, i.e. offset in the item array
+
+    // While enough unread bytes remain of the composite for T+L fields of a component.
+    // bytesRead already includes the L field of the composite item, so we don't add sizeof(L) here.
+    while (bytesRead + sizeof(cm_item_id_t) <= tlvLen) 
+    {        
+        cm_item_id_t  compId, prevCompId;
+
+        fread(&compId, sizeof(compId), 1, fp);
+        bytesRead += sizeof(compId);
+
+        DBG_PRT("load component ID %d\n", compId);
+
+        // New item type (or the 1st one), so reset array index
+        if (first || (compId != prevCompId))
+        {                
+            first = false;
+            itemIdx = 0;
+        }
+
+        const cm_aggregate * pAggr;
+        uint8_t *            pComponentItem;
+
+        if (!pDesc->getComponentItem(compId, itemIdx, &pAggr, pItem, &pComponentItem))
+        {
+            // skip because we couldn't find the item, index is out of range, or couldn't malloc
+            bytesRead += skipItem(fp);
+        }
+        else
+        {
+            bytesRead += pAggr->pData->pDesc->loadFromTlv(fp, pComponentItem);
+            itemIdx++;
+        }
+
+        DBG_PRT("composite '%s': %d read\n", pDesc->getName().c_str(), bytesRead);
+        prevCompId = compId;
+    }
+    
+    // Sanity check on coherence of the data read from the TLV file: xxx should we abort the read?
+    if (bytesRead != tlvLen + sizeof(tlvLen))
+    {
+        cout << "'" << pDesc->getName() << "' contains " << bytesRead - sizeof(tlvLen) << ", not "
+             << tlvLen <<"!" << endl;
+    }
+    return bytesRead;
+}
+
+
+/// Return total length of TLV item, the number of bytes in T + L + V.
+cm_item_len_t cm_composite_tlv::getLen(const uint8_t * pItem) const
+{
+    cm_item_len_t tlvLen = sizeof(cm_item_id_t) + sizeof(cm_item_len_t);
+
+    // For each aggregate, and for each of the array of items under it...
+    for (int i = 0; i < pDesc->getAggrCount(); i++)
+    {
+        const cm_aggregate * pAggr      = pDesc->getAggrList(i);
+        const uint8_t *      pFirstItem = pAggr->getFirstItem(pItem);
+        unsigned int         itemCount  = pAggr->getCount(pItem);
+
+        for (unsigned j = 0; j < itemCount; j++)
+        {
+            tlvLen += pAggr->pData->pDesc->getTlvLen(pFirstItem + j * pAggr->pData->pDesc->getLen());
+        }
+    }
+    return tlvLen;
+}
+
+// Having read the Type (ID) of an item from the TLV file, skip L and V.
+// @return number of bytes moved ahead in the file
+//
+unsigned int cm_composite_tlv::skipItem(FILE * fp) const
+{
+    cm_item_len_t tlvLen;
+    
+    fread(&tlvLen, sizeof(tlvLen), 1, fp);
+    cm_item_len_t bytesRead = sizeof(tlvLen);
+
+    fseek(fp, tlvLen, SEEK_CUR);
+    return bytesRead += tlvLen;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// cm_simple_tlv
+//
+////////////////////////////////////////////////////////////////////////////////
+
+
+/// Write TLV to a buffer, and advance the ptr to the end of memory written to.
+//  This is useful for writing to a RAM buffer first, for subsequent write
+//  to NVRAM.
+//  xxx if we want to write directly to NVRAM, we need to implement a method
+//  that does that...
+void cm_simple_tlv::write(const uint8_t *pItem, uint8_t ** ppBuf) const
+{
+    memcpy(*ppBuf, pDesc->getIdPtr(), sizeof(cm_item_id_t));   // write Type (i.e. the ID)
+    *ppBuf += sizeof(cm_item_id_t);                            // advance the memory pointer
+
+    memcpy(*ppBuf, pDesc->getLenPtr(), sizeof(cm_item_len_t)); // write Length
+    *ppBuf += sizeof(cm_item_len_t);                           // advance the memory pointer
+
+    memcpy(*ppBuf, pItem, pDesc->getLen());                    // write Value
+    *ppBuf += pDesc->getLen();
+}
+
+
+/// Return total length of TLV item, the number of bytes in T + L + V.
+//  (For a simple item, there's no dependency on pItem, the RAM contents.)
+cm_item_len_t cm_simple_tlv::getLen(const uint8_t * pItem) const
+{
+    return sizeof(cm_item_id_t) + sizeof(cm_item_len_t) + pDesc->getLen();
+}
+
+
+// This method is called if the TLV field T (the item ID) matches,
+// so it's not checked here again.
+// This method reads L, and moves forward in the file by that many bytes,
+// using what it finds in the file to initialize the object's configurable items.
+// xxx after each read, check how much was read.
+unsigned int cm_simple_tlv::load(FILE * fp, uint8_t * pItem) const
+{
+    cm_item_len_t tlvLen;
+    
+    fread(&tlvLen, sizeof(tlvLen), 1, fp);
+
+    DBG_PRT("load simple %d bytes to %p\n", tlvLen, pItem);
+
+    if (tlvLen != pDesc->getLen())
+    {
+        // Item larger than expected: we don't truncate, we leave
+        // the item as unchanged, but move forward in the file.
+        // xxx Could we handle the case where len > tlvLen?  No, for big-endian
+        // systems we'd have to know if we were reading an integer or not.
+        cout << "TLV len " << tlvLen << ", expected " << pDesc->getLen() << endl;
+
+        fseek(fp, tlvLen, SEEK_CUR);
+    }
+    else
+    {
+        fread(pItem, tlvLen, 1, fp);
+    }
+    return sizeof(tlvLen) + tlvLen;
 }
 
 

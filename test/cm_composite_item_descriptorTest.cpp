@@ -1,5 +1,5 @@
 // Unit test using open-source unit test framework
-// These tests use the cm_coponosite_item_descriptor's public interface
+// These tests use the cm_composite_item_descriptor's public interface
 // to test it.  This includes redirecting to a file output that it sends to
 // stdout, so that it can be read from the file and compared to the
 // expected output.
@@ -32,16 +32,24 @@ struct m
 };
 
 // test set 1 metadata
-const cm_basic_item_descriptor s1("name1", 1, sizeof(int), NULL, NULL, NULL);
-const cm_basic_item_descriptor s2("name2", 2, sizeof(int), NULL, NULL, NULL);
-const cm_contained_aggregate ca1(&s1, 1, offsetof(struct m, m1));
-const cm_contained_aggregate ca2(&s2, 1, offsetof(struct m, m2));
+const cm_simple_metadata s1_d = {{"name1", 1, sizeof(int)}, NULL, NULL, NULL};
+const cm_simple_item_descriptor s1(&s1_d, false);
+const cm_aggregate_data ca1_d = {&s1, 1, offsetof(struct m, m1)};
+const cm_contained_aggregate ca1(&ca1_d);
+
+const cm_simple_metadata s2_d = {{"name2", 2, sizeof(int)}, NULL, NULL, NULL};
+const cm_simple_item_descriptor s2(&s2_d, false);
+const cm_aggregate_data ca2_d = {&s2, 1, offsetof(struct m, m2)};
+const cm_contained_aggregate ca2(&ca2_d);
+
 const cm_aggregate * const aggrList1[] = {&ca1, &ca2};
-const cm_composite_item_descriptor c1("c1", 1, sizeof(struct m), aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0]));
+const cm_composite_metadata c1_d = {{"c1", 1, sizeof(struct m)}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
+const cm_composite_item_descriptor c1(&c1_d, false);
 
 ////////////////////////////////////////////////////////////////////////////////
 // test set 2, OWNED with a visible (printing) counter
 // test set 2 data structure
+#define MAX_NUMBER_OWNED_SET2 10
 struct m2
 {
     unsigned cnt;
@@ -49,34 +57,46 @@ struct m2
 };
 
 // test set 2 metadata
-const cm_basic_item_descriptor s3("count", 1, sizeof(int), NULL, NULL, NULL);
-const cm_basic_item_descriptor s4("owned", 2, sizeof(int), cm_set_int, NULL, NULL);
-const cm_contained_aggregate ca3(&s3, 1, offsetof(struct m2, cnt));
-const cm_owned_aggregate oa4(&s4, 10, offsetof(struct m2, owned), &ca3);
+const cm_simple_metadata s3_d = {{"count", 1, sizeof(int)}, NULL, NULL, NULL};
+const cm_simple_item_descriptor s3(&s3_d, false);
+const cm_aggregate_data ca3_d = {&s3, 1, offsetof(struct m2, cnt)};
+const cm_contained_aggregate ca3(&ca3_d);
+
+const cm_simple_metadata s4_d = {{"owned", 2, sizeof(int)}, cm_set_int, NULL, NULL};
+const cm_simple_item_descriptor s4(&s4_d, false);
+const cm_aggregate_data oa4_d = {&s4, MAX_NUMBER_OWNED_SET2, offsetof(struct m2, owned)};
+const cm_owned_aggregate oa4(&oa4_d, &ca3);
+
 const cm_aggregate * const aggrList2[] = {&ca3, &oa4};
-const cm_composite_item_descriptor c2("c2", 1, sizeof(struct m2), aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0]));
+const cm_composite_metadata c2_d = {{"c2", 1, sizeof(struct m2)}, aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0])};
+const cm_composite_item_descriptor c2(&c2_d, false);
 
 // xxx test set 3, OWNED with a non-printing counter
 
 ////////////////////////////////////////////////////////////////////////////////
 // test set 4, OWNED with no counter => cntr for cm_owned_aggregate() is NULL
 // test set 4 data structure
+#define MAX_NUMBER_OWNED_SET4 1
 struct m4
 {
     int * owned;
 };
 
 // test set 4 metadata
-const cm_basic_item_descriptor s7("owned", 1, sizeof(int), NULL, NULL, NULL);
-// maxCnt = 1 and cntAggr = NULL
-const cm_owned_aggregate oa7(&s7, 1, offsetof(struct m4, owned), NULL);
+const cm_simple_metadata s7_d = {{"owned", 1, sizeof(int)}, NULL, NULL, NULL};
+const cm_simple_item_descriptor s7(&s7_d, false);
+const cm_aggregate_data oa7_d = {&s7, MAX_NUMBER_OWNED_SET4, offsetof(struct m4, owned)};
+const cm_owned_aggregate oa7(&oa7_d, NULL); // NULL => no counter
+
 const cm_aggregate * const aggrList4[] = {&oa7};
-const cm_composite_item_descriptor c4("c4", 1, sizeof(struct m4), aggrList4, sizeof(aggrList4)/sizeof(aggrList4[0]));
+const cm_composite_metadata c4_d = {{"c4", 1, sizeof(struct m4)}, aggrList4, sizeof(aggrList4)/sizeof(aggrList4[0])};
+const cm_composite_item_descriptor c4(&c4_d, false);
 
 
 TEST(getLen, cm_composite_item_descriptor)
 {
-    cm_composite_item_descriptor d("c1", 1, 55 , NULL, 0);
+    cm_composite_metadata d_d  = {{"c1", 1, 55}, NULL, 0};
+    cm_composite_item_descriptor d(&d_d, false);
 
     CHECK(d.getLen() == 55);
 }

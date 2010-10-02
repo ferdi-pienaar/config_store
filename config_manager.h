@@ -25,19 +25,101 @@
 // Because it determines the longest possible length of any item in NVRAM,
 // it's also big enough to be used for the length of items in RAM
 // (which are shorter, as the exclude the Id and Length fields saved to NVRAM).
-typedef uint16_t cm_item_len;
+typedef uint16_t cm_item_len_t;
 
 // Identifier ID, unique within its context, used to identify it in NVRFAM
-typedef uint16_t cm_descriptor_id;
+typedef uint16_t cm_item_id_t;
 
 // Function pointers -- types registered by user when descriptor is created
-typedef bool (*CM_SET_FPTR)(uint8_t *pItem, cm_item_len len, std::string val);
-typedef void (*CM_SETDEF_FPTR)(uint8_t *pItem, cm_item_len len);
-typedef void (*CM_PRT_FPTR)(const uint8_t *pItem, cm_item_len len);
+typedef bool (*CM_SET_FPTR)(uint8_t *pItem, cm_item_len_t len, std::string val);
+typedef void (*CM_SETDEF_FPTR)(uint8_t *pItem, cm_item_len_t len);
+typedef void (*CM_PRT_FPTR)(const uint8_t *pItem, cm_item_len_t len);
 
 // Pre-declare so we can use it in method prototype before defining it
 struct t_cm_context;
 
+class cm_tlv;
+
+// Item metadata, i.e. information about what's kept in RAM.
+// Place metadata in structure separate from the descriptor,
+// to make it easy to ensure it is ROMable (the rules for ensuring
+// a class object is ROMable, are very restrictive).
+// This comes at the cost of having an additional level of indirection.
+struct cm_common_metadata
+{
+    const char *     name; ///< name by which item is addressed on CLI    
+    cm_item_id_t     id;   ///< ID (unique within the context of the component's composite) of item in NVRAM
+    cm_item_len_t    len;  ///< Number of bytes occupied by an item in RAM
+};
+
+struct cm_simple_metadata
+{
+    cm_common_metadata c;
+
+    // populate the following ptrs when creating a descriptor
+    // The config manager itself provides a set for basic types
+    // of configurable items, with 'C' linkage.
+    //
+    const CM_SET_FPTR    pSet;
+    const CM_SETDEF_FPTR pSetDef;
+    const CM_PRT_FPTR    pPrt;
+};
+
+class cm_aggregate;
+
+struct cm_composite_metadata
+{
+    cm_common_metadata c;
+
+    // Information about the components of the composite
+    const cm_aggregate * const * aggrList;  // Array of pointers to aggregates (pointers, because abstract cm_aggregate can't be instantiated)
+    const unsigned short         aggrCount; // Number of aggregates in the list (number of descriptors, not items)
+
+};
+
+class cm_item_descriptor;
+
+struct cm_aggregate_data
+{    
+    const cm_item_descriptor * pDesc;     ///< the component's descriptor
+    const unsigned short       maxCount;  ///< Max number of instances of the item
+    const unsigned int         offset;    ///< Offset [bytes] of items, or pointer to items, within the composite item
+};
+
+// xxx should cm_simple_tlv and cm_composite_tlv inherit from a base class?
+
+class cm_composite_item_descriptor;
+
+//
+class cm_composite_tlv // xxx: public cm_tlv
+{
+    const cm_composite_item_descriptor * pDesc; // owner reference, passed to constructor
+
+public:
+    cm_composite_tlv(const cm_composite_item_descriptor * desc): pDesc(desc) {}
+    virtual cm_item_len_t getLen(const uint8_t * pItem) const;
+    virtual void write(const uint8_t * pItem, uint8_t ** ppBuf) const;
+    virtual unsigned int load(FILE * fp, uint8_t * pItem) const;
+
+private:
+    unsigned int skipItem(FILE * fp) const;
+
+};
+
+class cm_simple_item_descriptor;
+
+//
+class cm_simple_tlv // xxx : public cm_tlv
+{
+    const cm_simple_item_descriptor * pDesc; // owner reference, passed to constructor
+
+public:
+    cm_simple_tlv(const cm_simple_item_descriptor * desc): pDesc(desc) {}
+    virtual cm_item_len_t getLen(const uint8_t * pItem) const;
+    virtual void write(const uint8_t * pItem, uint8_t ** ppBuf) const;
+    virtual unsigned int load(FILE * fp, uint8_t * pItem) const;
+
+};
 
 // We eliminate the getItem method, and pass the command string recursively down the
 // hierarchy of descriptors, until we either consume the whole command
@@ -55,30 +137,31 @@ struct t_cm_context;
 // xxx methods are private (not for user), but config_manager is friend?
 class cm_item_descriptor
 {
-private:
-    
-protected: // xxx these are protected because I want to access them from the derived classes
-    const std::string      name; ///< name by which item is addressed on CLI
-    const cm_item_len      len;  ///< Number of bytes occupied by an item in RAM and NVRAM
-
+//xxxprotected:
+// xxx   const cm_tlv * pTlv; ///< Object representing Type Length Value; non-NULL for items saved to NVRAM
 
 public:     
-    const cm_descriptor_id id;   ///< ID (unique within the context of the component's composite) of item in NVRAM    
-
-    cm_item_descriptor(std::string iname, cm_descriptor_id iid, cm_item_len ilen):
-                       name(iname), len(ilen), id(iid){}
+    cm_item_descriptor() {}
     virtual ~cm_item_descriptor(){}
 
     virtual bool handleCmd(int argc, char *argv[], uint8_t * pItem, struct t_cm_context & ctxt ) const = 0;
-    virtual cm_item_len getLen() const {return len;}
-    virtual cm_item_len getTlvLen(const uint8_t * pItem) const = 0;
+    virtual std::string getName() const = 0;
+    virtual const cm_item_id_t * getIdPtr() const = 0;
+    virtual cm_item_id_t getId() const = 0;
+
+    virtual const cm_item_len_t * getLenPtr() const = 0;
+    virtual cm_item_len_t getTlvLen(const uint8_t * pItem) const = 0;
+    virtual cm_item_len_t getLen() const = 0;
+
+    virtual unsigned short getAggrCount() const = 0;
+    virtual const cm_aggregate * getAggrList(unsigned int i) const = 0;
+
+
     virtual void writeTlv(const uint8_t * pItem, uint8_t ** ppBuf) const = 0;
     virtual unsigned int loadFromTlv(FILE * fp, uint8_t * pItem) const = 0;
     virtual void print(const uint8_t * pItem, std::string prefix) const = 0;
     virtual void setdef(uint8_t * pItem) const = 0;
     virtual void help(const uint8_t * pItem) const = 0;
-
-    std::string getName() const {return name;}
 
 };
 
@@ -113,17 +196,12 @@ typedef struct t_cm_context
 //
 class cm_aggregate
 {
-protected:
+public:
+    const cm_aggregate_data * pData;
     
 public:   
-    cm_aggregate(const cm_item_descriptor * d,
-                 unsigned short maxc,
-                 unsigned int o):
-                 pDesc(d), maxCount(maxc), offset(o){};
+    cm_aggregate(const cm_aggregate_data * d): pData(d){};
 
-    const cm_item_descriptor * pDesc;     ///< the component's descriptor
-    const unsigned short       maxCount;  ///< Max number of instances of the item
-    const unsigned int         offset;    ///< Offset [bytes] of items, or pointer to items, within the composite item
     bool needIndex(const uint8_t * pParentItem) const {return getCount(pParentItem) > 1;}
     bool getIndex(int * pArgc, char *** pArgv, const uint8_t * pParentItem, unsigned int & itemIndex) const;
     /// returns address of the first item in the array
@@ -142,10 +220,7 @@ public:
 class cm_contained_aggregate : public cm_aggregate
 {
 public:
-    cm_contained_aggregate(const cm_item_descriptor * d,
-                           unsigned short maxc,
-                           unsigned int o):
-                           cm_aggregate(d, maxc, o){}
+    cm_contained_aggregate(const cm_aggregate_data * d): cm_aggregate(d){}
 
     uint8_t * getFirstItem(const uint8_t * pParentItem) const;
     virtual unsigned getCount(const uint8_t * pParentItem) const;
@@ -165,11 +240,9 @@ private:
     const cm_contained_aggregate * pCounterAggr; // the counter for this owned component
     
 public:
-    cm_owned_aggregate(const cm_item_descriptor * d,
-                       unsigned short maxc,
-                       unsigned int o,
+    cm_owned_aggregate(const cm_aggregate_data * d,
                        const cm_contained_aggregate * cntAggr):
-                       cm_aggregate(d, maxc, o), pCounterAggr(cntAggr){}
+                       cm_aggregate(d), pCounterAggr(cntAggr){}
 
     uint8_t * getFirstItem(const uint8_t * pParentItem) const;
     virtual unsigned getCount(const uint8_t * pParentItem) const;
@@ -179,22 +252,28 @@ public:
 
 };
 
-
 ////////////////////////////////////////////////////////////////////////////////
 /// A composite descriptor consists of components, linked to the composite via
 /// aggregates.
 // xxx methods (apart from constructor) are private (not for user), but config_manager is friend?
 class cm_composite_item_descriptor : public cm_item_descriptor
 { 
-    const cm_aggregate * const * aggrList;  // Array of pointers to aggregates (pointers, because abstract cm_aggregate can't be instantiated)
-    const unsigned short         aggrCount; // Number of aggregates in the list (number of descriptors, not items)
+
+public: // needs to be accessed by TLV class
+    const cm_composite_metadata * const pData;
+private:
+    const cm_composite_tlv * pTlv;
+
+private:
 
     virtual void writeTlv(const uint8_t * pItem, uint8_t ** ppBuf) const;
-    virtual cm_item_len getTlvLen(const uint8_t * pItem) const;
+    virtual cm_item_len_t getTlvLen(const uint8_t * pItem) const;
     virtual unsigned int loadFromTlv(FILE * fp, uint8_t * pItem) const;
     unsigned int skipTlvItem(FILE * fp) const;
     const cm_aggregate * getAggr(const char * name) const;
-    const cm_aggregate * getAggr(cm_descriptor_id id) const;
+    const cm_aggregate * getAggr(cm_item_id_t id) const;
+
+public: // tlv class should be friend so it can call these
     bool getComponentItem(int * pArgc,
                           char *** pArgv,
                           const cm_aggregate ** ppAggr,
@@ -202,21 +281,24 @@ class cm_composite_item_descriptor : public cm_item_descriptor
                           uint8_t ** ppItem,
                           cm_context & ctxt,
                           bool & added) const;
-    bool getComponentItem(cm_descriptor_id id,
+    bool getComponentItem(cm_item_id_t id,
                           unsigned idx,
                           const cm_aggregate ** ppAggr,
                           uint8_t * pParentItem,
                           uint8_t ** ppItem) const;
 
 public:    
-    cm_composite_item_descriptor(char * name,
-                                 cm_descriptor_id id,
-                                 cm_item_len l,
-                                 const cm_aggregate * const * aggrList,
-                                 unsigned short aggrCount):
-                                 cm_item_descriptor(name, id, l), // init base class
-                                 aggrList(aggrList),         // init data member
-                                 aggrCount(aggrCount){};
+    cm_composite_item_descriptor(const cm_composite_metadata * pMeta, bool nonvolatile);
+
+    std::string getName() const {return pData->c.name;}
+    virtual const cm_item_id_t * getIdPtr() const {return &(pData->c.id);}
+    virtual cm_item_id_t getId() const {return pData->c.id;}
+    virtual const cm_item_len_t * getLenPtr() const {return &(pData->c.len);}
+    virtual cm_item_len_t getLen() const {return pData->c.len;}
+
+    virtual unsigned short getAggrCount() const {return pData->aggrCount;}
+    virtual const cm_aggregate * getAggrList(unsigned int i) const {return pData->aggrList[i];}
+
 
     ~cm_composite_item_descriptor(){};
     bool handleCmd(int argc, char *argv[], uint8_t * pItem, cm_context & ctxt) const;
@@ -240,80 +322,38 @@ public:
 // xxx methods (apart from constructor) are private (not for user), but config_manager is friend?
 class cm_simple_item_descriptor : public cm_item_descriptor
 {
-    const CM_PRT_FPTR    pPrt;
 
+public: // needs to be accessed by TLV class
+    const cm_simple_metadata * const pData;
+
+private:
+    const cm_simple_tlv * pTlv;
+    
+    
 public:
-    cm_simple_item_descriptor(char * name,
-                              cm_descriptor_id id,
-                              cm_item_len l,
-                              CM_PRT_FPTR pf):
-                              cm_item_descriptor(name, id, l),
-                              pPrt(pf){};
+    cm_simple_item_descriptor(const cm_simple_metadata * pMeta, bool nonvolatile);
                               
     virtual ~cm_simple_item_descriptor() {};
-
-    void print(const uint8_t * pItem, std::string prefix) const;
-    void help(const uint8_t * pItem) const {std::cout << "len " << getLen() << std::endl;}
-};
-
-
-// xxx methods (apart from constructor) are private (not for user), but config_manager is friend?
-class cm_basic_item_descriptor : public cm_simple_item_descriptor
-{
-
-    // populate the following ptrs when creating a descriptor
-    // The config manager itself provides a set for basic types
-    // of configurable items, with 'C' linkage.
-    // These are only applicable to simple items:
-    //  set
-    //  setdef
-    //
-    const CM_SET_FPTR    pSet;
-    const CM_SETDEF_FPTR pSetDef;
+    bool handleCmd(int argc, char *argv[], uint8_t * pItem, cm_context & ctxt) const;
 
     virtual void writeTlv(const uint8_t * pItem, uint8_t ** ppBuf) const;
-    virtual cm_item_len getTlvLen(const uint8_t * pItem) const;
+    virtual cm_item_len_t getTlvLen(const uint8_t * pItem) const;
     virtual unsigned int loadFromTlv(FILE * fp, uint8_t * pItem) const;
 
-public:
-    cm_basic_item_descriptor(char * name,
-                             cm_descriptor_id id,
-                             cm_item_len l,
-                             CM_SET_FPTR sf,
-                             CM_SETDEF_FPTR sdf,
-                             CM_PRT_FPTR pf):
-                             cm_simple_item_descriptor(name, id, l, pf),
-                             pSet(sf),
-                             pSetDef(sdf){};
-                              
-    ~cm_basic_item_descriptor(){};
 
-    bool handleCmd(int argc, char *argv[], uint8_t * pItem, cm_context & ctxt) const;
+    std::string getName() const {return pData->c.name;}
+    virtual const cm_item_id_t * getIdPtr() const {return &(pData->c.id);}
+    virtual cm_item_id_t getId() const {return pData->c.id;}
+    virtual const cm_item_len_t * getLenPtr() const {return &(pData->c.len);}
+    virtual cm_item_len_t getLen() const {return pData->c.len;}
+    virtual unsigned short getAggrCount() const {return 0;}
+    virtual const cm_aggregate * getAggrList(unsigned int i) const {return NULL;}
+
+    void print(const uint8_t * pItem, std::string prefix) const;
     bool set(uint8_t * pItem, std::string val) const;
     void setdef(uint8_t * pItem) const;
-};
 
-
-// xxx methods (apart from constructor) are private (not for user), but config_manager is friend?
-class cm_cntr_item_descriptor : public cm_simple_item_descriptor
-{
-    virtual void writeTlv(const uint8_t * pItem, uint8_t ** ppBuf) const {}
-    virtual cm_item_len getTlvLen(const uint8_t * pItem) const {return 0;}
-    virtual unsigned int loadFromTlv(FILE * fp, uint8_t * pItem) const {assert(0);}
-
-public:
-    cm_cntr_item_descriptor(char * name,
-                            cm_descriptor_id id,
-                            cm_item_len l,
-                            CM_PRT_FPTR pf):
-                            cm_simple_item_descriptor(name, id, l, pf){};
-                              
-    ~cm_cntr_item_descriptor(){};
-    bool handleCmd(int argc, char *argv[], uint8_t * pItem, cm_context & ctxt) const;
-    // A counter's setdef does nothing: it is set to 0 as a side-effect of
-    // freeing the corresponding owned items.
-    void setdef(uint8_t * pItem) const {};
-
+    void help(const uint8_t * pItem) const {std::cout << "len " << getLen() << std::endl;}
 };
 
 

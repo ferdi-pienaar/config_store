@@ -18,7 +18,7 @@ using namespace std;
 // system (little-endian or big-endian), we just typecast it
 // it correctly and print.
 //
-void cm_prt_int(const uint8_t *pItem, cm_item_len len)
+void cm_prt_int(const uint8_t *pItem, cm_item_len_t len)
 {
     switch (len)
     {
@@ -45,16 +45,19 @@ void cm_prt_int(const uint8_t *pItem, cm_item_len len)
 // len - number of bytes the integer consists of
 // val - a string representing the new value
 //
+// @return false if the received value does not represent
+//         in integer, or is out-of-range for the target data type
+//
 // Integers are kept in the order prescribed by the given
 // system (little-endian or big-endian).
 //
-bool cm_set_int(uint8_t *pItem, cm_item_len len, string val)
+bool cm_set_int(uint8_t *pItem, cm_item_len_t len, string val)
 {
     char * pEnd; // pointer to char after chars accepted by strtol
 
-    long int v = strtol(val.c_str(), &pEnd, 0);
+    long long int v = strtoll(val.c_str(), &pEnd, 0);
 
-    // Just return if v not initialized, i.e. if nothing read/
+    // Just return if v not initialized, i.e. if nothing read.
     // Can I rely on val.c_str returning the same address on
     // subsequent calls?
     if (pEnd == val.c_str())
@@ -66,16 +69,28 @@ bool cm_set_int(uint8_t *pItem, cm_item_len len, string val)
     switch (len)
     {
         case sizeof(int8_t):
+            if ((v > INT8_MAX) || (v < INT8_MIN))
+            {
+                return false;
+            }
             int8_t cv = (int8_t)v;
             memcpy(pItem, &cv, sizeof(cv));
             return true;
 
-        case sizeof(int16_t):            
+        case sizeof(int16_t):
+            if ((v > INT16_MAX) || (v < INT16_MIN))
+            {
+                return false;
+            }
             int16_t sv = (int16_t)v;
             memcpy(pItem, &sv, sizeof(sv));
             return true;
             
         case sizeof(int32_t):
+            if ((v > INT32_MAX) || (v < INT32_MIN))
+            {
+                return false;
+            }
             int32_t lv = (int32_t)v;
             memcpy(pItem, &lv, sizeof(lv));
             return true;
@@ -91,7 +106,7 @@ bool cm_set_int(uint8_t *pItem, cm_item_len len, string val)
 // pItem - pointer to memory containing a NULL-terminated string
 // len - number of bytes the string consists of
 //
-void cm_prt_str(const uint8_t *pItem, cm_item_len len)
+void cm_prt_str(const uint8_t *pItem, cm_item_len_t len)
 {
     printf("%s", (char *)pItem);
 }
@@ -102,7 +117,7 @@ void cm_prt_str(const uint8_t *pItem, cm_item_len len)
 // len - number of bytes the string consists of
 // val - a string representing the new value
 //
-bool cm_set_str(uint8_t *pItem, cm_item_len len, string val)
+bool cm_set_str(uint8_t *pItem, cm_item_len_t len, string val)
 {
     snprintf((char *)pItem, len, val.c_str());
     return true;
@@ -113,9 +128,9 @@ bool cm_set_str(uint8_t *pItem, cm_item_len len, string val)
 // pItem - pointer to memory
 // len - number of bytes
 //
-void cm_prt_hexstr(const uint8_t *pItem, cm_item_len len)
+void cm_prt_hexstr(const uint8_t *pItem, cm_item_len_t len)
 {
-    for (cm_item_len i = 0; i < len; i++)
+    for (cm_item_len_t i = 0; i < len; i++)
     {
         printf("%02x", pItem[i]);
     }
