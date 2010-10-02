@@ -42,18 +42,18 @@ void setdef_t1(uint8_t *pItem, cm_item_len_t len)
 
 // test set 1 metadata
 const cm_simple_metadata s1_d = {{"name1", 1, sizeof(int)}, NULL, NULL, NULL};
-const cm_simple_item_descriptor s1(&s1_d, true);
+const cm_simple_descriptor s1(&s1_d, true);
 const cm_aggregate_data ca1_d = {&s1, 1, offsetof(struct m, m1)};
 const cm_contained_aggregate ca1(&ca1_d);
 
 const cm_simple_metadata s2_d = {{"name2", 2, sizeof(int)}, NULL, setdef_t1, NULL};
-const cm_simple_item_descriptor s2(&s2_d, true);
+const cm_simple_descriptor s2(&s2_d, true);
 const cm_aggregate_data ca2_d = {&s2, 1, offsetof(struct m, m2)};
 const cm_contained_aggregate ca2(&ca2_d);
 
 const cm_aggregate * const aggrList1[] = {&ca1, &ca2};
 const cm_composite_metadata c1_d = {{"c1", 1, sizeof(struct m)}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
-const cm_composite_item_descriptor c1(&c1_d, true);
+const cm_composite_descriptor c1(&c1_d, true);
 
 #define GET_C1_CONFIG ((struct m *)config_manager::getInstance()->getConfig())
 
@@ -70,18 +70,18 @@ struct m2
 
 // test set 2 metadata
 const cm_simple_metadata s3_d = {{"count", 3, sizeof(unsigned)}, NULL, NULL, NULL};
-const cm_simple_item_descriptor s3(&s3_d, false); // false => counter is not saved to NVRAM
+const cm_simple_descriptor s3(&s3_d, false); // false => counter is not saved to NVRAM
 const cm_aggregate_data ca3_d = {&s3, 1, offsetof(struct m2, cnt)};
 const cm_contained_aggregate ca3(&ca3_d);
 
 const cm_simple_metadata s4_d = {{"owned", 4, sizeof(int *)}, cm_set_int, NULL, NULL};
-const cm_simple_item_descriptor s4(&s4_d, true);
+const cm_simple_descriptor s4(&s4_d, true);
 const cm_aggregate_data ca4_d = {&s4, MAX_NUMBER_OWNED, offsetof(struct m2, owned)};
 const cm_owned_aggregate oa4(&ca4_d, &ca3);
 
 const cm_aggregate * const aggrList2[] = {&ca3, &oa4};
 const cm_composite_metadata c2_d = {{"c2", 1, sizeof(struct m2)}, aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0])};
-const cm_composite_item_descriptor c2(&c2_d, true);
+const cm_composite_descriptor c2(&c2_d, true);
 
 #define GET_C2_CONFIG ((struct m2 *)config_manager::getInstance()->getConfig())
 
@@ -98,13 +98,13 @@ struct m3
 // test set 3 metadata
 
 const cm_simple_metadata s5_d = {{"name1", 1, sizeof(short int)}, NULL, NULL, NULL};
-const cm_simple_item_descriptor s5(&s5_d, true);
+const cm_simple_descriptor s5(&s5_d, true);
 const cm_aggregate_data ca5_d = {&s5, T3_ARRAY_SIZE, offsetof(struct m3, m1)};
 const cm_contained_aggregate ca5(&ca5_d);
 
 const cm_aggregate * const aggrList3[] = {&ca5};
 const cm_composite_metadata c3_d = {{"c3", 1, sizeof(struct m3)}, aggrList3, sizeof(aggrList3)/sizeof(aggrList3[0])};
-const cm_composite_item_descriptor c3(&c3_d, true);
+const cm_composite_descriptor c3(&c3_d, true);
 
 #define GET_C3_CONFIG ((struct m3 *)config_manager::getInstance()->getConfig())
 

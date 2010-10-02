@@ -51,7 +51,7 @@ config_manager * config_manager::getInstance()
 // having an init method gives us more flexibility in delaying certain
 // actions until later; this allows us to create the CM early in the 
 // init cycle, but delay malloc and NVRAM reads until later.
-void config_manager::init(const cm_item_descriptor * desc)
+void config_manager::init(const cm_descriptor * desc)
 {
     base_desc = desc;
     ramBase = (uint8_t *)malloc(base_desc->getLen());
@@ -186,16 +186,62 @@ void config_manager::load()
     resetCtxt();
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//
+// cm_descriptor
+//
+////////////////////////////////////////////////////////////////////////////////
+
+/// Return total length of TLV item, the number of bytes in T + L + V.
+cm_item_len_t cm_descriptor::getTlvLen(const uint8_t * pItem) const
+{
+    if (pTlv == NULL)
+    {
+        return 0;
+    }
+    return pTlv->getLen(pItem);
+}
+
+
+/// Write item's TLV to a buffer, and advance the ptr to the end of memory written to.
+//  This is useful for writing to a RAM buffer first, for subsequent write
+//  to NVRAM.
+//  xxx if we want to write directly to NVRAM, we need to implement a method
+//  that does that...
+void cm_descriptor::writeTlv(const uint8_t *pItem, uint8_t ** ppBuf) const
+{
+    if (pTlv != NULL)
+    {
+        pTlv->write(pItem, ppBuf);
+    }
+}
+
+
+// This method is called if the TLV field T (the item ID) matches,
+// so it's not checked here again.
+// This method reads L, and moves forward in the file by that many bytes,
+// using what it finds in the file to initialize the object's configurable items.
+// @return number of bytes read
+//
+unsigned int cm_descriptor::loadFromTlv(FILE * fp, uint8_t * pItem) const
+{
+    if (pTlv == NULL)
+    {
+        return 0;
+    }
+    return pTlv->load(fp, pItem);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// cm_composite_item_descriptor
+// cm_composite_descriptor
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-cm_composite_item_descriptor::cm_composite_item_descriptor(const cm_composite_metadata * pMeta,
-                                                           bool nonvolatile):
-pData(pMeta), pTlv(NULL)
+cm_composite_descriptor::cm_composite_descriptor(const cm_composite_metadata * pMeta,
+                                                 bool nonvolatile):
+pData(pMeta)
 {
     if (nonvolatile)
     {
@@ -209,10 +255,10 @@ pData(pMeta), pTlv(NULL)
 // pItem - pointer to RAM at which item is located
 //
 //
-bool cm_composite_item_descriptor::handleCmd(int argc,
-                                             char *argv[],
-                                             uint8_t * pItem,
-                                             cm_context & ctxt) const
+bool cm_composite_descriptor::handleCmd(int argc,
+                                        char *argv[],
+                                        uint8_t * pItem,
+                                        cm_context & ctxt) const
 {
     DBG_PRT("composite::handleCmd: %s\n", argv[0]);
     switch (getOp(argv[0]))
@@ -285,7 +331,7 @@ bool cm_composite_item_descriptor::handleCmd(int argc,
 
 // Try to add a component named by argc,argv to a composite.
 // After verifying the operation is applicable, the item is added.
-bool cm_composite_item_descriptor::handleAdd(int argc, char *argv[], uint8_t * pItem) const
+bool cm_composite_descriptor::handleAdd(int argc, char *argv[], uint8_t * pItem) const
 {
     DBG_PRT("handleAdd %s\n", argv[0]);
 
@@ -328,8 +374,8 @@ bool cm_composite_item_descriptor::handleAdd(int argc, char *argv[], uint8_t * p
 // This allocates memory for the new item, sets it to default values,
 // and increments the corresponding counter.
 // @return pointer to new allocated memory, or NULL in case of failure
-uint8_t * cm_composite_item_descriptor::add(uint8_t * pParentItem,
-                                            const cm_aggregate * pAggr) const
+uint8_t * cm_composite_descriptor::add(uint8_t * pParentItem,
+                                       const cm_aggregate * pAggr) const
 {
     // Reallocate memory, and save pointer in the same location
     unsigned   cnt     = pAggr->getCount(pParentItem);
@@ -363,7 +409,7 @@ uint8_t * cm_composite_item_descriptor::add(uint8_t * pParentItem,
 
 
 // Del an owned component named by argc,argv from a composite
-bool cm_composite_item_descriptor::handleDel(int argc, char *argv[], uint8_t * pItem) const
+bool cm_composite_descriptor::handleDel(int argc, char *argv[], uint8_t * pItem) const
 {
     DBG_PRT("handleDel %s\n", argv[0]);
 
@@ -422,10 +468,10 @@ bool cm_composite_item_descriptor::handleDel(int argc, char *argv[], uint8_t * p
 // Del OWNED item.
 // This re-allocates the necessary memory, updates the counter if necessary,
 // and sets the pointer to the memory to NULL if it's all been freed.
-void cm_composite_item_descriptor::del(uint8_t * pParentItem,
-                                       const cm_aggregate * pAggr,
-                                       unsigned int itemIdx,
-                                       unsigned int cnt) const
+void cm_composite_descriptor::del(uint8_t * pParentItem,
+                                  const cm_aggregate * pAggr,
+                                  unsigned int itemIdx,
+                                  unsigned int cnt) const
 {
     // Reallocate memory, and save pointer in the same location
     uint8_t **  ppItems        = (uint8_t **)(pParentItem + pAggr->pData->offset);
@@ -457,52 +503,9 @@ void cm_composite_item_descriptor::del(uint8_t * pParentItem,
 }
 
 
-/// Return total length of TLV item, the number of bytes in T + L + V.
-cm_item_len_t cm_composite_item_descriptor::getTlvLen(const uint8_t * pItem) const
-{
-    if (pTlv == NULL)
-    {
-        return 0;
-    }
-    return pTlv->getLen(pItem);
-}
-
-
-/// Write item's TLV to a buffer, and advance the ptr to the end of memory written to.
-//  This is useful for writing to a RAM buffer first, for subsequent write
-//  to NVRAM.
-//  xxx add param, bufsize, to do a buffer overflow check.
-//  xxx if we want to write directly to NVRAM, we need to implement a method
-//  that does that...
-void cm_composite_item_descriptor::writeTlv(const uint8_t *pItem, uint8_t ** ppBuf) const
-{
-    if (pTlv != NULL)
-    {
-        pTlv->write(pItem, ppBuf);
-    }
-}
-
-
-// This method is called if the TLV field T (the item ID) matches,
-// so it's not checked here again.
-// This method reads L, and moves forward in the file by that many bytes,
-// using what it finds in the file to initialize the object's configurable items.
-// @return number of bytes read
-//
-// xxx after each read, check how much was read.
-//
-unsigned int cm_composite_item_descriptor::loadFromTlv(FILE * fp, uint8_t * pItem) const
-{
-    if (pTlv == NULL)
-    {
-        return 0;
-    }
-    return pTlv->load(fp, pItem);
-}
-
 // Delegate print command to components
 // 
-void cm_composite_item_descriptor::print(const uint8_t * pItem, string prefix) const
+void cm_composite_descriptor::print(const uint8_t * pItem, string prefix) const
 {
     char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
 
@@ -543,7 +546,7 @@ void cm_composite_item_descriptor::print(const uint8_t * pItem, string prefix) c
 // This means that we should not clear the counter first
 // (which is why a counter's setdef method does nothing), since pAggr->getCount
 // for an owned component depends on the counter still being set.
-void cm_composite_item_descriptor::setdef(uint8_t * pItem) const
+void cm_composite_descriptor::setdef(uint8_t * pItem) const
 {    
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < pData->aggrCount; i++)
@@ -575,7 +578,7 @@ void cm_composite_item_descriptor::setdef(uint8_t * pItem) const
 
 
 // Give name of each component, current count, and maxcount if OWNed.
-void cm_composite_item_descriptor::help(const uint8_t * pItem) const
+void cm_composite_descriptor::help(const uint8_t * pItem) const
 {
     for (int i = 0; i < pData->aggrCount; i++)
     {   
@@ -593,7 +596,7 @@ void cm_composite_item_descriptor::help(const uint8_t * pItem) const
 
 
 // Look for the aggregate whose component has a matching name
-const cm_aggregate * cm_composite_item_descriptor::getAggr(const char * name) const
+const cm_aggregate * cm_composite_descriptor::getAggr(const char * name) const
 {
     for (int i = 0; i < pData->aggrCount; i++)
     {            
@@ -609,7 +612,7 @@ const cm_aggregate * cm_composite_item_descriptor::getAggr(const char * name) co
 
 
 // Look for the aggregate whose component has a matching ID
-const cm_aggregate * cm_composite_item_descriptor::getAggr(cm_item_id_t id) const
+const cm_aggregate * cm_composite_descriptor::getAggr(cm_item_id_t id) const
 {
     for (int i = 0; i < pData->aggrCount; i++)
     {            
@@ -636,13 +639,13 @@ const cm_aggregate * cm_composite_item_descriptor::getAggr(cm_item_id_t id) cons
 //
 // @return true if item is returned
 //
-bool cm_composite_item_descriptor::getComponentItem(int * pArgc,
-                                                    char *** pArgv,
-                                                    const cm_aggregate ** ppAggr,
-                                                    uint8_t * pParentItem,
-                                                    uint8_t ** ppItem,
-                                                    cm_context & ctxt,
-                                                    bool & added) const
+bool cm_composite_descriptor::getComponentItem(int * pArgc,
+                                               char *** pArgv,
+                                               const cm_aggregate ** ppAggr,
+                                               uint8_t * pParentItem,
+                                               uint8_t ** ppItem,
+                                               cm_context & ctxt,
+                                               bool & added) const
 {
     added = false; // By default, didn't add a new component
     
@@ -717,11 +720,11 @@ bool cm_composite_item_descriptor::getComponentItem(int * pArgc,
 //
 // @return true if item is returned
 //
-bool cm_composite_item_descriptor::getComponentItem(cm_item_id_t id,
-                                                    unsigned idx,
-                                                    const cm_aggregate ** ppAggr,
-                                                    uint8_t * pParentItem,
-                                                    uint8_t ** ppItem) const
+bool cm_composite_descriptor::getComponentItem(cm_item_id_t id,
+                                               unsigned idx,
+                                               const cm_aggregate ** ppAggr,
+                                               uint8_t * pParentItem,
+                                               uint8_t ** ppItem) const
 {
     *ppAggr = getAggr(id);
 
@@ -756,13 +759,13 @@ bool cm_composite_item_descriptor::getComponentItem(cm_item_id_t id,
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// cm_simple_item_descriptor
+// cm_simple_descriptor
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-cm_simple_item_descriptor::cm_simple_item_descriptor(const cm_simple_metadata * pMeta,
-                                                     bool nonvolatile):
-pData(pMeta), pTlv(NULL)
+cm_simple_descriptor::cm_simple_descriptor(const cm_simple_metadata * pMeta,
+                                           bool nonvolatile):
+pData(pMeta)
 {
     if (nonvolatile)
     {
@@ -773,7 +776,7 @@ pData(pMeta), pTlv(NULL)
 // An item does not print its own name, since
 // it may be preceded by an index, which is known
 // to the item's composite but not to the item.
-void cm_simple_item_descriptor::print(const uint8_t * pItem, string prefix) const
+void cm_simple_descriptor::print(const uint8_t * pItem, string prefix) const
 {
     cout << prefix << "= ";
 
@@ -797,10 +800,10 @@ void cm_simple_item_descriptor::print(const uint8_t * pItem, string prefix) cons
 // argv array of strings containing name elements
 // pItem - pointer to RAM at which item is located
 //
-bool cm_simple_item_descriptor::handleCmd(int argc,
-                                         char *argv[],
-                                         uint8_t * pItem,
-                                         cm_context & ctxt) const
+bool cm_simple_descriptor::handleCmd(int argc,
+                                    char *argv[],
+                                    uint8_t * pItem,
+                                    cm_context & ctxt) const
 {
     DBG_PRT("simple cmd at %p\n", pItem);
     
@@ -833,7 +836,7 @@ bool cm_simple_item_descriptor::handleCmd(int argc,
 
 
 // Set item to a value input as string on command line
-bool cm_simple_item_descriptor::set(uint8_t * pItem, string val) const
+bool cm_simple_descriptor::set(uint8_t * pItem, string val) const
 {
     DBG_PRT("set simple %s at %p to '%s'\n", getName().c_str(), pItem, val.c_str());
 
@@ -850,7 +853,7 @@ bool cm_simple_item_descriptor::set(uint8_t * pItem, string val) const
 
 
 // Set configurable item to its default value.
-void cm_simple_item_descriptor::setdef(uint8_t * pItem) const
+void cm_simple_descriptor::setdef(uint8_t * pItem) const
 {
     if (pData->pSetDef != NULL)
     {
@@ -862,51 +865,6 @@ void cm_simple_item_descriptor::setdef(uint8_t * pItem) const
         memset(pItem, 0, getLen());
     }
 }
-
-
-/// Return total length of TLV item, the number of bytes in T + L + V.
-cm_item_len_t cm_simple_item_descriptor::getTlvLen(const uint8_t * pItem) const
-{
-    if (pTlv == NULL)
-    {
-        return 0;
-    }
-    return pTlv->getLen(pItem);
-}
-
-
-/// Write item's TLV to a buffer, and advance the ptr to the end of memory written to.
-//  This is useful for writing to a RAM buffer first, for subsequent write
-//  to NVRAM.
-//  xxx add param, bufsize, to do a buffer overflow check.
-//  xxx if we want to write directly to NVRAM, we need to implement a method
-//  that does that...
-void cm_simple_item_descriptor::writeTlv(const uint8_t *pItem, uint8_t ** ppBuf) const
-{
-    if (pTlv != NULL)
-    {
-        pTlv->write(pItem, ppBuf);
-    }
-}
-
-
-// This method is called if the TLV field T (the item ID) matches,
-// so it's not checked here again.
-// This method reads L, and moves forward in the file by that many bytes,
-// using what it finds in the file to initialize the object's configurable items.
-// @return number of bytes read
-//
-// xxx after each read, check how much was read.
-//
-unsigned int cm_simple_item_descriptor::loadFromTlv(FILE * fp, uint8_t * pItem) const
-{
-    if (pTlv == NULL)
-    {
-        return 0;
-    }
-    return pTlv->load(fp, pItem);
-}
-
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1154,6 +1112,7 @@ cm_item_len_t cm_composite_tlv::getLen(const uint8_t * pItem) const
     }
     return tlvLen;
 }
+
 
 // Having read the Type (ID) of an item from the TLV file, skip L and V.
 // @return number of bytes moved ahead in the file
