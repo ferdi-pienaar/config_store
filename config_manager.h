@@ -4,6 +4,8 @@
 
 #include <stdint.h> // uint8_t, etc
 #include <iostream>
+#include "config_manager_types.h"
+#include "config_manager_tlv.h"
 
 #define CFG_FILE_NAME "cfg.bin"
 
@@ -21,14 +23,6 @@
 // Is there something we can do to verify, maybe at run-time, that the correct thing
 // has been done?
 
-// Number of bytes in an item; used in NVRAM
-// Because it determines the longest possible length of any item in NVRAM,
-// it's also big enough to be used for the length of items in RAM
-// (which are shorter, as the exclude the Id and Length fields saved to NVRAM).
-typedef uint16_t cm_item_len_t;
-
-// Identifier ID, unique within its context, used to identify it in NVRFAM
-typedef uint16_t cm_item_id_t;
 
 // Function pointers -- types registered by user when descriptor is created
 typedef bool (*CM_SET_FPTR)(uint8_t *pItem, cm_item_len_t len, std::string val);
@@ -83,53 +77,6 @@ struct cm_aggregate_data
 };
 
 
-// Base class representing interaction with NVRAM where TLV is saved.
-class cm_tlv
-{
-protected:
-    const cm_descriptor * pDesc; // owner reference, passed to constructor
-    
-public:
-    cm_tlv(const cm_descriptor * desc): pDesc(desc) {}
-    virtual ~cm_tlv() {}
-
-    virtual cm_item_len_t getLen(const uint8_t * pItem) const = 0;
-    virtual void write(const uint8_t * pItem, uint8_t ** ppBuf) const = 0;
-    virtual unsigned int load(FILE * fp, uint8_t * pItem) const = 0;
-
-};
-
-
-//
-class cm_composite_tlv : public cm_tlv
-{
-
-public:
-    cm_composite_tlv(const cm_descriptor * desc): cm_tlv(desc) {}
-
-    virtual cm_item_len_t getLen(const uint8_t * pItem) const;
-    virtual void write(const uint8_t * pItem, uint8_t ** ppBuf) const;
-    virtual unsigned int load(FILE * fp, uint8_t * pItem) const;
-
-private:
-    unsigned int skipItem(FILE * fp) const;
-
-};
-
-
-//
-class cm_simple_tlv : public cm_tlv
-{
-
-public:
-    cm_simple_tlv(const cm_descriptor * desc): cm_tlv(desc) {}
-
-    virtual cm_item_len_t getLen(const uint8_t * pItem) const;
-    virtual void write(const uint8_t * pItem, uint8_t ** ppBuf) const;
-    virtual unsigned int load(FILE * fp, uint8_t * pItem) const;
-
-};
-
 // xxx should not be exported
 typedef struct t_cm_context
 {
@@ -149,6 +96,8 @@ typedef struct t_cm_context
 // cm_composite_descriptor::handleCmd
 //  Following commands are executed by a simple:    set, setdef, prt
 //  Following commands are executed by a composite: setdef, add, del, prt
+
+class cm_tlv;
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Descriptor of configurable item (either simple or compound).
@@ -175,7 +124,7 @@ public:
     virtual cm_item_len_t getLen() const = 0;
 
     virtual unsigned short getAggrCount() const {return 0;}
-    virtual const cm_aggregate * getAggrList(unsigned int i) const {return NULL;}
+    virtual const cm_aggregate * getAggr(unsigned int i) const {return NULL;}
     virtual bool getComponentItem(int * pArgc,
                           char *** pArgv,
                           const cm_aggregate ** ppAggr,
@@ -188,7 +137,6 @@ public:
                           const cm_aggregate ** ppAggr,
                           uint8_t * pParentItem,
                           uint8_t ** ppItem) const {return false;}
-
 
     virtual void print(const uint8_t * pItem, std::string prefix) const = 0;
     virtual void setdef(uint8_t * pItem) const = 0;
@@ -223,6 +171,7 @@ public:
     
 public:   
     cm_aggregate(const cm_aggregate_data * d): pData(d){};
+    virtual ~cm_aggregate(){}
 
     bool needIndex(const uint8_t * pParentItem) const {return getCount(pParentItem) > 1;}
     bool getIndex(int * pArgc, char *** pArgv, const uint8_t * pParentItem, unsigned int & itemIndex) const;
@@ -312,8 +261,7 @@ public:
     virtual cm_item_len_t getLen() const {return pData->c.len;}
 
     virtual unsigned short getAggrCount() const {return pData->aggrCount;}
-    virtual const cm_aggregate * getAggrList(unsigned int i) const {return pData->aggrList[i];}
-
+    virtual const cm_aggregate * getAggr(unsigned int i) const {return pData->aggrList[i];}
 
     ~cm_composite_descriptor(){};
     bool handleCmd(int argc, char *argv[], uint8_t * pItem, cm_context & ctxt) const;

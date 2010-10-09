@@ -1,0 +1,36 @@
+These are rules to be observed by the application programmer creating a 
+hierarchy of configurable items, or perhaps to be implemented by a code 
+generator that generates the C++ code from an XML descriptor.
+
+Different types of items:
+Items that can be set via the configuration API, are read from application 
+code, and are saved in NVRAM:
+The application programmer selects a set function (he may also 
+implement it).  He sets nonvolatile=true.  prt and setdef functions
+are optional.
+If a prt option is not provided, it becomes the responsibility of the 
+configuration client to keep its own copy of configuration data, since it can't 
+be recovered from the device.
+
+Items that be read via the configuration API, are set by application code, and 
+are not saved in NVRAM, for example, statistics.
+The application programmer selects a prt function (he may also 
+implement it).  He sets nonvolatile=false.  A setdef function is optional, e.g. 
+to reset statistics.  A set function can be provided, but doesn't make sense.
+
+(xxx For statistics, would we want an atomic read-and-reset option?)
+
+Counters are special items that keep the number of instances of an OWNed item.  
+A counter should be a member of the same component as its OWNed item, but it 
+could in theory be a member of any composite higher up in the hierarchy, too 
+(higher up, so that it is guaranteed to exist when the OWNed item is created).
+Unlike other items, they are set by the configuration manager itself, as a side 
+effect of other settings made by the configuration interface client.
+Recommended: No set function or setdef function should be provided, and the 
+prt function is for unsigned int.
+A counter's descriptor may be referenced as a component of a composite (the 
+same composite that the OWNed item it counts is a member of) in its own right, 
+which allows it to be printed.  Alternatively, its descriptor may be referenced 
+only by the OWNed item, in which case its value can't be printed.
+The size of the counter can be 1, 2 or 4 bytes.
+

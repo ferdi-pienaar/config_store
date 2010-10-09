@@ -1,11 +1,19 @@
+#ifndef MY_CFG_H
+#define MY_CFG_H
+
 // Data structures for managed items, living in RAM.
-// The user code does define instance of these data types.
-// The user application accesses this in two ways:
-// 1. Read access via the cm_get() API to get a pointer that can be
-//    typecast to tDevice type.
-// 2. Write access via the cm_do_command interface, to request
-//    cfg_man to modify the data.  RAM data is never written to directly
-//    (xxx can we enforce this rule?).
+// The user code does not define instance of these data types -- instead, memory
+// allocation is handled by config_manager.
+// The user application accesses this data in two ways:
+// 1. From ordinary application code:
+//    Read/write access via the getConfig() API to get a pointer that can be
+//    typecast to tDevice type: typically done by the GET_DEVICE_CONFIG macro.
+//    Read access is for variables that are writeable from the point of view
+//    of the configuration API.
+//    Write access is for variables that are readable from the point of view
+//    of the configuration interface.
+// 2. From the configuration interface:
+//    Read/write access via config_manager::handleCmd.
 // 
 #include <iostream>
 #include "config_manager.h"
@@ -56,4 +64,6 @@ typedef struct
 extern const cm_descriptor * pBaseDesc;
  
 #define GET_DEVICE_CONFIG ((tDevice *)config_manager::getInstance()->getConfig())
+
+#endif // MY_CFG_H
 

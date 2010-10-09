@@ -1,3 +1,7 @@
+- Optionally, save NVRAM not as TLV, but as text -- the same text produced on
+  command "prt".
+- Allow an owned array element to be identified by a name instead of an index.
+- Create iterators that can iterate across item descriptors and items themselves.
 - Produce quality documentation from doxygen.
 - Unit tests to verify that a user's initialization of cfg_man is correct, i.e.
   it's a generic test, that verifies some things that are done in my_cfg.cpp.
