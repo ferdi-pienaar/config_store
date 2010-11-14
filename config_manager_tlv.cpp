@@ -49,19 +49,24 @@ void cm_composite_tlv::write(const uint8_t *pItem, uint8_t ** ppBuf) const
 // using what it finds in the file to initialize the object's configurable items.
 // @return number of bytes read
 //
-// xxx after each read, check how much was read.
 // xxx sanity check: L read from the file should never be 0
 //
-unsigned int cm_composite_tlv::load(FILE * fp, uint8_t * pItem) const
+unsigned int cm_composite_tlv::load(FILE * fp, uint8_t * pItem, t_cm_result & res) const
 {
-    cm_item_len_t  tlvLen;
-    
-    fread(&tlvLen, sizeof(tlvLen), 1, fp);
-    cm_item_len_t bytesRead = sizeof(tlvLen);
+    cm_item_len_t tlvLen;
+    bool          first = true; // Is this the first component item?
+    cm_item_len_t bytesRead = 0;
+
+    if (fread(&tlvLen, sizeof(tlvLen), 1, fp) != 1)
+    {
+        res = CM_READ_FAIL;
+        goto exit;
+    }
+
+    bytesRead = sizeof(tlvLen);
 
     DBG_PRT("composite load %d bytes to %p\n", tlvLen, pItem);
 
-    bool         first   = true; // Is this the first component item?
     unsigned int itemIdx;        // number of items read of a given type, i.e. offset in the item array
 
     // While enough unread bytes remain of the composite for T+L fields of a component.
@@ -70,7 +75,12 @@ unsigned int cm_composite_tlv::load(FILE * fp, uint8_t * pItem) const
     {        
         cm_item_id_t  compId, prevCompId;
 
-        fread(&compId, sizeof(compId), 1, fp);
+        if (fread(&compId, sizeof(compId), 1, fp) != 1)
+        {
+            res = CM_READ_FAIL;
+            goto exit;
+        }
+
         bytesRead += sizeof(compId);
 
         DBG_PRT("load component ID %d\n", compId);
@@ -88,26 +98,36 @@ unsigned int cm_composite_tlv::load(FILE * fp, uint8_t * pItem) const
         if (!pDesc->getComponentItem(compId, itemIdx, &pAggr, pItem, &pComponentItem))
         {
             // skip because we couldn't find the item, index is out of range, or couldn't malloc
-            bytesRead += skipItem(fp);
+            bytesRead += skipItem(fp, res);
         }
         else
         {        
             const cm_descriptor * pComponentDesc = pAggr->pData->pDesc;
 
-            bytesRead += pComponentDesc->loadFromTlv(fp, pComponentItem);
+            bytesRead += pComponentDesc->loadFromTlv(fp, pComponentItem, res);
             itemIdx++;
+        }
+
+        if (res != CM_SUCCESS)
+        {
+            // If the above load/skip failed, we're done
+            goto exit;
         }
 
         DBG_PRT("composite '%s': %d read\n", pDesc->getName().c_str(), bytesRead);
         prevCompId = compId;
     }
     
-    // Sanity check on coherence of the data read from the TLV file: xxx should we abort the read?
+    // Sanity check on coherence of the data read from the TLV file
     if (bytesRead != tlvLen + sizeof(tlvLen))
     {
         cout << "'" << pDesc->getName() << "' contains " << bytesRead - sizeof(tlvLen) << ", not "
              << tlvLen <<"!" << endl;
+        res = CM_INCOHERENT_DATA;
+        goto exit;
     }
+    
+exit:
     return bytesRead;
 }
 
@@ -136,8 +156,8 @@ cm_item_len_t cm_composite_tlv::getLen(const uint8_t * pItem) const
 
 // Having read the Type (ID) of an item from the TLV file, skip L and V.
 // @return number of bytes moved ahead in the file
-//
-unsigned int cm_composite_tlv::skipItem(FILE * fp) const
+// xxx write to res parameter
+unsigned int cm_composite_tlv::skipItem(FILE * fp, t_cm_result & res) const
 {
     cm_item_len_t tlvLen;
     
@@ -187,11 +207,15 @@ cm_item_len_t cm_simple_tlv::getLen(const uint8_t * pItem) const
 // This method reads L, and moves forward in the file by that many bytes,
 // using what it finds in the file to initialize the object's configurable items.
 // xxx after each read, check how much was read.
-unsigned int cm_simple_tlv::load(FILE * fp, uint8_t * pItem) const
+unsigned int cm_simple_tlv::load(FILE * fp, uint8_t * pItem, t_cm_result & res) const
 {
     cm_item_len_t tlvLen;
     
-    fread(&tlvLen, sizeof(tlvLen), 1, fp);
+    if (fread(&tlvLen, sizeof(tlvLen), 1, fp) != 1)
+    {
+        res = CM_READ_FAIL;
+        goto exit;
+    }
 
     DBG_PRT("load simple %d bytes to %p\n", tlvLen, pItem);
 
@@ -207,8 +231,14 @@ unsigned int cm_simple_tlv::load(FILE * fp, uint8_t * pItem) const
     }
     else
     {
-        fread(pItem, tlvLen, 1, fp);
+        if (fread(pItem, tlvLen, 1, fp) != 1)
+        {
+            res = CM_READ_FAIL;
+            goto exit;
+        }
     }
+
+exit:
     return sizeof(tlvLen) + tlvLen;
 }
 

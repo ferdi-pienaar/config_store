@@ -23,7 +23,6 @@
 // Is there something we can do to verify, maybe at run-time, that the correct thing
 // has been done?
 
-
 // Function pointers -- types registered by user when descriptor is created
 typedef bool (*CM_SET_FPTR)(uint8_t *pItem, cm_item_len_t len, std::string val);
 typedef void (*CM_SETDEF_FPTR)(uint8_t *pItem, cm_item_len_t len);
@@ -119,7 +118,7 @@ public:
     virtual const cm_item_len_t * getLenPtr() const = 0;
     virtual cm_item_len_t getTlvLen(const uint8_t * pItem) const;
     virtual void writeTlv(const uint8_t * pItem, uint8_t ** ppBuf) const;
-    virtual unsigned int loadFromTlv(FILE * fp, uint8_t * pItem) const;
+    virtual unsigned int loadFromTlv(FILE * fp, uint8_t * pItem, t_cm_result & res) const;
 
     virtual cm_item_len_t getLen() const = 0;
 

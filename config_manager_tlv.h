@@ -19,7 +19,7 @@ public:
 
     virtual cm_item_len_t getLen(const uint8_t * pItem) const = 0;
     virtual void write(const uint8_t * pItem, uint8_t ** ppBuf) const = 0;
-    virtual unsigned int load(FILE * fp, uint8_t * pItem) const = 0;
+    virtual unsigned int load(FILE * fp, uint8_t * pItem, t_cm_result & res) const = 0;
 
 };
 
@@ -33,10 +33,10 @@ public:
 
     virtual cm_item_len_t getLen(const uint8_t * pItem) const;
     virtual void write(const uint8_t * pItem, uint8_t ** ppBuf) const;
-    virtual unsigned int load(FILE * fp, uint8_t * pItem) const;
+    virtual unsigned int load(FILE * fp, uint8_t * pItem, t_cm_result & res) const;
 
 private:
-    unsigned int skipItem(FILE * fp) const;
+    unsigned int skipItem(FILE * fp, t_cm_result & res) const;
 
 };
 
@@ -50,7 +50,7 @@ public:
 
     virtual cm_item_len_t getLen(const uint8_t * pItem) const;
     virtual void write(const uint8_t * pItem, uint8_t ** ppBuf) const;
-    virtual unsigned int load(FILE * fp, uint8_t * pItem) const;
+    virtual unsigned int load(FILE * fp, uint8_t * pItem, t_cm_result & res) const;
 
 };
 

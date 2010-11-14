@@ -87,7 +87,7 @@ const cm_composite_descriptor c2(&c2_d, true);
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// test set 3, CONTAINED
+// test set 3, CONTAINED array
 // test set 3 data structure
 #define T3_ARRAY_SIZE 2
 struct m3
@@ -429,6 +429,90 @@ TEST(loadTooManyContained, config_manager)
 }
 
 
+// Load file with last item missing from CONTAINED composite
+// Load fails, so defaults are set.
+TEST(loadTruncated, config_manager)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    uint8_t tlv[] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V       ...    */
+    { 1,0, 16,0, 1,0, 4,0, 8,0,0,0 /*... */};
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);
+
+    cm->init(&c1);
+
+    CHECK(GET_C1_CONFIG->m1 == 0);
+    CHECK(GET_C1_CONFIG->m2 == 7);
+}
+
+
+// Load file with partial last item in CONTAINED composite
+// Load fails, so defaults are set.
+TEST(loadTruncated1, config_manager)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    uint8_t tlv[] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V        T ...    */
+    { 1,0, 16,0, 1,0, 4,0, 8,0,0,0, 2,0};
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);
+
+    cm->init(&c1);
+
+    CHECK(GET_C1_CONFIG->m1 == 0);
+    CHECK(GET_C1_CONFIG->m2 == 7);
+}
+
+
+// Load file with partial last item in CONTAINED composite
+// Load fails, so defaults are set.
+TEST(loadTruncated2, config_manager)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    uint8_t tlv[] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V        T ...    */
+    { 1,0, 16,0, 1,0, 4,0, 8,0,0,0, 2,0, 4,0, 9,0,0};
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);
+
+    cm->init(&c1);
+
+    CHECK(GET_C1_CONFIG->m1 == 0);
+    CHECK(GET_C1_CONFIG->m2 == 7);
+}
+
+
 // Verify data saved to TLV, with default data in RAM as input to the test.
 TEST(saveOwned, config_manager)
 {
@@ -500,6 +584,7 @@ TEST(implicitAdd, config_manager)
     fclose(fp);    
 }
 
+
 // From default RAM start, do implicit add and set and check what's saved to TLV
 TEST(implicitAddnSet, config_manager)
 {
@@ -540,6 +625,7 @@ TEST(implicitAddnSet, config_manager)
     fclose(fp);    
 }
 
+
 // From default RAM start, do explicit add and check what's saved to TLV
 TEST(explicitAdd, config_manager)
 {
@@ -579,6 +665,7 @@ TEST(explicitAdd, config_manager)
     CHECK(memcmp(expectedTlv, actualTlv, sizeof(expectedTlv)) == 0);
     fclose(fp);    
 }
+
 
 // Verify what's saved to TLV, given a TLV file that's read on startup,
 // and a delete operation.

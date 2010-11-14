@@ -49,8 +49,12 @@ config_manager * config_manager::getInstance()
 // init cycle, but delay malloc and NVRAM reads until later.
 void config_manager::init(const cm_descriptor * desc)
 {
+    assert(desc != NULL);
+    
     base_desc = desc;
     ramBase = (uint8_t *)malloc(base_desc->getLen());
+
+    assert(ramBase != NULL);
 
     // This could be done in the constructor, but I do it here to make
     // unit tests independent (since the constructor can't be forced
@@ -81,7 +85,7 @@ void config_manager::handleCmd(int argc, char *argv[])
         case CM_RESET_CTXT:
             return resetCtxt();
 
-        default:
+        default: // Other commands are passed to current context
             break;
     }
 
@@ -108,7 +112,7 @@ void config_manager::resetCtxt()
 void config_manager::updateCtxt(cm_context * pC)
 {
     DBG_PRT("updateCtxt\n");
-
+    assert(pC != NULL);
     currCtxt = *pC;
 }
 
@@ -128,6 +132,8 @@ void config_manager::save()
     // Allocate a temporary buffer to contain TLV format data
     uint8_t * buf = new uint8_t[tlvLen];
 
+    assert(buf != NULL);
+
     // xxx debug
     memset(buf, 0x5a, tlvLen);
 
@@ -146,12 +152,15 @@ void config_manager::save()
 
     FILE * fp = fopen(CFG_FILE_NAME, "wb");  // open file for binary write
 
+    assert(fp != NULL);
+
     fwrite(buf, 1, tlvLen, fp);
     fclose(fp);
 }
 
 
 // Load data in NVRAM, in TLV format, to configurable items in RAM.
+//
 void config_manager::load()
 {
     FILE * fp = fopen(CFG_FILE_NAME, "rb");  // open file for binary read
@@ -173,10 +182,19 @@ void config_manager::load()
 
     printf("Load id %#x\n", id);
 
+    t_cm_result res = CM_SUCCESS;
+
     // Before loading, thus allocating new memory, call setdef to free owned memory
     base_desc->setdef(ramBase);
-    base_desc->loadFromTlv(fp, ramBase);
+    base_desc->loadFromTlv(fp, ramBase, res);
     fclose(fp);
+
+    if (res != CM_SUCCESS)
+    {
+        cout << "Load failed: defaults restored." << endl;
+        base_desc->setdef(ramBase);
+        return;
+    }
 
     // Reset context, since a reload re-allocates memory and makes current context invalid
     resetCtxt();
@@ -192,6 +210,8 @@ void config_manager::load()
 /// Return total length of TLV item, the number of bytes in T + L + V.
 cm_item_len_t cm_descriptor::getTlvLen(const uint8_t * pItem) const
 {
+    assert(pItem != NULL);
+    
     if (pTlv == NULL)
     {
         return 0;
@@ -207,6 +227,10 @@ cm_item_len_t cm_descriptor::getTlvLen(const uint8_t * pItem) const
 //  that does that...
 void cm_descriptor::writeTlv(const uint8_t *pItem, uint8_t ** ppBuf) const
 {
+    assert(pItem != NULL);
+    assert(ppBuf != NULL);
+    assert(*ppBuf != NULL);
+    
     if (pTlv != NULL)
     {
         pTlv->write(pItem, ppBuf);
@@ -220,13 +244,16 @@ void cm_descriptor::writeTlv(const uint8_t *pItem, uint8_t ** ppBuf) const
 // using what it finds in the file to initialize the object's configurable items.
 // @return number of bytes read
 //
-unsigned int cm_descriptor::loadFromTlv(FILE * fp, uint8_t * pItem) const
+unsigned int cm_descriptor::loadFromTlv(FILE * fp, uint8_t * pItem, t_cm_result & res) const
 {
+    assert(fp != NULL);
+    assert(pItem != NULL);
+    
     if (pTlv == NULL)
     {
         return 0;
     }
-    return pTlv->load(fp, pItem);
+    return pTlv->load(fp, pItem, res);
 }
 
 
@@ -240,9 +267,12 @@ cm_composite_descriptor::cm_composite_descriptor(const cm_composite_metadata * p
                                                  bool nonvolatile):
 pData(pMeta)
 {
+    assert(pData != NULL);
+    
     if (nonvolatile)
     {
         pTlv = new cm_composite_tlv(this);
+        assert(pTlv != NULL);
     }
 }
 
@@ -261,6 +291,9 @@ bool cm_composite_descriptor::handleCmd(int argc,
                                         cm_context & ctxt) const
 {
     DBG_PRT("composite::handleCmd: %s\n", argv[0]);
+
+    assert(pItem != NULL);
+    
     switch (getOp(argv[0]))
     {
         case CM_OP_NONE:
@@ -335,6 +368,8 @@ bool cm_composite_descriptor::handleAdd(int argc, char *argv[], uint8_t * pItem)
 {
     DBG_PRT("handleAdd %s\n", argv[0]);
 
+    assert(pItem != NULL);
+
     if (argc != 1)
     {
         cout << argc << " parameters for 'add'." << endl;
@@ -377,6 +412,9 @@ bool cm_composite_descriptor::handleAdd(int argc, char *argv[], uint8_t * pItem)
 uint8_t * cm_composite_descriptor::add(uint8_t * pParentItem,
                                        const cm_aggregate * pAggr) const
 {
+    assert(pParentItem != NULL);
+    assert(pAggr != NULL);
+
     // Reallocate memory, and save pointer in the same location
     unsigned   cnt     = pAggr->getCount(pParentItem);
     uint8_t ** ppItems = (uint8_t **)(pParentItem + pAggr->pData->offset);
@@ -411,6 +449,8 @@ uint8_t * cm_composite_descriptor::add(uint8_t * pParentItem,
 // Del an owned component named by argc,argv from a composite
 bool cm_composite_descriptor::handleDel(int argc, char *argv[], uint8_t * pItem) const
 {
+    assert(pItem != NULL);
+
     DBG_PRT("handleDel %s\n", argv[0]);
 
     if ((argc != 1) && (argc != 2))
@@ -473,6 +513,9 @@ void cm_composite_descriptor::del(uint8_t * pParentItem,
                                   unsigned int itemIdx,
                                   unsigned int cnt) const
 {
+    assert(pParentItem != NULL);
+    assert(pAggr != NULL);
+    
     // Reallocate memory, and save pointer in the same location
     uint8_t **  ppItems        = (uint8_t **)(pParentItem + pAggr->pData->offset);
     cm_item_len_t componentLen = pAggr->pData->pDesc->getLen();
@@ -508,6 +551,8 @@ void cm_composite_descriptor::del(uint8_t * pParentItem,
 void cm_composite_descriptor::print(const uint8_t * pItem, string prefix) const
 {
     char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
+
+    assert(pItem != NULL);
 
     DBG_PRT("print composite %s len %d\n", getName().c_str(), getLen());
 
@@ -548,6 +593,8 @@ void cm_composite_descriptor::print(const uint8_t * pItem, string prefix) const
 // for an owned component depends on the counter still being set.
 void cm_composite_descriptor::setdef(uint8_t * pItem) const
 {    
+    assert(pItem != NULL);
+
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < pData->aggrCount; i++)
     {            
@@ -580,6 +627,8 @@ void cm_composite_descriptor::setdef(uint8_t * pItem) const
 // Give name of each component, current count, and maxcount if OWNed.
 void cm_composite_descriptor::help(const uint8_t * pItem) const
 {
+    assert(pItem != NULL);
+
     for (int i = 0; i < pData->aggrCount; i++)
     {   
         const cm_aggregate * pAggr = pData->aggrList[i];
@@ -598,6 +647,8 @@ void cm_composite_descriptor::help(const uint8_t * pItem) const
 // Look for the aggregate whose component has a matching name
 const cm_aggregate * cm_composite_descriptor::getAggr(const char * name) const
 {
+    assert(name != NULL);
+
     for (int i = 0; i < pData->aggrCount; i++)
     {            
         const cm_aggregate * pAggr = pData->aggrList[i];
@@ -617,6 +668,8 @@ const cm_aggregate * cm_composite_descriptor::getAggr(cm_item_id_t id) const
     for (int i = 0; i < pData->aggrCount; i++)
     {            
         const cm_aggregate * pAggr = pData->aggrList[i];
+
+        assert(pAggr != NULL);
 
         if (pAggr->pData->pDesc->getId() == id)
         {
@@ -647,6 +700,12 @@ bool cm_composite_descriptor::getComponentItem(int * pArgc,
                                                cm_context & ctxt,
                                                bool & added) const
 {
+    assert(pArgc != NULL);
+    assert(pArgv != NULL);
+    assert(ppAggr != NULL);
+    assert(pParentItem != NULL);
+    assert(ppItem != NULL);
+    
     added = false; // By default, didn't add a new component
     
     *ppAggr = getAggr(*pArgv[0]);
@@ -728,6 +787,10 @@ bool cm_composite_descriptor::getComponentItem(cm_item_id_t id,
                                                uint8_t * pParentItem,
                                                uint8_t ** ppItem) const
 {
+    assert(ppAggr != NULL);
+    assert(pParentItem != NULL);
+    assert(ppItem != NULL);
+    
     *ppAggr = getAggr(id);
 
     if (*ppAggr == NULL)
@@ -738,7 +801,8 @@ bool cm_composite_descriptor::getComponentItem(cm_item_id_t id,
     if (idx == (*ppAggr)->pData->maxCount)
     {
         // Maximum number of these item already loaded: skip it
-        // xxx maybe need special return code, not just bool cout << "Can't load more than " << pAggr->maxCount << " " << pAggr->pDesc->getName() << endl;
+        // xxx maybe need special return code, not just bool
+        cout << "Can't get " << idx + 1 << " of " << (*ppAggr)->pData->maxCount << " " << (*ppAggr)->pData->pDesc->getName() << endl;
         return false;
     }
 
@@ -769,9 +833,13 @@ cm_simple_descriptor::cm_simple_descriptor(const cm_simple_metadata * pMeta,
                                            bool nonvolatile):
 pData(pMeta)
 {
+    assert(pData != NULL);
+    
     if (nonvolatile)
     {
         pTlv = new cm_simple_tlv(this);
+
+        assert(pTlv != NULL);
     }
 }
 
@@ -780,6 +848,8 @@ pData(pMeta)
 // to the item's composite but not to the item.
 void cm_simple_descriptor::print(const uint8_t * pItem, string prefix) const
 {
+    assert(pItem != NULL);
+    
     cout << prefix << "= ";
 
     DBG_PRT("print simple %s len %d at %p\n", getName().c_str(), getLen(), pItem);
@@ -807,6 +877,8 @@ bool cm_simple_descriptor::handleCmd(int argc,
                                     uint8_t * pItem,
                                     cm_context & ctxt) const
 {
+    assert(pItem != NULL);
+    
     DBG_PRT("simple cmd at %p\n", pItem);
     
     switch (getOp(argv[0]))
@@ -840,6 +912,8 @@ bool cm_simple_descriptor::handleCmd(int argc,
 // Set item to a value input as string on command line
 bool cm_simple_descriptor::set(uint8_t * pItem, string val) const
 {
+    assert(pItem != NULL);
+
     DBG_PRT("set simple %s at %p to '%s'\n", getName().c_str(), pItem, val.c_str());
 
     if (pData->pSet != NULL)
@@ -857,6 +931,8 @@ bool cm_simple_descriptor::set(uint8_t * pItem, string val) const
 // Set configurable item to its default value.
 void cm_simple_descriptor::setdef(uint8_t * pItem) const
 {
+    assert(pItem != NULL);
+
     if (pData->pSetDef != NULL)
     {
         pData->pSetDef(pItem, getLen());
@@ -884,6 +960,8 @@ bool cm_aggregate::getIndex(int * pArgc,
                             const uint8_t * pParentItem,
                             unsigned int & itemIdx) const
 {
+    assert(pParentItem != NULL);
+    
     if (*pArgc > 0)
     {
         char * pEnd; // pointer to char after chars accepted by strtoul
@@ -917,6 +995,8 @@ bool cm_aggregate::getIndex(int * pArgc,
 //
 uint8_t * cm_contained_aggregate::getFirstItem(const uint8_t * pParentItem) const
 {
+    assert(pParentItem != NULL);
+
     return (uint8_t *)(pParentItem + pData->offset);
 }
 
@@ -942,6 +1022,8 @@ unsigned cm_contained_aggregate::getCount(const uint8_t * pParentItem) const
 //
 uint8_t * cm_owned_aggregate::getFirstItem(const uint8_t * pParentItem) const
 {
+    assert(pParentItem != NULL);
+
     return *(uint8_t **)(pParentItem + pData->offset); // location is a pointer to the OWNED item
 }
 
@@ -951,6 +1033,8 @@ uint8_t * cm_owned_aggregate::getFirstItem(const uint8_t * pParentItem) const
 // introduces a dependency on the application programmer doing the right thing
 unsigned cm_owned_aggregate::getCount(const uint8_t * pParentItem) const
 {
+    assert(pParentItem != NULL);
+
     if (pCounterAggr == NULL)
     {
         // If there's no counter, then count is just 0 (absence) or 1 (presence)
@@ -978,6 +1062,8 @@ unsigned cm_owned_aggregate::getCount(const uint8_t * pParentItem) const
 // xxx enforce, run-time or compile-time, that counters are unsigned int sized.
 void cm_owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) const
 {
+    assert(pParentItem != NULL);
+
     // Sanity check: if add/del operation not supported, the setCount() is meaningless
     assert(isAddSupported());
 
