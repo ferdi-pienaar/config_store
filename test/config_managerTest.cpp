@@ -493,8 +493,66 @@ TEST(loadTruncated2, config_manager)
     config_manager * cm = config_manager::getInstance();
     uint8_t tlv[] =
     /* The following assumes little-endian integers */
-    /*T    L     T    L    V        T ...    */
+    /*T    L     T    L    V        T    L    V (last byte missing) */
     { 1,0, 16,0, 1,0, 4,0, 8,0,0,0, 2,0, 4,0, 9,0,0};
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);
+
+    cm->init(&c1);
+
+    CHECK(GET_C1_CONFIG->m1 == 0);
+    CHECK(GET_C1_CONFIG->m2 == 7);
+}
+
+
+// Load file with incoherent CONTAINED composite (sum of the sizes
+// of components is larger than the size of the composite).
+// Load fails, so defaults are set.
+TEST(loadIncoherent, config_manager)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    uint8_t tlv[20] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V        T    L    V    */
+    { 1,0, 14,0, 1,0, 4,0, 8,0,0,0, 2,0, 4,0, 9,0,0,0};
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);
+
+    cm->init(&c1);
+
+    CHECK(GET_C1_CONFIG->m1 == 0);
+    CHECK(GET_C1_CONFIG->m2 == 7);
+}
+
+
+// Load file with incoherent CONTAINED composite (sum of the sizes
+// of components is larger than the size of the composite).
+// Load fails, so defaults are set.
+TEST(loadIncoherent1, config_manager)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    uint8_t tlv[20] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V        T    L    V    */
+    { 1,0, 17,0, 1,0, 4,0, 8,0,0,0, 2,0, 4,0, 9,0,0,0};
 
 
     /* Create config file to be loaded */
