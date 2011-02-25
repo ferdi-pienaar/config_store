@@ -7,6 +7,9 @@
 #include <assert.h>
 #include <limits.h>
 #include <stdint.h> // uint8_t, etc
+#include <string.h> // memcpy
+#include <stdlib.h> // strto...
+
 
 using namespace std;
 
@@ -22,20 +25,20 @@ void cm_prt_int(const uint8_t *pItem, cm_item_len_t len)
 {
     switch (len)
     {
-        case sizeof(int8_t):
-            printf("%d", *((int8_t *)pItem));
-            break;
+    case sizeof(int8_t):
+        printf("%d", *((int8_t *)pItem));
+        break;
 
-        case sizeof(int16_t):            
-            printf("%d", *((int16_t *)pItem));
-            break;
-            
-        case sizeof(int32_t):            
-            printf("%d", *((int32_t *)pItem));
-            break;
+    case sizeof(int16_t):
+        printf("%d", *((int16_t *)pItem));
+        break;
 
-        default:
-            assert(0);
+    case sizeof(int32_t):
+        printf("%d", *((int32_t *)pItem));
+        break;
+
+    default:
+        assert(0);
     }
 }
 
@@ -65,42 +68,48 @@ bool cm_set_int(uint8_t *pItem, cm_item_len_t len, string val)
         cout << "Not an integer." << endl;
         return false;
     }
-   
+
     switch (len)
     {
-        case sizeof(int8_t):
-            if ((v > INT8_MAX) || (v < INT8_MIN))
-            {
-                return false;
-            }
-            int8_t cv = (int8_t)v;
-            memcpy(pItem, &cv, sizeof(cv));
-            return true;
-
-        case sizeof(int16_t):
-            if ((v > INT16_MAX) || (v < INT16_MIN))
-            {
-                return false;
-            }
-            int16_t sv = (int16_t)v;
-            memcpy(pItem, &sv, sizeof(sv));
-            return true;
-            
-        case sizeof(int32_t):
-            if ((v > INT32_MAX) || (v < INT32_MIN))
-            {
-                return false;
-            }
-            int32_t lv = (int32_t)v;
-            memcpy(pItem, &lv, sizeof(lv));
-            return true;
-
-        default:
-            assert(0);
+    case sizeof(int8_t):
+    {
+        if ((v > INT8_MAX) || (v < INT8_MIN))
+        {
             return false;
+        }
+        int8_t cv = (int8_t)v;
+        memcpy(pItem, &cv, sizeof(cv));
+        return true;
+    }
+
+    case sizeof(int16_t):
+    {
+        if ((v > INT16_MAX) || (v < INT16_MIN))
+        {
+            return false;
+        }
+        int16_t sv = (int16_t)v;
+        memcpy(pItem, &sv, sizeof(sv));
+        return true;
+    }
+
+    case sizeof(int32_t):
+    {
+        if ((v > INT32_MAX) || (v < INT32_MIN))
+        {
+            return false;
+        }
+        int32_t lv = (int32_t)v;
+        memcpy(pItem, &lv, sizeof(lv));
+        return true;
+    }
+
+    default:
+        assert(0);
+        return false;
     }
 }
-            
+
 
 // C-style string
 // pItem - pointer to memory containing a NULL-terminated string

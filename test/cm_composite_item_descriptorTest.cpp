@@ -12,6 +12,10 @@
 #include "config_manager_util.h"  // Extensions to unit under test (generic "set" functions)
 
 #include <string>
+#include <stdlib.h> // malloc
+#include <string.h> // strncmp, etc
+
+
 using namespace std;
 
 
@@ -192,7 +196,7 @@ TEST(printOwnedData, cm_composite_descriptor)
 TEST(addFirst, cm_composite_descriptor)
 {
     struct m2 mem = {0, NULL}; // Test data
-    char * commandWord = "owned";
+    char * commandWord = (char *)"owned";
 
     
     c2.handleAdd(1, &commandWord, (uint8_t *)&mem);
@@ -209,7 +213,7 @@ TEST(addFirst, cm_composite_descriptor)
 TEST(addAnother, cm_composite_descriptor)
 {
     struct m2 mem = {0, NULL}; // Test data
-    char * commandWord = "owned";
+    char * commandWord = (char *)"owned";
 
     
     c2.handleAdd(1, &commandWord, (uint8_t *)&mem);
@@ -228,7 +232,7 @@ TEST(addAnother, cm_composite_descriptor)
 TEST(delNull, cm_composite_descriptor)
 {
     struct m2 mem = {0, NULL};
-    char * commandWord[] = {"owned", "1"};
+    char * commandWord[] = {(char *)"owned", (char *)"1"};
 
     
     c2.handleDel(2, commandWord, (uint8_t *)&mem);
@@ -245,7 +249,7 @@ TEST(delEnd, cm_composite_descriptor)
     #define NUM_OWNED 2
 
     struct m2 mem;
-    char * commandWord[] = {"owned", "1"};
+    char * commandWord[] = {(char *)"owned", (char *)"1"};
 
     // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
     int * owned = (int *)malloc(NUM_OWNED * sizeof(int));
@@ -270,7 +274,7 @@ TEST(delFirst, cm_composite_descriptor)
     #define NUM_OWNED 2
 
     struct m2 mem;
-    char * commandWord[] = {"owned", "0"};
+    char * commandWord[] = {(char *)"owned", (char *)"0"};
 
     // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
     int * owned = (int *)malloc(NUM_OWNED * sizeof(int));
@@ -295,7 +299,7 @@ TEST(delSingle, cm_composite_descriptor)
     #define NUM_OWNED 1
 
     struct m2 mem;
-    char * commandWord[] = {"owned", "0"};
+    char * commandWord[] = {(char *)"owned", (char *)"0"};
 
     // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
     int * owned = (int *)malloc(NUM_OWNED * sizeof(int));
@@ -316,7 +320,7 @@ TEST(delSingle, cm_composite_descriptor)
 TEST(addOnly, cm_composite_descriptor)
 {
     struct m4 mem = {NULL};
-    char * commandWord = "owned";
+    char * commandWord = (char *)"owned";
     
     c4.handleAdd(1, &commandWord, (uint8_t *)&mem);
 
@@ -332,7 +336,7 @@ TEST(addOnly, cm_composite_descriptor)
 TEST(delOnly, cm_composite_descriptor)
 {
     struct m4 mem;
-    char * commandWord = "owned";
+    char * commandWord = (char *)"owned";
     
     // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
     int * owned = (int *)malloc(NUM_OWNED * sizeof(int));
@@ -350,7 +354,7 @@ TEST(delOnly, cm_composite_descriptor)
 TEST(implicitAdd, cm_composite_descriptor)
 {
     struct m2 mem = {0, NULL}; // Test data
-    char * commandWord[] = {"owned", "0", "=", "42"};
+    char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"=", (char *)"42"};
     cm_context ctxt;
 
     
@@ -367,7 +371,7 @@ TEST(implicitAdd, cm_composite_descriptor)
 TEST(implicitAddFail, cm_composite_descriptor)
 {
     struct m2 mem = {0, NULL}; // Test data
-    char * commandWord[] = {"owned", "0", "blabla"};
+    char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"blabla"};
     cm_context ctxt;
 
     

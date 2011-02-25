@@ -3,6 +3,10 @@
 #include "config_manager_util.h"
 #include "config_manager_dbg.h"
 
+#include <stdlib.h> // malloc
+#include <string.h> // memset, strcmp, memcpy
+
+
 #include <sstream>
 using namespace std;
 

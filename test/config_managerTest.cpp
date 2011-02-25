@@ -11,6 +11,8 @@
 #include "config_manager_util.h"  // Extensions to unit under test (generic "set" functions)
 
 #include <string>
+#include <string.h> // memcmp, strncmp, etc
+
 using namespace std;
 
 
@@ -125,7 +127,7 @@ TEST(saveContained, config_manager)
 
     cm->init(&c1);
 
-    char * commandWord[] = {"save"};
+    char * commandWord[] = {(char *)"save"};
     cm->handleCmd(1, commandWord);
 
     if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
@@ -278,7 +280,7 @@ TEST(loadUnknownContained, config_manager)
 
     cm->init(&c1);
 
-    char * commandWord[] = {"save"};
+    char * commandWord[] = {(char *)"save"};
     cm->handleCmd(1, commandWord);
 
     // See what CM made of the file it loaded
@@ -323,7 +325,7 @@ TEST(loadMissingContained, config_manager)
 
     cm->init(&c1);
 
-    char * commandWord[] = {"save"};
+    char * commandWord[] = {(char *)"save"};
     cm->handleCmd(1, commandWord);
 
     // See what CM made of the file it loaded
@@ -369,7 +371,7 @@ TEST(loadTooManyOwned, config_manager)
 
     CHECK(GET_C2_CONFIG->cnt == 2);
 
-    char * commandWord[] = {"save"};
+    char * commandWord[] = {(char *)"save"};
     cm->handleCmd(1, commandWord);
 
     // See what CM made of the file it loaded
@@ -413,7 +415,7 @@ TEST(loadTooManyContained, config_manager)
 
     cm->init(&c3);
 
-    char * commandWord[] = {"save"};
+    char * commandWord[] = {(char *)"save"};
     cm->handleCmd(1, commandWord);
 
     // See what CM made of the file it loaded
@@ -588,7 +590,7 @@ TEST(saveOwned, config_manager)
 
     cm->init(&c2);
 
-    char * commandWord[] = {"save"};
+    char * commandWord[] = {(char *)"save"};
     cm->handleCmd(1, commandWord);
 
     if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
@@ -623,12 +625,12 @@ TEST(implicitAdd, config_manager)
     CHECK(GET_C2_CONFIG->cnt == 0);
     CHECK(GET_C2_CONFIG->owned == NULL);   
 
-    char * commandWord[] = {"owned", "0"}; // reference owned item 0, causing implicit add
+    char * commandWord[] = {(char *)"owned", (char *)"0"}; // reference owned item 0, causing implicit add
     cm->handleCmd(2, commandWord);
 
     CHECK(GET_C2_CONFIG->cnt == 1);
 
-    char * commandWord2[] = {"save"};
+    char * commandWord2[] = {(char *)"save"};
     cm->handleCmd(1, commandWord2);
 
     if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
@@ -663,13 +665,13 @@ TEST(implicitAddnSet, config_manager)
     CHECK(GET_C2_CONFIG->cnt == 0);
     CHECK(GET_C2_CONFIG->owned == NULL);   
 
-    char * commandWord[] = {"owned", "0", "=", "7"}; // set item 0, causing implicit add
+    char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"=", (char *)"7"}; // set item 0, causing implicit add
     cm->handleCmd(4, commandWord);
 
     CHECK(GET_C2_CONFIG->cnt == 1);
     CHECK(GET_C2_CONFIG->owned[0] == 7);   
 
-    char * commandWord2[] = {"save"};
+    char * commandWord2[] = {(char *)"save"};
     cm->handleCmd(1, commandWord2);
 
     if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
@@ -704,13 +706,13 @@ TEST(explicitAdd, config_manager)
     CHECK(GET_C2_CONFIG->cnt == 0);
     CHECK(GET_C2_CONFIG->owned == NULL);
 
-    char * commandWord[] = {"add", "owned"};
+    char * commandWord[] = {(char *)"add", (char *)"owned"};
     cm->handleCmd(2, commandWord);
 
     CHECK(GET_C2_CONFIG->cnt == 1);
     CHECK(GET_C2_CONFIG->owned != NULL);
 
-    char * commandWord2[] = {"save"};
+    char * commandWord2[] = {(char *)"save"};
     cm->handleCmd(1, commandWord2);
 
     if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
@@ -756,13 +758,13 @@ TEST(del, config_manager)
     CHECK(GET_C2_CONFIG->cnt == 1);
     CHECK(GET_C2_CONFIG->owned[0] == 5);
 
-    char * commandWord[] = {"del", "owned"};
+    char * commandWord[] = {(char *)"del", (char *)"owned"};
     cm->handleCmd(2, commandWord);
 
     CHECK(GET_C2_CONFIG->cnt == 0);
     CHECK(GET_C2_CONFIG->owned == NULL);
 
-    char * commandWord2[] = {"save"};
+    char * commandWord2[] = {(char *)"save"};
     cm->handleCmd(1, commandWord2);
 
     // See what CM made of the file it loaded

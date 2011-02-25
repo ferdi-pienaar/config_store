@@ -3,6 +3,7 @@
 #define CFG_MAN_H
 
 #include <stdint.h> // uint8_t, etc
+#include <assert.h>
 #include <iostream>
 #include "config_manager_types.h"
 #include "config_manager_tlv.h"
