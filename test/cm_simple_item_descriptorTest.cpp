@@ -6,7 +6,8 @@
 // We also read/write the items themselves. 
 //
 
-#include "TestHarness.h"
+#include "CppUTest/TestHarness.h"
+#include "CppUTest/CommandLineTestRunner.h"
 #include "config_manager.h"  // Unit under test
 #include "config_manager_util.h"     // Extensions to unit under test (generic "set" functions)
 #include <string.h> // strncmp
@@ -25,15 +26,28 @@ void setint11(uint8_t *pItem, cm_item_len_t len)
 }    
 
 
-int main()
+int main(int argc, char** argv)
 {
-	TestResult tr;
-	TestRegistry::runAllTests(tr);
-	return 0;
+    return RUN_ALL_TESTS(argc, argv);
 }
 
 
-TEST(getLen, cm_simple_descriptor)
+TEST_GROUP(cm_simple_descriptor)
+{
+    //Define data accessible to test group members here.
+    void setup()
+    {
+        //initialization steps are executed before each TEST
+    }
+    
+    void teardown()
+    {
+        //clean up steps are executed after each TEST
+    }
+};
+
+
+TEST(cm_simple_descriptor, getLen)
 {
     cm_simple_metadata d_d = {{"d01", 1 , 55}, NULL, NULL, NULL};
 
@@ -42,7 +56,7 @@ TEST(getLen, cm_simple_descriptor)
 }
 
 
-TEST(print, cm_simple_descriptor)
+TEST(cm_simple_descriptor, print)
 {
     string prefix = "";
     unsigned mem = 7;
@@ -68,7 +82,7 @@ TEST(print, cm_simple_descriptor)
 }
 
 
-TEST(set, cm_simple_descriptor)
+TEST(cm_simple_descriptor, set)
 {
     int mem = 0;
     cm_simple_metadata d_d = {{"d01", 1 , sizeof(mem)}, cm_set_int, NULL, NULL};
@@ -81,7 +95,7 @@ TEST(set, cm_simple_descriptor)
 
 
 // Check setdef() calls the function installed in metadata
-TEST(setdefFunc, cm_simple_descriptor)
+TEST(cm_simple_descriptor, setdefFunc)
 {
     int mem = 8;
     cm_simple_metadata d_d = {{"d01", 1 , sizeof(mem)}, NULL, setint11, NULL};
@@ -94,7 +108,7 @@ TEST(setdefFunc, cm_simple_descriptor)
 
 
 // Check setdef() sets data to 0 if there's no setdef function installed in metadata
-TEST(setdef, cm_simple_descriptor)
+TEST(cm_simple_descriptor, setdef)
 {
     int mem = 8;
     cm_simple_metadata d_d = {{"d01", 1 , sizeof(mem)}, NULL, NULL, NULL};

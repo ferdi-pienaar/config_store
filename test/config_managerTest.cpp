@@ -6,7 +6,8 @@
 //
 //
 
-#include "TestHarness.h"
+#include "CppUTest/TestHarness.h"
+#include "CppUTest/CommandLineTestRunner.h"
 #include "config_manager.h"       // Unit under test
 #include "config_manager_util.h"  // Extensions to unit under test (generic "set" functions)
 
@@ -16,12 +17,11 @@
 using namespace std;
 
 
-int main()
+int main(int argc, char** argv)
 {
-	TestResult tr;
-	TestRegistry::runAllTests(tr);
-	return 0;
+    return RUN_ALL_TESTS(argc, argv);
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // test set 1, CONTAINED
@@ -111,8 +111,23 @@ const cm_composite_descriptor c3(&c3_d, true);
 #define GET_C3_CONFIG ((struct m3 *)config_manager::getInstance()->getConfig())
 
 
+TEST_GROUP(config_manager)
+{
+    //Define data accessible to test group members here.
+    void setup()
+    {
+        //initialization steps are executed before each TEST
+    }
+    
+    void teardown()
+    {
+        //clean up steps are executed after each TEST
+    }
+};
+
+
 // Verify data saved to TLV, with default data in RAM as input to the test.
-TEST(saveContained, config_manager)
+TEST(config_manager, saveContained)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -138,12 +153,12 @@ TEST(saveContained, config_manager)
     fread(actualTlv, sizeof(actualTlv), 1, fp);
 
     CHECK(memcmp(expectedTlv, actualTlv, sizeof(expectedTlv)) == 0);
-    fclose(fp);    
+    fclose(fp);
 }
 
 
 // Verify what's loaded into memory, given TLV file that's read on startup.
-TEST(loadContained, config_manager)
+TEST(config_manager, loadContained)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -171,7 +186,7 @@ TEST(loadContained, config_manager)
 
 // Verify what's loaded into memory, given TLV file with L of 2nd simple
 // component that doesn't match the item descriptor.
-TEST(loadChangedSimpleLen, config_manager)
+TEST(config_manager, loadChangedSimpleLen)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -198,7 +213,7 @@ TEST(loadChangedSimpleLen, config_manager)
 
 
 // Verify what's loaded into memory, given TLV file that's read on startup.
-TEST(loadContainedArray, config_manager)
+TEST(config_manager, loadContainedArray)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -224,7 +239,7 @@ TEST(loadContainedArray, config_manager)
 
 
 // Verify what's loaded into memory, given TLV file that's read on startup.
-TEST(loadOwned, config_manager)
+TEST(config_manager, loadOwned)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -254,7 +269,7 @@ TEST(loadOwned, config_manager)
 // an unknown Type value.
 // Unknown type in file: the descriptor has no T=9, so it's ignored by cfg_man when found in file,
 // but the item following it is loaded.
-TEST(loadUnknownContained, config_manager)
+TEST(config_manager, loadUnknownContained)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -299,7 +314,7 @@ TEST(loadUnknownContained, config_manager)
 // Verify what's saved to TLV, given a TLV file that's read on startup that's
 // missing an element of a structure.
 // The element that's not in the TLV is saved to TLV, populated with default value.
-TEST(loadMissingContained, config_manager)
+TEST(config_manager, loadMissingContained)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -344,7 +359,7 @@ TEST(loadMissingContained, config_manager)
 // Verify what's saved to TLV, given a TLV file that's read on startup that
 // has more than the max number of an OWNED component.
 //
-TEST(loadTooManyOwned, config_manager)
+TEST(config_manager, loadTooManyOwned)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -390,7 +405,7 @@ TEST(loadTooManyOwned, config_manager)
 // Verify what's saved to TLV, given a TLV file that's read on startup that
 // has more than the max number of a CONTAINED component.
 //
-TEST(loadTooManyContained, config_manager)
+TEST(config_manager, loadTooManyContained)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -433,7 +448,7 @@ TEST(loadTooManyContained, config_manager)
 
 // Load file with last item missing from CONTAINED composite
 // Load fails, so defaults are set.
-TEST(loadTruncated, config_manager)
+TEST(config_manager, loadTruncated)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -461,7 +476,7 @@ TEST(loadTruncated, config_manager)
 
 // Load file with partial last item in CONTAINED composite
 // Load fails, so defaults are set.
-TEST(loadTruncated1, config_manager)
+TEST(config_manager, loadTruncated1)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -489,7 +504,7 @@ TEST(loadTruncated1, config_manager)
 
 // Load file with partial last item in CONTAINED composite
 // Load fails, so defaults are set.
-TEST(loadTruncated2, config_manager)
+TEST(config_manager, loadTruncated2)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -518,7 +533,7 @@ TEST(loadTruncated2, config_manager)
 // Load file with incoherent CONTAINED composite (sum of the sizes
 // of components is larger than the size of the composite).
 // Load fails, so defaults are set.
-TEST(loadIncoherent, config_manager)
+TEST(config_manager, loadIncoherent)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -547,7 +562,7 @@ TEST(loadIncoherent, config_manager)
 // Load file with incoherent CONTAINED composite (sum of the sizes
 // of components is larger than the size of the composite).
 // Load fails, so defaults are set.
-TEST(loadIncoherent1, config_manager)
+TEST(config_manager, loadIncoherent1)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -574,7 +589,7 @@ TEST(loadIncoherent1, config_manager)
 
 
 // Verify data saved to TLV, with default data in RAM as input to the test.
-TEST(saveOwned, config_manager)
+TEST(config_manager, saveOwned)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -606,7 +621,7 @@ TEST(saveOwned, config_manager)
 
 
 // From default RAM start, do implicit add and check what's saved to TLV
-TEST(implicitAdd, config_manager)
+TEST(config_manager, implicitAdd)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -641,12 +656,12 @@ TEST(implicitAdd, config_manager)
     fread(actualTlv, sizeof(actualTlv), 1, fp);
 
     CHECK(memcmp(expectedTlv, actualTlv, sizeof(expectedTlv)) == 0);
-    fclose(fp);    
+    fclose(fp);
 }
 
 
 // From default RAM start, do implicit add and set and check what's saved to TLV
-TEST(implicitAddnSet, config_manager)
+TEST(config_manager, implicitAddnSet)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -687,7 +702,7 @@ TEST(implicitAddnSet, config_manager)
 
 
 // From default RAM start, do explicit add and check what's saved to TLV
-TEST(explicitAdd, config_manager)
+TEST(config_manager, explicitAdd)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -729,7 +744,7 @@ TEST(explicitAdd, config_manager)
 
 // Verify what's saved to TLV, given a TLV file that's read on startup,
 // and a delete operation.
-TEST(del, config_manager)
+TEST(config_manager, del)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -776,6 +791,6 @@ TEST(del, config_manager)
     fread(savedTlv, sizeof(savedTlv), 1, fp);
 
     CHECK(memcmp(expectedTlv, savedTlv, sizeof(savedTlv)) == 0);
-    fclose(fp);    
+    fclose(fp);
 }
 

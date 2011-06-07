@@ -233,9 +233,9 @@ public: // needs to be accessed by TLV class
     const cm_composite_metadata * const pData;
 
 private:
-
     const cm_aggregate * getAggr(const char * name) const;
     const cm_aggregate * getAggr(cm_item_id_t id) const;
+    bool handleIdWord(int argc, char *argv[], uint8_t * pItem, cm_context & ctxt) const;
 
 public: // tlv class should be friend so it can call these
     bool getComponentItem(int * pArgc,
@@ -268,7 +268,6 @@ public:
     void print(const uint8_t * pItem, std::string prefix) const;
     void setdef(uint8_t * pItem) const;
     virtual void help(const uint8_t * pItem) const;
-    bool handleIdWord(int argc, char *argv[], uint8_t * pItem, cm_context & ctxt) const;
     bool handleAdd(int argc, char *argv[], uint8_t * pItem) const;
     uint8_t * add(uint8_t * pParentItem, const cm_aggregate * pAggr) const;
     bool handleDel(int argc, char *argv[], uint8_t * pItem) const;

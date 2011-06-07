@@ -129,6 +129,7 @@ const char * config_manager::getPromptString()
 
 
 // Save data in RAM to NVRAM, in TLV format.
+// We first assemble the TLV format data in a RAM buffer, then write it all to the config file.
 void config_manager::save()
 {
     cm_item_len_t tlvLen = base_desc->getTlvLen(ramBase);
@@ -160,6 +161,7 @@ void config_manager::save()
 
     fwrite(buf, 1, tlvLen, fp);
     fclose(fp);
+    delete[] buf;
 }
 
 

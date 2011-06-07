@@ -1,6 +1,6 @@
-#CXXFLAGS = -Wall -g -I ../../CppUnitLite -I .. -DDEBUG_PRINT # -save-temps
-CXXFLAGS = -Wall -g -I ../../CppUnitLite -I .. # -save-temps
-VPATH = ../../CppUnitLite # so make can find the library
+#CXXFLAGS = -Wall -g -I ../../CppUTest/include -I .. -DDEBUG_PRINT # -save-temps
+CXXFLAGS = -Wall -g -I ../../CppUTest/include -I .. # -save-temps
+VPATH = ../../CppUTest/lib # so make can find the library
 OBJS = ../config_manager.o ../config_manager_util.o ../config_manager_tlv.o
 
 all: simpleTestTag compositeTestTag cmTestTag
@@ -19,13 +19,13 @@ cmTestTag: config_managerTest
 	touch cmTestTag
 
 # Make unit tests, using CppUnitLite framework
-cm_simple_item_descriptorTest: $(OBJS) cm_simple_item_descriptorTest.o -lCppUnitLite
+cm_simple_item_descriptorTest: $(OBJS) cm_simple_item_descriptorTest.o -lCppUTest
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
-cm_composite_item_descriptorTest: $(OBJS) cm_composite_item_descriptorTest.o -lCppUnitLite
+cm_composite_item_descriptorTest: $(OBJS) cm_composite_item_descriptorTest.o -lCppUTest
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
-config_managerTest: $(OBJS) config_managerTest.o -lCppUnitLite
+config_managerTest: $(OBJS) config_managerTest.o -lCppUTest
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 # Dependencies, manually arrived at!

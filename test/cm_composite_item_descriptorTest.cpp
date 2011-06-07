@@ -7,7 +7,8 @@
 //
 
 
-#include "TestHarness.h"
+#include "CppUTest/TestHarness.h"
+#include "CppUTest/CommandLineTestRunner.h"
 #include "config_manager.h"       // Unit under test
 #include "config_manager_util.h"  // Extensions to unit under test (generic "set" functions)
 
@@ -19,11 +20,9 @@
 using namespace std;
 
 
-int main()
+int main(int argc, char** argv)
 {
-    TestResult tr;
-    TestRegistry::runAllTests(tr);
-    return 0;
+    return RUN_ALL_TESTS(argc, argv);
 }
 
 
@@ -106,7 +105,22 @@ const cm_composite_metadata c4_d = {{"c4", 1, sizeof(struct m4)}, aggrList4, siz
 const cm_composite_descriptor c4(&c4_d, false);
 
 
-TEST(getLen, cm_composite_descriptor)
+TEST_GROUP(cm_composite_descriptor)
+{
+    //Define data accessible to test group members here.
+    void setup()
+    {
+        //initialization steps are executed before each TEST
+    }
+    
+    void teardown()
+    {
+        //clean up steps are executed after each TEST
+    }
+};
+
+
+TEST(cm_composite_descriptor, getLen)
 {
     cm_composite_metadata d_d  = {{"c1", 1, 55}, NULL, 0};
     cm_composite_descriptor d(&d_d, false);
@@ -115,7 +129,7 @@ TEST(getLen, cm_composite_descriptor)
 }
 
 
-TEST(printContained, cm_composite_descriptor)
+TEST(cm_composite_descriptor, printContained)
 {
     string prefix = "";
     char outstring[64];
@@ -140,7 +154,7 @@ TEST(printContained, cm_composite_descriptor)
 
 
 // Owned component in metadata, but not allocated
-TEST(printOwnedNull, cm_composite_descriptor)
+TEST(cm_composite_descriptor, printOwnedNull)
 {
     string prefix = "";
     char outstring[64];
@@ -163,7 +177,7 @@ TEST(printOwnedNull, cm_composite_descriptor)
 
 
 // Owned component in metadata, correctly allocated
-TEST(printOwnedData, cm_composite_descriptor)
+TEST(cm_composite_descriptor, printOwnedData)
 {
     #define NUM_OWNED 2
 
@@ -193,7 +207,7 @@ TEST(printOwnedData, cm_composite_descriptor)
 }
 
 
-TEST(addFirst, cm_composite_descriptor)
+TEST(cm_composite_descriptor, addFirst)
 {
     struct m2 mem = {0, NULL}; // Test data
     char * commandWord = (char *)"owned";
@@ -210,7 +224,7 @@ TEST(addFirst, cm_composite_descriptor)
 }
 
 
-TEST(addAnother, cm_composite_descriptor)
+TEST(cm_composite_descriptor, addAnother)
 {
     struct m2 mem = {0, NULL}; // Test data
     char * commandWord = (char *)"owned";
@@ -229,7 +243,7 @@ TEST(addAnother, cm_composite_descriptor)
 }
 
 
-TEST(delNull, cm_composite_descriptor)
+TEST(cm_composite_descriptor, delNull)
 {
     struct m2 mem = {0, NULL};
     char * commandWord[] = {(char *)"owned", (char *)"1"};
@@ -243,7 +257,7 @@ TEST(delNull, cm_composite_descriptor)
 
 
 // Delete the 2nd of two owned items; the first is unchanged
-TEST(delEnd, cm_composite_descriptor)
+TEST(cm_composite_descriptor, delEnd)
 {
     #undef NUM_OWNED
     #define NUM_OWNED 2
@@ -268,7 +282,7 @@ TEST(delEnd, cm_composite_descriptor)
 
 
 // Delete the 1st of two owned items; the 2nd moves down
-TEST(delFirst, cm_composite_descriptor)
+TEST(cm_composite_descriptor, delFirst)
 {
     #undef NUM_OWNED
     #define NUM_OWNED 2
@@ -293,7 +307,7 @@ TEST(delFirst, cm_composite_descriptor)
 }
 
 
-TEST(delSingle, cm_composite_descriptor)
+TEST(cm_composite_descriptor, delSingle)
 {
     #undef NUM_OWNED
     #define NUM_OWNED 1
@@ -317,7 +331,7 @@ TEST(delSingle, cm_composite_descriptor)
 
 
 // Add the sole, uncounted OWNed item
-TEST(addOnly, cm_composite_descriptor)
+TEST(cm_composite_descriptor, addOnly)
 {
     struct m4 mem = {NULL};
     char * commandWord = (char *)"owned";
@@ -333,7 +347,7 @@ TEST(addOnly, cm_composite_descriptor)
 
 
 // Delete the sole, uncounted OWNed item
-TEST(delOnly, cm_composite_descriptor)
+TEST(cm_composite_descriptor, delOnly)
 {
     struct m4 mem;
     char * commandWord = (char *)"owned";
@@ -351,7 +365,7 @@ TEST(delOnly, cm_composite_descriptor)
 
 
 // Allocate memory as side-effect of set command
-TEST(implicitAdd, cm_composite_descriptor)
+TEST(cm_composite_descriptor, implicitAdd)
 {
     struct m2 mem = {0, NULL}; // Test data
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"=", (char *)"42"};
@@ -368,7 +382,7 @@ TEST(implicitAdd, cm_composite_descriptor)
  
 
 // Do not (permanently) allocate memory as side-effect of executing invalid command
-TEST(implicitAddFail, cm_composite_descriptor)
+TEST(cm_composite_descriptor, implicitAddFail)
 {
     struct m2 mem = {0, NULL}; // Test data
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"blabla"};
