@@ -268,6 +268,7 @@ public:
     void print(const uint8_t * pItem, std::string prefix) const;
     void setdef(uint8_t * pItem) const;
     virtual void help(const uint8_t * pItem) const;
+    bool handleIdWord(int argc, char *argv[], uint8_t * pItem, cm_context & ctxt) const;
     bool handleAdd(int argc, char *argv[], uint8_t * pItem) const;
     uint8_t * add(uint8_t * pParentItem, const cm_aggregate * pAggr) const;
     bool handleDel(int argc, char *argv[], uint8_t * pItem) const;

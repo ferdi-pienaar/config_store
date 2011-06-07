@@ -66,62 +66,28 @@ unsigned int cm_composite_tlv::load(FILE * fp, uint8_t * pItem, t_cm_result & re
     if (fread(&tlvLen, sizeof(tlvLen), 1, fp) != 1)
     {
         res = CM_READ_FAIL;
-        goto exit;
+        return bytesRead;
     }
 
     bytesRead = sizeof(tlvLen);
 
     DBG_PRT("composite load %d bytes to %p\n", tlvLen, pItem);
 
-    unsigned int itemIdx;        // number of items read of a given type, i.e. offset in the item array
-
     // While enough unread bytes remain of the composite for T+L fields of a component.
     // bytesRead already includes the L field of the composite item, so we don't add sizeof(L) here.
     while (bytesRead + sizeof(cm_item_id_t) <= tlvLen) 
     {        
-        cm_item_id_t  compId, prevCompId;
+        cm_item_id_t  compId;
 
-        if (fread(&compId, sizeof(compId), 1, fp) != 1)
-        {
-            res = CM_READ_FAIL;
-            goto exit;
-        }
-
-        bytesRead += sizeof(compId);
-
-        DBG_PRT("load component ID %d\n", compId);
-
-        // New item type (or the 1st one), so reset array index
-        if (first || (compId != prevCompId))
-        {                
-            first = false;
-            itemIdx = 0;
-        }
-
-        const cm_aggregate * pAggr;
-        uint8_t *            pComponentItem;
-
-        if (!pDesc->getComponentItem(compId, itemIdx, &pAggr, pItem, &pComponentItem))
-        {
-            // skip because we couldn't find the item, index is out of range, or couldn't malloc
-            bytesRead += skipItem(fp, res);
-        }
-        else
-        {        
-            const cm_descriptor * pComponentDesc = pAggr->pData->pDesc;
-
-            bytesRead += pComponentDesc->loadFromTlv(fp, pComponentItem, res);
-            itemIdx++;
-        }
+        bytesRead += loadComponent(fp, pItem, first, compId, res);
 
         if (res != CM_SUCCESS)
         {
-            // If the above load/skip failed, we're done
-            goto exit;
+            return bytesRead;
         }
-
+        
+        first = false;
         DBG_PRT("composite '%s': %d read\n", pDesc->getName().c_str(), bytesRead);
-        prevCompId = compId;
     }
     
     // Sanity check on coherence of the data read from the TLV file
@@ -130,10 +96,7 @@ unsigned int cm_composite_tlv::load(FILE * fp, uint8_t * pItem, t_cm_result & re
         cout << "'" << pDesc->getName() << "' contains " << bytesRead - sizeof(tlvLen) << ", not "
              << tlvLen <<"!" << endl;
         res = CM_INCOHERENT_DATA;
-        goto exit;
     }
-    
-exit:
     return bytesRead;
 }
 
@@ -157,6 +120,63 @@ cm_item_len_t cm_composite_tlv::getLen(const uint8_t * pItem) const
         }
     }
     return tlvLen;
+}
+
+
+//
+// @param fp, input, file to load from
+// @param pItem, input, pointer to base of RAM where value read from file should be loaded
+// @param first, input, is this first read within component, meaning input compId is invalid?
+// @param itemIdx, input/output, index representing offset in RAM
+// @param compId, input/output, ID read from file, valid if res is CM_SUCCESS
+// @param res, output, CM_SUCCESS, or CM_READ_FAIL if unable to read from file.
+//        Note that CM_SUCCESS is returned even if we don't load an item because it
+//        is not as expected, e.g. too many instances, unknown ID, etc xxx
+// @return number of bytes read from fp
+//
+unsigned int cm_composite_tlv::loadComponent(FILE * fp,
+                                             uint8_t * pItem,
+                                             bool first,
+                                             cm_item_id_t & compId,
+                                             t_cm_result & res) const
+{
+    static unsigned int itemIdx;       // 0-based number of next isntance of given compId to read
+    cm_item_len_t       bytesRead = 0; // Number of bytes read by this method
+    cm_item_id_t        readCompId;    // compId read by this method
+    
+    if (fread(&readCompId, sizeof(compId), 1, fp) != 1)
+    {
+        res = CM_READ_FAIL;
+        return bytesRead;
+    }
+
+    bytesRead += sizeof(readCompId);
+
+    DBG_PRT("loadComponent ID %d\n", readCompId);
+
+    if (first || (readCompId != compId))
+    {
+        // First read of this component ID
+        compId = readCompId;
+        itemIdx = 0;
+    }
+
+    const cm_aggregate * pAggr;
+    uint8_t *            pComponentItem;
+
+    if (!pDesc->getComponentItem(compId, itemIdx, &pAggr, pItem, &pComponentItem))
+    {
+        // skip because we couldn't find the ID, index is out of range, or couldn't malloc
+        bytesRead += skipItem(fp, res);
+    }
+    else
+    {        
+        const cm_descriptor * pComponentDesc = pAggr->pData->pDesc;
+
+        bytesRead += pComponentDesc->loadFromTlv(fp, pComponentItem, res);
+        itemIdx++;
+    }
+    return bytesRead;
 }
 
 

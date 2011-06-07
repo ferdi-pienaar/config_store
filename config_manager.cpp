@@ -286,6 +286,8 @@ pData(pMeta)
 // argv array of strings containing name elements
 // pItem - pointer to RAM at which item is located
 //
+// @return true if command was handled
+//
 // xxx should free memory allocated as side-effect of a non-set or
 //     go-to-node command, not just an invalid command.
 //
@@ -294,47 +296,15 @@ bool cm_composite_descriptor::handleCmd(int argc,
                                         uint8_t * pItem,
                                         cm_context & ctxt) const
 {
+    char * word = argv[0];
     DBG_PRT("composite::handleCmd: %s\n", argv[0]);
 
     assert(pItem != NULL);
     
-    switch (getOp(argv[0]))
+    switch (getOp(word))
     {
         case CM_OP_NONE:
-        {
-            const cm_aggregate * pAggr;           // Component of this composite identified by argc, argv
-            uint8_t *            pComponentItem;  // pointer to component RAM
-            bool                 added;           // Did getComponentItem create a new item?
-
-            if (!getComponentItem(&argc, &argv, &pAggr, pItem, &pComponentItem, ctxt, added))
-            {
-                // Unhandled word(s): not a command, and also doesn't identify a component
-                DBG_PRT("composite::handleCmd: no component\n");
-                break;
-            }
-            
-            // A component was found
-            if (argc == 0)
-            {
-                // We have a component, but there's nothing left of the command
-                config_manager::getInstance()->updateCtxt(&ctxt);
-                return true;
-            }
-            
-            // Pass the remainder of the command to the found component
-            if (!pAggr->pData->pDesc->handleCmd(argc, argv, pComponentItem, ctxt))
-            {
-                // Component says the command is invalid
-                if (added)
-                {
-                    // Free memory allocated as a side-effect of an invalid command
-                    del(pItem, pAggr, pAggr->getCount(pItem) - 1, pAggr->getCount(pItem));                        
-                }
-                return false;
-            }
-            return true;
-        }
-        break;
+            return handleIdWord(argc, argv, pItem, ctxt);
         
         case CM_ADD:
             // Remove the word 'add' and pass the remainder to the method
@@ -361,8 +331,46 @@ bool cm_composite_descriptor::handleCmd(int argc,
     }
 
     // Don't use argv[0] here, because it may have been modified by getComponentItem
-    cout << "Not handled in '" << getName() << "'" << endl;
+    cout << "Command '" << word << "' not handled in composite item '" << getName() << "'" << endl;
     return false;
+}
+
+
+// Handle word in string that's not a command, hence presumably it identifies a component
+bool cm_composite_descriptor::handleIdWord(int argc, char *argv[], uint8_t * pItem, cm_context & ctxt) const
+{
+    const cm_aggregate * pAggr;           // Component of this composite identified by argc, argv
+    uint8_t *            pComponentItem;  // pointer to component RAM
+    bool                 added;           // Did getComponentItem create a new item?
+    char *               word = argv[0];
+
+    if (!getComponentItem(&argc, &argv, &pAggr, pItem, &pComponentItem, ctxt, added))
+    {
+        // Unhandled word(s): not a command, and also doesn't identify a component
+        cout << "'" << word << "' not handled in composite item '" << getName() << "'" << endl;
+        return false;
+    }
+    
+    // A component was found
+    if (argc == 0)
+    {
+        // We have a component, but there are no more words in the command
+        config_manager::getInstance()->updateCtxt(&ctxt);
+        return true;
+    }
+    
+    // Pass the remainder of the command to the found component
+    if (!pAggr->pData->pDesc->handleCmd(argc, argv, pComponentItem, ctxt))
+    {
+        // Component says the command is invalid
+        if (added)
+        {
+            // Free memory allocated by an invalid command
+            del(pItem, pAggr, pAggr->getCount(pItem) - 1, pAggr->getCount(pItem));                        
+        }
+        return false;
+    }
+    return true;
 }
 
 

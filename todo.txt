@@ -41,4 +41,6 @@
 - The XML file is generated not by hand, but by a graphical tool that shows the relationships
   between the data (OWNED and CONTAINED relationships).  
 - XML schema
+- Add tests for invalid commands: RAM allocated during parsing of a
+  command that turns out to be invalid, should be freed.  How do we test this?
 
