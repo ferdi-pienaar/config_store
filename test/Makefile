@@ -3,20 +3,30 @@ CXXFLAGS = -Wall -g -I ../../CppUnitLite -I .. # -save-temps
 VPATH = ../../CppUnitLite # so make can find the library
 OBJS = ../config_manager.o ../config_manager_util.o ../config_manager_tlv.o
 
-all: cm_simple_item_descriptorTest cm_composite_item_descriptorTest config_managerTest
+all: simpleTestTag compositeTestTag cmTestTag
+
+# Execute tests, only if executable is new -- the empty tag files timestamp the last time the test ran
+simpleTestTag: cm_simple_item_descriptorTest
+	./cm_simple_item_descriptorTest
+	touch simpleTestTag
+
+compositeTestTag: cm_composite_item_descriptorTest
+	./cm_composite_item_descriptorTest
+	touch compositeTestTag
+
+cmTestTag: config_managerTest
+	./config_managerTest
+	touch cmTestTag
 
 # Make unit tests, using CppUnitLite framework
 cm_simple_item_descriptorTest: $(OBJS) cm_simple_item_descriptorTest.o -lCppUnitLite
 	$(CXX) $(CXXFLAGS) $^ -o $@
-	./cm_simple_item_descriptorTest
 
 cm_composite_item_descriptorTest: $(OBJS) cm_composite_item_descriptorTest.o -lCppUnitLite
 	$(CXX) $(CXXFLAGS) $^ -o $@
-	./cm_composite_item_descriptorTest
 
 config_managerTest: $(OBJS) config_managerTest.o -lCppUnitLite
 	$(CXX) $(CXXFLAGS) $^ -o $@
-	./config_managerTest
 
 # Dependencies, manually arrived at!
 # None of the test .o depend on dbg.h

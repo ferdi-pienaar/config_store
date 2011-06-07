@@ -23,9 +23,9 @@
   ROM, in plain old structs, which we make const and init at compile-time.  This would probably
   only mean we'd have one additional level of indirection, but few other negative effects.
   Probably my classes derived from cm_item_descriptor, although all data
-  is const, are no ROMable, since they are derived classes, with constructors, etc.  A
-  compiler may exist which can ROM them, but that's not guaranteed, and I don't know
-  of any way to verify it other than making a build for a specific target and seeing
+  is const, are no ROMable, since they are derived classes, with constructors, etc.
+  Possibly ROMable classes are easier to identify than I thought -- they 
+  can be initialized like C structures: struct x = {};
   what data is allocated to which memory address ranges.
 - Use of c99 types in stdint.h, e.g. uint8_t, uint_fast8_t, uint_least8_t
 - Should I be using malloc, or new?
