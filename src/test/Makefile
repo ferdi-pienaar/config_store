@@ -1,6 +1,6 @@
-#CXXFLAGS = -Wall -g -I ../../CppUTest/include -I .. -DDEBUG_PRINT # -save-temps
-CXXFLAGS = -Wall -g -I ../../CppUTest/include -I .. # -save-temps
-VPATH = ../../CppUTest/lib # so make can find the library
+#CXXFLAGS = -Wall -g -I ../../../CppUTest/include -I .. -DDEBUG_PRINT # -save-temps
+CXXFLAGS = -Wall -g -I ../../../CppUTest/include -I .. -I ../../export # -save-temps
+VPATH = ../../../CppUTest/lib # so make can find the library
 OBJS = ../config_manager.o ../config_manager_util.o ../config_manager_tlv.o
 
 all: simpleTestTag compositeTestTag cmTestTag
@@ -34,22 +34,22 @@ config_managerTest: $(OBJS) config_managerTest.o -lCppUTest
 # util is not dependent on dbg.h
 # tlv is not dependent on util.h
 cm_simple_item_descriptorTest.o: cm_simple_item_descriptorTest.cpp \
- ../config_manager.h ../config_manager_types.h ../config_manager_tlv.h ../config_manager_util.h
+ ../../export/config_manager.h ../config_manager_types.h ../config_manager_tlv.h ../config_manager_util.h
 
 cm_composite_item_descriptorTest.o: cm_composite_item_descriptorTest.cpp \
- ../config_manager.h ../config_manager_types.h ../config_manager_tlv.h ../config_manager_util.h
+ ../../export/config_manager.h ../config_manager_types.h ../config_manager_tlv.h ../config_manager_util.h
 
 config_managerTest.o: config_managerTest.cpp \
- ../config_manager.h  ../config_manager_types.h ../config_manager_tlv.h ../config_manager_util.h
+ ../../export/config_manager.h  ../config_manager_types.h ../config_manager_tlv.h ../config_manager_util.h
 
 config_manager.o: config_manager.cpp \
- ../config_manager.h ../config_manager_types.h ../config_manager_tlv.h ../config_manager_dbg.h ../config_manager_util.h
+ ../../export/config_manager.h ../config_manager_types.h ../config_manager_tlv.h ../config_manager_dbg.h ../config_manager_util.h
 
 config_manager_util.o: config_manager_util.cpp \
- ../config_manager.h ../config_manager_types.h ../config_manager_tlv.h ../config_manager_util.h
+ ../../export/config_manager.h ../config_manager_types.h ../config_manager_tlv.h ../config_manager_util.h
 
 config_manager_tlv.o: config_manager_tlv.cpp \
- ../config_manager.h ../config_manager_types.h ../config_manager_tlv.h ../config_manager_dbg.h
+ ../../export/config_manager.h ../config_manager_types.h ../config_manager_tlv.h ../config_manager_dbg.h
 
 
 .PHONY: clean

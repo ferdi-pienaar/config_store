@@ -52,7 +52,7 @@ TEST(cm_simple_descriptor, getLen)
     cm_simple_metadata d_d = {{"d01", 1 , 55}, NULL, NULL, NULL};
 
     cm_simple_descriptor d(&d_d, false);
-    CHECK(d.getLen() == 55);
+    LONGS_EQUAL(55, d.getLen());
 }
 
 
@@ -78,7 +78,7 @@ TEST(cm_simple_descriptor, print)
     // xxx Reading from a file and comparing the contents could be re-implemented as an assert method
     FILE * resf = fopen("testout.txt", "r");
     fgets(outstring, sizeof(outstring), resf);
-    CHECK(strncmp(outstring, "= 07000000\n", sizeof(outstring)) == 0);
+    STRCMP_EQUAL("= 07000000\n", outstring);
 }
 
 
@@ -90,7 +90,7 @@ TEST(cm_simple_descriptor, set)
     cm_simple_descriptor d(&d_d, false);
     
     d.set((uint8_t *)&mem, "4");
-    CHECK(mem == 4);    
+    LONGS_EQUAL(4, mem);
 }
 
 
@@ -103,7 +103,7 @@ TEST(cm_simple_descriptor, setdefFunc)
     cm_simple_descriptor d(&d_d, false);
     
     d.setdef((uint8_t *)&mem);
-    CHECK(mem == 11);    
+    LONGS_EQUAL(11, mem);
 }
 
 
@@ -116,7 +116,7 @@ TEST(cm_simple_descriptor, setdef)
     cm_simple_descriptor d(&d_d, false);
     
     d.setdef((uint8_t *)&mem);
-    CHECK(mem == 0);    
+    LONGS_EQUAL(0, mem);
 }
 
 
