@@ -36,7 +36,8 @@ public:
     virtual unsigned int load(FILE * fp, uint8_t * pItem, t_cm_result & res) const;
 
 private:
-    unsigned int loadComponent(FILE * fp, uint8_t * pItem, bool first, cm_item_id_t & compId, t_cm_result & res) const;
+    unsigned int loadComponents(FILE * fp, uint8_t * pItem, cm_item_len_t bytesToRead, t_cm_result & res) const;
+    unsigned int loadComponent(FILE * fp, uint8_t * pItem, bool first, t_cm_result & res) const;
     unsigned int skipItem(FILE * fp, t_cm_result & res) const;
 
 };

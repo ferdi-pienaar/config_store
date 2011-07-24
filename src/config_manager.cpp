@@ -527,20 +527,19 @@ void cm_composite_descriptor::del(uint8_t * pParentItem,
                                   unsigned int itemIdx,
                                   unsigned int cnt) const
 {
+    // Sanity check input parameters
     assert(pParentItem != NULL);
     assert(pAggr != NULL);
-    
-    // Reallocate memory, and save pointer in the same location
-    uint8_t **  ppItems        = (uint8_t **)(pParentItem + pAggr->pData->offset);
-    cm_item_len_t componentLen = pAggr->pData->pDesc->getLen();
-
-    DBG_PRT("del at %p index %d len %d\n", *ppItems, itemIdx, componentLen);
-
-    // Sanity check input parameters
     assert(cnt > 0);
     assert(itemIdx < cnt);
     assert(pAggr->isAddSupported());
-    
+
+    cm_item_len_t componentLen = pAggr->pData->pDesc->getLen();
+    // Reallocate memory, and save pointer in the same location
+    uint8_t ** ppItems = (uint8_t **)(pParentItem + pAggr->pData->offset);
+
+    DBG_PRT("del at %p index %d len %d\n", *ppItems, itemIdx, componentLen);
+
     assert(*ppItems != NULL);
 
     // Shift down items to occupy the memory vacated by deleted item
@@ -555,7 +554,6 @@ void cm_composite_descriptor::del(uint8_t * pParentItem,
     {
         *ppItems = NULL;
     }
-
     pAggr->setCount(pParentItem, cnt - 1);
 }
 
@@ -816,7 +814,6 @@ bool cm_composite_descriptor::getComponentItem(cm_item_id_t id,
     {
         // Maximum number of these item already loaded: skip it
         // xxx maybe need special return code, not just bool
-        cout << "Can't get " << idx + 1 << " of " << (*ppAggr)->pData->maxCount << " " << (*ppAggr)->pData->pDesc->getName() << endl;
         return false;
     }
 
