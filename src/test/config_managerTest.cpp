@@ -794,3 +794,78 @@ TEST(containedArray, loadTooMany)
     fclose(fp);    
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+// test set 4, CONTAINED arrays, to check we handle resetting the index to 0
+// test set 4 data structure
+static const unsigned T6_ARRAY_SIZE = 2;
+static const unsigned T7_ARRAY_SIZE = 2;
+struct m6
+{
+    short int m1[T6_ARRAY_SIZE];
+    short int m2[T7_ARRAY_SIZE];
+
+};
+
+// test set 4 metadata
+const cm_simple_metadata s6_d = {{"name1", 1, sizeof(short int)}, NULL, NULL, NULL};
+const cm_simple_descriptor s6(&s6_d, true);
+const cm_aggregate_data ca6_d = {&s6, T6_ARRAY_SIZE, offsetof(struct m6, m1)};
+const cm_contained_aggregate ca6(&ca6_d);
+
+const cm_simple_metadata s7_d = {{"name2", 2, sizeof(short int)}, NULL, NULL, NULL};
+const cm_simple_descriptor s7(&s7_d, true);
+const cm_aggregate_data ca7_d = {&s7, T7_ARRAY_SIZE, offsetof(struct m6, m2)};
+const cm_contained_aggregate ca7(&ca7_d);
+
+const cm_aggregate * const aggrList4[] = {&ca6, &ca7};
+const cm_composite_metadata c4_d = {{"c4", 1, sizeof(struct m6)}, aggrList4, sizeof(aggrList4)/sizeof(aggrList4[0])};
+const cm_composite_descriptor c4(&c4_d, true);
+
+#define GET_C4_CONFIG ((struct m6 *)config_manager::getInstance()->getConfig())
+
+TEST_GROUP(containedArrays)
+{
+    FILE *           fp;
+    config_manager * cm;
+
+    //Define data accessible to test group members here.
+    void setup()
+    {
+        cm = config_manager::getInstance();
+
+    }
+    
+    void teardown()
+    {
+        //clean up steps are executed after each TEST
+    }
+};
+
+// Verify what's loaded into memory, given TLV file that's read on startup.
+// Verify what's loaded into memory, given TLV file that's read on startup.
+TEST(containedArrays, load)
+{    
+    uint8_t tlv[28] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V    T    L    V    T    L    V    T    L    V */
+    { 1,0, 24,0, 1,0, 2,0, 4,0, 1,0, 2,0, 5,0, 2,0, 2,0, 6,0, 2,0, 2,0, 7,0};
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);
+
+    cm->init(&c4);
+
+    CHECK(GET_C4_CONFIG->m1[0] == 4);
+    CHECK(GET_C4_CONFIG->m1[1] == 5);
+    CHECK(GET_C4_CONFIG->m2[0] == 6);
+    CHECK(GET_C4_CONFIG->m2[1] == 7);
+}
+

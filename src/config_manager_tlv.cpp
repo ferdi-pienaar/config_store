@@ -156,11 +156,7 @@ unsigned int cm_composite_tlv::loadComponent(FILE * fp,
     static unsigned int itemIdx;       // 0-based number of next instance of given compId to read
     cm_item_len_t       bytesRead = 0; // Number of bytes read by this method
     cm_item_id_t        compId;        // compId read by this method
-    #if 0
     static cm_item_id_t lastCompId;    // previous compId read
-    #else
-    cm_item_id_t lastCompId;    // previous compId read
-    #endif
     
     if (fread(&compId, sizeof(compId), 1, fp) != 1)
     {
