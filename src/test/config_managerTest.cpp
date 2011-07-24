@@ -111,7 +111,7 @@ const cm_composite_descriptor c3(&c3_d, true);
 #define GET_C3_CONFIG ((struct m3 *)config_manager::getInstance()->getConfig())
 
 
-TEST_GROUP(config_manager)
+TEST_GROUP(contained)
 {
     //Define data accessible to test group members here.
     void setup()
@@ -127,7 +127,7 @@ TEST_GROUP(config_manager)
 
 
 // Verify data saved to TLV, with default data in RAM as input to the test.
-TEST(config_manager, saveContained)
+TEST(contained, saveContained)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -158,7 +158,7 @@ TEST(config_manager, saveContained)
 
 
 // Verify what's loaded into memory, given TLV file that's read on startup.
-TEST(config_manager, loadContained)
+TEST(contained, loadContained)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -186,7 +186,7 @@ TEST(config_manager, loadContained)
 
 // Verify what's loaded into memory, given TLV file with L of 2nd simple
 // component that doesn't match the item descriptor.
-TEST(config_manager, loadChangedSimpleLen)
+TEST(contained, loadChangedSimpleLen)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -212,64 +212,11 @@ TEST(config_manager, loadChangedSimpleLen)
 }
 
 
-// Verify what's loaded into memory, given TLV file that's read on startup.
-TEST(config_manager, loadContainedArray)
-{
-    FILE * fp;
-    config_manager * cm = config_manager::getInstance();
-    uint8_t tlv[16] =
-    /*T    L     T    L    V    T    L    V */
-    { 1,0, 12,0, 1,0, 2,0, 7,0, 1,0, 2,0, 8,0};
-
-
-    /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);
-
-    cm->init(&c3);
-
-    CHECK(GET_C3_CONFIG->m1[0] == 7);
-    CHECK(GET_C3_CONFIG->m1[1] == 8);
-}
-
-
-// Verify what's loaded into memory, given TLV file that's read on startup.
-TEST(config_manager, loadOwned)
-{
-    FILE * fp;
-    config_manager * cm = config_manager::getInstance();
-    uint8_t tlv[20] =
-    /*T    L     T    L    V        T    L    V      */
-    { 1,0, 16,0, 4,0, 4,0, 7,0,0,0, 4,0, 4,0, 8,0,0,0};
-
-
-    /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);
-
-    cm->init(&c2);
-
-    CHECK(GET_C2_CONFIG->cnt == 2);
-    CHECK(GET_C2_CONFIG->owned[0] == 7);
-    CHECK(GET_C2_CONFIG->owned[1] == 8);
-}
-
-
 // Verify what's loaded into memory, given a TLV file that's read on startup that contains
 // an unknown Type value.
 // Unknown type in file: the descriptor has no T=9, so it's ignored by cfg_man when found in file,
 // but the item following it is loaded.
-TEST(config_manager, loadUnknownContained)
+TEST(contained, loadUnknownContained)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -314,7 +261,7 @@ TEST(config_manager, loadUnknownContained)
 // Verify what's saved to TLV, given a TLV file that's read on startup that's
 // missing an element of a structure.
 // The element that's not in the TLV is saved to TLV, populated with default value.
-TEST(config_manager, loadMissingContained)
+TEST(contained, loadMissingContained)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -356,10 +303,279 @@ TEST(config_manager, loadMissingContained)
 }
 
 
+// Load file with last item missing from CONTAINED composite
+// Load fails, so defaults are set.
+TEST(contained, loadTruncated)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    uint8_t tlv[] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V       ...    */
+    { 1,0, 16,0, 1,0, 4,0, 8,0,0,0 /*... */};
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);
+
+    cm->init(&c1);
+
+    CHECK(GET_C1_CONFIG->m1 == 0);
+    CHECK(GET_C1_CONFIG->m2 == 7);
+}
+
+
+// Load file with partial last item in CONTAINED composite
+// Load fails, so defaults are set.
+TEST(contained, loadTruncated1)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    uint8_t tlv[] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V        T ...    */
+    { 1,0, 16,0, 1,0, 4,0, 8,0,0,0, 2,0};
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);
+
+    cm->init(&c1);
+
+    CHECK(GET_C1_CONFIG->m1 == 0);
+    CHECK(GET_C1_CONFIG->m2 == 7);
+}
+
+
+// Load file with partial last item in CONTAINED composite
+// Load fails, so defaults are set.
+TEST(contained, loadTruncated2)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    uint8_t tlv[] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V        T    L    V (last byte missing) */
+    { 1,0, 16,0, 1,0, 4,0, 8,0,0,0, 2,0, 4,0, 9,0,0};
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);
+
+    cm->init(&c1);
+
+    CHECK(GET_C1_CONFIG->m1 == 0);
+    CHECK(GET_C1_CONFIG->m2 == 7);
+}
+
+
+// Load file with incoherent CONTAINED composite (sum of the sizes
+// of components is larger than the size of the composite).
+// Load fails, so defaults are set.
+TEST(contained, loadIncoherent)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    uint8_t tlv[20] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V        T    L    V    */
+    { 1,0, 14,0, 1,0, 4,0, 8,0,0,0, 2,0, 4,0, 9,0,0,0};
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);
+
+    cm->init(&c1);
+
+    CHECK(GET_C1_CONFIG->m1 == 0);
+    CHECK(GET_C1_CONFIG->m2 == 7);
+}
+
+
+// Load file with incoherent CONTAINED composite (sum of the sizes
+// of components is larger than the size of the composite).
+// Load fails, so defaults are set.
+TEST(contained, loadIncoherent1)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    uint8_t tlv[20] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V        T    L    V    */
+    { 1,0, 17,0, 1,0, 4,0, 8,0,0,0, 2,0, 4,0, 9,0,0,0};
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);
+
+    cm->init(&c1);
+
+    CHECK(GET_C1_CONFIG->m1 == 0);
+    CHECK(GET_C1_CONFIG->m2 == 7);
+}
+
+
+TEST_GROUP(containedArray)
+{
+    //Define data accessible to test group members here.
+    void setup()
+    {
+        //initialization steps are executed before each TEST
+    }
+    
+    void teardown()
+    {
+        //clean up steps are executed after each TEST
+    }
+};
+
+
+// Verify what's loaded into memory, given TLV file that's read on startup.
+TEST(containedArray, load)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    uint8_t tlv[16] =
+    /*T    L     T    L    V    T    L    V */
+    { 1,0, 12,0, 1,0, 2,0, 7,0, 1,0, 2,0, 8,0};
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);
+
+    cm->init(&c3);
+
+    CHECK(GET_C3_CONFIG->m1[0] == 7);
+    CHECK(GET_C3_CONFIG->m1[1] == 8);
+}
+
+
+// Verify what's saved to TLV, given a TLV file that's read on startup that
+// has more than the max number of a CONTAINED component.
+//
+TEST(containedArray, loadTooMany)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    uint8_t tlv[22] =
+    /*T    L     T    L    V    T    L    V    T    L    V       */
+    { 1,0, 18,0, 1,0, 2,0, 7,0, 1,0, 2,0, 8,0, 1,0, 2,0, 9,0};
+    uint8_t expectedTlv[16] =
+    /* The following assumes little-endian integers */
+    /*T    L     T    L    V    T    L    V    */
+    { 1,0, 12,0, 1,0, 2,0, 7,0, 1,0, 2,0, 8,0};
+    uint8_t savedTlv[16];
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);    
+
+    cm->init(&c3);
+
+    char * commandWord[] = {(char *)"save"};
+    cm->handleCmd(1, commandWord);
+
+    // See what CM made of the file it loaded
+    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fread(savedTlv, sizeof(savedTlv), 1, fp);
+
+    CHECK(memcmp(expectedTlv, savedTlv, sizeof(savedTlv)) == 0);
+    fclose(fp);    
+}
+
+
+TEST_GROUP(owned)
+{
+    //Define data accessible to test group members here.
+    void setup()
+    {
+        //initialization steps are executed before each TEST
+    }
+    
+    void teardown()
+    {
+        //clean up steps are executed after each TEST
+    }
+};
+
+
+// Verify what's loaded into memory, given TLV file that's read on startup.
+TEST(owned, load)
+{
+    FILE * fp;
+    config_manager * cm = config_manager::getInstance();
+    uint8_t tlv[20] =
+    /*T    L     T    L    V        T    L    V      */
+    { 1,0, 16,0, 4,0, 4,0, 7,0,0,0, 4,0, 4,0, 8,0,0,0};
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);
+
+    cm->init(&c2);
+
+    CHECK(GET_C2_CONFIG->cnt == 2);
+    CHECK(GET_C2_CONFIG->owned[0] == 7);
+    CHECK(GET_C2_CONFIG->owned[1] == 8);
+}
+
+
 // Verify what's saved to TLV, given a TLV file that's read on startup that
 // has more than the max number of an OWNED component.
 //
-TEST(config_manager, loadTooManyOwned)
+TEST(owned, loadTooMany)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -402,194 +618,8 @@ TEST(config_manager, loadTooManyOwned)
 }
 
 
-// Verify what's saved to TLV, given a TLV file that's read on startup that
-// has more than the max number of a CONTAINED component.
-//
-TEST(config_manager, loadTooManyContained)
-{
-    FILE * fp;
-    config_manager * cm = config_manager::getInstance();
-    uint8_t tlv[22] =
-    /*T    L     T    L    V    T    L    V    T    L    V       */
-    { 1,0, 18,0, 1,0, 2,0, 7,0, 1,0, 2,0, 8,0, 1,0, 2,0, 9,0};
-    uint8_t expectedTlv[16] =
-    /* The following assumes little-endian integers */
-    /*T    L     T    L    V    T    L    V    */
-    { 1,0, 12,0, 1,0, 2,0, 7,0, 1,0, 2,0, 8,0};
-    uint8_t savedTlv[16];
-
-
-    /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);    
-
-    cm->init(&c3);
-
-    char * commandWord[] = {(char *)"save"};
-    cm->handleCmd(1, commandWord);
-
-    // See what CM made of the file it loaded
-    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fread(savedTlv, sizeof(savedTlv), 1, fp);
-
-    CHECK(memcmp(expectedTlv, savedTlv, sizeof(savedTlv)) == 0);
-    fclose(fp);    
-}
-
-
-// Load file with last item missing from CONTAINED composite
-// Load fails, so defaults are set.
-TEST(config_manager, loadTruncated)
-{
-    FILE * fp;
-    config_manager * cm = config_manager::getInstance();
-    uint8_t tlv[] =
-    /* The following assumes little-endian integers */
-    /*T    L     T    L    V       ...    */
-    { 1,0, 16,0, 1,0, 4,0, 8,0,0,0 /*... */};
-
-
-    /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);
-
-    cm->init(&c1);
-
-    CHECK(GET_C1_CONFIG->m1 == 0);
-    CHECK(GET_C1_CONFIG->m2 == 7);
-}
-
-
-// Load file with partial last item in CONTAINED composite
-// Load fails, so defaults are set.
-TEST(config_manager, loadTruncated1)
-{
-    FILE * fp;
-    config_manager * cm = config_manager::getInstance();
-    uint8_t tlv[] =
-    /* The following assumes little-endian integers */
-    /*T    L     T    L    V        T ...    */
-    { 1,0, 16,0, 1,0, 4,0, 8,0,0,0, 2,0};
-
-
-    /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);
-
-    cm->init(&c1);
-
-    CHECK(GET_C1_CONFIG->m1 == 0);
-    CHECK(GET_C1_CONFIG->m2 == 7);
-}
-
-
-// Load file with partial last item in CONTAINED composite
-// Load fails, so defaults are set.
-TEST(config_manager, loadTruncated2)
-{
-    FILE * fp;
-    config_manager * cm = config_manager::getInstance();
-    uint8_t tlv[] =
-    /* The following assumes little-endian integers */
-    /*T    L     T    L    V        T    L    V (last byte missing) */
-    { 1,0, 16,0, 1,0, 4,0, 8,0,0,0, 2,0, 4,0, 9,0,0};
-
-
-    /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);
-
-    cm->init(&c1);
-
-    CHECK(GET_C1_CONFIG->m1 == 0);
-    CHECK(GET_C1_CONFIG->m2 == 7);
-}
-
-
-// Load file with incoherent CONTAINED composite (sum of the sizes
-// of components is larger than the size of the composite).
-// Load fails, so defaults are set.
-TEST(config_manager, loadIncoherent)
-{
-    FILE * fp;
-    config_manager * cm = config_manager::getInstance();
-    uint8_t tlv[20] =
-    /* The following assumes little-endian integers */
-    /*T    L     T    L    V        T    L    V    */
-    { 1,0, 14,0, 1,0, 4,0, 8,0,0,0, 2,0, 4,0, 9,0,0,0};
-
-
-    /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);
-
-    cm->init(&c1);
-
-    CHECK(GET_C1_CONFIG->m1 == 0);
-    CHECK(GET_C1_CONFIG->m2 == 7);
-}
-
-
-// Load file with incoherent CONTAINED composite (sum of the sizes
-// of components is larger than the size of the composite).
-// Load fails, so defaults are set.
-TEST(config_manager, loadIncoherent1)
-{
-    FILE * fp;
-    config_manager * cm = config_manager::getInstance();
-    uint8_t tlv[20] =
-    /* The following assumes little-endian integers */
-    /*T    L     T    L    V        T    L    V    */
-    { 1,0, 17,0, 1,0, 4,0, 8,0,0,0, 2,0, 4,0, 9,0,0,0};
-
-
-    /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);
-
-    cm->init(&c1);
-
-    CHECK(GET_C1_CONFIG->m1 == 0);
-    CHECK(GET_C1_CONFIG->m2 == 7);
-}
-
-
 // Verify data saved to TLV, with default data in RAM as input to the test.
-TEST(config_manager, saveOwned)
+TEST(owned, save)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -621,7 +651,7 @@ TEST(config_manager, saveOwned)
 
 
 // From default RAM start, do implicit add and check what's saved to TLV
-TEST(config_manager, implicitAdd)
+TEST(owned, implicitAdd)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -661,7 +691,7 @@ TEST(config_manager, implicitAdd)
 
 
 // From default RAM start, do implicit add and set and check what's saved to TLV
-TEST(config_manager, implicitAddnSet)
+TEST(owned, implicitAddnSet)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -702,7 +732,7 @@ TEST(config_manager, implicitAddnSet)
 
 
 // From default RAM start, do explicit add and check what's saved to TLV
-TEST(config_manager, explicitAdd)
+TEST(owned, explicitAdd)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
@@ -744,7 +774,7 @@ TEST(config_manager, explicitAdd)
 
 // Verify what's saved to TLV, given a TLV file that's read on startup,
 // and a delete operation.
-TEST(config_manager, del)
+TEST(owned, del)
 {
     FILE * fp;
     config_manager * cm = config_manager::getInstance();
