@@ -102,7 +102,7 @@ TEST(cm_simple_descriptor, setdefFunc)
 
     cm_simple_descriptor d(&d_d, false);
     
-    d.setdef((uint8_t *)&mem);
+    d.setDefault((uint8_t *)&mem);
     LONGS_EQUAL(11, mem);
 }
 
@@ -115,7 +115,7 @@ TEST(cm_simple_descriptor, setdef)
 
     cm_simple_descriptor d(&d_d, false);
     
-    d.setdef((uint8_t *)&mem);
+    d.setDefault((uint8_t *)&mem);
     LONGS_EQUAL(0, mem);
 }
 

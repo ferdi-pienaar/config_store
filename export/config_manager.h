@@ -51,7 +51,7 @@ struct cm_simple_metadata
     // of configurable items, with 'C' linkage.
     //
     const CM_SET_FPTR    pSet;
-    const CM_SETDEF_FPTR pSetDef;
+    const CM_SETDEF_FPTR pSetDefault;
     const CM_PRT_FPTR    pPrt;
 };
 
@@ -88,14 +88,14 @@ typedef struct t_cm_context
 
 // We eliminate the getItem method, and pass the command string recursively down the
 // hierarchy of descriptors, until we either consume the whole command
-// or reach a command keyword (set, setdef, prt, add, del).
+// or reach a command keyword (set, setDefault, prt, add, del).
 // 'save' and 'load' commands are intercepted by the CM itself, since they
 // have global applicability only.
 //
 // The recursion code should then be present in only 1 place:
 // cm_composite_descriptor::handleCmd
-//  Following commands are executed by a simple:    set, setdef, prt
-//  Following commands are executed by a composite: setdef, add, del, prt
+//  Following commands are executed by a simple:    set, setDefault, prt
+//  Following commands are executed by a composite: setDefault, add, del, prt
 
 class cm_tlv;
 
@@ -139,7 +139,7 @@ public:
                           uint8_t ** ppItem) const {return false;}
 
     virtual void print(const uint8_t * pItem, std::string prefix) const = 0;
-    virtual void setdef(uint8_t * pItem) const = 0;
+    virtual void setDefault(uint8_t * pItem) const = 0;
     virtual void help(const uint8_t * pItem) const = 0;
 
 };
@@ -176,13 +176,15 @@ public:
     bool needIndex(const uint8_t * pParentItem) const {return getCount(pParentItem) > 1;}
     bool getIndex(int * pArgc, char *** pArgv, const uint8_t * pParentItem, unsigned int & itemIndex) const;
     uint8_t * getItemAtIndex(const uint8_t * pParentItem, unsigned idx) const;
-    /// returns address of the first item in the array
     /// returns number of items currently in the aggregate
     virtual unsigned getCount(const uint8_t * pParentItem) const = 0;
     virtual bool isAddSupported() const = 0;
     virtual void setCount(uint8_t * pParentItem, unsigned int) const = 0;
+    void setDefault(uint8_t * pItem) const;
+
 
 private:
+    /// returns address of the first item in the array
     virtual uint8_t * getFirstItem(const uint8_t * pParentItem) const = 0;
 };
 
@@ -270,7 +272,7 @@ public:
     ~cm_composite_descriptor(){};
     bool handleCmd(int argc, char *argv[], uint8_t * pItem, cm_context & ctxt) const;
     void print(const uint8_t * pItem, std::string prefix) const;
-    void setdef(uint8_t * pItem) const;
+    void setDefault(uint8_t * pItem) const;
     virtual void help(const uint8_t * pItem) const;
     bool handleAdd(int argc, char *argv[], uint8_t * pItem) const;
     uint8_t * add(uint8_t * pParentItem, const cm_aggregate * pAggr) const;
@@ -306,7 +308,7 @@ public:
 
     void print(const uint8_t * pItem, std::string prefix) const;
     bool set(uint8_t * pItem, std::string val) const;
-    void setdef(uint8_t * pItem) const;
+    void setDefault(uint8_t * pItem) const;
 
     void help(const uint8_t * pItem) const {std::cout << "len " << getLen() << std::endl;}
 };

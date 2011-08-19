@@ -65,9 +65,9 @@ void config_manager::init(const cm_descriptor * desc)
     // to run at the beginning of each unit tests).
     resetCtxt();
 
-    // Set counters to 0 and pointers to NULL on fresh memory before setdef
+    // Set counters to 0 and pointers to NULL on fresh memory before setDefault
     memset(ramBase, 0, base_desc->getLen());
-    base_desc->setdef(ramBase);
+    base_desc->setDefault(ramBase);
     load();
 }
 
@@ -190,15 +190,15 @@ void config_manager::load()
 
     t_cm_result res = CM_SUCCESS;
 
-    // Before loading, thus allocating new memory, call setdef to free owned memory
-    base_desc->setdef(ramBase);
+    // Before loading, thus allocating new memory, call setDefault to free owned memory
+    base_desc->setDefault(ramBase);
     base_desc->loadFromTlv(fp, ramBase, res);
     fclose(fp);
 
     if (res != CM_SUCCESS)
     {
         cout << "Load failed: defaults restored." << endl;
-        base_desc->setdef(ramBase);
+        base_desc->setDefault(ramBase);
         return;
     }
 
@@ -321,7 +321,7 @@ bool cm_composite_descriptor::handleCmd(int argc,
             return true;
 
         case CM_SETDEF:
-            setdef(pItem);
+            setDefault(pItem);
             return true;
 
         case CM_HELP:
@@ -449,9 +449,9 @@ uint8_t * cm_composite_descriptor::add(uint8_t * pParentItem,
     uint8_t * pNewItem = pNewMem + cnt * pAggr->pData->pDesc->getLen();
 
     // Initialize added item with default values. First memset to ensure
-    // counters, which have no setdef fn, are 0 (also sets pointers to owned to NULL).
+    // counters, which have no setDefault fn, are 0 (also sets pointers to owned to NULL).
     memset(pNewItem, 0, pAggr->pData->pDesc->getLen());
-    pAggr->pData->pDesc->setdef(pNewItem);
+    pAggr->pData->pDesc->setDefault(pNewItem);
 
     DBG_PRT("add at %p\n", pNewMem);
 
@@ -592,42 +592,23 @@ void cm_composite_descriptor::print(const uint8_t * pItem, string prefix) const
 }
 
 
-// Delegate setdef command to components
+// Delegate setDefault command to components
 // Preconditions: item contains valid data, i.e. if there are OWNED
 // components, the corresponding counter > 0 (so we can know to free them).
 //
 // For OWNED components, free owned memory before setting
 // the corresponding counter to 0.
 // This means that we should not clear the counter first
-// (which is why a counter's setdef method does nothing), since pAggr->getCount
+// (which is why a counter's setDefault method does nothing), since pAggr->getCount
 // for an owned component depends on the counter still being set.
-void cm_composite_descriptor::setdef(uint8_t * pItem) const
+void cm_composite_descriptor::setDefault(uint8_t * pItem) const
 {    
     assert(pItem != NULL);
 
-    // For each component, and for each of the array of items under it...
+    // Set each component to default
     for (int i = 0; i < pData->aggrCount; i++)
     {            
-        const cm_aggregate * pAggr = pData->aggrList[i];
-
-        // Set each item to default
-        for (unsigned j = 0; j < pAggr->getCount(pItem); j++)
-        {           
-            pAggr->pData->pDesc->setdef(pAggr->getItemAtIndex(pItem, j));
-        }
-
-        // If necessary, free the block of memory where the items were, and set counter to 0
-        if ((pAggr->getCount(pItem) > 0) && pAggr->isAddSupported())
-        {
-            uint8_t ** ppItems = (uint8_t **)(pItem + pAggr->pData->offset);
-
-            DBG_PRT("setdef free %p\n", *ppItems);
-
-            assert(*ppItems != NULL);
-            free(*ppItems);
-            *ppItems = NULL;
-            pAggr->setCount(pItem, 0);
-        }
+        pData->aggrList[i]->setDefault(pItem);
     }
 }
 
@@ -903,7 +884,7 @@ bool cm_simple_descriptor::handleCmd(int argc,
             break;
 
         case CM_SETDEF:
-            setdef(pItem);
+            setDefault(pItem);
             return true;
 
         case CM_HELP:
@@ -937,13 +918,13 @@ bool cm_simple_descriptor::set(uint8_t * pItem, string val) const
 
 
 // Set configurable item to its default value.
-void cm_simple_descriptor::setdef(uint8_t * pItem) const
+void cm_simple_descriptor::setDefault(uint8_t * pItem) const
 {
     assert(pItem != NULL);
 
-    if (pData->pSetDef != NULL)
+    if (pData->pSetDefault != NULL)
     {
-        pData->pSetDef(pItem, getLen());
+        pData->pSetDefault(pItem, getLen());
     }
     else
     {
@@ -998,6 +979,28 @@ uint8_t * cm_aggregate::getItemAtIndex(const uint8_t * pParentItem, unsigned idx
 }
 
 
+// Set items to default (and free the memory they occupied, if OWNed)
+void cm_aggregate::setDefault(uint8_t * pItem) const
+{
+    // Set each item to default
+    for (unsigned j = 0; j < getCount(pItem); j++)
+    {           
+        pData->pDesc->setDefault(getItemAtIndex(pItem, j));
+    }
+
+    // If necessary, free the block of memory where the items were, and set counter to 0
+    if ((getCount(pItem) > 0) && isAddSupported())
+    {
+        uint8_t ** ppItems = (uint8_t **)(pItem + pData->offset);
+
+        DBG_PRT("setDefault free %p\n", *ppItems);
+
+        assert(*ppItems != NULL);
+        free(*ppItems);
+        *ppItems = NULL;
+        setCount(pItem, 0);
+    }
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
