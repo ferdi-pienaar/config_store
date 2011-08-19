@@ -186,6 +186,7 @@ public:
 private:
     /// returns address of the first item in the array
     virtual uint8_t * getFirstItem(const uint8_t * pParentItem) const = 0;
+    virtual void freeItems(uint8_t * pParentItem) const = 0;
 };
 
 
@@ -204,7 +205,8 @@ public:
 
 private:
     uint8_t * getFirstItem(const uint8_t * pParentItem) const;
-
+    // For contained items, the aggregate doesn't own the item memory, so frees nothing
+    void freeItems(uint8_t * pParentItem) const {}
 };
 
 
@@ -225,6 +227,7 @@ public:
 
 private:
     uint8_t * getFirstItem(const uint8_t * pParentItem) const;
+    void freeItems(uint8_t * pParentItem) const;
     const cm_contained_aggregate * pCounterAggr; // the counter for this owned component
 };
 

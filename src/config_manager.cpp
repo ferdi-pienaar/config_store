@@ -593,8 +593,6 @@ void cm_composite_descriptor::print(const uint8_t * pItem, string prefix) const
 
 
 // Delegate setDefault command to components
-// Preconditions: item contains valid data, i.e. if there are OWNED
-// components, the corresponding counter > 0 (so we can know to free them).
 //
 // For OWNED components, free owned memory before setting
 // the corresponding counter to 0.
@@ -980,26 +978,17 @@ uint8_t * cm_aggregate::getItemAtIndex(const uint8_t * pParentItem, unsigned idx
 
 
 // Set items to default (and free the memory they occupied, if OWNed)
+// @param pItem - item this aggregate belongs to
 void cm_aggregate::setDefault(uint8_t * pItem) const
 {
-    // Set each item to default
-    for (unsigned j = 0; j < getCount(pItem); j++)
+    // Set each item to default (thus freeing memory of OWNed sub-components)
+    for (unsigned i = 0; i < getCount(pItem); i++)
     {           
-        pData->pDesc->setDefault(getItemAtIndex(pItem, j));
+        pData->pDesc->setDefault(getItemAtIndex(pItem, i));
     }
 
-    // If necessary, free the block of memory where the items were, and set counter to 0
-    if ((getCount(pItem) > 0) && isAddSupported())
-    {
-        uint8_t ** ppItems = (uint8_t **)(pItem + pData->offset);
-
-        DBG_PRT("setDefault free %p\n", *ppItems);
-
-        assert(*ppItems != NULL);
-        free(*ppItems);
-        *ppItems = NULL;
-        setCount(pItem, 0);
-    }
+    // Free item memory (for OWNed aggregages, no effect on CONTAINed)
+    freeItems(pItem);
 }
 
 
@@ -1089,10 +1078,30 @@ void cm_owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) con
 
     if (pCounterAggr == NULL)
     {
-        // There may not be a counter -- don't need one if maxCount == 0
+        // There is no counter -- it's optional if maxCount == 1
+        // xxx what happens if there's no counter but maxCount > 1?
         return;
     }   
     memcpy(pParentItem + pCounterAggr->pData->offset, &count, sizeof(count));
+}
+
+
+// Free memory of items, if any.  This is called when setting the parent
+// item to default -- the default for OWNed components is that there are none.
+void cm_owned_aggregate::freeItems(uint8_t * pParentItem) const
+{
+    // If necessary, free the block of memory where the items were, and set counter to 0
+    if (getCount(pParentItem) > 0)
+    {
+        uint8_t ** ppItems = (uint8_t **)(pParentItem + pData->offset);
+
+        DBG_PRT("freeItems free %p\n", *ppItems);
+
+        assert(*ppItems != NULL);
+        free(*ppItems);
+        *ppItems = NULL;
+        setCount(pParentItem, 0);
+    }
 }
 
 
