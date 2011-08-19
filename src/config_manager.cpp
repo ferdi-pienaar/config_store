@@ -571,11 +571,9 @@ void cm_composite_descriptor::print(const uint8_t * pItem, string prefix) const
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < pData->aggrCount; i++)
     {            
-        const cm_aggregate * pAggr      = pData->aggrList[i];
-        const uint8_t *      pFirstItem = pAggr->getFirstItem(pItem);
-        unsigned int         itemCount  = pAggr->getCount(pItem);
+        const cm_aggregate * pAggr = pData->aggrList[i];
 
-        for (unsigned j = 0; j < itemCount; j++)
+        for (unsigned j = 0; j < pAggr->getCount(pItem); j++)
         {
             if (pAggr->pData->maxCount > 1)
             {
@@ -587,7 +585,7 @@ void cm_composite_descriptor::print(const uint8_t * pItem, string prefix) const
                 // There's only one item, so we needn't print an index
                 indexbuf[0] = 0;
             }
-            pAggr->pData->pDesc->print(pFirstItem + j * pAggr->pData->pDesc->getLen(),
+            pAggr->pData->pDesc->print(pAggr->getItemAtIndex(pItem, j),
                                        prefix + pAggr->pData->pDesc->getName() + indexbuf + " ");
         }
     }
@@ -610,18 +608,16 @@ void cm_composite_descriptor::setdef(uint8_t * pItem) const
     // For each component, and for each of the array of items under it...
     for (int i = 0; i < pData->aggrCount; i++)
     {            
-        const cm_aggregate * pAggr      = pData->aggrList[i];
-        uint8_t *            pFirstItem = pAggr->getFirstItem(pItem);
-        unsigned int         itemCount  = pAggr->getCount(pItem);
+        const cm_aggregate * pAggr = pData->aggrList[i];
 
         // Set each item to default
-        for (unsigned j = 0; j < itemCount; j++)
+        for (unsigned j = 0; j < pAggr->getCount(pItem); j++)
         {           
-            pAggr->pData->pDesc->setdef(pFirstItem + j * pAggr->pData->pDesc->getLen());
+            pAggr->pData->pDesc->setdef(pAggr->getItemAtIndex(pItem, j));
         }
 
         // If necessary, free the block of memory where the items were, and set counter to 0
-        if ((itemCount > 0) && pAggr->isAddSupported())
+        if ((pAggr->getCount(pItem) > 0) && pAggr->isAddSupported())
         {
             uint8_t ** ppItems = (uint8_t **)(pItem + pAggr->pData->offset);
 
@@ -773,7 +769,7 @@ bool cm_composite_descriptor::getComponentItem(int * pArgc,
         }
     }
 
-    *ppItem = (*ppAggr)->getFirstItem(pParentItem) + itemIdx * (*ppAggr)->pData->pDesc->getLen();
+    *ppItem =  (*ppAggr)->getItemAtIndex(pParentItem, itemIdx);
     ctxt.pDesc = (*ppAggr)->pData->pDesc;
     ctxt.pItem = *ppItem;
     return true;
@@ -781,8 +777,10 @@ bool cm_composite_descriptor::getComponentItem(int * pArgc,
 
 
 //
-// From ID and index, find matching component of this composite.
-// If the component does not exist, it is created in certain cases.
+// From ID and index, return aggregate and pointer to component item in this composite.
+// Because this function is called during loading, items are created as
+// needed: if the item is contained, the pointer to the already-allocated
+// memory is returned, and if it's owned, memory for the item is allocated.
 // id: (in) component item's ID
 // idx: (in) index of wanted component, 1 larger than
 //           the index previously passed to this method for the
@@ -812,8 +810,7 @@ bool cm_composite_descriptor::getComponentItem(cm_item_id_t id,
 
     if (idx == (*ppAggr)->pData->maxCount)
     {
-        // Maximum number of these item already loaded: skip it
-        // xxx maybe need special return code, not just bool
+        // Maximum number of these item already loaded: fail
         return false;
     }
 
@@ -823,7 +820,7 @@ bool cm_composite_descriptor::getComponentItem(cm_item_id_t id,
     }
     else
     {
-        *ppItem = (*ppAggr)->getFirstItem(pParentItem) + idx * (*ppAggr)->pData->pDesc->getLen();
+        *ppItem = (*ppAggr)->getItemAtIndex(pParentItem, idx);
     }
 
     if (*ppItem == NULL)
@@ -992,6 +989,15 @@ bool cm_aggregate::getIndex(int * pArgc,
     cout << "'" << pData->pDesc->getName() << "' needs index." <<endl;
     return false;
 }
+
+
+// Return pointer to item, given parent item and index
+uint8_t * cm_aggregate::getItemAtIndex(const uint8_t * pParentItem, unsigned idx) const
+{
+    return getFirstItem(pParentItem) + idx * pData->pDesc->getLen();
+}
+
+
 
 
 ////////////////////////////////////////////////////////////////////////////////

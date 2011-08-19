@@ -175,12 +175,15 @@ public:
 
     bool needIndex(const uint8_t * pParentItem) const {return getCount(pParentItem) > 1;}
     bool getIndex(int * pArgc, char *** pArgv, const uint8_t * pParentItem, unsigned int & itemIndex) const;
+    uint8_t * getItemAtIndex(const uint8_t * pParentItem, unsigned idx) const;
     /// returns address of the first item in the array
-    virtual uint8_t * getFirstItem(const uint8_t * pParentItem) const = 0;
     /// returns number of items currently in the aggregate
     virtual unsigned getCount(const uint8_t * pParentItem) const = 0;
     virtual bool isAddSupported() const = 0;
     virtual void setCount(uint8_t * pParentItem, unsigned int) const = 0;
+
+private:
+    virtual uint8_t * getFirstItem(const uint8_t * pParentItem) const = 0;
 };
 
 
@@ -193,10 +196,12 @@ class cm_contained_aggregate : public cm_aggregate
 public:
     cm_contained_aggregate(const cm_aggregate_data * d): cm_aggregate(d){}
 
-    uint8_t * getFirstItem(const uint8_t * pParentItem) const;
     virtual unsigned getCount(const uint8_t * pParentItem) const;
     bool isAddSupported() const {return false;}
     void setCount(uint8_t * pParentItem, unsigned int) const {assert(isAddSupported());} // add operation doesn't apply
+
+private:
+    uint8_t * getFirstItem(const uint8_t * pParentItem) const;
 
 };
 
@@ -207,19 +212,18 @@ public:
 /// and freed by a 'del' operation.  By default, the number of items is 0.
 class cm_owned_aggregate : public cm_aggregate
 {
-private:
-    const cm_contained_aggregate * pCounterAggr; // the counter for this owned component
-    
 public:
     cm_owned_aggregate(const cm_aggregate_data * d,
                        const cm_contained_aggregate * cntAggr):
                        cm_aggregate(d), pCounterAggr(cntAggr){}
 
-    uint8_t * getFirstItem(const uint8_t * pParentItem) const;
     virtual unsigned getCount(const uint8_t * pParentItem) const;
     bool isAddSupported() const {return true;}
     void setCount(uint8_t * pParentItem, unsigned int) const;
 
+private:
+    uint8_t * getFirstItem(const uint8_t * pParentItem) const;
+    const cm_contained_aggregate * pCounterAggr; // the counter for this owned component
 };
 
 ////////////////////////////////////////////////////////////////////////////////

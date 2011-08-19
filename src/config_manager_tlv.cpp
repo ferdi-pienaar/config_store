@@ -37,13 +37,11 @@ void cm_composite_tlv::write(const uint8_t *pItem, uint8_t ** ppBuf) const
     for (int i = 0; i < pDesc->getAggrCount(); i++)
     {            
         const cm_aggregate *  pAggr          = pDesc->getAggr(i);
-        const uint8_t *       pFirstItem     = pAggr->getFirstItem(pItem);
-        unsigned int          itemCount      = pAggr->getCount(pItem);
         const cm_descriptor * pComponentDesc = pAggr->pData->pDesc;
 
-        for (unsigned j = 0; j < itemCount; j++)
+        for (unsigned j = 0; j < pAggr->getCount(pItem); j++)
         {
-            pComponentDesc->writeTlv(pFirstItem + j * pComponentDesc->getLen(), ppBuf);
+            pComponentDesc->writeTlv(pAggr->getItemAtIndex(pItem, j), ppBuf);
         }
     }
 }
@@ -124,13 +122,12 @@ cm_item_len_t cm_composite_tlv::getLen(const uint8_t * pItem) const
     for (int i = 0; i < pDesc->getAggrCount(); i++)
     {
         const cm_aggregate *  pAggr           = pDesc->getAggr(i);
-        const uint8_t *       pFirstItem      = pAggr->getFirstItem(pItem);
         unsigned int          itemCount       = pAggr->getCount(pItem);
         const cm_descriptor * pComponentDesc  = pAggr->pData->pDesc;
 
         for (unsigned j = 0; j < itemCount; j++)
         {
-            tlvLen += pComponentDesc->getTlvLen(pFirstItem + j * pComponentDesc->getLen());
+            tlvLen += pComponentDesc->getTlvLen(pAggr->getItemAtIndex(pItem, j));
         }
     }
     return tlvLen;
