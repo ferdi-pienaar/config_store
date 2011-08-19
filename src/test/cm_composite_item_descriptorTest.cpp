@@ -26,6 +26,39 @@ int main(int argc, char** argv)
 }
 
 
+
+
+////////////////////////////////////////////////////////////////////////////////
+// xxx test set 3, OWNED with a non-printing counter.
+// The counter is still available to the application, but the user doesn't
+// want to see it.
+
+
+
+TEST_GROUP(cm_composite_descriptor)
+{
+    //Define data accessible to test group members here.
+    void setup()
+    {
+        //initialization steps are executed before each TEST
+    }
+    
+    void teardown()
+    {
+        //clean up steps are executed after each TEST
+    }
+};
+
+
+TEST(cm_composite_descriptor, getLen)
+{
+    cm_composite_metadata d_d  = {{"c1", 1, 55}, NULL, 0};
+    cm_composite_descriptor d(&d_d, false);
+
+    CHECK(d.getLen() == 55);
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // test set 1, CONTAINED
 // test set 1 data structure
@@ -49,6 +82,45 @@ const cm_contained_aggregate ca2(&ca2_d);
 const cm_aggregate * const aggrList1[] = {&ca1, &ca2};
 const cm_composite_metadata c1_d = {{"c1", 1, sizeof(struct m)}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
 const cm_composite_descriptor c1(&c1_d, false);
+
+
+TEST_GROUP(contained)
+{
+    //Define data accessible to test group members here.
+    void setup()
+    {
+        //initialization steps are executed before each TEST
+    }
+    
+    void teardown()
+    {
+        //clean up steps are executed after each TEST
+    }
+};
+
+
+TEST(contained, print)
+{
+    string prefix = "";
+    char outstring[64];
+    struct m mem = {3, 5}; // Test data
+    
+
+    // Redirect STDOUT to a file, so the test can examine what UUT writes there
+    if (freopen("testout.txt", "w", stdout) == NULL)
+    {
+        cout << "redirecting stdout failed" << endl;
+    }
+    c1.print((uint8_t *)&mem, prefix);
+
+    freopen("/dev/console", "w", stdout);
+
+    FILE * resf = fopen("testout.txt", "r");
+    fgets(outstring, sizeof(outstring), resf);
+    CHECK(strncmp(outstring, "name1 = 03000000\n", sizeof(outstring)) == 0);
+    fgets(outstring, sizeof(outstring), resf);
+    CHECK(strncmp(outstring, "name2 = 05000000\n", sizeof(outstring)) == 0);
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -77,35 +149,7 @@ const cm_composite_metadata c2_d = {{"c2", 1, sizeof(struct m2)}, aggrList2, siz
 const cm_composite_descriptor c2(&c2_d, false);
 
 
-////////////////////////////////////////////////////////////////////////////////
-// xxx test set 3, OWNED with a non-printing counter.
-// The counter is still available to the application, but the user doesn't
-// want to see it.
-
-
-////////////////////////////////////////////////////////////////////////////////
-// test set 4, OWNED with no counter => cntr for cm_owned_aggregate() is NULL
-// (When the max number of owned items is 1, no counter is needed, since
-// the pointer to the owned data is either NULL or not.)
-// test set 4 data structure
-#define MAX_NUMBER_OWNED_SET4 1
-struct m4
-{
-    int * owned;
-};
-
-// test set 4 metadata
-const cm_simple_metadata s7_d = {{"owned", 1, sizeof(int)}, NULL, NULL, NULL};
-const cm_simple_descriptor s7(&s7_d, false);
-const cm_aggregate_data oa7_d = {&s7, MAX_NUMBER_OWNED_SET4, offsetof(struct m4, owned)};
-const cm_owned_aggregate oa7(&oa7_d, NULL); // NULL => no counter
-
-const cm_aggregate * const aggrList4[] = {&oa7};
-const cm_composite_metadata c4_d = {{"c4", 1, sizeof(struct m4)}, aggrList4, sizeof(aggrList4)/sizeof(aggrList4[0])};
-const cm_composite_descriptor c4(&c4_d, false);
-
-
-TEST_GROUP(cm_composite_descriptor)
+TEST_GROUP(owned)
 {
     //Define data accessible to test group members here.
     void setup()
@@ -120,41 +164,8 @@ TEST_GROUP(cm_composite_descriptor)
 };
 
 
-TEST(cm_composite_descriptor, getLen)
-{
-    cm_composite_metadata d_d  = {{"c1", 1, 55}, NULL, 0};
-    cm_composite_descriptor d(&d_d, false);
-
-    CHECK(d.getLen() == 55);
-}
-
-
-TEST(cm_composite_descriptor, printContained)
-{
-    string prefix = "";
-    char outstring[64];
-    struct m mem = {3, 5}; // Test data
-    
-
-    // Redirect STDOUT to a file, so the test can examine what UUT writes there
-    if (freopen("testout.txt", "w", stdout) == NULL)
-    {
-        cout << "redirecting stdout failed" << endl;
-    }
-    c1.print((uint8_t *)&mem, prefix);
-
-    freopen("/dev/console", "w", stdout);
-
-    FILE * resf = fopen("testout.txt", "r");
-    fgets(outstring, sizeof(outstring), resf);
-    CHECK(strncmp(outstring, "name1 = 03000000\n", sizeof(outstring)) == 0);
-    fgets(outstring, sizeof(outstring), resf);
-    CHECK(strncmp(outstring, "name2 = 05000000\n", sizeof(outstring)) == 0);
-}
-
-
 // Owned component in metadata, but not allocated
-TEST(cm_composite_descriptor, printOwnedNull)
+TEST(owned, printNull)
 {
     string prefix = "";
     char outstring[64];
@@ -177,7 +188,7 @@ TEST(cm_composite_descriptor, printOwnedNull)
 
 
 // Owned component in metadata, correctly allocated
-TEST(cm_composite_descriptor, printOwnedData)
+TEST(owned, printData)
 {
     #define NUM_OWNED 2
 
@@ -207,7 +218,7 @@ TEST(cm_composite_descriptor, printOwnedData)
 }
 
 
-TEST(cm_composite_descriptor, addFirst)
+TEST(owned, addFirst)
 {
     struct m2 mem = {0, NULL}; // Test data
     char * commandWord = (char *)"owned";
@@ -224,7 +235,7 @@ TEST(cm_composite_descriptor, addFirst)
 }
 
 
-TEST(cm_composite_descriptor, addAnother)
+TEST(owned, addAnother)
 {
     struct m2 mem = {0, NULL}; // Test data
     char * commandWord = (char *)"owned";
@@ -243,7 +254,7 @@ TEST(cm_composite_descriptor, addAnother)
 }
 
 
-TEST(cm_composite_descriptor, delNull)
+TEST(owned, delNull)
 {
     struct m2 mem = {0, NULL};
     char * commandWord[] = {(char *)"owned", (char *)"1"};
@@ -257,7 +268,7 @@ TEST(cm_composite_descriptor, delNull)
 
 
 // Delete the 2nd of two owned items; the first is unchanged
-TEST(cm_composite_descriptor, delEnd)
+TEST(owned, delEnd)
 {
     #undef NUM_OWNED
     #define NUM_OWNED 2
@@ -282,7 +293,7 @@ TEST(cm_composite_descriptor, delEnd)
 
 
 // Delete the 1st of two owned items; the 2nd moves down
-TEST(cm_composite_descriptor, delFirst)
+TEST(owned, delFirst)
 {
     #undef NUM_OWNED
     #define NUM_OWNED 2
@@ -307,7 +318,7 @@ TEST(cm_composite_descriptor, delFirst)
 }
 
 
-TEST(cm_composite_descriptor, delSingle)
+TEST(owned, delSingle)
 {
     #undef NUM_OWNED
     #define NUM_OWNED 1
@@ -330,42 +341,8 @@ TEST(cm_composite_descriptor, delSingle)
 }
 
 
-// Add the sole, uncounted OWNed item
-TEST(cm_composite_descriptor, addOnly)
-{
-    struct m4 mem = {NULL};
-    char * commandWord = (char *)"owned";
-    
-    c4.handleAdd(1, &commandWord, (uint8_t *)&mem);
-
-    // Pointer updated
-    CHECK(mem.owned != NULL);
-
-    // Item initialized to "default default"
-    CHECK(*(mem.owned) == 0);
-}
-
-
-// Delete the sole, uncounted OWNed item
-TEST(cm_composite_descriptor, delOnly)
-{
-    struct m4 mem;
-    char * commandWord = (char *)"owned";
-    
-    // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
-    int * owned = (int *)malloc(NUM_OWNED * sizeof(int));
-    
-    mem.owned = owned;
-
-    c4.handleDel(1, &commandWord, (uint8_t *)&mem);
-
-    // And the pointer to owned is set to NULL after owned memory freed
-    CHECK(mem.owned == NULL);
-}
-
-
 // Allocate memory as side-effect of set command
-TEST(cm_composite_descriptor, implicitAdd)
+TEST(owned, implicitAdd)
 {
     struct m2 mem = {0, NULL}; // Test data
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"=", (char *)"42"};
@@ -382,7 +359,7 @@ TEST(cm_composite_descriptor, implicitAdd)
  
 
 // Do not (permanently) allocate memory as side-effect of executing invalid command
-TEST(cm_composite_descriptor, implicitAddFail)
+TEST(owned, implicitAddFail)
 {
     struct m2 mem = {0, NULL}; // Test data
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"blabla"};
@@ -396,4 +373,74 @@ TEST(cm_composite_descriptor, implicitAddFail)
     CHECK(mem.owned == NULL);
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+// test set 4, OWNED with no counter => cntr for cm_owned_aggregate() is NULL
+// (When the max number of owned items is 1, no counter is needed, since
+// the pointer to the owned data is either NULL or not.)
+// test set 4 data structure
+#define MAX_NUMBER_OWNED_SET4 1
+struct m4
+{
+    int * owned;
+};
+
+// test set 4 metadata
+const cm_simple_metadata s7_d = {{"owned", 1, sizeof(int)}, NULL, NULL, NULL};
+const cm_simple_descriptor s7(&s7_d, false);
+const cm_aggregate_data oa7_d = {&s7, MAX_NUMBER_OWNED_SET4, offsetof(struct m4, owned)};
+const cm_owned_aggregate oa7(&oa7_d, NULL); // NULL => no counter
+
+const cm_aggregate * const aggrList4[] = {&oa7};
+const cm_composite_metadata c4_d = {{"c4", 1, sizeof(struct m4)}, aggrList4, sizeof(aggrList4)/sizeof(aggrList4[0])};
+const cm_composite_descriptor c4(&c4_d, false);
+
+
+TEST_GROUP(ownedWithoutCounter)
+{
+    //Define data accessible to test group members here.
+    void setup()
+    {
+        //initialization steps are executed before each TEST
+    }
+    
+    void teardown()
+    {
+        //clean up steps are executed after each TEST
+    }
+};
+
+
+// Add the sole, uncounted OWNed item
+TEST(ownedWithoutCounter, addOnly)
+{
+    struct m4 mem = {NULL};
+    char * commandWord = (char *)"owned";
+    
+    c4.handleAdd(1, &commandWord, (uint8_t *)&mem);
+
+    // Pointer updated
+    CHECK(mem.owned != NULL);
+
+    // Item initialized to "default default"
+    CHECK(*(mem.owned) == 0);
+}
+
+
+// Delete the sole, uncounted OWNed item
+TEST(ownedWithoutCounter, delOnly)
+{
+    struct m4 mem;
+    char * commandWord = (char *)"owned";
+    
+    // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
+    int * owned = (int *)malloc(NUM_OWNED * sizeof(int));
+    
+    mem.owned = owned;
+
+    c4.handleDel(1, &commandWord, (uint8_t *)&mem);
+
+    // And the pointer to owned is set to NULL after owned memory freed
+    CHECK(mem.owned == NULL);
+}
 
