@@ -599,8 +599,7 @@ void cm_composite_descriptor::print(const uint8_t * pItem, string prefix) const
 // is NULL, so we can know not to try to free them.
 //
 // For OWNED components, we free owned memory before setting
-// the corresponding counter to 0 (it may be 0 already, depending
-// on the order of counter and owned component in the aggrList)
+// the corresponding counter to 0.
 //
 void cm_composite_descriptor::setDefault(uint8_t * pItem) const
 {    
@@ -927,11 +926,6 @@ void cm_simple_descriptor::setDefault(uint8_t * pItem) const
     {
         pData->pSetDefault(pItem, getLen());
     }
-    else
-    {
-        // The default default is all bits set to 0
-        memset(pItem, 0, getLen());
-    }
 }
 
 
@@ -1098,6 +1092,9 @@ void cm_owned_aggregate::freeItems(uint8_t * pParentItem) const
 
     if (*ppItems != NULL)
     {
+        // Sanity check
+        assert(getCount(pParentItem) > 0);
+
         // There are items, so free their block of memory, and set counter to 0
         DBG_PRT("freeItems %p\n", *ppItems);
 

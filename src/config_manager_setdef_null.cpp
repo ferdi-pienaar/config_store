@@ -1,0 +1,20 @@
+/// This file contains an optional but useful extension
+//  to the config manager: a setDefault function that
+//  just 0's the block of memory.  For many applications,
+//  this is the desired setdef action.
+
+#include "config_manager_setdef_null.h"
+#include <assert.h>
+#include <string.h> // memcpy
+
+using namespace std;
+
+// pItem - pointer to memory to set to default.
+// len - number of bytes the item consists of
+//
+void cm_setdef_null(uint8_t *pItem, cm_item_len_t len)
+{
+    assert(pItem != NULL);
+    memset(pItem, 0, len);
+}
+

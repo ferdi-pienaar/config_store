@@ -91,8 +91,8 @@ const cm_simple_metadata userCnt_d =
         USERCOUNT,
         SIZEOF(tDevice, userCount)
     },
-    NULL, // set xxx counter, so can't be set
-    NULL, // setdef for a counter is unnecessary
+    NULL, // set: counter, so can't be set
+    NULL, // setdef: no setdef for a counter
     cm_prt_int
 };
 

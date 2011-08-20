@@ -1,7 +1,8 @@
 #CXXFLAGS = -Wall -g -I ../../../CppUTest/include -I .. -DDEBUG_PRINT # -save-temps
 CXXFLAGS = -Wall -g -I ../../../CppUTest/include -I .. -I ../../export # -save-temps
 VPATH = ../../../CppUTest/lib # so make can find the library
-OBJS = ../config_manager.o ../config_manager_util.o ../config_manager_tlv.o
+OBJS = ../config_manager.o ../config_manager_util.o ../config_manager_tlv.o \
+ ../config_manager_setdef_null.o
 
 all: simpleTestTag compositeTestTag cmTestTag
 
@@ -46,11 +47,13 @@ config_manager.o: config_manager.cpp \
  ../../export/config_manager.h ../config_manager_types.h ../config_manager_tlv.h ../config_manager_dbg.h ../config_manager_util.h
 
 config_manager_util.o: config_manager_util.cpp \
- ../../export/config_manager.h ../config_manager_types.h ../config_manager_tlv.h ../config_manager_util.h
+ ../config_manager_types.h ../config_manager_util.h
 
 config_manager_tlv.o: config_manager_tlv.cpp \
  ../../export/config_manager.h ../config_manager_types.h ../config_manager_tlv.h ../config_manager_dbg.h
 
+config_manager_setdef_null.o: config_manager_setdef_null.cpp \
+ ../config_manager_types.h ../config_manager_setdef_null.h
 
 .PHONY: clean
 clean:

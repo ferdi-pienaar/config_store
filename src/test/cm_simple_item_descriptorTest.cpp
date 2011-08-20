@@ -107,7 +107,7 @@ TEST(cm_simple_descriptor, setdefFunc)
 }
 
 
-// Check setdef() sets data to 0 if there's no setdef function installed in metadata
+// Check setdef() does nothing if there's no setdef function installed in metadata
 TEST(cm_simple_descriptor, setdef)
 {
     int mem = 8;
@@ -116,7 +116,7 @@ TEST(cm_simple_descriptor, setdef)
     cm_simple_descriptor d(&d_d, false);
     
     d.setDefault((uint8_t *)&mem);
-    LONGS_EQUAL(0, mem);
+    LONGS_EQUAL(8, mem);
 }
 
 

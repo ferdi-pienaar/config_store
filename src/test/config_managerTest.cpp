@@ -10,6 +10,7 @@
 #include "CppUTest/CommandLineTestRunner.h"
 #include "config_manager.h"       // Unit under test
 #include "config_manager_util.h"  // Extensions to unit under test (generic "set" functions)
+#include "config_manager_setdef_null.h" // generic setdef function
 
 #include <string>
 #include <string.h> // memcmp, strncmp, etc
@@ -43,7 +44,7 @@ void setdef_t1(uint8_t *pItem, cm_item_len_t len)
 
 
 // test set 1 metadata
-const cm_simple_metadata s1_d = {{"name1", 1, sizeof(int)}, NULL, NULL, NULL};
+const cm_simple_metadata s1_d = {{"name1", 1, sizeof(int)}, NULL, cm_setdef_null, NULL};
 const cm_simple_descriptor s1(&s1_d, true);
 const cm_aggregate_data ca1_d = {&s1, 1, offsetof(struct m, m1)};
 const cm_contained_aggregate ca1(&ca1_d);

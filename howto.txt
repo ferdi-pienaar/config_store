@@ -18,6 +18,10 @@ The application programmer selects a prt function (he may also
 implement it).  He sets nonvolatile=false.  A setdef function is optional, e.g. 
 to reset statistics.  A set function can be provided, but doesn't make sense.
 
+Setdef functions should be provided, or items may be initialized with garbage.
+This does not apply to counters.  It does not apply to read-only items, which
+the application should initialize.
+
 (xxx For statistics, would we want an atomic read-and-reset option?)
 
 Counters are special items that keep the number of instances of an OWNed item.
@@ -25,6 +29,7 @@ If an owned array can contain more than 1 item (maxCount > 1), a counter is
 needed to keep track of the actual number of items in the array.
 If maxCount == 1, the counter is optional.
 xxx if the application programmer does not supply a needed counter...
+xxx if application programmer does supply a setdef for a counter...
 A counter should be a member of the same component as its OWNed item, but it 
 could in theory be a member of any composite higher up in the hierarchy, too 
 (higher up, so that it is guaranteed to exist when the OWNed item is created).

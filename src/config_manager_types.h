@@ -2,6 +2,7 @@
 // xxx This differs from config_manager.h in that... It's not for export?
 #ifndef CFG_MAN_TYPES_H
 #define CFG_MAN_TYPES_H
+#include <stdint.h> // uint8_t, etc
 
 // Number of bytes in an item; used in NVRAM
 // Because it determines the longest possible length of any item in NVRAM,
