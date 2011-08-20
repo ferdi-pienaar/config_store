@@ -26,13 +26,10 @@ int main(int argc, char** argv)
 }
 
 
-
-
 ////////////////////////////////////////////////////////////////////////////////
-// xxx test set 3, OWNED with a non-printing counter.
+// xxx TBD: Write this test set, OWNED with a non-printing counter.
 // The counter is still available to the application, but the user doesn't
 // want to see it.
-
 
 
 TEST_GROUP(cm_composite_descriptor)
@@ -262,7 +259,7 @@ TEST(owned, delNull)
     
     c2.handleDel(2, commandWord, (uint8_t *)&mem);
 
-    // The fails since there's nothing to delete; verify count remains unchanged
+    // The command does nothing since there's nothing to delete; verify count remains unchanged
     CHECK(mem.cnt == 0);
 }
 
@@ -371,6 +368,27 @@ TEST(owned, implicitAddFail)
     // Counter is not incremented and ptr to owned item is NULL
     CHECK(mem.cnt == 0);
     CHECK(mem.owned == NULL);
+}
+
+
+// Setting to default frees items xxx verify setdef of components is called???
+TEST(owned, setdef)
+{
+    #undef NUM_OWNED
+    #define NUM_OWNED 2
+
+    struct m2 mem;
+
+    // We have to malloc, not use automatic variables, since setdef operation results in free() for owned memory
+    int * owned = (int *)malloc(NUM_OWNED * sizeof(int));
+    owned[0] = 7;
+    mem.cnt = NUM_OWNED;
+    mem.owned = owned;
+    
+    c2.setDefault((uint8_t *)&mem);
+
+    CHECK(mem.cnt == 0);
+    POINTERS_EQUAL(NULL, mem.owned);
 }
 
 

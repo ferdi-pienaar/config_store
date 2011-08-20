@@ -92,7 +92,7 @@ const cm_simple_metadata userCnt_d =
         SIZEOF(tDevice, userCount)
     },
     NULL, // set xxx counter, so can't be set
-    NULL, // setdef xxx, do we need something here? could we have?
+    NULL, // setdef for a counter is unnecessary
     cm_prt_int
 };
 
@@ -332,3 +332,4 @@ const cm_composite_descriptor deviceDesc = cm_composite_descriptor(&device_d, tr
 // A pointer to the base descriptor: a global used by the application code
 // to initialize the config manager xxx
 const cm_descriptor * pBaseDesc = &deviceDesc;
+

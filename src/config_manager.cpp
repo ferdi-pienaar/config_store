@@ -599,10 +599,9 @@ void cm_composite_descriptor::print(const uint8_t * pItem, string prefix) const
 // is NULL, so we can know not to try to free them.
 //
 // For OWNED components, we free owned memory before setting
-// the corresponding counter to 0.
-// This means that we should not clear the counter first
-// (which is why a counter's setDefault method does nothing), since pAggr->getCount
-// for an owned component depends on the counter still being set.
+// the corresponding counter to 0 (it may be 0 already, depending
+// on the order of counter and owned component in the aggrList)
+//
 void cm_composite_descriptor::setDefault(uint8_t * pItem) const
 {    
     assert(pItem != NULL);
@@ -1093,7 +1092,6 @@ void cm_owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) con
 // Free memory of items, if any.  This is called when setting the parent
 // item to default -- the default for OWNed components is that there are none.
 //
-// xxx add sanity check that getcount==0 if the ptr is NULL?
 void cm_owned_aggregate::freeItems(uint8_t * pParentItem) const
 {
     uint8_t ** ppItems = (uint8_t **)(pParentItem + pData->offset);
@@ -1105,10 +1103,12 @@ void cm_owned_aggregate::freeItems(uint8_t * pParentItem) const
 
         free(*ppItems);
         *ppItems = NULL;
-
-        // Sanity check
-        assert(getCount(pParentItem) > 0);
         setCount(pParentItem, 0);
+    }
+    else
+    {
+        // Sanity check: if the pointer is NULL, there are no items.
+        assert(getCount(pParentItem) == 0);
     }
 }
 

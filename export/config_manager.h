@@ -13,15 +13,16 @@
 // xxx throughout I've provisionally avoided the use of references; revise this.
 
 
-// xxx one of the problems with the earlier version of this code that I'd like
+// One of the problems with the earlier version of this code that I wanted
 // to avoid this time is requiring the application developer to know that
-// a component counter has to precede an OWNED component or component array.
-// Possible solution: during init, for an OWNED component, give a pointer
+// a component counter has to precede an OWNED component array.
+// Solution: during init, for an OWNED component, give a pointer
 // to the descriptor of its counter, which must be a member of the same
-// composite.  Hence, the offset (and size) is available, and the item can be accessed
+// composite.  Hence, the offset (and size) is available, and the counter can be accessed
 // (in RAM).  This also forces the application programmer to
-// supply something, i.e. the API guides him.
-// Is there something we can do to verify, maybe at run-time, that the correct thing
+// supply a counter reference (or explicitly give NULL if it's a array with max size 1),
+// i.e. the API guides him.
+// xxx Is there something we can do to verify, maybe at run-time, that the correct thing
 // has been done?
 
 // Function pointers -- types registered by user when descriptor is created

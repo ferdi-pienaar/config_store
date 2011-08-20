@@ -20,7 +20,11 @@ to reset statistics.  A set function can be provided, but doesn't make sense.
 
 (xxx For statistics, would we want an atomic read-and-reset option?)
 
-Counters are special items that keep the number of instances of an OWNed item.  
+Counters are special items that keep the number of instances of an OWNed item.
+If an owned array can contain more than 1 item (maxCount > 1), a counter is 
+needed to keep track of the actual number of items in the array.
+If maxCount == 1, the counter is optional.
+xxx if the application programmer does not supply a needed counter...
 A counter should be a member of the same component as its OWNed item, but it 
 could in theory be a member of any composite higher up in the hierarchy, too 
 (higher up, so that it is guaranteed to exist when the OWNed item is created).
