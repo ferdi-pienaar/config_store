@@ -125,7 +125,7 @@ public:
     virtual cm_item_len_t getLen() const = 0;
 
     virtual unsigned short getAggrCount() const {return 0;}
-    virtual const cm_aggregate * getAggr(unsigned int i) const {return NULL;}
+    virtual const cm_aggregate * getAggrAtIndex(unsigned int i) const {return NULL;}
     virtual bool getComponentItem(int * pArgc,
                           char *** pArgv,
                           const cm_aggregate ** ppAggr,
@@ -182,7 +182,7 @@ public:
     virtual bool isAddSupported() const = 0;
     virtual void setCount(uint8_t * pParentItem, unsigned int) const = 0;
     void setDefault(uint8_t * pItem) const;
-
+    void print(const uint8_t * pItem, std::string prefix) const;
 
 private:
     /// returns address of the first item in the array
@@ -271,7 +271,7 @@ public:
     virtual cm_item_len_t getLen() const {return pData->c.len;}
 
     virtual unsigned short getAggrCount() const {return pData->aggrCount;}
-    virtual const cm_aggregate * getAggr(unsigned int i) const {return pData->aggrList[i];}
+    virtual const cm_aggregate * getAggrAtIndex(unsigned int i) const {return pData->aggrList[i];}
 
     ~cm_composite_descriptor(){};
     bool handleCmd(int argc, char *argv[], uint8_t * pItem, cm_context & ctxt) const;

@@ -19,6 +19,7 @@
 #include <iostream>
 #include "my_cfg.h"
 #include "config_manager_util.h"
+#include "config_manager_setdef_null.h"
 #include "my_cfg_fn.h" // User-written functions "plugged in" to config_manager
 
 using namespace std;
@@ -52,7 +53,7 @@ cm_simple_metadata ip_address_d =
         SIZEOF(tDevice, addr)
     },
     cm_set_int,
-    NULL, // setdef
+    cm_setdef_null,
     cm_prt_int
 };
 
@@ -72,7 +73,7 @@ const cm_simple_metadata port_d =
         SIZEOF(tDevice, cliPort[0]) // the number of elements in the array are taken into account in the aggregate below
     },
     cm_set_int,
-    NULL, // setdef
+    cm_setdef_null,
     cm_prt_int
 };
 
@@ -122,7 +123,7 @@ const cm_simple_metadata user_name_d =
         SIZEOF(tUser, name)
     },
     cm_set_str,
-    NULL, // setdef
+    cm_setdef_null,
     cm_prt_str
 };
 
@@ -142,7 +143,7 @@ const cm_simple_metadata user_id_d =
         SIZEOF(tUser, id),
     },
     cm_set_int, // xxx unsigned
-    NULL, // setdef
+    cm_setdef_null,
     cm_prt_int /* xxx unsigned */
 };
 
@@ -217,7 +218,7 @@ const cm_simple_metadata home_addr_d =
         sizeof(unsigned long) // xxx
     },
     cm_set_int, // xxx set
-    NULL, // setdef
+    cm_setdef_null,
     cm_prt_int
 };
 
@@ -243,7 +244,7 @@ const cm_simple_metadata home_loc_name_d =
        MAX_LEN_LOCATION_NAME // xxx
     },
     cm_set_str,
-    NULL, // setdef
+    cm_setdef_null,
     cm_prt_str
 };
 

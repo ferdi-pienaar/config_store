@@ -31,6 +31,10 @@ int main(int argc, char** argv)
 // The counter is still available to the application, but the user doesn't
 // want to see it.
 
+////////////////////////////////////////////////////////////////////////////////
+// xxx TBD: Write this test set, OWNED with a counter not adjacent to
+// the owned element, but AFTER it.
+
 
 TEST_GROUP(cm_composite_descriptor)
 {
@@ -83,10 +87,11 @@ const cm_composite_descriptor c1(&c1_d, false);
 
 TEST_GROUP(contained)
 {
-    //Define data accessible to test group members here.
+    struct m mem;
+    
     void setup()
     {
-        //initialization steps are executed before each TEST
+        memset(&mem, 0, sizeof(mem));
     }
     
     void teardown()
@@ -100,8 +105,9 @@ TEST(contained, print)
 {
     string prefix = "";
     char outstring[64];
-    struct m mem = {3, 5}; // Test data
-    
+
+    mem.m1 = 3;
+    mem.m2 = 5;
 
     // Redirect STDOUT to a file, so the test can examine what UUT writes there
     if (freopen("testout.txt", "w", stdout) == NULL)
@@ -120,10 +126,18 @@ TEST(contained, print)
 }
 
 
+static unsigned setdef_spy_calls = 0;
+
+// test set 2 user-defined functions: a spy
+void setdef_spy(uint8_t *pItem, cm_item_len_t len)
+{
+    setdef_spy_calls++;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // test set 2, OWNED with a visible (printing) counter
 // test set 2 data structure
-#define MAX_NUMBER_OWNED_SET2 10
+static const unsigned MAX_NUMBER_OWNED_SET2 = 10;
 struct m2
 {
     unsigned cnt;
@@ -136,7 +150,7 @@ const cm_simple_descriptor s3(&s3_d, false);
 const cm_aggregate_data ca3_d = {&s3, 1, offsetof(struct m2, cnt)};
 const cm_contained_aggregate ca3(&ca3_d);
 
-const cm_simple_metadata s4_d = {{"owned", 2, sizeof(int)}, cm_set_int, NULL, NULL};
+const cm_simple_metadata s4_d = {{"owned", 2, sizeof(int)}, cm_set_int, setdef_spy, NULL};
 const cm_simple_descriptor s4(&s4_d, false);
 const cm_aggregate_data oa4_d = {&s4, MAX_NUMBER_OWNED_SET2, offsetof(struct m2, owned)};
 const cm_owned_aggregate oa4(&oa4_d, &ca3);
@@ -148,10 +162,12 @@ const cm_composite_descriptor c2(&c2_d, false);
 
 TEST_GROUP(owned)
 {
-    //Define data accessible to test group members here.
+    struct m2 mem;
+    
     void setup()
     {
-        //initialization steps are executed before each TEST
+        memset(&mem, 0, sizeof(mem));
+        setdef_spy_calls = 0;
     }
     
     void teardown()
@@ -166,7 +182,6 @@ TEST(owned, printNull)
 {
     string prefix = "";
     char outstring[64];
-    struct m2 mem = {0, NULL}; // Test data
 
     
     // Redirect STDOUT to a file, so the test can examine what UUT writes there
@@ -187,14 +202,14 @@ TEST(owned, printNull)
 // Owned component in metadata, correctly allocated
 TEST(owned, printData)
 {
-    #define NUM_OWNED 2
+    const unsigned NUM_OWNED = 2;
 
     string prefix = "";
     char outstring[64];
-    // Test items
-    int owned[NUM_OWNED] = {7,8};
-    struct m2 mem = {NUM_OWNED, owned};
-
+    int owned[NUM_OWNED] = {7, 8};
+    mem.cnt = NUM_OWNED;
+    mem.owned = owned;
+    
     
     // Redirect STDOUT to a file, so the test can examine what UUT writes there
     if (freopen("testout.txt", "w", stdout) == NULL)
@@ -217,7 +232,6 @@ TEST(owned, printData)
 
 TEST(owned, addFirst)
 {
-    struct m2 mem = {0, NULL}; // Test data
     char * commandWord = (char *)"owned";
 
     
@@ -234,7 +248,6 @@ TEST(owned, addFirst)
 
 TEST(owned, addAnother)
 {
-    struct m2 mem = {0, NULL}; // Test data
     char * commandWord = (char *)"owned";
 
     
@@ -253,7 +266,6 @@ TEST(owned, addAnother)
 
 TEST(owned, delNull)
 {
-    struct m2 mem = {0, NULL};
     char * commandWord[] = {(char *)"owned", (char *)"1"};
 
     
@@ -267,17 +279,13 @@ TEST(owned, delNull)
 // Delete the 2nd of two owned items; the first is unchanged
 TEST(owned, delEnd)
 {
-    #undef NUM_OWNED
-    #define NUM_OWNED 2
-
-    struct m2 mem;
+    const unsigned NUM_OWNED = 2;
     char * commandWord[] = {(char *)"owned", (char *)"1"};
 
     // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
-    int * owned = (int *)malloc(NUM_OWNED * sizeof(int));
-    owned[0] = 7;
+    mem.owned = (int *)malloc(NUM_OWNED * sizeof(int));
+    mem.owned[0] = 7;
     mem.cnt = NUM_OWNED;
-    mem.owned = owned;
     
     c2.handleDel(2, commandWord, (uint8_t *)&mem);
 
@@ -292,18 +300,14 @@ TEST(owned, delEnd)
 // Delete the 1st of two owned items; the 2nd moves down
 TEST(owned, delFirst)
 {
-    #undef NUM_OWNED
-    #define NUM_OWNED 2
-
-    struct m2 mem;
+    const unsigned NUM_OWNED = 2;
     char * commandWord[] = {(char *)"owned", (char *)"0"};
 
     // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
-    int * owned = (int *)malloc(NUM_OWNED * sizeof(int));
-    owned[0] = 7;
-    owned[1] = 8;
+    mem.owned = (int *)malloc(NUM_OWNED * sizeof(int));
+    mem.owned[0] = 7;
+    mem.owned[1] = 8;
     mem.cnt = NUM_OWNED;
-    mem.owned = owned;
     
     c2.handleDel(2, commandWord, (uint8_t *)&mem);
 
@@ -317,16 +321,12 @@ TEST(owned, delFirst)
 
 TEST(owned, delSingle)
 {
-    #undef NUM_OWNED
-    #define NUM_OWNED 1
-
-    struct m2 mem;
+    const unsigned NUM_OWNED = 1;
     char * commandWord[] = {(char *)"owned", (char *)"0"};
 
     // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
-    int * owned = (int *)malloc(NUM_OWNED * sizeof(int));
+    mem.owned = (int *)malloc(NUM_OWNED * sizeof(int));
     mem.cnt = NUM_OWNED;
-    mem.owned = owned;
     
     c2.handleDel(2, commandWord, (uint8_t *)&mem);
 
@@ -341,7 +341,6 @@ TEST(owned, delSingle)
 // Allocate memory as side-effect of set command
 TEST(owned, implicitAdd)
 {
-    struct m2 mem = {0, NULL}; // Test data
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"=", (char *)"42"};
     cm_context ctxt;
 
@@ -358,7 +357,6 @@ TEST(owned, implicitAdd)
 // Do not (permanently) allocate memory as side-effect of executing invalid command
 TEST(owned, implicitAddFail)
 {
-    struct m2 mem = {0, NULL}; // Test data
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"blabla"};
     cm_context ctxt;
 
@@ -371,24 +369,22 @@ TEST(owned, implicitAddFail)
 }
 
 
-// Setting to default frees items xxx verify setdef of components is called???
+// Setting to default frees items
 TEST(owned, setdef)
 {
-    #undef NUM_OWNED
-    #define NUM_OWNED 2
+    const unsigned NUM_OWNED = 2;
 
-    struct m2 mem;
 
     // We have to malloc, not use automatic variables, since setdef operation results in free() for owned memory
-    int * owned = (int *)malloc(NUM_OWNED * sizeof(int));
-    owned[0] = 7;
+    mem.owned = (int *)malloc(NUM_OWNED * sizeof(int));
+    mem.owned[0] = 7;
     mem.cnt = NUM_OWNED;
-    mem.owned = owned;
     
     c2.setDefault((uint8_t *)&mem);
 
     CHECK(mem.cnt == 0);
     POINTERS_EQUAL(NULL, mem.owned);
+    LONGS_EQUAL(NUM_OWNED, setdef_spy_calls); // verify setdef of components is called
 }
 
 
@@ -397,7 +393,7 @@ TEST(owned, setdef)
 // (When the max number of owned items is 1, no counter is needed, since
 // the pointer to the owned data is either NULL or not.)
 // test set 4 data structure
-#define MAX_NUMBER_OWNED_SET4 1
+static const unsigned MAX_NUMBER_OWNED_SET4 = 1;
 struct m4
 {
     int * owned;
@@ -416,10 +412,11 @@ const cm_composite_descriptor c4(&c4_d, false);
 
 TEST_GROUP(ownedWithoutCounter)
 {
-    //Define data accessible to test group members here.
+    struct m4 mem;
+    
     void setup()
     {
-        //initialization steps are executed before each TEST
+        memset(&mem, 0, sizeof(mem));
     }
     
     void teardown()
@@ -432,7 +429,6 @@ TEST_GROUP(ownedWithoutCounter)
 // Add the sole, uncounted OWNed item
 TEST(ownedWithoutCounter, addOnly)
 {
-    struct m4 mem = {NULL};
     char * commandWord = (char *)"owned";
     
     c4.handleAdd(1, &commandWord, (uint8_t *)&mem);
@@ -448,13 +444,10 @@ TEST(ownedWithoutCounter, addOnly)
 // Delete the sole, uncounted OWNed item
 TEST(ownedWithoutCounter, delOnly)
 {
-    struct m4 mem;
     char * commandWord = (char *)"owned";
     
     // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
-    int * owned = (int *)malloc(NUM_OWNED * sizeof(int));
-    
-    mem.owned = owned;
+    mem.owned = (int *)malloc(MAX_NUMBER_OWNED_SET4 * sizeof(int));
 
     c4.handleDel(1, &commandWord, (uint8_t *)&mem);
 

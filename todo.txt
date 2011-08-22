@@ -45,4 +45,8 @@
   a configurable item, hence we don't need an instance per
   configurable item.  Why not give item's a pointer, init'd
   at compile time, to a static instance?
+- Separation between TLV: to achieve greater isolation for loading is possible:
+  TLV says: I have data with this ID and this size: give me the memory to write 
+  it to.  Client responds with memory (for simple items) or an instruction to 
+  read more (for composite items).
 

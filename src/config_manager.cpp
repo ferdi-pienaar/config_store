@@ -562,32 +562,13 @@ void cm_composite_descriptor::del(uint8_t * pParentItem,
 // 
 void cm_composite_descriptor::print(const uint8_t * pItem, string prefix) const
 {
-    char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
-
     assert(pItem != NULL);
 
     DBG_PRT("print composite %s len %d\n", getName().c_str(), getLen());
 
-    // For each component, and for each of the array of items under it...
-    for (int i = 0; i < pData->aggrCount; i++)
+    for (unsigned i = 0; i < pData->aggrCount; i++)
     {            
-        const cm_aggregate * pAggr = pData->aggrList[i];
-
-        for (unsigned j = 0; j < pAggr->getCount(pItem); j++)
-        {
-            if (pAggr->pData->maxCount > 1)
-            {
-                // There's more than one item, so print the index to distinguish among them
-                snprintf(indexbuf, sizeof(indexbuf), " %d", j);
-            }
-            else
-            {
-                // There's only one item, so we needn't print an index
-                indexbuf[0] = 0;
-            }
-            pAggr->pData->pDesc->print(pAggr->getItemAtIndex(pItem, j),
-                                       prefix + pAggr->pData->pDesc->getName() + indexbuf + " ");
-        }
+        getAggrAtIndex(i)->print(pItem, prefix);
     }
 }
 
@@ -606,9 +587,9 @@ void cm_composite_descriptor::setDefault(uint8_t * pItem) const
     assert(pItem != NULL);
 
     // Set each component to default
-    for (int i = 0; i < pData->aggrCount; i++)
+    for (unsigned i = 0; i < pData->aggrCount; i++)
     {            
-        pData->aggrList[i]->setDefault(pItem);
+        getAggrAtIndex(i)->setDefault(pItem);
     }
 }
 
@@ -618,15 +599,13 @@ void cm_composite_descriptor::help(const uint8_t * pItem) const
 {
     assert(pItem != NULL);
 
-    for (int i = 0; i < pData->aggrCount; i++)
+    for (unsigned i = 0; i < pData->aggrCount; i++)
     {   
-        const cm_aggregate * pAggr = pData->aggrList[i];
+        cout << getAggrAtIndex(i)->pData->pDesc->getName() << " [" << getAggrAtIndex(i)->getCount(pItem);
 
-        cout << pAggr->pData->pDesc->getName() << " [" << pAggr->getCount(pItem);
-
-        if (pAggr->isAddSupported())
+        if (getAggrAtIndex(i)->isAddSupported())
         {
-            cout << "/" << pAggr->pData->maxCount;
+            cout << "/" << getAggrAtIndex(i)->pData->maxCount;
         }
         cout << "]" << endl;
     }
@@ -638,13 +617,11 @@ const cm_aggregate * cm_composite_descriptor::getAggr(const char * name) const
 {
     assert(name != NULL);
 
-    for (int i = 0; i < pData->aggrCount; i++)
+    for (unsigned i = 0; i < pData->aggrCount; i++)
     {            
-        const cm_aggregate * pAggr = pData->aggrList[i];
-
-        if (strcmp(name, pAggr->pData->pDesc->getName().c_str()) == 0)
+        if (strcmp(name, getAggrAtIndex(i)->pData->pDesc->getName().c_str()) == 0)
         {
-            return pAggr;
+            return getAggrAtIndex(i);
         }
     }
     return NULL;
@@ -654,15 +631,11 @@ const cm_aggregate * cm_composite_descriptor::getAggr(const char * name) const
 // Look for the aggregate whose component has a matching ID
 const cm_aggregate * cm_composite_descriptor::getAggr(cm_item_id_t id) const
 {
-    for (int i = 0; i < pData->aggrCount; i++)
+    for (unsigned i = 0; i < pData->aggrCount; i++)
     {            
-        const cm_aggregate * pAggr = pData->aggrList[i];
-
-        assert(pAggr != NULL);
-
-        if (pAggr->pData->pDesc->getId() == id)
+        if (getAggrAtIndex(i)->pData->pDesc->getId() == id)
         {
-            return pAggr;
+            return getAggrAtIndex(i);
         }
     }
     return NULL;
@@ -750,7 +723,7 @@ bool cm_composite_descriptor::getComponentItem(int * pArgc,
         }
     }
 
-    *ppItem =  (*ppAggr)->getItemAtIndex(pParentItem, itemIdx);
+    *ppItem = (*ppAggr)->getItemAtIndex(pParentItem, itemIdx);
     ctxt.pDesc = (*ppAggr)->pData->pDesc;
     ctxt.pItem = *ppItem;
     return true;
@@ -831,6 +804,7 @@ pData(pMeta)
         assert(pTlv != NULL);
     }
 }
+
 
 // An item does not print its own name, since
 // it may be preceded by an index, which is known
@@ -986,6 +960,30 @@ void cm_aggregate::setDefault(uint8_t * pItem) const
 
     // Free item memory (for OWNed aggregates, no effect on CONTAINed)
     freeItems(pItem);
+}
+
+
+// Print, appending index to prefix (if necessary) and delegating to items
+// @param prefix string to be pre-pended to the value, representing its context
+void cm_aggregate::print(const uint8_t * pItem, std::string prefix) const
+{
+    char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
+
+    for (unsigned i = 0; i < getCount(pItem); i++)
+    {
+        if (pData->maxCount > 1)
+        {
+            // There's more than one item, so print the index to distinguish among them
+            snprintf(indexbuf, sizeof(indexbuf), " %d", i);
+        }
+        else
+        {
+            // There's only one item, so we needn't print an index
+            indexbuf[0] = 0;
+        }
+        pData->pDesc->print(getItemAtIndex(pItem, i),
+                            prefix + pData->pDesc->getName() + indexbuf + " ");
+    }
 }
 
 

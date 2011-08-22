@@ -36,12 +36,11 @@ void cm_composite_tlv::write(const uint8_t *pItem, uint8_t ** ppBuf) const
     // Now write V, which is the TLVs of all components
     for (int i = 0; i < pDesc->getAggrCount(); i++)
     {            
-        const cm_aggregate *  pAggr          = pDesc->getAggr(i);
-        const cm_descriptor * pComponentDesc = pAggr->pData->pDesc;
+        const cm_aggregate * pAggr = pDesc->getAggrAtIndex(i);
 
         for (unsigned j = 0; j < pAggr->getCount(pItem); j++)
         {
-            pComponentDesc->writeTlv(pAggr->getItemAtIndex(pItem, j), ppBuf);
+            pAggr->pData->pDesc->writeTlv(pAggr->getItemAtIndex(pItem, j), ppBuf);
         }
     }
 }
@@ -121,13 +120,11 @@ cm_item_len_t cm_composite_tlv::getLen(const uint8_t * pItem) const
     // For each aggregate, and for each of the array of items under it...
     for (int i = 0; i < pDesc->getAggrCount(); i++)
     {
-        const cm_aggregate *  pAggr           = pDesc->getAggr(i);
-        unsigned int          itemCount       = pAggr->getCount(pItem);
-        const cm_descriptor * pComponentDesc  = pAggr->pData->pDesc;
+        const cm_aggregate * pAggr = pDesc->getAggrAtIndex(i);
 
-        for (unsigned j = 0; j < itemCount; j++)
+        for (unsigned j = 0; j < pAggr->getCount(pItem); j++)
         {
-            tlvLen += pComponentDesc->getTlvLen(pAggr->getItemAtIndex(pItem, j));
+            tlvLen += pAggr->pData->pDesc->getTlvLen(pAggr->getItemAtIndex(pItem, j));
         }
     }
     return tlvLen;
