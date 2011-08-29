@@ -138,7 +138,7 @@ TEST(contained, load)
 
 // Verify what's loaded into memory, given TLV file with L of 2nd simple
 // component that doesn't match the item descriptor.
-IGNORE_TEST(contained, loadChangedSimpleLen)
+TEST(contained, loadChangedSimpleLen)
 {
     uint8_t tlv[20] =
     /* The following assumes little-endian integers */

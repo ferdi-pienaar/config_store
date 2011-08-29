@@ -97,20 +97,25 @@ t_cm_result Tlv::getType(cm_item_id_t * id)
 // @param containerComplete, out: number of containers complete
 t_cm_result Tlv::loadSimple(uint8_t * pRam, cm_item_len_t * length, unsigned * complete)
 {
+    t_cm_result ret = CM_SUCCESS;
     cm_item_len_t l;
     nvram->read((uint8_t *)&l, sizeof(cm_item_len_t));
 
-    if (*length < l)
+    if (*length != l)
     {
-        return CM_READ_FAIL; // xxx need insufficient_mem return code
+        // skip unreadable item
+        nvram->adjustOffset(l);
+        // Inform application what's in NVRAM can't find in pRam
+        ret = CM_READ_FAIL; // xxx need insufficient_mem return code
     }
-    
-    nvram->read(pRam, l);
+    else
+    {
+        nvram->read(pRam, l);
+    }
 
     *length = l;
-
     *complete = popLoadStack(l);
-    return CM_SUCCESS;
+    return ret;
 }
 
 

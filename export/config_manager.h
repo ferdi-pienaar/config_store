@@ -104,44 +104,22 @@ typedef struct t_cm_context
 // xxx methods are private (not for user), but config_manager is friend?
 class cm_descriptor
 {
-#if 0
-protected:
-    const cm_tlv * pTlv; ///< Object representing Type Length Value; non-NULL for items saved to NVRAM
-#endif
 
 public:
-#if 0
-    cm_descriptor(): pTlv(NULL) {}
-#else
     cm_descriptor() {}
-#endif
     virtual ~cm_descriptor(){}
 
     virtual bool handleCmd(int argc, char *argv[], uint8_t * pItem, struct t_cm_context & ctxt ) const = 0;
     virtual std::string getName() const = 0;
-
-    #if 0
-    virtual const cm_item_id_t * getIdPtr() const = 0;
-    #endif
     virtual cm_item_id_t getId() const = 0;
-
-    virtual const cm_item_len_t * getLenPtr() const = 0;
-    //virtual cm_item_len_t getTlvLen(const uint8_t * pItem) const;
-    #if 0
-    virtual void writeTlv(const uint8_t * pItem, uint8_t ** ppBuf) const;
-    #else
     virtual void writeTlv(const uint8_t * pItem) const = 0;
-    #endif
-
-    #if 0
-    virtual unsigned int loadFromTlv(FILE * fp, uint8_t * pItem, t_cm_result & res) const;
-    #else
     virtual unsigned int loadFromTlv(uint8_t * pItem, unsigned * pComplete) const = 0;
-    #endif
-
     virtual cm_item_len_t getLen() const = 0;
+    virtual void print(const uint8_t * pItem, std::string prefix) const = 0;
+    virtual void setDefault(uint8_t * pItem) const = 0;
+    virtual void help(const uint8_t * pItem) const = 0;
 
-    virtual unsigned short getAggrCount() const {return 0;}
+private:
     virtual const cm_aggregate * getAggrAtIndex(unsigned int i) const {return NULL;}
     virtual bool getComponentItem(int * pArgc,
                           char *** pArgv,
@@ -155,10 +133,7 @@ public:
                           const cm_aggregate ** ppAggr,
                           uint8_t * pParentItem,
                           uint8_t ** ppItem) const {return false;}
-
-    virtual void print(const uint8_t * pItem, std::string prefix) const = 0;
-    virtual void setDefault(uint8_t * pItem) const = 0;
-    virtual void help(const uint8_t * pItem) const = 0;
+    virtual unsigned short getAggrCount() const {return 0;}
 
 };
 
@@ -246,6 +221,7 @@ public:
 private:
     uint8_t * getFirstItem(const uint8_t * pParentItem) const;
     void freeItems(uint8_t * pParentItem) const;
+    
     const cm_contained_aggregate * pCounterAggr; // the counter for this owned component
 };
 
@@ -255,16 +231,23 @@ private:
 // xxx methods (apart from constructor) are private (not for user), but config_manager is friend?
 class cm_composite_descriptor : public cm_descriptor
 { 
-
-public: // needs to be accessed by TLV class
-    const cm_composite_metadata * const pData;
+public:    
+    cm_composite_descriptor(const cm_composite_metadata * pMeta);
+    ~cm_composite_descriptor(){};
+    std::string getName() const {return pData->c.name;}
+    virtual cm_item_id_t getId() const {return pData->c.id;}
+    virtual cm_item_len_t getLen() const {return pData->c.len;}
+    bool handleCmd(int argc, char *argv[], uint8_t * pItem, cm_context & ctxt) const;
+    void print(const uint8_t * pItem, std::string prefix) const;
+    void setDefault(uint8_t * pItem) const;
+    virtual void help(const uint8_t * pItem) const;
+    bool handleAdd(int argc, char *argv[], uint8_t * pItem) const;// xxx could this be private, accessed only from handleCmd?
+    bool handleDel(int argc, char *argv[], uint8_t * pItem) const;// xxx could this be private, accessed only from handleCmd?
+    void writeTlv(const uint8_t * pItem) const;
+    unsigned int loadFromTlv(uint8_t * pItem, unsigned * pComplete) const;
 
 private:
-    const cm_aggregate * getAggr(const char * name) const;
-    const cm_aggregate * getAggr(cm_item_id_t id) const;
     bool handleIdWord(int argc, char *argv[], uint8_t * pItem, cm_context & ctxt) const;
-
-public: // tlv class should be friend so it can call these
     bool getComponentItem(int * pArgc,
                           char *** pArgv,
                           const cm_aggregate ** ppAggr,
@@ -277,40 +260,17 @@ public: // tlv class should be friend so it can call these
                           const cm_aggregate ** ppAggr,
                           uint8_t * pParentItem,
                           uint8_t ** ppItem) const;
-
-public:    
-    cm_composite_descriptor(const cm_composite_metadata * pMeta);
-
-    std::string getName() const {return pData->c.name;}
-
-    #if 0
-    virtual const cm_item_id_t * getIdPtr() const {return &(pData->c.id);}
-    #endif
-    virtual cm_item_id_t getId() const {return pData->c.id;}
-    virtual const cm_item_len_t * getLenPtr() const {return &(pData->c.len);}
-    virtual cm_item_len_t getLen() const {return pData->c.len;}
-
     virtual unsigned short getAggrCount() const {return pData->aggrCount;}
     virtual const cm_aggregate * getAggrAtIndex(unsigned int i) const {return pData->aggrList[i];}
-
-    ~cm_composite_descriptor(){};
-    bool handleCmd(int argc, char *argv[], uint8_t * pItem, cm_context & ctxt) const;
-    void print(const uint8_t * pItem, std::string prefix) const;
-    void setDefault(uint8_t * pItem) const;
-    virtual void help(const uint8_t * pItem) const;
-    bool handleAdd(int argc, char *argv[], uint8_t * pItem) const;
     uint8_t * add(uint8_t * pParentItem, const cm_aggregate * pAggr) const;
-    bool handleDel(int argc, char *argv[], uint8_t * pItem) const;
     void del(uint8_t * pParentItem,
              const cm_aggregate * pAggr,
              unsigned int itemIdx,
              unsigned int cnt) const;
+    const cm_aggregate * getAggr(const char * name) const;
+    const cm_aggregate * getAggr(cm_item_id_t id) const;
 
-    void writeTlv(const uint8_t * pItem) const;
-    unsigned int loadFromTlv(uint8_t * pItem, unsigned * pComplete) const;
-
-
-
+    const cm_composite_metadata * const pData;
 };
 
 
@@ -320,31 +280,23 @@ public:
 // xxx methods (apart from constructor) are private (not for user), but config_manager is friend?
 class cm_simple_descriptor : public cm_descriptor
 {
-
-public: // needs to be accessed by TLV class xxx make private
-    const cm_simple_metadata * const pData;
-   
 public:
     cm_simple_descriptor(const cm_simple_metadata * pMeta);
-                              
     virtual ~cm_simple_descriptor() {}
     bool handleCmd(int argc, char *argv[], uint8_t * pItem, cm_context & ctxt) const;
     std::string getName() const {return pData->c.name;}
-
-    #if 0
-    virtual const cm_item_id_t * getIdPtr() const {return &(pData->c.id);}
-    #endif
     virtual cm_item_id_t getId() const {return pData->c.id;}
-    virtual const cm_item_len_t * getLenPtr() const {return &(pData->c.len);}
     virtual cm_item_len_t getLen() const {return pData->c.len;}
-
     void print(const uint8_t * pItem, std::string prefix) const;
     bool set(uint8_t * pItem, std::string val) const;
     void setDefault(uint8_t * pItem) const;
-
     void help(const uint8_t * pItem) const {std::cout << "len " << getLen() << std::endl;}
     virtual void writeTlv(const uint8_t * pItem) const;
     unsigned int loadFromTlv(uint8_t * pItem, unsigned * pComplete) const;
+
+private:
+    const cm_simple_metadata * const pData;
+
 };
 
 
