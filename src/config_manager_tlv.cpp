@@ -2,274 +2,174 @@
 // Type-Length-Value format of data, for storage in non-volatile media, e.g. a file.
 // This is defined as a separate class hierarchy, since it's an optional feature:
 // not all managed objects are saved in NVRAM.
+//
+// This module asserts that the data passed to it by the client is valid, e.g.
+//  - no endWriteComposite without matching startWriteComposite.
+//  - no more than stackDepth nested calls to startWriteComposite.
+//
+
+#include <stdint.h> // uint8_t, etc
 #include "config_manager_tlv.h"
-#include "config_manager_dbg.h"
-#include <sstream>
+#include "../../cfg_man/src/config_manager_dbg.h"
+#include <iostream>
 #include <string.h> // memcpy
+#include "nvram.h"
+#include <assert.h>
 
 using namespace std;
 
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// cm_composite_tlv
-//
-////////////////////////////////////////////////////////////////////////////////
-
-/// Write item's TLV to a buffer, and advance the ptr to the end of memory written to.
-//  This is useful for writing to a RAM buffer first, for subsequent write
-//  to NVRAM.
-//  xxx add param, bufsize, to do a buffer overflow check.
-//  xxx if we want to write directly to NVRAM, we need to implement a method
-//  that does that...
-void cm_composite_tlv::write(const uint8_t *pItem, uint8_t ** ppBuf) const
+Tlv::Tlv(): stackIndex(-1)
 {
-    // The L field in TLV excludes the item's T+L fields
-    cm_item_len_t componentLen = getLen(pItem) - sizeof(pDesc->getLen()) - sizeof(cm_item_len_t);
-    
-    // First write own Type and Length
-    memcpy(*ppBuf, pDesc->getIdPtr(), sizeof(cm_item_id_t)); // write Type (i.e. the ID)
-    *ppBuf += sizeof(cm_item_id_t);                          // advance the memory pointer
-    memcpy(*ppBuf, &componentLen, sizeof(componentLen));     // write Length (of Value to follow)
-    *ppBuf += sizeof(componentLen);                          // advance the memory pointer
-    
-    // Now write V, which is the TLVs of all components
-    for (int i = 0; i < pDesc->getAggrCount(); i++)
-    {            
-        const cm_aggregate * pAggr = pDesc->getAggrAtIndex(i);
+    nvram = new Nvram;
+}
 
-        for (unsigned j = 0; j < pAggr->getCount(pItem); j++)
+Tlv::~Tlv()
+{
+    delete nvram;
+}
+
+
+void Tlv::writeSimple(cm_item_id_t t, cm_item_len_t l, const uint8_t * v)
+{
+    nvram->write((uint8_t *)&t, sizeof(t));
+    nvram->write((uint8_t *)&l, sizeof(l));
+    nvram->write(v, l);
+
+    addLengthToComposite(l);
+}
+
+
+// xxx don't really need stackItem->length: could write it to NVRAM and increment it there,
+// if we don't mind the repeated read/write to NVRAM.
+void Tlv::startWriteComposite(cm_item_id_t t)
+{
+    assert(stackIndex < (int)stackDepth);
+
+    stackIndex++;
+
+    Tlv::compositeContext * context = &(stack[stackIndex]);
+
+    nvram->write((uint8_t *)&t, sizeof(t));
+    context->length = 0;
+    context->lengthOffset = nvram->getOffset();
+
+    nvram->adjustOffset(sizeof(cm_item_len_t)); // reserve space for L, to be written later
+}
+
+
+// Close writing of composite by writing L of TLV
+// xxx return boolean to indicate if we've reached the bottom of the stack?
+void Tlv::endWriteComposite()
+{
+    assert(stackIndex >= 0); // we must be inside a composite to end one
+    
+    Tlv::compositeContext * context = &(stack[stackIndex]);
+
+    nvram->setOffset(context->lengthOffset);
+    nvram->write((uint8_t *)&(context->length), sizeof(context->length));
+
+    // switch to context of owning composite (or set to -1 if we're exiting the final composite)
+    stackIndex--;
+
+    addLengthToComposite(context->length);
+
+    if (stackIndex == -1)
+    {
+        // When final composite access is complete, we're done
+        nvram->accessComplete();
+    }
+}
+
+
+// Load T from NVRAM and return it
+t_cm_result Tlv::getType(cm_item_id_t * id)
+{
+    nvram->read((uint8_t *)id, sizeof(cm_item_id_t));
+    return CM_SUCCESS;
+}
+
+
+// T returned has been identified as composite:
+// start loading the composite by returning the next T
+// (and start keeping track of the composite's L)
+// @param pRam
+// @param length in/out, in: available memory, out: used memory
+// @param containerComplete, out: number of containers complete
+t_cm_result Tlv::loadSimple(uint8_t * pRam, cm_item_len_t * length, unsigned * complete)
+{
+    cm_item_len_t l;
+    nvram->read((uint8_t *)&l, sizeof(cm_item_len_t));
+
+    if (*length < l)
+    {
+        return CM_READ_FAIL; // xxx need insufficient_mem return code
+    }
+    
+    nvram->read(pRam, l);
+
+    *length = l;
+
+    *complete = popLoadStack(l);
+    return CM_SUCCESS;
+}
+
+
+// T returned has been identified as composite:
+// start loading the composite by returning the next T
+// (and start keeping track of the composite's L).
+// @param T, out, type of 1st component
+// @param containerComplete, out
+t_cm_result Tlv::loadComposite()
+{
+    cm_item_len_t length;
+    nvram->read((uint8_t *)&length, sizeof(cm_item_len_t));
+
+    if (stackIndex >= 0)
+    {
+        // xxx is container complete?
+    }
+
+    stackIndex++;
+    stack[stackIndex].length = length;
+    return CM_SUCCESS;
+}
+
+
+// Add component's contribution to the length of the composite it is contained in.
+// @param L field of component, excluding length of its T + L, which is added by this method
+void Tlv::addLengthToComposite(unsigned length)
+{
+    if (stackIndex >= 0)
+    {
+        // Current item is member of a composite, so add component's contribution to its length
+        stack[stackIndex].length += length + sizeof(cm_item_id_t) + sizeof(cm_item_len_t);
+    }
+}
+
+
+// @return the number of composites which have been completely loaded after loading this
+//         simple component.
+unsigned Tlv::popLoadStack(cm_item_len_t length)
+{
+    unsigned complete = 0;
+    cm_item_len_t containedLength = length + sizeof(length) + sizeof(cm_item_id_t);
+
+    while (stackIndex >= 0)
+    {
+        stack[stackIndex].length -= containedLength;  // xxx do this here?  we read T earlier...
+
+        if (stack[stackIndex].length == 0)
         {
-            pAggr->pData->pDesc->writeTlv(pAggr->getItemAtIndex(pItem, j), ppBuf);
+            complete++;
+            stackIndex--; // This composite is complete; maybe next-level container is also
+            containedLength += sizeof(length) + sizeof(cm_item_id_t);
+        }
+        else
+        {
+            // Composite is incomplete: we don't check further containers
+            break;
         }
     }
-}
-
-
-// This method is called if the TLV field T (the item ID) matches,
-// so it's not checked here again.
-// This method reads L, and moves forward in the file by that many bytes,
-// using what it finds in the file to initialize the object's configurable items.
-// @return number of bytes read
-//
-// xxx sanity check: L read from the file should never be 0
-//
-unsigned int cm_composite_tlv::load(FILE * fp, uint8_t * pItem, t_cm_result & res) const
-{
-    cm_item_len_t tlvLen;
-    cm_item_len_t bytesRead = 0;
-
-    if (fread(&tlvLen, sizeof(tlvLen), 1, fp) != 1)
-    {
-        res = CM_READ_FAIL;
-        return bytesRead;
-    }
-
-    bytesRead = sizeof(tlvLen);
-
-    DBG_PRT("composite load %d bytes to %p\n", tlvLen, pItem);
-
-    bytesRead += loadComponents(fp, pItem, tlvLen, res);
-    
-    // Sanity check on coherence of the data read from the TLV file
-    if (bytesRead != tlvLen + sizeof(tlvLen))
-    {
-        cout << "'" << pDesc->getName() << "' contains " << bytesRead - sizeof(tlvLen) << ", not "
-             << tlvLen <<"!" << endl;
-        res = CM_INCOHERENT_DATA;
-    }
-    return bytesRead;
-}
-
-
-// Load components of this composite.
-// @return number of bytes read
-//
-// xxx sanity check: L read from the file should never be 0
-//
-unsigned int cm_composite_tlv::loadComponents(FILE * fp, 
-                                              uint8_t * pItem,
-                                              cm_item_len_t bytesToRead,
-                                              t_cm_result & res) const
-{
-    bool          first = true; // Is this the first component item?
-    cm_item_len_t bytesRead = 0;
-
-    // While enough unread bytes remain for T+L fields of a component.
-    while (bytesRead + sizeof(cm_item_id_t) + sizeof(cm_item_len_t) <= bytesToRead)
-    {        
-        bytesRead += loadComponent(fp, pItem, first, res);
-
-        if (res != CM_SUCCESS)
-        {
-            return bytesRead;
-        }
-        
-        first = false;
-        DBG_PRT("composite '%s': %d read\n", pDesc->getName().c_str(), bytesRead);
-    }
-    return bytesRead;
-}
-
-
-/// Return total length of TLV item, the number of bytes in T + L + V.
-cm_item_len_t cm_composite_tlv::getLen(const uint8_t * pItem) const
-{
-    cm_item_len_t tlvLen = sizeof(cm_item_id_t) + sizeof(cm_item_len_t);
-
-    // For each aggregate, and for each of the array of items under it...
-    for (int i = 0; i < pDesc->getAggrCount(); i++)
-    {
-        const cm_aggregate * pAggr = pDesc->getAggrAtIndex(i);
-
-        for (unsigned j = 0; j < pAggr->getCount(pItem); j++)
-        {
-            tlvLen += pAggr->pData->pDesc->getTlvLen(pAggr->getItemAtIndex(pItem, j));
-        }
-    }
-    return tlvLen;
-}
-
-
-//
-// @param fp, input, file to load from
-// @param pItem, input, pointer to base of RAM where value read from file should be loaded
-// @param first, input, is this first read within component, meaning input lastCompId is invalid?
-// @param itemIdx, input/output, index representing offset in RAM
-// @param lastCompId, input/output, ID read from file, valid if res is CM_SUCCESS
-// @param res, output, CM_SUCCESS, or CM_READ_FAIL if unable to read from file.
-//        Note that CM_SUCCESS is returned even if we don't load an item because it
-//        is not as expected, e.g. too many instances, unknown ID, etc xxx
-// @return number of bytes read from fp
-//
-unsigned int cm_composite_tlv::loadComponent(FILE * fp,
-                                             uint8_t * pItem,
-                                             bool first,
-                                             t_cm_result & res) const
-{
-    static unsigned int itemIdx;       // 0-based number of next instance of given compId to read
-    cm_item_len_t       bytesRead = 0; // Number of bytes read by this method
-    cm_item_id_t        compId;        // compId read by this method
-    static cm_item_id_t lastCompId;    // previous compId read
-    
-    if (fread(&compId, sizeof(compId), 1, fp) != 1)
-    {
-        res = CM_READ_FAIL;
-        return bytesRead;
-    }
-
-    bytesRead += sizeof(compId);
-
-    DBG_PRT("loadComponent ID %d\n", compId);
-
-    if (first || (lastCompId != compId))
-    {
-        // First read of this component ID, i.e. first item in an array
-        lastCompId = compId;
-        itemIdx = 0;
-    }
-
-    const cm_aggregate * pAggr;
-    uint8_t *            pComponentItem;
-
-    if (!pDesc->getComponentItem(compId, itemIdx++, &pAggr, pItem, &pComponentItem))
-    {
-        // skip because we couldn't find the ID, index is out of range, or couldn't malloc
-        bytesRead += skipItem(fp, res);
-    }
-    else
-    {        
-        bytesRead += pAggr->pData->pDesc->loadFromTlv(fp, pComponentItem, res);
-    }
-    return bytesRead;
-}
-
-
-// Having read the Type (ID) of an item from the TLV file, skip L and V.
-// @return number of bytes moved ahead in the file
-// xxx write to res parameter
-unsigned int cm_composite_tlv::skipItem(FILE * fp, t_cm_result & res) const
-{
-    cm_item_len_t tlvLen;
-    
-    fread(&tlvLen, sizeof(tlvLen), 1, fp);
-    cm_item_len_t bytesRead = sizeof(tlvLen);
-
-    fseek(fp, tlvLen, SEEK_CUR);
-    return bytesRead += tlvLen;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// cm_simple_tlv
-//
-////////////////////////////////////////////////////////////////////////////////
-
-
-/// Write TLV to a buffer, and advance the ptr to the end of memory written to.
-//  This is useful for writing to a RAM buffer first, for subsequent write
-//  to NVRAM.
-//  xxx if we want to write directly to NVRAM, we need to implement a method
-//  that does that...
-void cm_simple_tlv::write(const uint8_t *pItem, uint8_t ** ppBuf) const
-{
-    memcpy(*ppBuf, pDesc->getIdPtr(), sizeof(cm_item_id_t));   // write Type (i.e. the ID)
-    *ppBuf += sizeof(cm_item_id_t);                            // advance the memory pointer
-
-    memcpy(*ppBuf, pDesc->getLenPtr(), sizeof(cm_item_len_t)); // write Length
-    *ppBuf += sizeof(cm_item_len_t);                           // advance the memory pointer
-
-    memcpy(*ppBuf, pItem, pDesc->getLen());                    // write Value
-    *ppBuf += pDesc->getLen();
-}
-
-
-/// Return total length of TLV item, the number of bytes in T + L + V.
-//  (For a simple item, there's no dependency on pItem, the RAM contents.)
-cm_item_len_t cm_simple_tlv::getLen(const uint8_t * pItem) const
-{
-    return sizeof(cm_item_id_t) + sizeof(cm_item_len_t) + pDesc->getLen();
-}
-
-
-// This method is called if the TLV field T (the item ID) matches,
-// so it's not checked here again.
-// This method reads L, and moves forward in the file by that many bytes,
-// using what it finds in the file to initialize the object's configurable items.
-// xxx after each read, check how much was read.
-unsigned int cm_simple_tlv::load(FILE * fp, uint8_t * pItem, t_cm_result & res) const
-{
-    cm_item_len_t tlvLen;
-    
-    if (fread(&tlvLen, sizeof(tlvLen), 1, fp) != 1)
-    {
-        res = CM_READ_FAIL;
-        goto exit;
-    }
-
-    DBG_PRT("load simple %d bytes to %p\n", tlvLen, pItem);
-
-    if (tlvLen != pDesc->getLen())
-    {
-        // Item larger than expected: we don't truncate, we leave
-        // the item as unchanged, but move forward in the file.
-        // xxx Could we handle the case where len > tlvLen?  No, for big-endian
-        // systems we'd have to know if we were reading an integer or not.
-        cout << "TLV len " << tlvLen << ", expected " << pDesc->getLen() << endl;
-
-        fseek(fp, tlvLen, SEEK_CUR);
-    }
-    else
-    {
-        if (fread(pItem, tlvLen, 1, fp) != 1)
-        {
-            res = CM_READ_FAIL;
-            goto exit;
-        }
-    }
-
-exit:
-    return sizeof(tlvLen) + tlvLen;
+    return complete;
 }
 

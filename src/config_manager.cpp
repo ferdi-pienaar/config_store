@@ -129,39 +129,10 @@ const char * config_manager::getPromptString()
 
 
 // Save data in RAM to NVRAM, in TLV format.
-// We first assemble the TLV format data in a RAM buffer, then write it all to the config file.
 void config_manager::save()
 {
-    cm_item_len_t tlvLen = base_desc->getTlvLen(ramBase);
-    
-    // Allocate a temporary buffer to contain TLV format data
-    uint8_t * buf = new uint8_t[tlvLen];
-
-    assert(buf != NULL);
-
-    // xxx debug
-    memset(buf, 0x5a, tlvLen);
-
-    cout << "Allocated buffer " << tlvLen << endl;
-
-    uint8_t * pBuf = buf; // this copy is modified by writeTlv
-
-    base_desc->writeTlv(ramBase, &pBuf);
-
-    #ifdef DEBUG_PRINT
-    for (int i = 0; i < tlvLen; i++)
-    {
-        printf("%02x\n", buf[i]);
-    }
-    #endif
-
-    FILE * fp = fopen(CFG_FILE_NAME, "wb");  // open file for binary write
-
-    assert(fp != NULL);
-
-    fwrite(buf, 1, tlvLen, fp);
-    fclose(fp);
-    delete[] buf;
+    tlv.resetWrite();
+    base_desc->writeTlv(ramBase);
 }
 
 
@@ -169,6 +140,7 @@ void config_manager::save()
 //
 void config_manager::load()
 {
+#if 0
     FILE * fp = fopen(CFG_FILE_NAME, "rb");  // open file for binary read
     
     if (fp == NULL)
@@ -189,19 +161,38 @@ void config_manager::load()
     printf("Load id %#x\n", id);
 
     t_cm_result res = CM_SUCCESS;
+#endif
+    if (!tlv.resetRead())
+    {
+        cout << "No config file." << endl;
+        return;
+    }
+    
+    cm_item_id_t id; 
+
+    tlv.getType(&id); // xxx check if successful??
+
+    if (id != base_desc->getId())
+    {
+        printf("Can't load id %#x\n", id);
+        return;
+    }
+
+    printf("Load id %#x\n", id);
 
     // Before loading, thus allocating new memory, call setDefault to free owned memory
     base_desc->setDefault(ramBase);
-    base_desc->loadFromTlv(fp, ramBase, res);
-    fclose(fp);
+    unsigned int complete;
+    base_desc->loadFromTlv(ramBase, &complete);
 
+#if 0 // xxx maybe check "complete" also?
     if (res != CM_SUCCESS)
     {
         cout << "Load failed: defaults restored." << endl;
         base_desc->setDefault(ramBase);
         return;
     }
-
+#endif
     // Reset context, since a reload re-allocates memory and makes current context invalid
     resetCtxt();
 }
@@ -213,6 +204,7 @@ void config_manager::load()
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#if 0
 /// Return total length of TLV item, the number of bytes in T + L + V.
 cm_item_len_t cm_descriptor::getTlvLen(const uint8_t * pItem) const
 {
@@ -224,26 +216,9 @@ cm_item_len_t cm_descriptor::getTlvLen(const uint8_t * pItem) const
     }
     return pTlv->getLen(pItem);
 }
+#endif
 
-
-/// Write item's TLV to a buffer, and advance the ptr to the end of memory written to.
-//  This is useful for writing to a RAM buffer first, for subsequent write
-//  to NVRAM.
-//  xxx if we want to write directly to NVRAM, we need to implement a method
-//  that does that...
-void cm_descriptor::writeTlv(const uint8_t *pItem, uint8_t ** ppBuf) const
-{
-    assert(pItem != NULL);
-    assert(ppBuf != NULL);
-    assert(*ppBuf != NULL);
-    
-    if (pTlv != NULL)
-    {
-        pTlv->write(pItem, ppBuf);
-    }
-}
-
-
+#if 0
 // This method is called if the TLV field T (the item ID) matches,
 // so it's not checked here again.
 // This method reads L, and moves forward in the file by that many bytes,
@@ -261,7 +236,7 @@ unsigned int cm_descriptor::loadFromTlv(FILE * fp, uint8_t * pItem, t_cm_result 
     }
     return pTlv->load(fp, pItem, res);
 }
-
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -269,17 +244,10 @@ unsigned int cm_descriptor::loadFromTlv(FILE * fp, uint8_t * pItem, t_cm_result 
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-cm_composite_descriptor::cm_composite_descriptor(const cm_composite_metadata * pMeta,
-                                                 bool nonvolatile):
+cm_composite_descriptor::cm_composite_descriptor(const cm_composite_metadata * pMeta):
 pData(pMeta)
 {
     assert(pData != NULL);
-    
-    if (nonvolatile)
-    {
-        pTlv = new cm_composite_tlv(this);
-        assert(pTlv != NULL);
-    }
 }
 
 
@@ -642,6 +610,36 @@ const cm_aggregate * cm_composite_descriptor::getAggr(cm_item_id_t id) const
 }
 
 
+/// Write item's TLV to a buffer, and advance the ptr to the end of memory written to.
+//  This is useful for writing to a RAM buffer first, for subsequent write
+//  to NVRAM.
+//  xxx if we want to write directly to NVRAM, we need to implement a method
+//  that does that...
+void cm_composite_descriptor::writeTlv(const uint8_t *pItem) const
+{
+    assert(pItem != NULL);
+
+    if (!pData->c.persistent)
+    {
+        return;
+    }
+    
+    config_manager::getInstance()->tlv.startWriteComposite(pData->c.id);
+
+    for (unsigned i = 0; i < getAggrCount(); i++)
+    {            
+        const cm_aggregate * pAggr = getAggrAtIndex(i);
+
+        for (unsigned j = 0; j < pAggr->getCount(pItem); j++)
+        {
+            pAggr->pData->pDesc->writeTlv(pAggr->getItemAtIndex(pItem, j));
+        }
+    }
+
+    config_manager::getInstance()->tlv.endWriteComposite();
+}
+
+
 // From remaining command-line words, find matching component of this composite.
 // If the component does not exist, it is created in certain cases.
 // pArgc: (in/out) number of command words
@@ -785,24 +783,50 @@ bool cm_composite_descriptor::getComponentItem(cm_item_id_t id,
 }
 
 
+// T already read
+unsigned int cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pComplete) const
+{
+    unsigned idx   = 0; // xxx
+    bool     first = true; // Is this the first component item
+
+    config_manager::getInstance()->tlv.loadComposite();
+
+    do
+    {
+        cm_item_id_t componentId, lastComponentId;
+        uint8_t * pComponentItem;
+        const cm_aggregate * pAggr;
+
+        config_manager::getInstance()->tlv.getType(&componentId);
+        getComponentItem(componentId, idx++, &pAggr, pItem, &pComponentItem);
+        pAggr->pData->pDesc->loadFromTlv(pComponentItem, pComplete);
+
+        if (first || (lastComponentId != componentId))
+        {
+            // First read of this component ID, i.e. first item in an array
+            idx = 0;
+            first = false;
+        }
+        lastComponentId = componentId;
+
+    } while (*pComplete == 0);
+
+    *pComplete--;
+    
+    return 0; // xxx
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // cm_simple_descriptor
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-cm_simple_descriptor::cm_simple_descriptor(const cm_simple_metadata * pMeta,
-                                           bool nonvolatile):
+cm_simple_descriptor::cm_simple_descriptor(const cm_simple_metadata * pMeta):
 pData(pMeta)
 {
     assert(pData != NULL);
-    
-    if (nonvolatile)
-    {
-        pTlv = new cm_simple_tlv(this);
-
-        assert(pTlv != NULL);
-    }
 }
 
 
@@ -900,6 +924,34 @@ void cm_simple_descriptor::setDefault(uint8_t * pItem) const
     {
         pData->pSetDefault(pItem, getLen());
     }
+}
+
+
+/// Write item's TLV to a buffer, and advance the ptr to the end of memory written to.
+//  This is useful for writing to a RAM buffer first, for subsequent write
+//  to NVRAM.
+//  xxx if we want to write directly to NVRAM, we need to implement a method
+//  that does that...
+void cm_simple_descriptor::writeTlv(const uint8_t *pItem) const
+{
+    assert(pItem != NULL);
+    
+    if (!pData->c.persistent)
+    {
+        return;
+    }
+    
+    config_manager::getInstance()->tlv.writeSimple(pData->c.id, pData->c.len, pItem);
+}
+
+
+unsigned int cm_simple_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pComplete) const
+{
+    unsigned complete;
+    cm_item_len_t len = pData->c.len;
+    config_manager::getInstance()->tlv.loadSimple(pItem, &len, pComplete);
+
+    return 0; // xxx
 }
 
 

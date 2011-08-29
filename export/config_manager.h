@@ -8,7 +8,6 @@
 #include "config_manager_types.h"
 #include "config_manager_tlv.h"
 
-#define CFG_FILE_NAME "cfg.bin"
 
 // xxx throughout I've provisionally avoided the use of references; revise this.
 
@@ -38,9 +37,10 @@ typedef void (*CM_PRT_FPTR)(const uint8_t *pItem, cm_item_len_t len);
 // This comes at the cost of having an additional level of indirection.
 struct cm_common_metadata
 {
-    const char *     name; ///< name by which item is addressed on CLI    
-    cm_item_id_t     id;   ///< ID (unique within the context of the component's composite) of item in NVRAM
-    cm_item_len_t    len;  ///< Number of bytes occupied by an item in RAM
+    const char *  name;       ///< name by which item is addressed on CLI    
+    cm_item_id_t  id;         ///< ID (unique within the context of the component's composite) of item in NVRAM
+    cm_item_len_t len;        ///< Number of bytes occupied by an item in RAM
+    bool          persistent; ///< Saved to NVRAM?
 };
 
 struct cm_simple_metadata
@@ -98,29 +98,46 @@ typedef struct t_cm_context
 //  Following commands are executed by a simple:    set, setDefault, prt
 //  Following commands are executed by a composite: setDefault, add, del, prt
 
-class cm_tlv;
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Descriptor of configurable item (either simple or compound).
 // xxx methods are private (not for user), but config_manager is friend?
 class cm_descriptor
 {
+#if 0
 protected:
     const cm_tlv * pTlv; ///< Object representing Type Length Value; non-NULL for items saved to NVRAM
+#endif
 
-public:     
+public:
+#if 0
     cm_descriptor(): pTlv(NULL) {}
+#else
+    cm_descriptor() {}
+#endif
     virtual ~cm_descriptor(){}
 
     virtual bool handleCmd(int argc, char *argv[], uint8_t * pItem, struct t_cm_context & ctxt ) const = 0;
     virtual std::string getName() const = 0;
+
+    #if 0
     virtual const cm_item_id_t * getIdPtr() const = 0;
+    #endif
     virtual cm_item_id_t getId() const = 0;
 
     virtual const cm_item_len_t * getLenPtr() const = 0;
-    virtual cm_item_len_t getTlvLen(const uint8_t * pItem) const;
+    //virtual cm_item_len_t getTlvLen(const uint8_t * pItem) const;
+    #if 0
     virtual void writeTlv(const uint8_t * pItem, uint8_t ** ppBuf) const;
+    #else
+    virtual void writeTlv(const uint8_t * pItem) const = 0;
+    #endif
+
+    #if 0
     virtual unsigned int loadFromTlv(FILE * fp, uint8_t * pItem, t_cm_result & res) const;
+    #else
+    virtual unsigned int loadFromTlv(uint8_t * pItem, unsigned * pComplete) const = 0;
+    #endif
 
     virtual cm_item_len_t getLen() const = 0;
 
@@ -262,10 +279,13 @@ public: // tlv class should be friend so it can call these
                           uint8_t ** ppItem) const;
 
 public:    
-    cm_composite_descriptor(const cm_composite_metadata * pMeta, bool nonvolatile);
+    cm_composite_descriptor(const cm_composite_metadata * pMeta);
 
     std::string getName() const {return pData->c.name;}
+
+    #if 0
     virtual const cm_item_id_t * getIdPtr() const {return &(pData->c.id);}
+    #endif
     virtual cm_item_id_t getId() const {return pData->c.id;}
     virtual const cm_item_len_t * getLenPtr() const {return &(pData->c.len);}
     virtual cm_item_len_t getLen() const {return pData->c.len;}
@@ -286,6 +306,11 @@ public:
              unsigned int itemIdx,
              unsigned int cnt) const;
 
+    void writeTlv(const uint8_t * pItem) const;
+    unsigned int loadFromTlv(uint8_t * pItem, unsigned * pComplete) const;
+
+
+
 };
 
 
@@ -296,16 +321,19 @@ public:
 class cm_simple_descriptor : public cm_descriptor
 {
 
-public: // needs to be accessed by TLV class
+public: // needs to be accessed by TLV class xxx make private
     const cm_simple_metadata * const pData;
    
 public:
-    cm_simple_descriptor(const cm_simple_metadata * pMeta, bool nonvolatile);
+    cm_simple_descriptor(const cm_simple_metadata * pMeta);
                               
-    virtual ~cm_simple_descriptor() {};
+    virtual ~cm_simple_descriptor() {}
     bool handleCmd(int argc, char *argv[], uint8_t * pItem, cm_context & ctxt) const;
     std::string getName() const {return pData->c.name;}
+
+    #if 0
     virtual const cm_item_id_t * getIdPtr() const {return &(pData->c.id);}
+    #endif
     virtual cm_item_id_t getId() const {return pData->c.id;}
     virtual const cm_item_len_t * getLenPtr() const {return &(pData->c.len);}
     virtual cm_item_len_t getLen() const {return pData->c.len;}
@@ -315,6 +343,8 @@ public:
     void setDefault(uint8_t * pItem) const;
 
     void help(const uint8_t * pItem) const {std::cout << "len " << getLen() << std::endl;}
+    virtual void writeTlv(const uint8_t * pItem) const;
+    unsigned int loadFromTlv(uint8_t * pItem, unsigned * pComplete) const;
 };
 
 
@@ -339,6 +369,9 @@ public:
     void resetCtxt();
     void updateCtxt(cm_context * pC);
 
+    Tlv tlv;
+
+
 private:
     config_manager():base_desc(NULL), ramBase(NULL){}
     void save();
@@ -348,6 +381,7 @@ private:
     const cm_descriptor * base_desc;    
     uint8_t *    ramBase;
     cm_context   currCtxt; // current context
+
 
 };
 

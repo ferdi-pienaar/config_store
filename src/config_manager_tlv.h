@@ -2,57 +2,54 @@
 #define CFG_MAN_TLV_H
 
 #include <stdint.h> // uint8_t, etc
+#include "nvram.h"
 #include "config_manager_types.h"
-#include "config_manager.h"
 
-class cm_descriptor;
-
-// Base class representing interaction with NVRAM where TLV is saved.
-class cm_tlv
+class Tlv
 {
-protected:
-    const cm_descriptor * pDesc; // owner reference, passed to constructor
+public:
+    static const unsigned int stackDepth = 8;
+
+    Tlv();
+    ~Tlv();
+    bool resetRead()
+    {
+        reset();
+        return nvram->initRead();
+    }
     
-public:
-    cm_tlv(const cm_descriptor * desc): pDesc(desc) {}
-    virtual ~cm_tlv() {}
-
-    virtual cm_item_len_t getLen(const uint8_t * pItem) const = 0;
-    virtual void write(const uint8_t * pItem, uint8_t ** ppBuf) const = 0;
-    virtual unsigned int load(FILE * fp, uint8_t * pItem, t_cm_result & res) const = 0;
-
-};
-
-
-//
-class cm_composite_tlv : public cm_tlv
-{
-
-public:
-    cm_composite_tlv(const cm_descriptor * desc): cm_tlv(desc) {}
-
-    virtual cm_item_len_t getLen(const uint8_t * pItem) const;
-    virtual void write(const uint8_t * pItem, uint8_t ** ppBuf) const;
-    virtual unsigned int load(FILE * fp, uint8_t * pItem, t_cm_result & res) const;
-
+    bool resetWrite()
+    {
+        reset();
+        return nvram->initWrite();
+    }
+    
+    void writeSimple(cm_item_id_t t, cm_item_len_t length, const uint8_t * v);
+    void startWriteComposite(cm_item_id_t t);
+    void endWriteComposite();
+    t_cm_result getType(cm_item_id_t * t);
+    t_cm_result loadSimple(uint8_t * pRam, cm_item_len_t * length, unsigned * complete);
+    t_cm_result loadComposite();
+    
 private:
-    unsigned int loadComponents(FILE * fp, uint8_t * pItem, cm_item_len_t bytesToRead, t_cm_result & res) const;
-    unsigned int loadComponent(FILE * fp, uint8_t * pItem, bool first, t_cm_result & res) const;
-    unsigned int skipItem(FILE * fp, t_cm_result & res) const;
+    // Context used in writing
+    struct compositeContext
+    {
+        unsigned      lengthOffset; // offset of location of length of composite, relative to base of NVRAM
+        cm_item_len_t length;       // actual cumulative length in composite
+    };
 
-};
+    void reset()
+    {
+        stackIndex = -1;
+    }
 
+    void addLengthToComposite(unsigned length);
+    unsigned popLoadStack(cm_item_len_t length);
 
-//
-class cm_simple_tlv : public cm_tlv
-{
-
-public:
-    cm_simple_tlv(const cm_descriptor * desc): cm_tlv(desc) {}
-
-    virtual cm_item_len_t getLen(const uint8_t * pItem) const;
-    virtual void write(const uint8_t * pItem, uint8_t ** ppBuf) const;
-    virtual unsigned int load(FILE * fp, uint8_t * pItem, t_cm_result & res) const;
+    Nvram *  nvram;
+    int stackIndex; // write stack index; -1 means the current item is top-level, not part of a composite
+    compositeContext stack[stackDepth];
 
 };
 

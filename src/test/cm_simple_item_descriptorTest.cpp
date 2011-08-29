@@ -51,7 +51,7 @@ TEST(cm_simple_descriptor, getLen)
 {
     cm_simple_metadata d_d = {{"d01", 1 , 55}, NULL, NULL, NULL};
 
-    cm_simple_descriptor d(&d_d, false);
+    cm_simple_descriptor d(&d_d);
     LONGS_EQUAL(55, d.getLen());
 }
 
@@ -63,7 +63,7 @@ TEST(cm_simple_descriptor, print)
     char outstring[64];
     cm_simple_metadata d_d = {{"d01", 1 , sizeof(mem)}, NULL, NULL, NULL};
 
-    cm_simple_descriptor d(&d_d, false);
+    cm_simple_descriptor d(&d_d);
 
     // Redirect STDOUT to a file, so the test can examine what UUT writes there
     if (freopen("testout.txt", "w", stdout) == NULL)
@@ -87,7 +87,7 @@ TEST(cm_simple_descriptor, set)
     int mem = 0;
     cm_simple_metadata d_d = {{"d01", 1 , sizeof(mem)}, cm_set_int, NULL, NULL};
 
-    cm_simple_descriptor d(&d_d, false);
+    cm_simple_descriptor d(&d_d);
     
     d.set((uint8_t *)&mem, "4");
     LONGS_EQUAL(4, mem);
@@ -100,7 +100,7 @@ TEST(cm_simple_descriptor, setdefFunc)
     int mem = 8;
     cm_simple_metadata d_d = {{"d01", 1 , sizeof(mem)}, NULL, setint11, NULL};
 
-    cm_simple_descriptor d(&d_d, false);
+    cm_simple_descriptor d(&d_d);
     
     d.setDefault((uint8_t *)&mem);
     LONGS_EQUAL(11, mem);
@@ -113,7 +113,7 @@ TEST(cm_simple_descriptor, setdef)
     int mem = 8;
     cm_simple_metadata d_d = {{"d01", 1 , sizeof(mem)}, NULL, NULL, NULL};
 
-    cm_simple_descriptor d(&d_d, false);
+    cm_simple_descriptor d(&d_d);
     
     d.setDefault((uint8_t *)&mem);
     LONGS_EQUAL(8, mem);

@@ -2,7 +2,7 @@
 CXXFLAGS = -Wall -g -I ../../../CppUTest/include -I .. -I ../../export # -save-temps
 VPATH = ../../../CppUTest/lib # so make can find the library
 OBJS = ../config_manager.o ../config_manager_util.o ../config_manager_tlv.o \
- ../config_manager_setdef_null.o
+ ../config_manager_setdef_null.o ../nvram.o
 
 all: simpleTestTag compositeTestTag cmTestTag
 
@@ -19,7 +19,7 @@ cmTestTag: config_managerTest
 	./config_managerTest
 	touch cmTestTag
 
-# Make unit tests, using CppUnitLite framework
+# Make unit tests, using CppUTest framework
 cm_simple_item_descriptorTest: $(OBJS) cm_simple_item_descriptorTest.o -lCppUTest
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
@@ -54,6 +54,8 @@ config_manager_tlv.o: config_manager_tlv.cpp \
 
 config_manager_setdef_null.o: config_manager_setdef_null.cpp \
  ../config_manager_types.h ../config_manager_setdef_null.h
+
+nvram.o: nvram.cpp
 
 .PHONY: clean
 clean:
