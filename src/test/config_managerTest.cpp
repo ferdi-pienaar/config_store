@@ -166,7 +166,7 @@ TEST(contained, loadChangedSimpleLen)
 // an unknown Type value.
 // Unknown type in file: the descriptor has no T=9, so it's ignored by cfg_man when found in file,
 // but the item following it is loaded.
-IGNORE_TEST(contained, loadUnknown)
+TEST(contained, loadUnknown)
 {
     uint8_t tlv[28] =
     /* The following assumes little-endian integers */
@@ -209,7 +209,7 @@ IGNORE_TEST(contained, loadUnknown)
 // Verify what's saved to TLV, given a TLV file that's read on startup that's
 // missing an element of a structure.
 // The element that's not in the TLV is saved to TLV, populated with default value.
-IGNORE_TEST(contained, loadMissing)
+TEST(contained, loadMissing)
 {
     uint8_t tlv[12] =
     /* The following assumes little-endian integers */

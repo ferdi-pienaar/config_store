@@ -95,26 +95,26 @@ t_cm_result Tlv::getType(cm_item_id_t * id)
 // @param pRam
 // @param length in/out, in: available memory, out: used memory
 // @param containerComplete, out: number of containers complete
-t_cm_result Tlv::loadSimple(uint8_t * pRam, cm_item_len_t * length, unsigned * complete)
+t_cm_result Tlv::loadSimple(uint8_t * pRam, cm_item_len_t * pLength, unsigned * complete)
 {
     t_cm_result ret = CM_SUCCESS;
-    cm_item_len_t l;
-    nvram->read((uint8_t *)&l, sizeof(cm_item_len_t));
+    cm_item_len_t length;
+    nvram->read((uint8_t *)&length, sizeof(cm_item_len_t));
 
-    if (*length != l)
+    if (*pLength != length)
     {
         // skip unreadable item
-        nvram->adjustOffset(l);
+        nvram->adjustOffset(length);
         // Inform application what's in NVRAM can't find in pRam
         ret = CM_READ_FAIL; // xxx need insufficient_mem return code
     }
     else
     {
-        nvram->read(pRam, l);
+        nvram->read(pRam, length);
     }
 
-    *length = l;
-    *complete = popLoadStack(l);
+    *pLength = length;
+    popLoadStack(length, complete);
     return ret;
 }
 
@@ -140,6 +140,18 @@ t_cm_result Tlv::loadComposite()
 }
 
 
+// Skip item: should be called after getType() only
+void Tlv::skipItem(unsigned * complete)
+{
+    cm_item_len_t length;
+    nvram->read((uint8_t *)&length, sizeof(cm_item_len_t));
+
+    nvram->adjustOffset(length);
+
+    popLoadStack(length, complete);
+}
+
+
 // Add component's contribution to the length of the composite it is contained in.
 // @param L field of component, excluding length of its T + L, which is added by this method
 void Tlv::addLengthToComposite(unsigned length)
@@ -152,29 +164,35 @@ void Tlv::addLengthToComposite(unsigned length)
 }
 
 
-// @return the number of composites which have been completely loaded after loading this
+// @complete - output, the number of composites which have been completely loaded after loading this
 //         simple component.
-unsigned Tlv::popLoadStack(cm_item_len_t length)
+t_cm_result Tlv::popLoadStack(cm_item_len_t length, unsigned * complete)
 {
-    unsigned complete = 0;
+    *complete = 0;
     cm_item_len_t containedLength = length + sizeof(length) + sizeof(cm_item_id_t);
 
     while (stackIndex >= 0)
     {
-        stack[stackIndex].length -= containedLength;  // xxx do this here?  we read T earlier...
-
-        if (stack[stackIndex].length == 0)
+        if (containedLength < stack[stackIndex].length)
         {
-            complete++;
-            stackIndex--; // This composite is complete; maybe next-level container is also
+            // Composite is incomplete: we don't check further containers
+            stack[stackIndex].length -= containedLength;
+            return CM_SUCCESS;
+        }
+                    
+        if (containedLength == stack[stackIndex].length)
+        {
+            // This component completes this composite
+            (*complete)++;
+            stackIndex--; // Maybe next-level container is also complete...
             containedLength += sizeof(length) + sizeof(cm_item_id_t);
         }
         else
         {
-            // Composite is incomplete: we don't check further containers
-            break;
+            // Composite is incoherent: containedLength > the remaining lenght of composite
+            return CM_INCOHERENT_DATA;
         }
     }
-    return complete;
+    return CM_SUCCESS;
 }
 

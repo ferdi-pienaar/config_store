@@ -806,17 +806,18 @@ unsigned int cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pC
             first = false;
         }
 
-        if (!getComponentItem(componentId, idx, &pAggr, pItem, &pComponentItem))
+        if (getComponentItem(componentId, idx, &pAggr, pItem, &pComponentItem))
         {
-            // Unable to find the ID, or idx too big, or no memory
-            continue;
+            if (pAggr->pData->pDesc->loadFromTlv(pComponentItem, pComplete) == CM_SUCCESS)
+            {
+                idx++;
+            }
         }
-            
-        if (pAggr->pData->pDesc->loadFromTlv(pComponentItem, pComplete) == CM_SUCCESS)
-        {
-            idx++;
+        else
+        {            
+            // Unable to find the ID, or idx too big, or no memory: skip the item.
+            config_manager::getInstance()->tlv.skipItem(pComplete);
         }
-
         lastComponentId = componentId;
 
     } while (*pComplete == 0); // while this composite is incomplete
