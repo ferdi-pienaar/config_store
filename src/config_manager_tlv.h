@@ -34,10 +34,17 @@ public:
     
 private:
     // Context used in writing
-    struct compositeContext
+    struct compositeWriteContext
     {
-        unsigned      lengthOffset; // offset of location of length of composite, relative to base of NVRAM
+        unsigned      headerOffset; // offset of location of composite's T + L, relative to base of NVRAM
+        cm_item_id_t  id;           // composite ID given by client
         cm_item_len_t length;       // actual cumulative length in composite
+    };
+
+    struct compositeLoadContext
+    {
+        cm_item_len_t length;       // length [bytes] in composite, read from NVRAM
+        cm_item_len_t readBytes;    // number of composite bytes read from MVRAM
     };
 
     void reset()
@@ -48,8 +55,9 @@ private:
     void addLengthToComposite(unsigned length);
     t_cm_result popLoadStack(cm_item_len_t length, unsigned * complete);
     Nvram *  nvram;
-    int stackIndex; // write stack index; -1 means the current item is top-level, not part of a composite
-    compositeContext stack[stackDepth];
+    int stackIndex;  // write stack index; -1 means the current item is top-level, not part of a composite
+    compositeWriteContext writeStack[stackDepth];
+    compositeLoadContext  loadStack[stackDepth];
 
 };
 

@@ -140,28 +140,6 @@ void config_manager::save()
 //
 void config_manager::load()
 {
-#if 0
-    FILE * fp = fopen(CFG_FILE_NAME, "rb");  // open file for binary read
-    
-    if (fp == NULL)
-    {
-        cout << "No config file." << endl;
-        return;
-    }
-
-    cm_item_id_t id;    
-    fread(&id, sizeof(id), 1, fp);
-
-    if (id != base_desc->getId())
-    {
-        printf("Can't load id %#x\n", id);
-        return;
-    }
-
-    printf("Load id %#x\n", id);
-
-    t_cm_result res = CM_SUCCESS;
-#endif
     if (!tlv.resetRead())
     {
         cout << "No config file." << endl;
@@ -174,6 +152,7 @@ void config_manager::load()
 
     if (id != base_desc->getId())
     {
+        // What if the file exists, but is empty and we can extract nothing from it?
         printf("Can't load id %#x\n", id);
         return;
     }
@@ -204,39 +183,6 @@ void config_manager::load()
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#if 0
-/// Return total length of TLV item, the number of bytes in T + L + V.
-cm_item_len_t cm_descriptor::getTlvLen(const uint8_t * pItem) const
-{
-    assert(pItem != NULL);
-    
-    if (pTlv == NULL)
-    {
-        return 0;
-    }
-    return pTlv->getLen(pItem);
-}
-#endif
-
-#if 0
-// This method is called if the TLV field T (the item ID) matches,
-// so it's not checked here again.
-// This method reads L, and moves forward in the file by that many bytes,
-// using what it finds in the file to initialize the object's configurable items.
-// @return number of bytes read
-//
-unsigned int cm_descriptor::loadFromTlv(FILE * fp, uint8_t * pItem, t_cm_result & res) const
-{
-    assert(fp != NULL);
-    assert(pItem != NULL);
-    
-    if (pTlv == NULL)
-    {
-        return 0;
-    }
-    return pTlv->load(fp, pItem, res);
-}
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -822,7 +768,7 @@ unsigned int cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pC
 
     } while (*pComplete == 0); // while this composite is incomplete
 
-    *pComplete--;
+    (*pComplete)--;
     
     return 0; // xxx
 }

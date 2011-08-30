@@ -41,47 +41,16 @@
 - The XML file is generated not by hand, but by a graphical tool that shows the relationships
   between the data (OWNED and CONTAINED relationships).  
 - XML schema
-- tlv classes have no data members, so nothing specific to
-  a configurable item, hence we don't need an instance per
-  configurable item.  Why not give item's a pointer, init'd
-  at compile time, to a static instance?
 - Separation between TLV and its client: one of the goals is that we could easily
   substitute another way of saving the data, other than TLV.  The most obvious 
   alternative is to save the data in text format, exactly the same format that
   we print to the console.
-  What's the problem we're trying to solve here?  Tight coupling between TLV
-  and client in saving and loading NVRAM.  Specifically, while writing, TLV
-  module recurses through client data structures, which means it has to know
-  a lot about the client: cm_descriptor::getAggrCount() is a public method, and
-  so are cm_descriptor::getAggrAtIndex(i), cm_aggregate::getCount(pItem), 
-  cm_descriptor::writeTlv, cm_aggregate::getItemAtIndex, etc. 
   Preferably we should have more modules, instead of the current 2 (client and TLV):
   1. client
   2. formatter, that knows TLV or other data format to be stored to NVRAM
   3. NVRAM, that knows how to read, write and skip through a file.
   4. Perhaps abstraction of file access at the lowest level, if only to simplify unit
      testing.
-
-  Achieving greater isolation for loading is possible:
-  TLV says: I have data with this ID and this size: give me the memory to write 
-  it to.  Client function returns memory (for simple items) or an indication to 
-  read more (for composite items).  TLV has to indicate changes in context to
-  the client: when it reaches the end of a composite, it has to indicate this
-  to the client somehow -- the client can't interpret IDs without knowing
-  which composite they belong to.
-  For writing:
-  The client, knowing nothing of TLV formats, can't give L to the TLV module.
-  So it gives the type (the ID), then:
-    o For a simple item, the length and the value
-    o For a composite item, another v
-    o When a composite type is complete, i.e. sub-items have been given,
-      the client has to indicate that it's popping up a number of levels.
-      Probably the easiest way is to issue one or more "composite complete"
-      instructions to the TLV module.  At this point, the TLV module can fill
-      in the L in the TLV.
-  This means TLV has to maintain a stack of incomplete composites (composites
-  for which it has yet to write the L field).  We'll probably want to allocate
-  this stack at compile-time, meaning the maximum nesting-depth of composites
-  is fixed at compile-time -- not a great drawback.
-  Also, if we want to allocate a block of RAM to save the data to, we'll have
-  to choose a size to allocate and then re-allocate a larger block if necessary.
+- Move unit tests for the TLV class here.
+- Create a stubs directory, and put a double for nvram.c there.  It can be used by the TLV unit
+  tests, and possibly also by the unit tests for config_manager.

@@ -455,7 +455,7 @@ TEST(owned, load)
 // Verify what's saved to TLV, given a TLV file that's read on startup that
 // has more than the max number of an OWNED component.
 //
-IGNORE_TEST(owned, loadTooMany)
+TEST(owned, loadTooMany)
 {
     uint8_t tlv[28] =
     /*T    L     T    L    V        T    L    V        T    L    V       */
@@ -499,10 +499,10 @@ IGNORE_TEST(owned, loadTooMany)
 // Verify data saved to TLV, with default data in RAM as input to the test.
 TEST(owned, save)
 {
-    uint8_t expectedTlv [4] =
+    uint8_t expectedTlv [0] =
     /* The following assumes little-endian integers */
     /*T    L     T    L    V        T    L    V    */
-    { 1,0, 0,0};
+    {};
     uint8_t actualTlv [4];
 
 
@@ -644,17 +644,18 @@ TEST(owned, explicitAdd)
 
 // Verify what's saved to TLV, given a TLV file that's read on startup,
 // and a delete operation.
+// xxx this should save empty file -- better way to test this than memcmp?
 TEST(owned, del)
 {
     uint8_t tlv[12] =
     /* The following assumes little-endian integers */
     /*T    L    T    L    V    */
     { 1,0, 8,0, 4,0, 4,0, 5,0,0,0};
-    uint8_t expectedTlv [4] =
+    uint8_t expectedTlv [0] =
     /* The following assumes little-endian integers */
     /*T    L  */
-    { 1,0, 0,0};
-    uint8_t savedTlv[4];
+    {};
+    uint8_t savedTlv[0];
 
 
     /* Create config file to be loaded */
@@ -760,7 +761,7 @@ TEST(containedArray, load)
 // Verify what's saved to TLV, given a TLV file that's read on startup that
 // has more than the max number of a CONTAINED component.
 //
-IGNORE_TEST(containedArray, loadTooMany)
+TEST(containedArray, loadTooMany)
 {
     uint8_t tlv[22] =
     /*T    L     T    L    V    T    L    V    T    L    V       */
@@ -846,9 +847,10 @@ TEST_GROUP(containedArrays)
     }
 };
 
+
 // Verify what's loaded into memory, given TLV file that's read on startup.
 // Verify what's loaded into memory, given TLV file that's read on startup.
-IGNORE_TEST(containedArrays, load)
+TEST(containedArrays, load)
 {    
     uint8_t tlv[28] =
     /* The following assumes little-endian integers */
@@ -872,4 +874,7 @@ IGNORE_TEST(containedArrays, load)
     CHECK(GET_C4_CONFIG->m2[0] == 6);
     CHECK(GET_C4_CONFIG->m2[1] == 7);
 }
+
+// xxx test to write a composite containing a composite component, followed by another component
+// xxx test to save a composite containing a composite component, followed by another component
 

@@ -1,20 +1,16 @@
-// NVRAM implementation using a file for persistent storage.
+// NVRAM implementation using a block of memory for "persistent" storage.
 //
 
 #include "nvram.h"
+#include <string.h> // memset, strcmp, memcpy
 
 #define CFG_FILE_NAME "cfg.bin"
+
+static uint8_t nvMem[1024];
 
 bool Nvram::initWrite()
 {        
     offset = 0;
-
-    fp = fopen(CFG_FILE_NAME, "wb");  // open file for binary write
-
-    if (fp == NULL)
-    {
-        return false;
-    }
     return true;
 }
 
@@ -22,40 +18,30 @@ bool Nvram::initWrite()
 bool Nvram::initRead()
 {
     offset = 0;
-
-    fp = fopen(CFG_FILE_NAME, "rb");  // open file for binary read
-
-    if (fp == NULL)
-    {
-        return false;
-    }
     return true;
 }
 
 
 void Nvram::accessComplete()
 {
-    fclose(fp);
+
 }
 
 
 void Nvram::setOffset(unsigned int o)
 {
-    fseek(fp, o, SEEK_SET);
     offset = o;
 }
 
 
 unsigned int Nvram::getOffset()
 {
-    // xxx can we eliminate offset by getting this from fp?
     return offset;
 }
 
 
 void Nvram::adjustOffset(int i)
 {
-    fseek(fp, i, SEEK_CUR);
     offset += i;
 }
 
@@ -63,8 +49,7 @@ void Nvram::adjustOffset(int i)
 //
 bool Nvram::write(const uint8_t * d, unsigned int len)
 {
-    fwrite(d, 1, len, fp);
-    
+    memcpy(nvMem + offset, d, len);
     offset += len;
     return true;
 }
@@ -72,13 +57,26 @@ bool Nvram::write(const uint8_t * d, unsigned int len)
 
 bool Nvram::read(uint8_t * d, unsigned int len)
 {
-    if (fread(d, len, 1, fp) != 1)
-    {
-        return false;
-    }
-    
+    memcpy(d, nvMem + offset, len);
     offset += len;
     return true;
 }
 
+
+void nvram_fake_clear()
+{
+    memset(nvMem, 0, sizeof(nvMem));
+}
+
+
+uint8_t * nvram_fake_getPtr()
+{
+    return nvMem;
+}
+
+
+void  nvram_fake_set(uint8_t * d, unsigned len)
+{
+    memcpy(nvMem, d, len);
+}
 

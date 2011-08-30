@@ -17,7 +17,7 @@ public:
     bool read(uint8_t * d, unsigned int len);
     void setOffset(unsigned int o);
     unsigned int getOffset();
-    void adjustOffset(unsigned int i);
+    void adjustOffset(int i);
 
 private:
     unsigned int offset; // read/write offset relative to base address [bytes]

@@ -29,31 +29,32 @@ Tlv::~Tlv()
 }
 
 
-void Tlv::writeSimple(cm_item_id_t t, cm_item_len_t l, const uint8_t * v)
+void Tlv::writeSimple(cm_item_id_t t, cm_item_len_t len, const uint8_t * v)
 {
     nvram->write((uint8_t *)&t, sizeof(t));
-    nvram->write((uint8_t *)&l, sizeof(l));
-    nvram->write(v, l);
+    nvram->write((uint8_t *)&len, sizeof(len));
+    nvram->write(v, len);
 
-    addLengthToComposite(l);
+    addLengthToComposite(len);
 }
 
 
-// xxx don't really need stackItem->length: could write it to NVRAM and increment it there,
-// if we don't mind the repeated read/write to NVRAM.
+// Don't actually write anything yet, since it may turn out that this
+// composite is empty.
 void Tlv::startWriteComposite(cm_item_id_t t)
 {
     assert(stackIndex < (int)stackDepth);
 
     stackIndex++;
 
-    Tlv::compositeContext * context = &(stack[stackIndex]);
+    Tlv::compositeWriteContext * context = &(writeStack[stackIndex]);
 
-    nvram->write((uint8_t *)&t, sizeof(t));
+    context->id = t;
     context->length = 0;
-    context->lengthOffset = nvram->getOffset();
+    context->headerOffset = nvram->getOffset();
 
-    nvram->adjustOffset(sizeof(cm_item_len_t)); // reserve space for L, to be written later
+    // reserve space for T + L, to be written by endWriteComposite()
+    nvram->adjustOffset(sizeof(cm_item_id_t) + sizeof(cm_item_len_t));
 }
 
 
@@ -63,19 +64,36 @@ void Tlv::endWriteComposite()
 {
     assert(stackIndex >= 0); // we must be inside a composite to end one
     
-    Tlv::compositeContext * context = &(stack[stackIndex]);
-
-    nvram->setOffset(context->lengthOffset);
-    nvram->write((uint8_t *)&(context->length), sizeof(context->length));
+    unsigned int endOffset = nvram->getOffset(); // current offset, at end of composite
+    Tlv::compositeWriteContext * context = &(writeStack[stackIndex]);
 
     // switch to context of owning composite (or set to -1 if we're exiting the final composite)
     stackIndex--;
 
-    addLengthToComposite(context->length);
-
-    if (stackIndex == -1)
+    if (context->length == 0)
     {
-        // When final composite access is complete, we're done
+        // Empty composite: write nothing, and set offset to beginning of composite
+        assert(endOffset >= sizeof(cm_item_id_t) + sizeof(cm_item_len_t));
+        endOffset -= sizeof(cm_item_id_t) + sizeof(cm_item_len_t);
+    }
+    else
+    {
+        // Non-empty composite: write its header
+        nvram->setOffset(context->headerOffset);
+        nvram->write((uint8_t *)&(context->id), sizeof(context->id));
+        nvram->write((uint8_t *)&(context->length), sizeof(context->length));
+
+        addLengthToComposite(context->length);
+    }
+
+    if (stackIndex >= 0)
+    {
+        // We're still inside a composite, so set offset for writing next component
+        nvram->setOffset(endOffset);
+    }
+    else
+    {
+        // Final composite is complete: we're done
         nvram->accessComplete();
     }
 }
@@ -135,7 +153,7 @@ t_cm_result Tlv::loadComposite()
     }
 
     stackIndex++;
-    stack[stackIndex].length = length;
+    loadStack[stackIndex].length = length;
     return CM_SUCCESS;
 }
 
@@ -146,6 +164,7 @@ void Tlv::skipItem(unsigned * complete)
     cm_item_len_t length;
     nvram->read((uint8_t *)&length, sizeof(cm_item_len_t));
 
+    // Skip over the V of TLV
     nvram->adjustOffset(length);
 
     popLoadStack(length, complete);
@@ -159,7 +178,7 @@ void Tlv::addLengthToComposite(unsigned length)
     if (stackIndex >= 0)
     {
         // Current item is member of a composite, so add component's contribution to its length
-        stack[stackIndex].length += length + sizeof(cm_item_id_t) + sizeof(cm_item_len_t);
+        writeStack[stackIndex].length += length + sizeof(cm_item_id_t) + sizeof(cm_item_len_t);
     }
 }
 
@@ -173,25 +192,25 @@ t_cm_result Tlv::popLoadStack(cm_item_len_t length, unsigned * complete)
 
     while (stackIndex >= 0)
     {
-        if (containedLength < stack[stackIndex].length)
+        Tlv::compositeLoadContext * context = &(loadStack[stackIndex]);
+        
+        if (containedLength < loadStack[stackIndex].length)
         {
             // Composite is incomplete: we don't check further containers
-            stack[stackIndex].length -= containedLength;
+            loadStack[stackIndex].length -= containedLength;
             return CM_SUCCESS;
         }
-                    
-        if (containedLength == stack[stackIndex].length)
+
+        if (containedLength > loadStack[stackIndex].length)
         {
-            // This component completes this composite
-            (*complete)++;
-            stackIndex--; // Maybe next-level container is also complete...
-            containedLength += sizeof(length) + sizeof(cm_item_id_t);
-        }
-        else
-        {
-            // Composite is incoherent: containedLength > the remaining lenght of composite
+            // Composite is incoherent: containedLength > the remaining length of composite
             return CM_INCOHERENT_DATA;
         }
+                    
+        // containedLength == stack[stackIndex].length => component completes its composite
+        (*complete)++;
+        stackIndex--; // Maybe next-level container is also complete...
+        containedLength += sizeof(length) + sizeof(cm_item_id_t);
     }
     return CM_SUCCESS;
 }
