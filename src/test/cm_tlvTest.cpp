@@ -129,7 +129,7 @@ TEST(tlv, loadSimple)
     tlv.getType(&id);
     LONGS_EQUAL(0xab, id);
 
-    unsigned complete;
+    unsigned complete = 0;
     tlv.loadSimple(clientRam, &length, &complete);
 
     CHECK(memcmp(expected, clientRam, sizeof(expected)) == 0);
@@ -144,7 +144,7 @@ TEST(tlv, loadComposite)
     uint8_t    expected[] = {55,0, 66,0};
     cm_item_id_t id;
     cm_item_len_t length;
-    unsigned complete;
+    unsigned complete = 0;
 
 
     // xxx set client RAM to bitpattern and verify only the expected section is modified
@@ -183,7 +183,7 @@ TEST(tlv, loadNestedComposite)
     uint8_t    expected[] = {1,2,3,4,5,6};
     cm_item_id_t id;
     cm_item_len_t length = sizeof(expected);
-    unsigned complete;
+    unsigned complete = 0;
 
 
     // xxx set client RAM to bitpattern and verify only the expected section is modified
@@ -218,7 +218,7 @@ TEST(tlv, loadNestedCompositeAndSimple)
     uint8_t expected[] = {1,2,3,4,5,6,10,11};
     cm_item_id_t id;
     cm_item_len_t length;
-    unsigned complete;
+    unsigned complete = 0;
 
     nvram_fake_set(nvSet, sizeof(nvSet));
     
@@ -243,6 +243,7 @@ TEST(tlv, loadNestedCompositeAndSimple)
     LONGS_EQUAL(0xbc, id);
 
     length = 2;
+    complete = 0;
     tlv.loadSimple(clientRam + 6, &length, &complete);
     LONGS_EQUAL(1, complete); // complete top-level container
 
@@ -258,7 +259,7 @@ TEST(tlv, loadNestedCompositeOf2Simples)
     uint8_t expected[] = {1,2,3,4,5,6,10,11};
     cm_item_id_t id;
     cm_item_len_t length;
-    unsigned complete;
+    unsigned complete = 0;
 
     nvram_fake_set(nvSet, sizeof(nvSet));
     
@@ -277,6 +278,8 @@ TEST(tlv, loadNestedCompositeOf2Simples)
 
     length = 6;
     tlv.loadSimple(clientRam, &length, &complete);
+    LONGS_EQUAL(0, complete); // not the end of its container
+
 
     tlv.getType(&id);
     LONGS_EQUAL(0xbc, id);

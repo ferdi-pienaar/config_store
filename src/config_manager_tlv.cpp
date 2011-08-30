@@ -154,6 +154,7 @@ t_cm_result Tlv::loadComposite()
 
     stackIndex++;
     loadStack[stackIndex].length = length;
+    loadStack[stackIndex].readBytes = 0;
     return CM_SUCCESS;
 }
 
@@ -187,31 +188,31 @@ void Tlv::addLengthToComposite(unsigned length)
 //         simple component.
 t_cm_result Tlv::popLoadStack(cm_item_len_t length, unsigned * complete)
 {
-    *complete = 0;
-    cm_item_len_t containedLength = length + sizeof(length) + sizeof(cm_item_id_t);
-
-    while (stackIndex >= 0)
+    if (stackIndex == -1)
     {
-        Tlv::compositeLoadContext * context = &(loadStack[stackIndex]);
-        
-        if (containedLength < loadStack[stackIndex].length)
-        {
-            // Composite is incomplete: we don't check further containers
-            loadStack[stackIndex].length -= containedLength;
-            return CM_SUCCESS;
-        }
-
-        if (containedLength > loadStack[stackIndex].length)
-        {
-            // Composite is incoherent: containedLength > the remaining length of composite
-            return CM_INCOHERENT_DATA;
-        }
-                    
-        // containedLength == stack[stackIndex].length => component completes its composite
-        (*complete)++;
-        stackIndex--; // Maybe next-level container is also complete...
-        containedLength += sizeof(length) + sizeof(cm_item_id_t);
+        return CM_SUCCESS;
     }
+    
+    Tlv::compositeLoadContext * context = &(loadStack[stackIndex]);
+
+    context->readBytes += length + sizeof(cm_item_id_t) + sizeof(cm_item_len_t);
+    
+    if (context->readBytes < context->length)
+    {
+        // Composite is incomplete: we don't check further containers
+        return CM_SUCCESS;
+    }
+
+    if (context->readBytes > context->length)
+    {
+        // Composite is incoherent: length of component > the remaining length of composite
+        return CM_INCOHERENT_DATA;
+    }
+                
+    // readBytes == length => component completes its composite
+    (*complete)++;
+    stackIndex--; // Maybe next-level container is also complete...
+    popLoadStack(context->length, complete); // remove contribution of container from its container
     return CM_SUCCESS;
 }
 

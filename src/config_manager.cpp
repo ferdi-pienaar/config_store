@@ -161,7 +161,7 @@ void config_manager::load()
 
     // Before loading, thus allocating new memory, call setDefault to free owned memory
     base_desc->setDefault(ramBase);
-    unsigned int complete;
+    unsigned int complete = 0;
     base_desc->loadFromTlv(ramBase, &complete);
 
 #if 0 // xxx maybe check "complete" also?

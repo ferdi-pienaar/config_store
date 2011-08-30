@@ -13,5 +13,3 @@ Strings can't contain spaces, because that's seen as a new word...
 When the load function reads a counter's ID from the config file, it crashes
 because the loadFromTlv function is called, and it asserts 0.
 
-2011/8/30 After changes to TLV, load of /example file, with more than zero users, fails.
-Add a unit test that exposes this bug!

@@ -51,6 +51,6 @@
   3. NVRAM, that knows how to read, write and skip through a file.
   4. Perhaps abstraction of file access at the lowest level, if only to simplify unit
      testing.
-- Move unit tests for the TLV class here.
+
 - Create a stubs directory, and put a double for nvram.c there.  It can be used by the TLV unit
   tests, and possibly also by the unit tests for config_manager.
