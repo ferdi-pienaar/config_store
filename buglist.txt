@@ -10,6 +10,4 @@ other commands, since it's applicable to metadata rather than actual data.
 
 Strings can't contain spaces, because that's seen as a new word...
 
-When the load function reads a counter's ID from the config file, it crashes
-because the loadFromTlv function is called, and it asserts 0.
 

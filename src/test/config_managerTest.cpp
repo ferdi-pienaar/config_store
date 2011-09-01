@@ -4,7 +4,9 @@
 // 2. Input/output: the binary file containing TLV data used by config_manager
 //    for non-volatile storage
 //
-//
+// xxx how many of these tests belong in cm_tlvTest.cpp?
+// use LONGS_EQUAL and other macros instead of only using CHECK
+// 
 
 #include "CppUTest/TestHarness.h"
 #include "CppUTest/CommandLineTestRunner.h"
@@ -157,7 +159,7 @@ TEST(contained, loadChangedSimpleLen)
 
     cm->init(&c1);
 
-    CHECK(GET_C1_CONFIG->m1 == 8);
+    CHECK(GET_C1_CONFIG->m1 == 0);
     CHECK(GET_C1_CONFIG->m2 == 7); // Default; not read from the file, because TLV's L is bad
 }
 
@@ -251,7 +253,7 @@ TEST(contained, loadMissing)
 
 // Load file with last item missing from CONTAINED composite
 // Load fails, so defaults are set.
-IGNORE_TEST(contained, loadTruncated)
+TEST(contained, loadTruncated)
 {
     uint8_t tlv[] =
     /* The following assumes little-endian integers */
@@ -277,7 +279,7 @@ IGNORE_TEST(contained, loadTruncated)
 
 // Load file with partial last item in CONTAINED composite
 // Load fails, so defaults are set.
-IGNORE_TEST(contained, loadTruncated1)
+TEST(contained, loadTruncated1)
 {
     uint8_t tlv[] =
     /* The following assumes little-endian integers */
@@ -303,7 +305,7 @@ IGNORE_TEST(contained, loadTruncated1)
 
 // Load file with partial last item in CONTAINED composite
 // Load fails, so defaults are set.
-IGNORE_TEST(contained, loadTruncated2)
+TEST(contained, loadTruncated2)
 {
     uint8_t tlv[] =
     /* The following assumes little-endian integers */
@@ -330,7 +332,7 @@ IGNORE_TEST(contained, loadTruncated2)
 // Load file with incoherent CONTAINED composite (sum of the sizes
 // of components is larger than the size of the composite).
 // Load fails, so defaults are set.
-IGNORE_TEST(contained, loadIncoherent)
+TEST(contained, loadIncoherent)
 {
     uint8_t tlv[20] =
     /* The following assumes little-endian integers */
@@ -357,7 +359,7 @@ IGNORE_TEST(contained, loadIncoherent)
 // Load file with incoherent CONTAINED composite (sum of the sizes
 // of components is larger than the size of the composite).
 // Load fails, so defaults are set.
-IGNORE_TEST(contained, loadIncoherent1)
+TEST(contained, loadIncoherent1)
 {
     uint8_t tlv[20] =
     /* The following assumes little-endian integers */
@@ -496,7 +498,35 @@ TEST(owned, loadTooMany)
 }
 
 
+// Verify what's saved to TLV, given a TLV file that's read on startup that
+// contains the ID of a non-persistent item (the counter).  It should
+// be ignored, like an unknown ID is.
+//
+TEST(owned, loadNonPersistent)
+{
+    uint8_t tlv[20] =
+    /*T    L     T    L    V        T    L    V      */
+    { 1,0, 16,0, 3,0, 4,0, 1,0,0,0, 4,0, 4,0, 5,0,0,0};
+
+
+    /* Create config file to be loaded */
+    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
+    {
+        FAIL("Couldn't open file");
+    }
+
+    fwrite(tlv, sizeof(tlv), 1, fp);
+    fclose(fp);
+
+    cm->init(&c2);
+
+    LONGS_EQUAL(1, GET_C2_CONFIG->cnt);
+    LONGS_EQUAL(5, GET_C2_CONFIG->owned[0]);
+}
+
+
 // Verify data saved to TLV, with default data in RAM as input to the test.
+// xxx verify that nothing is saved.  Perhaps SUT shouldn't even create a file in this case?
 TEST(owned, save)
 {
     uint8_t expectedTlv [0] =
@@ -645,6 +675,7 @@ TEST(owned, explicitAdd)
 // Verify what's saved to TLV, given a TLV file that's read on startup,
 // and a delete operation.
 // xxx this should save empty file -- better way to test this than memcmp?
+// Or replace with a test where something remains after deletion?
 TEST(owned, del)
 {
     uint8_t tlv[12] =
@@ -875,6 +906,4 @@ TEST(containedArrays, load)
     CHECK(GET_C4_CONFIG->m2[1] == 7);
 }
 
-// xxx test to write a composite containing a composite component, followed by another component
-// xxx test to save a composite containing a composite component, followed by another component
 

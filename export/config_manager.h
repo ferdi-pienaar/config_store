@@ -118,6 +118,7 @@ public:
     virtual void print(const uint8_t * pItem, std::string prefix) const = 0;
     virtual void setDefault(uint8_t * pItem) const = 0;
     virtual void help(const uint8_t * pItem) const = 0;
+    virtual bool isPersistent() const = 0;
 
 private:
     virtual const cm_aggregate * getAggrAtIndex(unsigned int i) const {return NULL;}
@@ -243,6 +244,7 @@ public:
     virtual void help(const uint8_t * pItem) const;
     void writeTlv(const uint8_t * pItem) const;
     t_cm_result loadFromTlv(uint8_t * pItem, unsigned * pComplete) const;
+    bool isPersistent() const { return pData->c.persistent; }
 
 private:
     bool handleAdd(int argc, char *argv[], uint8_t * pItem) const;
@@ -293,6 +295,7 @@ public:
     void help(const uint8_t * pItem) const {std::cout << "len " << getLen() << std::endl;}
     virtual void writeTlv(const uint8_t * pItem) const;
     t_cm_result loadFromTlv(uint8_t * pItem, unsigned * pComplete) const;
+    bool isPersistent() const { return pData->c.persistent; }
 
 private:
     const cm_simple_metadata * const pData;

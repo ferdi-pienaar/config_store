@@ -148,7 +148,7 @@ void config_manager::load()
     
     cm_item_id_t id; 
 
-    tlv.getType(&id); // xxx check if successful??
+    tlv.getType(&id); // xxx What if this fails?
 
     if (id != base_desc->getId())
     {
@@ -162,16 +162,17 @@ void config_manager::load()
     // Before loading, thus allocating new memory, call setDefault to free owned memory
     base_desc->setDefault(ramBase);
     unsigned int complete = 0;
-    base_desc->loadFromTlv(ramBase, &complete);
+    t_cm_result res = base_desc->loadFromTlv(ramBase, &complete);
 
-#if 0 // xxx maybe check "complete" also?
     if (res != CM_SUCCESS)
     {
         cout << "Load failed: defaults restored." << endl;
         base_desc->setDefault(ramBase);
         return;
     }
-#endif
+
+    assert(complete == 0); // We've exited the top-level composite, so nothing can be left
+
     // Reset context, since a reload re-allocates memory and makes current context invalid
     resetCtxt();
 }
@@ -730,20 +731,27 @@ bool cm_composite_descriptor::getComponentItem(cm_item_id_t id,
 
 
 // T already read
+// @pComplete input/output 
+// 
 t_cm_result cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pComplete) const
 {
-    unsigned idx;
-    bool     first = true; // Is this the first component item
+    unsigned    idx;
+    bool        first = true; // Is this the first component item
 
     config_manager::getInstance()->tlv.loadComposite();
 
     do
     {
-        cm_item_id_t componentId, prevComponentId;
-        uint8_t * pComponentItem;
+        cm_item_id_t         componentId, prevComponentId;
+        uint8_t *            pComponentItem;
         const cm_aggregate * pAggr;
+        t_cm_result          res;
 
-        config_manager::getInstance()->tlv.getType(&componentId);
+        if ((res = config_manager::getInstance()->tlv.getType(&componentId)) != CM_SUCCESS)
+        {
+            // A failure terminates the entire load
+            return res;
+        }
 
         if (first || (prevComponentId != componentId))
         {
@@ -752,16 +760,19 @@ t_cm_result cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pCo
             first = false;
         }
 
-        if (getComponentItem(componentId, idx, &pAggr, pItem, &pComponentItem))
+        if (getComponentItem(componentId, idx, &pAggr, pItem, &pComponentItem) &&
+            pAggr->pData->pDesc->isPersistent())
         {
-            if (pAggr->pData->pDesc->loadFromTlv(pComponentItem, pComplete) == CM_SUCCESS)
+            if ((res = pAggr->pData->pDesc->loadFromTlv(pComponentItem, pComplete)) != CM_SUCCESS)
             {
-                idx++;
+                // A failure terminates the entire load
+                return res;
             }
+            idx++;
         }
         else
         {            
-            // Unable to find the ID, or idx too big, or no memory: skip the item.
+            // Unable to find the ID, or idx too big, or no memory, or item isn't persistent...
             config_manager::getInstance()->tlv.skipItem(pComplete);
         }
         prevComponentId = componentId;
@@ -769,7 +780,6 @@ t_cm_result cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pCo
     } while (*pComplete == 0); // while this composite is incomplete
 
     (*pComplete)--;
-    
     return CM_SUCCESS;
 }
 

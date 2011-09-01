@@ -116,7 +116,10 @@ void Tlv::endWriteComposite()
 // Load T from NVRAM and return it
 t_cm_result Tlv::getType(cm_item_id_t * id)
 {
-    nvram->read((uint8_t *)id, sizeof(cm_item_id_t));
+    if (!nvram->read((uint8_t *)id, sizeof(cm_item_id_t)))
+    {
+        return CM_READ_FAIL;
+    }
     return CM_SUCCESS;
 }
 
@@ -125,8 +128,12 @@ t_cm_result Tlv::getType(cm_item_id_t * id)
 // start loading the composite by returning the next T
 // (and start keeping track of the composite's L)
 // @param pRam
-// @param length in/out, in: available memory, out: used memory
+// @param length in/out, in: available memory, out: amount of data written to pRam
 // @param containerComplete, out: number of containers complete
+//
+// @note: if the length is unexpected, we could skip just that item, but it's
+//        simpler to just return an error, presumably forcing the client to abandon
+//        the load process completely.
 t_cm_result Tlv::loadSimple(uint8_t * pRam, cm_item_len_t * pLength, unsigned * complete)
 {
     t_cm_result ret = CM_SUCCESS;
@@ -135,20 +142,20 @@ t_cm_result Tlv::loadSimple(uint8_t * pRam, cm_item_len_t * pLength, unsigned * 
 
     if (*pLength != length)
     {
-        // skip unreadable item
-        nvram->adjustOffset(length);
-        // Inform application what's in NVRAM doesn't match its expectation
-        ret = CM_READ_FAIL; // xxx need "skipped" return code: or allow client to decide if it wants to skip?
+        *pLength = 0; // No data loaded into client RAM
+        return CM_INCOHERENT_DATA;
     }
     else
     {
         if (!nvram->read(pRam, length))
         {
+            // This error aborts the loading process, and there's no need to updateContainer
             return CM_READ_FAIL;
         }
+        // Data has been loaded into client RAM
+        *pLength = length;
     }
 
-    *pLength = length;
     *complete = 0;
     t_cm_result ret2 = updateContainer(length, complete);
     if (ret2 != CM_SUCCESS)
