@@ -4,8 +4,22 @@
 // not all managed objects are saved in NVRAM.
 //
 // This module asserts that the data passed to it by the client is valid, e.g.
+// in writing:
 //  - no endWriteComposite without matching startWriteComposite.
 //  - no more than stackDepth nested calls to startWriteComposite.
+//
+// The expected sequence of client calls in writing:
+// - writeSimple, or
+// - startWriteComposite, then
+//   - writeSimple or startWriteComposite
+//   - a call to endWriteComposite for each call to startWriteComposite
+//
+// The expected sequence of client calls in loading:
+// - getType, then
+// - loadComposite or loadSimple, depending on client's interpretation of the type
+//   returned by getType
+// The client monitors the "complete" field returned by loadSimple to determine if
+// one or more of the composite loads in progress are complete.
 //
 
 #include <stdint.h> // uint8_t, etc
@@ -93,7 +107,7 @@ void Tlv::endWriteComposite()
     }
     else
     {
-        // Final composite is complete: we're done
+        // Final composite is complete: we're done reading from NVRAM
         nvram->accessComplete();
     }
 }
@@ -123,25 +137,30 @@ t_cm_result Tlv::loadSimple(uint8_t * pRam, cm_item_len_t * pLength, unsigned * 
     {
         // skip unreadable item
         nvram->adjustOffset(length);
-        // Inform application what's in NVRAM can't find in pRam
-        ret = CM_READ_FAIL; // xxx need insufficient_mem return code
+        // Inform application what's in NVRAM doesn't match its expectation
+        ret = CM_READ_FAIL; // xxx need "skipped" return code: or allow client to decide if it wants to skip?
     }
     else
     {
-        nvram->read(pRam, length);
+        if (!nvram->read(pRam, length))
+        {
+            return CM_READ_FAIL;
+        }
     }
 
     *pLength = length;
-    popLoadStack(length, complete);
+    *complete = 0;
+    t_cm_result ret2 = updateContainer(length, complete);
+    if (ret2 != CM_SUCCESS)
+    {
+        return ret2;
+    }
     return ret;
 }
 
 
-// T returned has been identified as composite:
-// start loading the composite by returning the next T
-// (and start keeping track of the composite's L).
-// @param T, out, type of 1st component
-// @param containerComplete, out
+// Client has identified T returned by getType() as composite:
+// start loading the composite.
 t_cm_result Tlv::loadComposite()
 {
     cm_item_len_t length;
@@ -150,6 +169,7 @@ t_cm_result Tlv::loadComposite()
     if (stackIndex >= 0)
     {
         // xxx is container complete?
+        // No, let's assume or assert that a container must contain something.
     }
 
     stackIndex++;
@@ -168,7 +188,7 @@ void Tlv::skipItem(unsigned * complete)
     // Skip over the V of TLV
     nvram->adjustOffset(length);
 
-    popLoadStack(length, complete);
+    updateContainer(length, complete);
 }
 
 
@@ -184,12 +204,17 @@ void Tlv::addLengthToComposite(unsigned length)
 }
 
 
-// @complete - output, the number of composites which have been completely loaded after loading this
-//         simple component.
-t_cm_result Tlv::popLoadStack(cm_item_len_t length, unsigned * complete)
+// After loading an item, check if the composite container it is in has been completely loaded, and,
+// if so, update the parameter "complete", used to indicate to client how many
+// composites have been loaded.
+// This function may call itself recursively.
+// @param length - input, length (L in its TLV) of the item that has finished loading.
+// @param complete - input/output, the number of composites which have been completely loaded.
+t_cm_result Tlv::updateContainer(cm_item_len_t length, unsigned * complete)
 {
     if (stackIndex == -1)
     {
+        // Already at bottom of stack: nothing to pop
         return CM_SUCCESS;
     }
     
@@ -209,10 +234,10 @@ t_cm_result Tlv::popLoadStack(cm_item_len_t length, unsigned * complete)
         return CM_INCOHERENT_DATA;
     }
                 
-    // readBytes == length => component completes its composite
+    // readBytes == length => component completes its container
     (*complete)++;
     stackIndex--; // Maybe next-level container is also complete...
-    popLoadStack(context->length, complete); // remove contribution of container from its container
+    updateContainer(context->length, complete); // update contribution of container to its container
     return CM_SUCCESS;
 }
 

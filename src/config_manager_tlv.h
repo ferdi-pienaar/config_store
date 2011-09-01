@@ -53,7 +53,7 @@ private:
     }
 
     void addLengthToComposite(unsigned length);
-    t_cm_result popLoadStack(cm_item_len_t length, unsigned * complete);
+    t_cm_result updateContainer(cm_item_len_t length, unsigned * complete);
     Nvram *  nvram;
     int stackIndex;  // write stack index; -1 means the current item is top-level, not part of a composite
     compositeWriteContext writeStack[stackDepth];

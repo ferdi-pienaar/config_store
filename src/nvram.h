@@ -1,4 +1,9 @@
+//
 // Interface to non-volatile memory.
+// The interface represents a file-like abstraction, where reading and writing
+// are done from the current offset, and advance the offset by the number of bytes
+// read or written.
+//
 #ifndef NVRAM_H
 #define NVRAM_H
 
@@ -22,7 +27,7 @@ public:
 private:
     unsigned int offset; // read/write offset relative to base address [bytes]
 
-    FILE * fp;  // open file for binary read
+    FILE * fp;
 
 };
 

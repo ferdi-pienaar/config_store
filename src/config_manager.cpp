@@ -730,7 +730,7 @@ bool cm_composite_descriptor::getComponentItem(cm_item_id_t id,
 
 
 // T already read
-unsigned int cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pComplete) const
+t_cm_result cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pComplete) const
 {
     unsigned idx;
     bool     first = true; // Is this the first component item
@@ -739,13 +739,13 @@ unsigned int cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pC
 
     do
     {
-        cm_item_id_t componentId, lastComponentId;
+        cm_item_id_t componentId, prevComponentId;
         uint8_t * pComponentItem;
         const cm_aggregate * pAggr;
 
         config_manager::getInstance()->tlv.getType(&componentId);
 
-        if (first || (lastComponentId != componentId))
+        if (first || (prevComponentId != componentId))
         {
             // First read of this component ID, i.e. first item in an array
             idx = 0;
@@ -764,13 +764,13 @@ unsigned int cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pC
             // Unable to find the ID, or idx too big, or no memory: skip the item.
             config_manager::getInstance()->tlv.skipItem(pComplete);
         }
-        lastComponentId = componentId;
+        prevComponentId = componentId;
 
     } while (*pComplete == 0); // while this composite is incomplete
 
     (*pComplete)--;
     
-    return 0; // xxx
+    return CM_SUCCESS;
 }
 
 
@@ -902,11 +902,10 @@ void cm_simple_descriptor::writeTlv(const uint8_t *pItem) const
 }
 
 
-unsigned int cm_simple_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pComplete) const
+t_cm_result cm_simple_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pComplete) const
 {
     cm_item_len_t len = pData->c.len;
-    t_cm_result res = config_manager::getInstance()->tlv.loadSimple(pItem, &len, pComplete);
-    return 0; // xxx
+    return config_manager::getInstance()->tlv.loadSimple(pItem, &len, pComplete);;
 }
 
 

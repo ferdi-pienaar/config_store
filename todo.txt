@@ -27,7 +27,6 @@
   Possibly ROMable classes are easier to identify than I thought -- they 
   can be initialized like C structures: struct x = {};
   what data is allocated to which memory address ranges.
-- Use of c99 types in stdint.h, e.g. uint8_t, uint_fast8_t, uint_least8_t
 - Should I be using malloc, or new?
 - Generate from XML descriptors
 - Is there superfluous info in the TLV files?  At least for simple types, if I know the type
@@ -54,3 +53,12 @@
 
 - Create a stubs directory, and put a double for nvram.c there.  It can be used by the TLV unit
   tests, and possibly also by the unit tests for config_manager.
+- Load errors from TLV:
+  o An item could not be loaded and we should skip it: e.g. a simple item's length is
+    unexpected.  The TLV module may skip it, but returns an indication to the client
+    so that it knows that the RAM has not been populated (hence doesn't increment idx). 
+    The client should free memory that's been allocated -- this should be a side effect
+    of restoring the composite to default.
+    If there data is unexpected, just don't use it.  This simplifies the implementation.
+  o The file is wrong: e.g. L-values are incoherent with each other or with the amount
+    of data in the file.  The file should not be used at all.

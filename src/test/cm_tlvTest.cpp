@@ -1,11 +1,13 @@
 // Unit test using open-source unit test framework
 //
+// xxx valid for little-endian systems only
+//
 
 #include "CppUTest/TestHarness.h"
 #include "CppUTest/CommandLineTestRunner.h"
 #include "config_manager_tlv.h"  // Unit under test
 #include <string.h> // strncmp
-#include "nvram_fake.h"
+#include "nvram_spy.h"
 
 #include <iostream>
 using namespace std;
@@ -24,7 +26,7 @@ TEST_GROUP(tlv)
 
     void setup()
     {
-        nvram_fake_clear();
+        nvram_spy_init();
     }
     
     void teardown()
@@ -34,7 +36,7 @@ TEST_GROUP(tlv)
 };
 
 
-// xxx valid for little-endian systems only
+//
 TEST(tlv, writeSimple)
 {
     cm_item_id_t id = 55;
@@ -45,11 +47,11 @@ TEST(tlv, writeSimple)
 
     tlv.writeSimple(id, sizeof(mem), mem);
 
-    CHECK(memcmp(expected, nvram_fake_getPtr(), sizeof(expected)) == 0);
+    CHECK(nvram_spy_match(expected, sizeof(expected)));
 }
 
 
-// xxx valid for little-endian systems only
+// 
 TEST(tlv, writeComposite)
 {
     cm_item_id_t cId = 55;
@@ -67,11 +69,11 @@ TEST(tlv, writeComposite)
 
     //cout << memcmp(expected, nvMem, sizeof(expected));
 
-    CHECK(memcmp(expected, nvram_fake_getPtr(), sizeof(expected)) == 0);
+    CHECK(nvram_spy_match(expected, sizeof(expected)));
 }
 
 
-// xxx valid for little-endian systems only
+// 
 TEST(tlv, writeNestedComposite)
 {
     cm_item_id_t id = 0xab; // All items are at different levels, so they can share an ID
@@ -86,11 +88,11 @@ TEST(tlv, writeNestedComposite)
     tlv.endWriteComposite();
     tlv.endWriteComposite();
 
-    CHECK(memcmp(expected, nvram_fake_getPtr(), sizeof(expected)) == 0);
+    CHECK(nvram_spy_match(expected, sizeof(expected)));
 }
 
 
-// xxx valid for little-endian systems only
+// 
 TEST(tlv, writeNestedCompositeAndSimple)
 {
     uint8_t s1[] = {1,2,3,4,5,6};
@@ -105,11 +107,11 @@ TEST(tlv, writeNestedCompositeAndSimple)
     tlv.writeSimple(0xbc, sizeof(s2), s2);
     tlv.endWriteComposite();
 
-    CHECK(memcmp(expected, nvram_fake_getPtr(), sizeof(expected)) == 0);
+    CHECK(nvram_spy_match(expected, sizeof(expected)));
 }
 
 
-// xxx valid for little-endian systems only
+// 
 TEST(tlv, loadSimple)
 {
     //                   T        L    V
@@ -120,23 +122,20 @@ TEST(tlv, loadSimple)
 
     // xxx set client RAM to bitpattern and verify only the expected section is modified
     
-
-    // xxx Create a function for setting NVRAM via a backdoor.
-    // What kind of test double is this?  Spy? Fake?
-    nvram_fake_set(nvSet, sizeof(nvSet));
+    nvram_spy_set(nvSet, sizeof(nvSet));
 
     cm_item_id_t id;
     tlv.getType(&id);
     LONGS_EQUAL(0xab, id);
 
-    unsigned complete = 0;
+    unsigned complete;
     tlv.loadSimple(clientRam, &length, &complete);
 
     CHECK(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
 
-// xxx valid for little-endian systems only
+// 
 TEST(tlv, loadComposite)
 {
     //                    T       L     T    L    V     T    L    V
@@ -144,11 +143,11 @@ TEST(tlv, loadComposite)
     uint8_t    expected[] = {55,0, 66,0};
     cm_item_id_t id;
     cm_item_len_t length;
-    unsigned complete = 0;
+    unsigned complete;
 
 
     // xxx set client RAM to bitpattern and verify only the expected section is modified
-    nvram_fake_set(nvSet, sizeof(nvSet));
+    nvram_spy_set(nvSet, sizeof(nvSet));
 
     tlv.getType(&id);
     LONGS_EQUAL(0xab, id);
@@ -174,7 +173,7 @@ TEST(tlv, loadComposite)
 }
 
 
-// xxx valid for little-endian systems only
+// 
 // xxx incomplete
 TEST(tlv, loadNestedComposite)
 {
@@ -183,12 +182,12 @@ TEST(tlv, loadNestedComposite)
     uint8_t    expected[] = {1,2,3,4,5,6};
     cm_item_id_t id;
     cm_item_len_t length = sizeof(expected);
-    unsigned complete = 0;
+    unsigned complete;
 
 
     // xxx set client RAM to bitpattern and verify only the expected section is modified
     
-    nvram_fake_set(nvSet, sizeof(nvSet));
+    nvram_spy_set(nvSet, sizeof(nvSet));
 
     tlv.getType(&id);
     LONGS_EQUAL(0xab, id);
@@ -210,7 +209,7 @@ TEST(tlv, loadNestedComposite)
 }
 
 
-// xxx valid for little-endian systems only
+// 
 TEST(tlv, loadNestedCompositeAndSimple)
 {
     //                 T       L     T       L      T       L     V            T       L    V
@@ -218,9 +217,9 @@ TEST(tlv, loadNestedCompositeAndSimple)
     uint8_t expected[] = {1,2,3,4,5,6,10,11};
     cm_item_id_t id;
     cm_item_len_t length;
-    unsigned complete = 0;
+    unsigned complete;
 
-    nvram_fake_set(nvSet, sizeof(nvSet));
+    nvram_spy_set(nvSet, sizeof(nvSet));
     
     tlv.getType(&id);
     LONGS_EQUAL(0xab, id);
@@ -243,15 +242,13 @@ TEST(tlv, loadNestedCompositeAndSimple)
     LONGS_EQUAL(0xbc, id);
 
     length = 2;
-    complete = 0;
     tlv.loadSimple(clientRam + 6, &length, &complete);
     LONGS_EQUAL(1, complete); // complete top-level container
 
     CHECK(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
-
-// xxx valid for little-endian systems only
+// 
 TEST(tlv, loadNestedCompositeOf2Simples)
 {
     //                 T       L     T       L      T       L     V            T       L    V
@@ -259,9 +256,9 @@ TEST(tlv, loadNestedCompositeOf2Simples)
     uint8_t expected[] = {1,2,3,4,5,6,10,11};
     cm_item_id_t id;
     cm_item_len_t length;
-    unsigned complete = 0;
+    unsigned complete;
 
-    nvram_fake_set(nvSet, sizeof(nvSet));
+    nvram_spy_set(nvSet, sizeof(nvSet));
     
     tlv.getType(&id);
     LONGS_EQUAL(0xab, id);
@@ -280,7 +277,6 @@ TEST(tlv, loadNestedCompositeOf2Simples)
     tlv.loadSimple(clientRam, &length, &complete);
     LONGS_EQUAL(0, complete); // not the end of its container
 
-
     tlv.getType(&id);
     LONGS_EQUAL(0xbc, id);
 
@@ -290,4 +286,24 @@ TEST(tlv, loadNestedCompositeOf2Simples)
 
     CHECK(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
+
+
+TEST(tlv, loadTruncatedSimple)
+{
+    //                 T       L     V ...
+    uint8_t nvSet[] = {0xab,0, 4,0,  1};
+    cm_item_id_t id;
+    cm_item_len_t length;
+    unsigned complete;
+
+    nvram_spy_set(nvSet, sizeof(nvSet));
+    
+    tlv.getType(&id);
+    LONGS_EQUAL(0xab, id);
+
+    length = 4;
+    t_cm_result res = tlv.loadSimple(clientRam, &length, &complete);
+    LONGS_EQUAL(CM_READ_FAIL, res);
+}
+
 

@@ -3,7 +3,7 @@ CXXFLAGS = -Wall -g -I ../../../CppUTest/include -I .. -I ../../export -I ../../
 VPATH = ../../../CppUTest/lib # so make can find the library
 OBJS = ../config_manager.o ../config_manager_util.o ../config_manager_tlv.o \
  ../config_manager_setdef_null.o ../nvram.o
-OBJSTLV = ../config_manager_tlv.o ../../stubs/nvram_fake.o
+OBJSTLV = ../config_manager_tlv.o ../../stubs/nvram_spy.o
 
 all: simpleTestTag compositeTestTag cmTestTag
 

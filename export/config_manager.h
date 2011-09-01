@@ -113,7 +113,7 @@ public:
     virtual std::string getName() const = 0;
     virtual cm_item_id_t getId() const = 0;
     virtual void writeTlv(const uint8_t * pItem) const = 0;
-    virtual unsigned int loadFromTlv(uint8_t * pItem, unsigned * pComplete) const = 0;
+    virtual t_cm_result loadFromTlv(uint8_t * pItem, unsigned * pComplete) const = 0;
     virtual cm_item_len_t getLen() const = 0;
     virtual void print(const uint8_t * pItem, std::string prefix) const = 0;
     virtual void setDefault(uint8_t * pItem) const = 0;
@@ -165,7 +165,6 @@ public:
 public:   
     cm_aggregate(const cm_aggregate_data * d): pData(d){};
     virtual ~cm_aggregate(){}
-
     bool needIndex(const uint8_t * pParentItem) const {return getCount(pParentItem) > 1;}
     bool getIndex(int * pArgc, char *** pArgv, const uint8_t * pParentItem, unsigned int & itemIndex) const;
     uint8_t * getItemAtIndex(const uint8_t * pParentItem, unsigned idx) const;
@@ -225,6 +224,7 @@ private:
     const cm_contained_aggregate * pCounterAggr; // the counter for this owned component
 };
 
+
 ////////////////////////////////////////////////////////////////////////////////
 /// A composite descriptor consists of components, linked to the composite via
 /// aggregates.
@@ -241,12 +241,12 @@ public:
     void print(const uint8_t * pItem, std::string prefix) const;
     void setDefault(uint8_t * pItem) const;
     virtual void help(const uint8_t * pItem) const;
-    bool handleAdd(int argc, char *argv[], uint8_t * pItem) const;// xxx could this be private, accessed only from handleCmd?
-    bool handleDel(int argc, char *argv[], uint8_t * pItem) const;// xxx could this be private, accessed only from handleCmd?
     void writeTlv(const uint8_t * pItem) const;
-    unsigned int loadFromTlv(uint8_t * pItem, unsigned * pComplete) const;
+    t_cm_result loadFromTlv(uint8_t * pItem, unsigned * pComplete) const;
 
 private:
+    bool handleAdd(int argc, char *argv[], uint8_t * pItem) const;
+    bool handleDel(int argc, char *argv[], uint8_t * pItem) const;
     bool handleIdWord(int argc, char *argv[], uint8_t * pItem, cm_context & ctxt) const;
     bool getComponentItem(int * pArgc,
                           char *** pArgv,
@@ -292,7 +292,7 @@ public:
     void setDefault(uint8_t * pItem) const;
     void help(const uint8_t * pItem) const {std::cout << "len " << getLen() << std::endl;}
     virtual void writeTlv(const uint8_t * pItem) const;
-    unsigned int loadFromTlv(uint8_t * pItem, unsigned * pComplete) const;
+    t_cm_result loadFromTlv(uint8_t * pItem, unsigned * pComplete) const;
 
 private:
     const cm_simple_metadata * const pData;

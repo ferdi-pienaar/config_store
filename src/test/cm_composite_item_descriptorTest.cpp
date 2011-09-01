@@ -232,10 +232,10 @@ TEST(owned, printData)
 
 TEST(owned, addFirst)
 {
-    char * commandWord = (char *)"owned";
+    char * commandWord[] = {(char *)"add", (char *)"owned"};
+    cm_context ctxt;
 
-    
-    c2.handleAdd(1, &commandWord, (uint8_t *)&mem);
+    c2.handleCmd(2, commandWord, (uint8_t *)&mem, ctxt);
 
     // Counter is incremented and ptr to owned item is no longer NULL
     CHECK(mem.cnt == 1);
@@ -248,11 +248,11 @@ TEST(owned, addFirst)
 
 TEST(owned, addAnother)
 {
-    char * commandWord = (char *)"owned";
+    char * commandWord[] = {(char *)"add", (char *)"owned"};
+    cm_context ctxt;
 
-    
-    c2.handleAdd(1, &commandWord, (uint8_t *)&mem);
-    c2.handleAdd(1, &commandWord, (uint8_t *)&mem);
+    c2.handleCmd(2, commandWord, (uint8_t *)&mem, ctxt);
+    c2.handleCmd(2, commandWord, (uint8_t *)&mem, ctxt);
 
     // Counter is incremented and ptr to owned item is no longer NULL
     CHECK(mem.cnt == 2);
@@ -266,10 +266,10 @@ TEST(owned, addAnother)
 
 TEST(owned, delNull)
 {
-    char * commandWord[] = {(char *)"owned", (char *)"1"};
+    char * commandWord[] = {(char *)"del", (char *)"owned", (char *)"1"};
+    cm_context ctxt;
 
-    
-    c2.handleDel(2, commandWord, (uint8_t *)&mem);
+    c2.handleCmd(3, commandWord, (uint8_t *)&mem, ctxt);
 
     // The command does nothing since there's nothing to delete; verify count remains unchanged
     CHECK(mem.cnt == 0);
@@ -279,15 +279,17 @@ TEST(owned, delNull)
 // Delete the 2nd of two owned items; the first is unchanged
 TEST(owned, delEnd)
 {
+    char * commandWord[] = {(char *)"del", (char *)"owned", (char *)"1"};
     const unsigned NUM_OWNED = 2;
-    char * commandWord[] = {(char *)"owned", (char *)"1"};
 
     // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
     mem.owned = (int *)malloc(NUM_OWNED * sizeof(int));
     mem.owned[0] = 7;
     mem.cnt = NUM_OWNED;
-    
-    c2.handleDel(2, commandWord, (uint8_t *)&mem);
+
+    cm_context ctxt;
+
+    c2.handleCmd(3, commandWord, (uint8_t *)&mem, ctxt);
 
     // Counter is decremented
     CHECK(mem.cnt == NUM_OWNED - 1);
@@ -300,16 +302,18 @@ TEST(owned, delEnd)
 // Delete the 1st of two owned items; the 2nd moves down
 TEST(owned, delFirst)
 {
+    char * commandWord[] = {(char *)"del", (char *)"owned", (char *)"0"};
     const unsigned NUM_OWNED = 2;
-    char * commandWord[] = {(char *)"owned", (char *)"0"};
 
     // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
     mem.owned = (int *)malloc(NUM_OWNED * sizeof(int));
     mem.owned[0] = 7;
     mem.owned[1] = 8;
     mem.cnt = NUM_OWNED;
-    
-    c2.handleDel(2, commandWord, (uint8_t *)&mem);
+
+    cm_context ctxt;
+
+    c2.handleCmd(3, commandWord, (uint8_t *)&mem, ctxt);
 
     // Counter is decremented
     CHECK(mem.cnt == NUM_OWNED - 1);
@@ -321,14 +325,17 @@ TEST(owned, delFirst)
 
 TEST(owned, delSingle)
 {
+    char * commandWord[] = {(char *)"del", (char *)"owned", (char *)"0"};
     const unsigned NUM_OWNED = 1;
-    char * commandWord[] = {(char *)"owned", (char *)"0"};
 
     // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
     mem.owned = (int *)malloc(NUM_OWNED * sizeof(int));
     mem.cnt = NUM_OWNED;
-    
-    c2.handleDel(2, commandWord, (uint8_t *)&mem);
+
+    cm_context ctxt;
+
+    c2.handleCmd(3, commandWord, (uint8_t *)&mem, ctxt);
+
 
     // Counter is decremented to 0
     CHECK(mem.cnt == 0);
@@ -429,9 +436,10 @@ TEST_GROUP(ownedWithoutCounter)
 // Add the sole, uncounted OWNed item
 TEST(ownedWithoutCounter, addOnly)
 {
-    char * commandWord = (char *)"owned";
-    
-    c4.handleAdd(1, &commandWord, (uint8_t *)&mem);
+    char * commandWord[] = {(char *)"add", (char *)"owned"};
+    cm_context ctxt;
+
+    c4.handleCmd(2, commandWord, (uint8_t *)&mem, ctxt);
 
     // Pointer updated
     CHECK(mem.owned != NULL);
@@ -444,12 +452,13 @@ TEST(ownedWithoutCounter, addOnly)
 // Delete the sole, uncounted OWNed item
 TEST(ownedWithoutCounter, delOnly)
 {
-    char * commandWord = (char *)"owned";
+    char * commandWord[] = {(char *)"del", (char *)"owned"};
+    cm_context ctxt;
     
     // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
     mem.owned = (int *)malloc(MAX_NUMBER_OWNED_SET4 * sizeof(int));
 
-    c4.handleDel(1, &commandWord, (uint8_t *)&mem);
+    c4.handleCmd(2, commandWord, (uint8_t *)&mem, ctxt);
 
     // And the pointer to owned is set to NULL after owned memory freed
     CHECK(mem.owned == NULL);
