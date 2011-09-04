@@ -676,50 +676,42 @@ bool cm_composite_descriptor::getComponentItem(int * pArgc,
 
 
 //
-// From ID and index, return aggregate and pointer to component item in this composite.
+// From index, return the pointer to component item in this composite.
 // Because this function is called during loading, items are created as
 // needed: if the item is contained, the pointer to the already-allocated
 // memory is returned, and if it's owned, memory for the item is allocated.
-// id: (in) component item's ID
+//
 // idx: (in) index of wanted component, 1 larger than
 //           the index previously passed to this method for the
 //           same id in the same composite
-// ppAggr: out, the wanted aggregate, or 0 if command identifies none
+// pAggr: in, the aggregate
 // pParentItem: (in) the owning item
 // ppItem: (out) the wanted item
 //
 // @return true if item is returned
 //
-bool cm_composite_descriptor::getComponentItem(cm_item_id_t id,
-                                               unsigned idx,
-                                               const cm_aggregate ** ppAggr,
+bool cm_composite_descriptor::getComponentItem(unsigned idx,
+                                               const cm_aggregate * pAggr,
                                                uint8_t * pParentItem,
                                                uint8_t ** ppItem) const
 {
-    assert(ppAggr != NULL);
+    assert(pAggr != NULL);
     assert(pParentItem != NULL);
     assert(ppItem != NULL);
     
-    *ppAggr = getAggr(id);
-
-    if (*ppAggr == NULL)
-    {
-        return false;
-    }
-
-    if (idx == (*ppAggr)->pData->maxCount)
+    if (idx == pAggr->pData->maxCount)
     {
         // Maximum number of these item already loaded: fail
         return false;
     }
 
-    if ((*ppAggr)->isAddSupported())
+    if (pAggr->isAddSupported())
     {
-        *ppItem = add(pParentItem, *ppAggr); 
+        *ppItem = add(pParentItem, pAggr); 
     }
     else
     {
-        *ppItem = (*ppAggr)->getItemAtIndex(pParentItem, idx);
+        *ppItem = pAggr->getItemAtIndex(pParentItem, idx);
     }
 
     if (*ppItem == NULL)
@@ -761,8 +753,11 @@ t_cm_result cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pCo
             first = false;
         }
 
-        if (getComponentItem(componentId, idx++, &pAggr, pItem, &pComponentItem) &&
-            pAggr->pData->pDesc->isPersistent())
+        pAggr = getAggr(componentId);
+
+        if ((pAggr != NULL) &&
+            pAggr->pData->pDesc->isPersistent() &&
+            getComponentItem(idx++, pAggr, pItem, &pComponentItem))
         {
             if ((res = pAggr->pData->pDesc->loadFromTlv(pComponentItem, pComplete)) != CM_SUCCESS)
             {
@@ -770,8 +765,8 @@ t_cm_result cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pCo
             }
         }
         else
-        {            
-            // Unable to find the ID, or idx too big, or no memory, or item isn't persistent...
+        {      
+            // Can't find ID, or item not persistent, or idx too big, or no memory...
             config_manager::getInstance()->tlv.skipItem(pComplete);
         }
         prevComponentId = componentId;

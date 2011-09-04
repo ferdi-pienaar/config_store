@@ -120,22 +120,6 @@ public:
     virtual void help(const uint8_t * pItem) const = 0;
     virtual bool isPersistent() const = 0;
 
-private:
-    virtual const cm_aggregate * getAggrAtIndex(unsigned int i) const {return NULL;}
-    virtual bool getComponentItem(int * pArgc,
-                          char *** pArgv,
-                          const cm_aggregate ** ppAggr,
-                          uint8_t * pParentItem,
-                          uint8_t ** ppItem,
-                          cm_context & ctxt,
-                          bool & added) const {return false;}
-    virtual bool getComponentItem(cm_item_id_t id,
-                          unsigned idx,
-                          const cm_aggregate ** ppAggr,
-                          uint8_t * pParentItem,
-                          uint8_t ** ppItem) const {return false;}
-    virtual unsigned short getAggrCount() const {return 0;}
-
 };
 
 
@@ -160,7 +144,7 @@ private:
 //
 class cm_aggregate
 {
-public:
+public: // Should be private; currently public so we can call methods on pData->pDesc
     const cm_aggregate_data * pData;
     
 public:   
@@ -257,9 +241,8 @@ private:
                           uint8_t ** ppItem,
                           cm_context & ctxt,
                           bool & added) const;
-    bool getComponentItem(cm_item_id_t id,
-                          unsigned idx,
-                          const cm_aggregate ** ppAggr,
+    bool getComponentItem(unsigned idx,
+                          const cm_aggregate * pAggr,
                           uint8_t * pParentItem,
                           uint8_t ** ppItem) const;
     virtual unsigned short getAggrCount() const {return pData->aggrCount;}
