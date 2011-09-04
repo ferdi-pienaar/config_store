@@ -6,18 +6,42 @@
 #include "config_manager.h"
 #include "my_cfg.h"
 #include <cstring> // strtok
+#include <pthread.h>
 
 using namespace std;
 
 #define WORD_DELIMITERS " \n"
 
 
+// Periodically, update some stats that can be displayed by cfg_man.
+void * stats_thread(void * arg)
+{
+    for (;;)
+    {
+        sleep(5);
+        tDevice * pCfg = GET_DEVICE_CONFIG;
+        static unsigned userIdx = 0;
+
+        if (pCfg->userCount > 0)
+        {
+            userIdx = (userIdx >= pCfg->userCount - 1) ? 0 : userIdx + 1;
+
+            pCfg->users[userIdx].elapsed++;
+        }
+    }
+    return NULL;
+}
+
 int main()
 {
     // Initialize the config manager with the base descriptor it is to manage.
     config_manager * cm = config_manager::getInstance();
-
+    
     cm->init(pBaseDesc);
+
+    pthread_t thread;
+    int rc = pthread_create(&thread, NULL, stats_thread, NULL);
+    assert(0 == rc);
     
     while (true)
     {

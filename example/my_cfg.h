@@ -27,6 +27,7 @@ typedef struct
     char           name[MAX_LEN_USER_NAME];
     unsigned long  id;
     short          temperature;
+    unsigned       elapsed;
 
 } tUser;
 

@@ -112,6 +112,7 @@ enum
     USER_NAME = 0,
     USER_ID = 1,
     USER_TEMP = 2,
+    USER_ELAPSED = 3,
 };
 
 
@@ -179,6 +180,27 @@ const cm_contained_aggregate userTempAggr(&userTempAggr_d);
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// user_elapsed: statistic, hence non-persistent
+////////////////////////////////////////////////////////////////////////////////
+const cm_simple_metadata user_elapsed_d =
+{
+    {
+        "elapsed", 
+        USER_ELAPSED,
+        SIZEOF(tUser, elapsed),
+        false
+    },
+    NULL, // no set function, because statistics are set by application, not cfg_man
+    NULL, // setdef
+    cm_prt_int
+};
+
+const cm_simple_descriptor user_elapsed = cm_simple_descriptor(&user_elapsed_d);
+const cm_aggregate_data userElapsedAggr_d = {&user_elapsed, 1, offsetof(tUser, elapsed)};
+const cm_contained_aggregate userElapsedAggr(&userElapsedAggr_d);
+
+
+////////////////////////////////////////////////////////////////////////////////
 // user
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -188,6 +210,7 @@ const cm_aggregate * const userAggrList[] =
     &userNameAggr,
     &userIdAggr,
     &userTempAggr,
+    &userElapsedAggr,
 };
 
 const cm_composite_metadata user_d =

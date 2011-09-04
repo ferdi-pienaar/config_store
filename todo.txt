@@ -51,16 +51,11 @@
   4. Perhaps abstraction of file access at the lowest level, if only to simplify unit
      testing.
 
-- Create a stubs directory, and put a double for nvram.c there.  It can be used by the TLV unit
-  tests, and possibly also by the unit tests for config_manager.
-- Integrate cm_tlvTest into the autmated tests.
-- Load errors from TLV:
-  o An item could not be loaded and we should skip it: e.g. a simple item's length is
-    unexpected.  The TLV module may skip it, but returns an indication to the client
-    so that it knows that the RAM has not been populated (hence doesn't increment idx). 
-    The client should free memory that's been allocated -- this could be a side effect
-    of restoring the composite to default.
-    The indication to client could be given by the output value of the length param.
-    OR: If any data is unexpected, just don't use the file.  This simplifies the implementation.
-  o The file is wrong: e.g. L-values are incoherent with each other or with the amount
-    of data in the file (e.g. truncated file).  The file should not be used at all.
+- The unit tests for config_manager could also use a test double for NVRAM,
+  instead of actual file access.
+- Integrate cm_tlvTest into the automated tests.
+
+- 2011/9/3: Could we be allocating memory for a non-persistent object load?  There's no persistence
+  check inside simple::loadFromTlv: why not?
+  We should do the persistence check before allocating memory.
+

@@ -15,7 +15,7 @@ be recovered from the device.
 Items that be read via the configuration API, are set by application code, and 
 are not saved in NVRAM, for example, statistics.
 The application programmer selects a prt function (he may also 
-implement it).  He sets nonvolatile=false.  A setdef function is optional, e.g. 
+implement it).  He sets persistent=false.  A setdef function is optional, e.g. 
 to reset statistics.  A set function can be provided, but doesn't make sense.
 
 Setdef functions should be provided, or items may be initialized with garbage.

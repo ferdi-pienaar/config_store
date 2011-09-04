@@ -732,16 +732,18 @@ bool cm_composite_descriptor::getComponentItem(cm_item_id_t id,
 
 // T already read
 // @pComplete input/output 
+//
+// @note A failure loading any component terminates the entire load
 // 
 t_cm_result cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pComplete) const
 {
-    unsigned    idx;
-    bool        first = true; // Is this the first component item
+    bool first = true; // Is this the first component item
 
     config_manager::getInstance()->tlv.loadComposite();
 
     do
     {
+        unsigned             idx;
         cm_item_id_t         componentId, prevComponentId;
         uint8_t *            pComponentItem;
         const cm_aggregate * pAggr;
@@ -749,7 +751,6 @@ t_cm_result cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pCo
 
         if ((res = config_manager::getInstance()->tlv.getType(&componentId)) != CM_SUCCESS)
         {
-            // A failure terminates the entire load
             return res;
         }
 
@@ -760,15 +761,13 @@ t_cm_result cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pCo
             first = false;
         }
 
-        if (getComponentItem(componentId, idx, &pAggr, pItem, &pComponentItem) &&
+        if (getComponentItem(componentId, idx++, &pAggr, pItem, &pComponentItem) &&
             pAggr->pData->pDesc->isPersistent())
         {
             if ((res = pAggr->pData->pDesc->loadFromTlv(pComponentItem, pComplete)) != CM_SUCCESS)
             {
-                // A failure terminates the entire load
                 return res;
             }
-            idx++;
         }
         else
         {            
