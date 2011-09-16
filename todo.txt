@@ -55,7 +55,4 @@
   instead of actual file access.
 - Integrate cm_tlvTest into the automated tests.
 
-- 2011/9/3: Could we be allocating memory for a non-persistent object load?  There's no persistence
-  check inside simple::loadFromTlv: why not?
-  We should do the persistence check before allocating memory.
 

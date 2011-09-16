@@ -98,6 +98,7 @@ typedef struct t_cm_context
 //  Following commands are executed by a simple:    set, setDefault, prt
 //  Following commands are executed by a composite: setDefault, add, del, prt
 
+class command_stack;
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Descriptor of configurable item (either simple or compound).
@@ -109,7 +110,7 @@ public:
     cm_descriptor() {}
     virtual ~cm_descriptor(){}
 
-    virtual bool handleCmd(int argc, char *argv[], uint8_t * pItem, struct t_cm_context & ctxt ) const = 0;
+    virtual bool handleCmd(command_stack * cmd, uint8_t * pItem, struct t_cm_context & ctxt ) const = 0;
     virtual std::string getName() const = 0;
     virtual cm_item_id_t getId() const = 0;
     virtual void writeTlv(const uint8_t * pItem) const = 0;
@@ -151,7 +152,7 @@ public:
     cm_aggregate(const cm_aggregate_data * d): pData(d){};
     virtual ~cm_aggregate(){}
     bool needIndex(const uint8_t * pParentItem) const {return getCount(pParentItem) > 1;}
-    bool getIndex(int * pArgc, char *** pArgv, const uint8_t * pParentItem, unsigned int & itemIndex) const;
+    bool getIndex(command_stack * cmd, const uint8_t * pParentItem, unsigned int & itemIndex) const;
     uint8_t * getItemAtIndex(const uint8_t * pParentItem, unsigned idx) const;
     /// returns number of items currently in the aggregate
     virtual unsigned getCount(const uint8_t * pParentItem) const = 0;
@@ -222,7 +223,7 @@ public:
     std::string getName() const {return pData->c.name;}
     virtual cm_item_id_t getId() const {return pData->c.id;}
     virtual cm_item_len_t getLen() const {return pData->c.len;}
-    bool handleCmd(int argc, char *argv[], uint8_t * pItem, cm_context & ctxt) const;
+    bool handleCmd(command_stack * cmd, uint8_t * pItem, cm_context & ctxt) const;
     void print(const uint8_t * pItem, std::string prefix) const;
     void setDefault(uint8_t * pItem) const;
     virtual void help(const uint8_t * pItem) const;
@@ -231,11 +232,10 @@ public:
     bool isPersistent() const { return pData->c.persistent; }
 
 private:
-    bool handleAdd(int argc, char *argv[], uint8_t * pItem) const;
-    bool handleDel(int argc, char *argv[], uint8_t * pItem) const;
-    bool handleIdWord(int argc, char *argv[], uint8_t * pItem, cm_context & ctxt) const;
-    bool getComponentItem(int * pArgc,
-                          char *** pArgv,
+    bool handleAdd(command_stack * cmd, uint8_t * pItem) const;
+    bool handleDel(command_stack * cmd, uint8_t * pItem) const;
+    bool handleIdWord(command_stack * cmd, uint8_t * pItem, cm_context & ctxt) const;
+    bool getComponentItem(command_stack * cmd,
                           const cm_aggregate ** ppAggr,
                           uint8_t * pParentItem,
                           uint8_t ** ppItem,
@@ -268,7 +268,7 @@ class cm_simple_descriptor : public cm_descriptor
 public:
     cm_simple_descriptor(const cm_simple_metadata * pMeta);
     virtual ~cm_simple_descriptor() {}
-    bool handleCmd(int argc, char *argv[], uint8_t * pItem, cm_context & ctxt) const;
+    bool handleCmd(command_stack * cmd, uint8_t * pItem, cm_context & ctxt) const;
     std::string getName() const {return pData->c.name;}
     virtual cm_item_id_t getId() const {return pData->c.id;}
     virtual cm_item_len_t getLen() const {return pData->c.len;}
@@ -321,6 +321,51 @@ private:
     cm_context   currCtxt; // current context
 
 
+};
+
+
+//
+class command_stack
+{
+public:
+    // Operations - each represents a reserved 'word' in commands passed to config_manager
+    enum eCmOp
+    {
+        CM_ADD,
+        CM_DEL,
+        CM_PRT,
+        CM_SET,
+        CM_SETDEF,
+        CM_LOAD,
+        CM_SAVE,
+        CM_HELP,       //
+        CM_RESET_CTXT, // return context to top level
+        CM_OP_NONE
+    };
+    
+    command_stack(int argc, char ** argv) : count(argc), wordPtr(argv) {}
+    command_stack & pop()
+    {
+        count--;
+        wordPtr++;
+        return *this;
+    }
+
+    char * getTop() const
+    {
+        return wordPtr[0];
+    }
+
+    int getCount() const
+    {
+        return count;
+    }
+
+    eCmOp getTopOp() const;
+    
+private:
+    int     count;
+    char ** wordPtr;
 };
 
 #endif // CFG_MAN_H

@@ -10,22 +10,6 @@
 #include <sstream>
 using namespace std;
 
-typedef enum
-{
-    CM_ADD,
-    CM_DEL,
-    CM_PRT,
-    CM_SET,
-    CM_SETDEF,
-    CM_LOAD,
-    CM_SAVE,
-    CM_HELP,       //
-    CM_RESET_CTXT, // return context to top level
-    CM_OP_NONE,
-
-} eCmOp;
-
-static eCmOp getOp(const char * word);
 config_manager * config_manager::instance = NULL;
 
 
@@ -77,16 +61,18 @@ void config_manager::init(const cm_descriptor * desc)
 /// @param argv command word array
 void config_manager::handleCmd(int argc, char *argv[])
 {
+    command_stack cmd(argc, argv);
+    
     // First treat the commands that are only applicable at the top level
-    switch (getOp(argv[0]))
+    switch (cmd.getTopOp())
     {
-        case CM_LOAD:
+        case command_stack::CM_LOAD:
             return load();
 
-        case CM_SAVE:
+        case command_stack::CM_SAVE:
             return save();
 
-        case CM_RESET_CTXT:
+        case command_stack::CM_RESET_CTXT:
             return resetCtxt();
 
         default: // Other commands are passed to current context
@@ -97,7 +83,7 @@ void config_manager::handleCmd(int argc, char *argv[])
     cm_context tempCtxt = currCtxt;
 
     // Pass command that don't apply to CM as a whole, to current context for handling
-    currCtxt.pDesc->handleCmd(argc, argv, currCtxt.pItem, tempCtxt);
+    currCtxt.pDesc->handleCmd(&cmd, currCtxt.pItem, tempCtxt);
 }
 
 
@@ -140,6 +126,12 @@ void config_manager::save()
 //
 void config_manager::load()
 {
+    if (!base_desc->isPersistent())
+    {
+        cout << "No persistent items." << endl;
+        return;
+    }
+
     if (!tlv.resetRead())
     {
         cout << "No config file." << endl;
@@ -199,47 +191,44 @@ pData(pMeta)
 
 
 //
-// argc number of items in argv
-// argv array of strings containing name elements
-// pItem - pointer to RAM at which item is located
+// @param cmd - stack of strings containing name elements
+// @parampItem - pointer to RAM at which item is located
 //
 // @return true if command was handled
 //
 // xxx should free memory allocated as side-effect of a non-set or
 //     go-to-node command, not just an invalid command.
 //
-bool cm_composite_descriptor::handleCmd(int argc,
-                                        char *argv[],
+bool cm_composite_descriptor::handleCmd(command_stack * cmd,
                                         uint8_t * pItem,
                                         cm_context & ctxt) const
 {
-    char * word = argv[0];
-    DBG_PRT("composite::handleCmd: %s\n", argv[0]);
+    DBG_PRT("composite::handleCmd: %s\n", cmd->getTop());
 
     assert(pItem != NULL);
     
-    switch (getOp(word))
+    switch (cmd->getTopOp())
     {
-        case CM_OP_NONE:
-            return handleIdWord(argc, argv, pItem, ctxt);
+        case command_stack::CM_OP_NONE:
+            return handleIdWord(cmd, pItem, ctxt);
         
-        case CM_ADD:
+        case command_stack::CM_ADD:
             // Remove the word 'add' and pass the remainder to the method
-            return handleAdd(argc - 1, &(argv[1]), pItem);
+            return handleAdd(&cmd->pop(), pItem);
             
-        case CM_DEL:
+        case command_stack::CM_DEL:
             // Remove the word 'del' and pass the remainder to the method
-            return handleDel(argc - 1, &(argv[1]), pItem);
+            return handleDel(&cmd->pop(), pItem);
             
-        case CM_PRT:
+        case command_stack::CM_PRT:
             print(pItem, "");
             return true;
 
-        case CM_SETDEF:
+        case command_stack::CM_SETDEF:
             setDefault(pItem);
             return true;
 
-        case CM_HELP:
+        case command_stack::CM_HELP:
             help(pItem);
             return true; // xxx true?
 
@@ -248,28 +237,27 @@ bool cm_composite_descriptor::handleCmd(int argc,
     }
 
     // Don't use argv[0] here, because it may have been modified by getComponentItem
-    cout << "Command '" << word << "' not handled in composite item '" << getName() << "'" << endl;
+    cout << "Command '" << cmd->getTop() << "' not handled in composite item '" << getName() << "'" << endl;
     return false;
 }
 
 
 // Handle word in string that's not a command, hence presumably it identifies a component
-bool cm_composite_descriptor::handleIdWord(int argc, char *argv[], uint8_t * pItem, cm_context & ctxt) const
+bool cm_composite_descriptor::handleIdWord(command_stack * cmd, uint8_t * pItem, cm_context & ctxt) const
 {
-    const cm_aggregate * pAggr;           // Component of this composite identified by argc, argv
+    const cm_aggregate * pAggr;           // Component of this composite identified by cmd
     uint8_t *            pComponentItem;  // pointer to component RAM
     bool                 added;           // Did getComponentItem create a new item?
-    char *               word = argv[0];
 
-    if (!getComponentItem(&argc, &argv, &pAggr, pItem, &pComponentItem, ctxt, added))
+    if (!getComponentItem(cmd, &pAggr, pItem, &pComponentItem, ctxt, added))
     {
         // Unhandled word(s): not a command, and also doesn't identify a component
-        cout << "'" << word << "' not handled in composite item '" << getName() << "'" << endl;
+        cout << "'" << cmd->getTop() << "' not handled in composite item '" << getName() << "'" << endl;
         return false;
     }
     
     // A component was found
-    if (argc == 0)
+    if (cmd->getCount() == 0)
     {
         // We have a component, but there are no more words in the command
         config_manager::getInstance()->updateCtxt(&ctxt);
@@ -277,7 +265,7 @@ bool cm_composite_descriptor::handleIdWord(int argc, char *argv[], uint8_t * pIt
     }
     
     // Pass the remainder of the command to the found component
-    if (!pAggr->pData->pDesc->handleCmd(argc, argv, pComponentItem, ctxt))
+    if (!pAggr->pData->pDesc->handleCmd(cmd, pComponentItem, ctxt))
     {
         // Component says the command is invalid
         if (added)
@@ -291,25 +279,25 @@ bool cm_composite_descriptor::handleIdWord(int argc, char *argv[], uint8_t * pIt
 }
 
 
-// Try to add a component named by argc,argv to a composite.
+// Try to add a component named by cmd to a composite.
 // After verifying the operation is applicable, the item is added.
-bool cm_composite_descriptor::handleAdd(int argc, char *argv[], uint8_t * pItem) const
+bool cm_composite_descriptor::handleAdd(command_stack * cmd, uint8_t * pItem) const
 {
-    DBG_PRT("handleAdd %s\n", argv[0]);
+    DBG_PRT("handleAdd %s\n", cmd->getTop());
 
     assert(pItem != NULL);
 
-    if (argc != 1)
+    if (cmd->getCount() != 1)
     {
-        cout << argc << " parameters for 'add'." << endl;
+        cout << cmd->getCount() << " parameters for 'add'." << endl;
         return false;
     }
 
-    const cm_aggregate * pAggr = getAggr(argv[0]);
+    const cm_aggregate * pAggr = getAggr(cmd->getTop());
 
     if (pAggr == NULL)
     {
-        cout << "No item '" << argv[0] << "' in '" << getName() << "'." << endl;
+        cout << "No item '" << cmd->getTop() << "' in '" << getName() << "'." << endl;
         return false;
     }
     
@@ -375,31 +363,30 @@ uint8_t * cm_composite_descriptor::add(uint8_t * pParentItem,
 }
 
 
-// Del an owned component named by argc,argv from a composite
-bool cm_composite_descriptor::handleDel(int argc, char *argv[], uint8_t * pItem) const
+// Del an owned component named by cmd from a composite
+bool cm_composite_descriptor::handleDel(command_stack * cmd, uint8_t * pItem) const
 {
     assert(pItem != NULL);
 
-    DBG_PRT("handleDel %s\n", argv[0]);
+    DBG_PRT("handleDel %s\n", cmd->getTop());
 
-    if ((argc != 1) && (argc != 2))
+    if ((cmd->getCount() != 1) && (cmd->getCount() != 2))
     {
         // Provide item name and, optionally, index
-        cout << argc << " parameters for 'del'." << endl;
+        cout << cmd->getCount() << " parameters for 'del'." << endl;
         return false;
     }    
 
-    const cm_aggregate * pAggr = getAggr(argv[0]);
+    const cm_aggregate * pAggr = getAggr(cmd->getTop());
 
     if (pAggr == NULL)
     {        
-        cout << "No item '" << argv[0] << "' in '" << getName() << "'." << endl;
+        cout << "No item '" << cmd->getTop() << "' in '" << getName() << "'." << endl;
         return false;
     }
 
     // Match found
-    argc--;
-    argv++;
+    cmd->pop();
     
     if (!pAggr->isAddSupported())
     {
@@ -417,7 +404,7 @@ bool cm_composite_descriptor::handleDel(int argc, char *argv[], uint8_t * pItem)
 
     unsigned int itemIdx = 0; // If no explicit index is needed, use 0 offset
 
-    if (pAggr->needIndex(pItem) && !pAggr->getIndex(&argc, &argv, pItem, itemIdx))
+    if (pAggr->needIndex(pItem) && !pAggr->getIndex(cmd, pItem, itemIdx))
     {
         // An index is needed but couldn't be extracted from the command
         return false;
@@ -589,8 +576,7 @@ void cm_composite_descriptor::writeTlv(const uint8_t *pItem) const
 
 // From remaining command-line words, find matching component of this composite.
 // If the component does not exist, it is created in certain cases.
-// pArgc: (in/out) number of command words
-// pArgv: (in/out) command word pointer
+// cmd - command string stack
 // ppAggr: out, the wanted aggregate, or 0 if command identifies none
 // pParentItem: (in) the owning item
 // ppItem: (out) the wanted item
@@ -599,23 +585,21 @@ void cm_composite_descriptor::writeTlv(const uint8_t *pItem) const
 //
 // @return true if item is returned
 //
-bool cm_composite_descriptor::getComponentItem(int * pArgc,
-                                               char *** pArgv,
+bool cm_composite_descriptor::getComponentItem(command_stack * cmd,
                                                const cm_aggregate ** ppAggr,
                                                uint8_t * pParentItem,
                                                uint8_t ** ppItem,
                                                cm_context & ctxt,
                                                bool & added) const
 {
-    assert(pArgc != NULL);
-    assert(pArgv != NULL);
+    assert(cmd != NULL);
     assert(ppAggr != NULL);
     assert(pParentItem != NULL);
     assert(ppItem != NULL);
     
     added = false; // By default, didn't add a new component
     
-    *ppAggr = getAggr(*pArgv[0]);
+    *ppAggr = getAggr(cmd->getTop());
 
     if (*ppAggr == NULL)
     {
@@ -625,14 +609,13 @@ bool cm_composite_descriptor::getComponentItem(int * pArgc,
     ctxt.str += (*ppAggr)->pData->pDesc->getName() + " ";
     
     // Found matching name: now try to get index from next word
-    *pArgc -= 1;
-    *pArgv += 1;
+    cmd->pop();
     unsigned int itemIdx = 0; // If no index needed, use offset 0
 
     if ((*ppAggr)->pData->maxCount > 1)
     {
         // Explicit index is needed if there can be more than one instance
-        if ((*ppAggr)->getIndex(pArgc, pArgv, pParentItem, itemIdx))
+        if ((*ppAggr)->getIndex(cmd, pParentItem, itemIdx))
         {
             // Index available, it becomes part of the context string
             char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
@@ -701,7 +684,7 @@ bool cm_composite_descriptor::getComponentItem(unsigned idx,
     
     if (idx == pAggr->pData->maxCount)
     {
-        // Maximum number of these item already loaded: fail
+        // Maximum number of these items already loaded: fail
         return false;
     }
 
@@ -816,12 +799,10 @@ void cm_simple_descriptor::print(const uint8_t * pItem, string prefix) const
 
 
 //
-// argc number of items in argv
-// argv array of strings containing name elements
+// cmd - array of strings containing name elements
 // pItem - pointer to RAM at which item is located
 //
-bool cm_simple_descriptor::handleCmd(int argc,
-                                    char *argv[],
+bool cm_simple_descriptor::handleCmd(command_stack * cmd,
                                     uint8_t * pItem,
                                     cm_context & ctxt) const
 {
@@ -829,29 +810,30 @@ bool cm_simple_descriptor::handleCmd(int argc,
     
     DBG_PRT("simple cmd at %p\n", pItem);
     
-    switch (getOp(argv[0]))
+    switch (cmd->getTopOp())
     {
-        case CM_PRT:
+        case command_stack::CM_PRT:
             print(pItem, "");
             return true;
 
-        case CM_SET:
-            if (argc == 2)
+        case command_stack::CM_SET:
+            if (cmd->getCount() == 2)
             {
-                return set(pItem, argv[1]);
+                cmd->pop();
+                return set(pItem, cmd->getTop());
             }
             break;
 
-        case CM_SETDEF:
+        case command_stack::CM_SETDEF:
             setDefault(pItem);
             return true;
 
-        case CM_HELP:
+        case command_stack::CM_HELP:
             help(pItem);
             return true; // true?
 
         default:
-            cout << "'" << argv[0] << "' not handled by simple item '" << getName() << "'" << endl;
+            cout << "'" << cmd->getTop() << "' not handled by simple item '" << getName() << "'" << endl;
     }
     return false;
 }
@@ -923,25 +905,23 @@ t_cm_result cm_simple_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pCompl
 // @return false if unable to extract a valid (in-range) index,
 //         true if returning a valid (in-range) index.
 //
-bool cm_aggregate::getIndex(int * pArgc,
-                            char *** pArgv,
+bool cm_aggregate::getIndex(command_stack * cmd,
                             const uint8_t * pParentItem,
                             unsigned int & itemIdx) const
 {
     assert(pParentItem != NULL);
     
-    if (*pArgc > 0)
+    if (cmd->getCount() > 0)
     {
         char * pEnd; // pointer to char after chars accepted by strtoul
 
         // An index is needed, so try to extract one
-        itemIdx = strtoul((*pArgv)[0], &pEnd, 0);
+        itemIdx = strtoul(cmd->getTop(), &pEnd, 0);
 
-        if (pEnd > (*pArgv)[0])
+        if (pEnd > cmd->getTop())
         {
             // Success: strtoul read an unsigned integer from the input
-            *pArgc -= 1;
-            *pArgv += 1;
+            cmd->pop();
             return true;
         }
     }
@@ -1118,18 +1098,18 @@ void cm_owned_aggregate::freeItems(uint8_t * pParentItem) const
 }
 
 
-// Helper function that returns what kind of operation (if any) a word is
-eCmOp getOp(const char * word)
+// Return the operation represented by the word at the top of the command stack
+command_stack::eCmOp command_stack::getTopOp() const
 {
-    if (strcmp(word, "add") == 0)     return CM_ADD;
-    if (strcmp(word, "del") == 0)     return CM_DEL;
-    if (strcmp(word, "prt") == 0)     return CM_PRT;
-    if (strcmp(word, "=") == 0)       return CM_SET;
-    if (strcmp(word, "setdef") == 0)  return CM_SETDEF;
-    if (strcmp(word, "load") == 0)    return CM_LOAD;
-    if (strcmp(word, "save") == 0)    return CM_SAVE;
-    if (strcmp(word, "<") == 0)       return CM_RESET_CTXT;
-    if (strcmp(word, "?") == 0)       return CM_HELP;
+    if (strcmp(getTop(), "add") == 0)     return CM_ADD;
+    if (strcmp(getTop(), "del") == 0)     return CM_DEL;
+    if (strcmp(getTop(), "prt") == 0)     return CM_PRT;
+    if (strcmp(getTop(), "=") == 0)       return CM_SET;
+    if (strcmp(getTop(), "setdef") == 0)  return CM_SETDEF;
+    if (strcmp(getTop(), "load") == 0)    return CM_LOAD;
+    if (strcmp(getTop(), "save") == 0)    return CM_SAVE;
+    if (strcmp(getTop(), "<") == 0)       return CM_RESET_CTXT;
+    if (strcmp(getTop(), "?") == 0)       return CM_HELP;
 
     // If no match, it's not an operation
     return CM_OP_NONE;
