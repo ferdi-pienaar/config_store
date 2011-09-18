@@ -249,10 +249,18 @@ bool cm_composite_descriptor::handleIdWord(command_stack * cmd, uint8_t * pItem,
     uint8_t *            pComponentItem;  // pointer to component RAM
     bool                 added;           // Did getComponentItem create a new item?
 
-    if (!getComponentItem(cmd, &pAggr, pItem, &pComponentItem, ctxt, added))
+    pAggr = getAggr(cmd->getTop());
+
+    if (pAggr == NULL)
     {
         // Unhandled word(s): not a command, and also doesn't identify a component
-        cout << "'" << cmd->getTop() << "' not handled in composite item '" << getName() << "'" << endl;
+        cout << "'" << cmd->getTop() << "' not in composite item '" << getName() << "'" << endl;
+        return false;
+    }
+
+    if (!pAggr->getComponentItem(cmd, pItem, &pComponentItem, ctxt, added))
+    {
+        // Index problems are reported by the called fn
         return false;
     }
     
@@ -493,137 +501,6 @@ void cm_composite_descriptor::writeTlv(const uint8_t *pItem) const
 }
 
 
-// From remaining command-line words, find matching component of this composite.
-// If the component does not exist, it is created in certain cases.
-// cmd - command string stack
-// ppAggr: out, the wanted aggregate, or 0 if command identifies none
-// pParentItem: (in) the owning item
-// ppItem: (out) the wanted item
-// ctxt:   (in/out)
-// added: (out) did this function allocate memory for the item?
-//
-// @return true if item is returned
-//
-bool cm_composite_descriptor::getComponentItem(command_stack * cmd,
-                                               const cm_aggregate ** ppAggr,
-                                               uint8_t * pParentItem,
-                                               uint8_t ** ppItem,
-                                               cm_context & ctxt,
-                                               bool & added) const
-{
-    assert(cmd != NULL);
-    assert(ppAggr != NULL);
-    assert(pParentItem != NULL);
-    assert(ppItem != NULL);
-    
-    added = false; // By default, didn't add a new component
-    
-    *ppAggr = getAggr(cmd->getTop());
-
-    if (*ppAggr == NULL)
-    {
-        return false;
-    }
-
-    ctxt.str += (*ppAggr)->pData->pDesc->getName() + " ";
-    
-    // Found matching name: now try to get index from next word
-    cmd->pop();
-    unsigned int itemIdx = 0; // If no index needed, use offset 0
-
-    if ((*ppAggr)->pData->maxCount > 1)
-    {
-        // Explicit index is needed if there can be more than one instance
-        if ((*ppAggr)->getIndex(cmd, pParentItem, itemIdx))
-        {
-            // Index available, it becomes part of the context string
-            char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
-
-            snprintf(indexbuf, sizeof(indexbuf), "%d ", itemIdx);
-            ctxt.str = ctxt.str + indexbuf;
-        }
-        else
-        {
-            // The necessary index was not in the command
-            return false;
-        }
-    }
-
-    unsigned int cnt = (*ppAggr)->getCount(pParentItem); // Number of items currently in the aggregate
-
-    DBG_PRT("getComponentItem %p offset %d idx %d cnt %d len %d\n",
-            *ppItem, (*ppAggr)->pData->offset, itemIdx, cnt, (*ppAggr)->pData->pDesc->getLen());
-
-    if (itemIdx >= cnt)
-    {
-        // Index refers to an item that doesn't exist
-        if ((*ppAggr)->isAddSupported() && (itemIdx == cnt) && (itemIdx < (*ppAggr)->pData->maxCount))
-        {
-            // Index refers to an item to create
-            (*ppAggr)->add(pParentItem);
-            added = true;
-        }
-        else
-        {
-            cout<<"Index "<<itemIdx<<" out of range"<<endl;
-            return false;
-        }
-    }
-
-    *ppItem = (*ppAggr)->getItemAtIndex(pParentItem, itemIdx);
-    ctxt.pDesc = (*ppAggr)->pData->pDesc;
-    ctxt.pItem = *ppItem;
-    return true;
-}
-
-
-//
-// From index, return the pointer to component item in this composite.
-// Because this function is called during loading, items are created as
-// needed: if the item is contained, the pointer to the already-allocated
-// memory is returned, and if it's owned, memory for the item is allocated.
-//
-// idx: (in) index of wanted component, 1 larger than
-//           the index previously passed to this method for the
-//           same id in the same composite
-// pAggr: in, the aggregate
-// pParentItem: (in) the owning item
-// ppItem: (out) the wanted item
-//
-// @return true if item is returned
-//
-bool cm_composite_descriptor::getComponentItem(unsigned idx,
-                                               const cm_aggregate * pAggr,
-                                               uint8_t * pParentItem,
-                                               uint8_t ** ppItem) const
-{
-    assert(pAggr != NULL);
-    assert(pParentItem != NULL);
-    assert(ppItem != NULL);
-    
-    if (idx == pAggr->pData->maxCount)
-    {
-        // Maximum number of these items already loaded: fail
-        return false;
-    }
-
-    if (pAggr->isAddSupported())
-    {
-        *ppItem = pAggr->add(pParentItem); 
-    }
-    else
-    {
-        *ppItem = pAggr->getItemAtIndex(pParentItem, idx);
-    }
-
-    if (*ppItem == NULL)
-    {
-        return false;
-    }
-    return true;
-}
-
-
 // T already read
 // @pComplete input/output 
 //
@@ -659,7 +536,7 @@ t_cm_result cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pCo
 
         if ((pAggr != NULL) &&
             pAggr->pData->pDesc->isPersistent() &&
-            getComponentItem(idx++, pAggr, pItem, &pComponentItem))
+            pAggr->getComponentItem(idx++, pItem, &pComponentItem))
         {
             if ((res = pAggr->pData->pDesc->loadFromTlv(pComponentItem, pComplete)) != CM_SUCCESS)
             {
@@ -892,6 +769,122 @@ void cm_aggregate::print(const uint8_t * pItem, std::string prefix) const
         pData->pDesc->print(getItemAtIndex(pItem, i),
                             prefix + pData->pDesc->getName() + indexbuf + " ");
     }
+}
+
+
+// From remaining command-line words, find component item of this aggregate.
+// If the item does not exist, it is created in certain cases.
+// cmd - command string stack
+// pParentItem: (in) the owning item
+// ppItem: (out) the wanted item
+// ctxt:   (in/out)
+// added: (out) did this function allocate memory for the item?
+//
+// @return true if item is returned, false if no index, or index out of range
+//
+bool cm_aggregate::getComponentItem(command_stack * cmd,
+                                    uint8_t * pParentItem,
+                                    uint8_t ** ppItem,
+                                    cm_context & ctxt,
+                                    bool & added) const
+{
+    assert(cmd != NULL);
+    assert(pParentItem != NULL);
+    assert(ppItem != NULL);
+    
+    added = false; // By default, didn't add a new component
+    
+    ctxt.str += pData->pDesc->getName() + " ";
+    
+    // Found matching name: now try to get index from next word
+    cmd->pop();
+    unsigned int itemIdx = 0; // If no index needed, use offset 0
+
+    if (pData->maxCount > 1)
+    {
+        // Explicit index is needed if there can be more than one instance
+        if (getIndex(cmd, pParentItem, itemIdx))
+        {
+            // Index available, it becomes part of the context string
+            char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
+
+            snprintf(indexbuf, sizeof(indexbuf), "%d ", itemIdx);
+            ctxt.str = ctxt.str + indexbuf;
+        }
+        else
+        {
+            // The necessary index was not in the command
+            return false;
+        }
+    }
+
+    unsigned int cnt = getCount(pParentItem); // Number of items currently in the aggregate
+
+    DBG_PRT("getComponentItem %p offset %d idx %d cnt %d len %d\n",
+            *ppItem, pData->offset, itemIdx, cnt, pData->pDesc->getLen());
+
+    if (itemIdx >= cnt)
+    {
+        // Index refers to an item that doesn't exist
+        if (isAddSupported() && (itemIdx == cnt) && (itemIdx < pData->maxCount))
+        {
+            // Index refers to an item to create
+            add(pParentItem);
+            added = true;
+        }
+        else
+        {
+            cout<<"Index "<<itemIdx<<" out of range"<<endl;
+            return false;
+        }
+    }
+
+    *ppItem = getItemAtIndex(pParentItem, itemIdx);
+    ctxt.pDesc = pData->pDesc;
+    ctxt.pItem = *ppItem;
+    return true;
+}
+
+
+//
+// From index, return the pointer to component item in this aggregate.
+// Because this function is called during loading, items are created as
+// needed: if the item is contained, the pointer to the already-allocated
+// memory is returned, and if it's owned, memory for the item is allocated.
+//
+// idx: (in) index of wanted component, 1 larger than
+//           the index previously passed to this method for the
+//           same id in the same composite
+// pParentItem: (in) the owning item
+// ppItem: (out) the wanted item
+//
+// @return true if item is returned
+//
+bool cm_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem, uint8_t ** ppItem) const
+{
+    assert(pParentItem != NULL);
+    assert(ppItem != NULL);
+    
+    if (idx == pData->maxCount)
+    {
+        // Maximum number of these items already loaded: fail
+        return false;
+    }
+
+    if (isAddSupported())
+    {
+        *ppItem = add(pParentItem); 
+    }
+    else
+    {
+        *ppItem = getItemAtIndex(pParentItem, idx);
+    }
+
+    if (*ppItem == NULL)
+    {
+        return false;
+    }
+    return true;
 }
 
 

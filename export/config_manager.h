@@ -162,6 +162,12 @@ public:
     void print(const uint8_t * pItem, std::string prefix) const;
     virtual uint8_t * add(uint8_t * pParentItem) const = 0;
     virtual void del(uint8_t * pParentItem, unsigned int itemIdx) const = 0;
+    bool getComponentItem(command_stack * cmd,
+                          uint8_t * pParentItem,
+                          uint8_t ** ppItem,
+                          cm_context & ctxt,
+                          bool & added) const;
+    bool getComponentItem(unsigned idx, uint8_t * pParentItem, uint8_t ** ppItem) const;
 
 private:
     /// returns address of the first item in the array
@@ -241,16 +247,6 @@ private:
     bool handleAdd(command_stack * cmd, uint8_t * pItem) const;
     bool handleDel(command_stack * cmd, uint8_t * pItem) const;
     bool handleIdWord(command_stack * cmd, uint8_t * pItem, cm_context & ctxt) const;
-    bool getComponentItem(command_stack * cmd,
-                          const cm_aggregate ** ppAggr,
-                          uint8_t * pParentItem,
-                          uint8_t ** ppItem,
-                          cm_context & ctxt,
-                          bool & added) const;
-    bool getComponentItem(unsigned idx,
-                          const cm_aggregate * pAggr,
-                          uint8_t * pParentItem,
-                          uint8_t ** ppItem) const;
     virtual unsigned short getAggrCount() const {return pData->aggrCount;}
     virtual const cm_aggregate * getAggrAtIndex(unsigned int i) const {return pData->aggrList[i];}
     const cm_aggregate * getAggr(const char * name) const;
