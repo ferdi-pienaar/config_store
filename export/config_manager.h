@@ -160,8 +160,8 @@ public:
     virtual void setCount(uint8_t * pParentItem, unsigned int) const = 0;
     void setDefault(uint8_t * pItem) const;
     void print(const uint8_t * pItem, std::string prefix) const;
-    uint8_t * add(uint8_t * pParentItem) const;
-    void del(uint8_t * pParentItem, unsigned int itemIdx) const;
+    virtual uint8_t * add(uint8_t * pParentItem) const = 0;
+    virtual void del(uint8_t * pParentItem, unsigned int itemIdx) const = 0;
 
 private:
     /// returns address of the first item in the array
@@ -182,6 +182,8 @@ public:
     virtual unsigned getCount(const uint8_t * pParentItem) const;
     bool isAddSupported() const {return false;}
     void setCount(uint8_t * pParentItem, unsigned int) const {assert(isAddSupported());} // add operation doesn't apply
+    uint8_t * add(uint8_t * pParentItem) const {assert(isAddSupported());}
+    void del(uint8_t * pParentItem, unsigned int itemIdx) const {assert(isAddSupported());}
 
 private:
     uint8_t * getFirstItem(const uint8_t * pParentItem) const;
@@ -204,6 +206,8 @@ public:
     virtual unsigned getCount(const uint8_t * pParentItem) const;
     bool isAddSupported() const {return true;}
     void setCount(uint8_t * pParentItem, unsigned int) const;
+    uint8_t * add(uint8_t * pParentItem) const;
+    void del(uint8_t * pParentItem, unsigned int itemIdx) const;
 
 private:
     uint8_t * getFirstItem(const uint8_t * pParentItem) const;

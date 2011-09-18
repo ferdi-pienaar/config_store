@@ -895,82 +895,6 @@ void cm_aggregate::print(const uint8_t * pItem, std::string prefix) const
 }
 
 
-// Add OWNED item.
-// @pre Counter is in range
-// This allocates memory for the new item, sets it to default values,
-// and increments the corresponding counter.
-// @return pointer to new allocated memory, or NULL in case of failure
-uint8_t * cm_aggregate::add(uint8_t * pParentItem) const
-{
-    assert(pParentItem != NULL);
-
-    // Reallocate memory, and save pointer in the same location
-    unsigned   cnt     = getCount(pParentItem);
-    uint8_t ** ppItems = (uint8_t **)(pParentItem + pData->offset);
-
-    assert(isAddSupported());
-
-    uint8_t * pNewMem = (uint8_t *)realloc(*ppItems, (cnt + 1) * pData->pDesc->getLen());
-
-    if (pNewMem == NULL)
-    {
-        cout << "No " << pData->pDesc->getLen() << " for " << pData->pDesc->getName() << endl;
-        return NULL;
-    }
-
-    // Memory successfully allocated, so reference the (possibly new) memory
-    *ppItems = pNewMem;
-
-    uint8_t * pNewItem = pNewMem + cnt * pData->pDesc->getLen();
-
-    // Initialize added item with default values. First memset to ensure
-    // counters, which have no setDefault fn, are 0 (also sets pointers to owned to NULL).
-    memset(pNewItem, 0, pData->pDesc->getLen());
-    pData->pDesc->setDefault(pNewItem);
-
-    DBG_PRT("add at %p\n", pNewMem);
-
-    setCount(pParentItem, cnt + 1);
-    return pNewItem;
-}
-
-
-// Del OWNED item.
-// This re-allocates the necessary memory, updates the counter if necessary,
-// and sets the pointer to the memory to NULL if it's all been freed.
-void cm_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
-{
-    // Sanity check input parameters
-    assert(pParentItem != NULL);
-    assert(isAddSupported());
-
-    // Reallocate memory, and save pointer in the same location
-    uint8_t ** ppItems = (uint8_t **)(pParentItem + pData->offset);
-    cm_item_len_t componentLen = pData->pDesc->getLen();
-    unsigned cnt = getCount(pParentItem);
-
-    assert(*ppItems != NULL);
-    assert(cnt > 0);
-    assert(itemIdx < cnt);
-
-    DBG_PRT("del at %p index %d len %d\n", *ppItems, itemIdx, componentLen);
-
-    // Shift down items to occupy the memory vacated by deleted item
-    memmove(*ppItems + itemIdx * componentLen,
-            *ppItems + (itemIdx + 1) * componentLen,
-            (cnt - itemIdx - 1) * componentLen);
-
-    *ppItems = (uint8_t *)realloc(*ppItems, (cnt - 1) * componentLen);
-
-    // xxx realloc should return NULL if memory to be allocated is 0, but it doesn't seem to...
-    if (cnt == 1)
-    {
-        *ppItems = NULL;
-    }
-    setCount(pParentItem, cnt - 1);
-}
-
-
 ////////////////////////////////////////////////////////////////////////////////
 //
 // cm_contained_aggregate
@@ -1089,6 +1013,78 @@ void cm_owned_aggregate::freeItems(uint8_t * pParentItem) const
         // Sanity check: if the pointer is NULL, there are no items.
         assert(getCount(pParentItem) == 0);
     }
+}
+
+
+// Add OWNED item.
+// @pre Counter is in range
+// This allocates memory for the new item, sets it to default values,
+// and increments the corresponding counter.
+// @return pointer to new allocated memory, or NULL in case of failure
+uint8_t * cm_owned_aggregate::add(uint8_t * pParentItem) const
+{
+    assert(pParentItem != NULL);
+
+    // Reallocate memory, and save pointer in the same location
+    unsigned   cnt     = getCount(pParentItem);
+    uint8_t ** ppItems = (uint8_t **)(pParentItem + pData->offset);
+    uint8_t * pNewMem = (uint8_t *)realloc(*ppItems, (cnt + 1) * pData->pDesc->getLen());
+
+    if (pNewMem == NULL)
+    {
+        cout << "No " << pData->pDesc->getLen() << " for " << pData->pDesc->getName() << endl;
+        return NULL;
+    }
+
+    // Memory successfully allocated, so reference the (possibly new) memory
+    *ppItems = pNewMem;
+
+    uint8_t * pNewItem = pNewMem + cnt * pData->pDesc->getLen();
+
+    // Initialize added item with default values. First memset to ensure
+    // counters, which have no setDefault fn, are 0 (also sets pointers to owned to NULL).
+    memset(pNewItem, 0, pData->pDesc->getLen());
+    pData->pDesc->setDefault(pNewItem);
+
+    DBG_PRT("add at %p\n", pNewMem);
+
+    setCount(pParentItem, cnt + 1);
+    return pNewItem;
+}
+
+
+// Del OWNED item.
+// This re-allocates the necessary memory, updates the counter if necessary,
+// and sets the pointer to the memory to NULL if it's all been freed.
+void cm_owned_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
+{
+    // Sanity check input parameters
+    assert(pParentItem != NULL);
+
+    // Reallocate memory, and save pointer in the same location
+    uint8_t ** ppItems = (uint8_t **)(pParentItem + pData->offset);
+    cm_item_len_t componentLen = pData->pDesc->getLen();
+    unsigned cnt = getCount(pParentItem);
+
+    assert(*ppItems != NULL);
+    assert(cnt > 0);
+    assert(itemIdx < cnt);
+
+    DBG_PRT("del at %p index %d len %d\n", *ppItems, itemIdx, componentLen);
+
+    // Shift down items to occupy the memory vacated by deleted item
+    memmove(*ppItems + itemIdx * componentLen,
+            *ppItems + (itemIdx + 1) * componentLen,
+            (cnt - itemIdx - 1) * componentLen);
+
+    *ppItems = (uint8_t *)realloc(*ppItems, (cnt - 1) * componentLen);
+
+    // xxx realloc should return NULL if memory to be allocated is 0, but it doesn't seem to...
+    if (cnt == 1)
+    {
+        *ppItems = NULL;
+    }
+    setCount(pParentItem, cnt - 1);
 }
 
 
