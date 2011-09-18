@@ -160,6 +160,8 @@ public:
     virtual void setCount(uint8_t * pParentItem, unsigned int) const = 0;
     void setDefault(uint8_t * pItem) const;
     void print(const uint8_t * pItem, std::string prefix) const;
+    uint8_t * add(uint8_t * pParentItem) const;
+    void del(uint8_t * pParentItem, unsigned int itemIdx) const;
 
 private:
     /// returns address of the first item in the array
@@ -247,11 +249,6 @@ private:
                           uint8_t ** ppItem) const;
     virtual unsigned short getAggrCount() const {return pData->aggrCount;}
     virtual const cm_aggregate * getAggrAtIndex(unsigned int i) const {return pData->aggrList[i];}
-    uint8_t * add(uint8_t * pParentItem, const cm_aggregate * pAggr) const;
-    void del(uint8_t * pParentItem,
-             const cm_aggregate * pAggr,
-             unsigned int itemIdx,
-             unsigned int cnt) const;
     const cm_aggregate * getAggr(const char * name) const;
     const cm_aggregate * getAggr(cm_item_id_t id) const;
 

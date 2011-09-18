@@ -271,7 +271,7 @@ bool cm_composite_descriptor::handleIdWord(command_stack * cmd, uint8_t * pItem,
         if (added)
         {
             // Free memory allocated by an invalid command
-            del(pItem, pAggr, pAggr->getCount(pItem) - 1, pAggr->getCount(pItem));                        
+            pAggr->del(pItem, pAggr->getCount(pItem) - 1);                        
         }
         return false;
     }
@@ -313,53 +313,11 @@ bool cm_composite_descriptor::handleAdd(command_stack * cmd, uint8_t * pItem) co
         return false;
     }  
         
-    if (add(pItem, pAggr) == NULL)
+    if (pAggr->add(pItem) == NULL)
     {
         return false;
     }
     return true;
-}
-
-
-// Add OWNED item.
-// @pre Add operation is supported on pAggr, and counter is in range
-// This allocates memory for the new item, sets it to default values,
-// and increments the corresponding counter.
-// @return pointer to new allocated memory, or NULL in case of failure
-uint8_t * cm_composite_descriptor::add(uint8_t * pParentItem,
-                                       const cm_aggregate * pAggr) const
-{
-    assert(pParentItem != NULL);
-    assert(pAggr != NULL);
-
-    // Reallocate memory, and save pointer in the same location
-    unsigned   cnt     = pAggr->getCount(pParentItem);
-    uint8_t ** ppItems = (uint8_t **)(pParentItem + pAggr->pData->offset);
-
-    assert(pAggr->isAddSupported());
-
-    uint8_t * pNewMem = (uint8_t *)realloc(*ppItems, (cnt + 1) * pAggr->pData->pDesc->getLen());
-
-    if (pNewMem == NULL)
-    {
-        cout << "No " << pAggr->pData->pDesc->getLen() << " for " << pAggr->pData->pDesc->getName() << endl;
-        return NULL;
-    }
-
-    // Memory successfully allocated, so reference the (possibly new) memory
-    *ppItems = pNewMem;
-
-    uint8_t * pNewItem = pNewMem + cnt * pAggr->pData->pDesc->getLen();
-
-    // Initialize added item with default values. First memset to ensure
-    // counters, which have no setDefault fn, are 0 (also sets pointers to owned to NULL).
-    memset(pNewItem, 0, pAggr->pData->pDesc->getLen());
-    pAggr->pData->pDesc->setDefault(pNewItem);
-
-    DBG_PRT("add at %p\n", pNewMem);
-
-    pAggr->setCount(pParentItem, cnt + 1);
-    return pNewItem;
 }
 
 
@@ -416,47 +374,8 @@ bool cm_composite_descriptor::handleDel(command_stack * cmd, uint8_t * pItem) co
         return false;
     }
 
-    del(pItem, pAggr, itemIdx, cnt);
+    pAggr->del(pItem, itemIdx);
     return true;
-}
-
-
-// Del OWNED item.
-// This re-allocates the necessary memory, updates the counter if necessary,
-// and sets the pointer to the memory to NULL if it's all been freed.
-void cm_composite_descriptor::del(uint8_t * pParentItem,
-                                  const cm_aggregate * pAggr,
-                                  unsigned int itemIdx,
-                                  unsigned int cnt) const
-{
-    // Sanity check input parameters
-    assert(pParentItem != NULL);
-    assert(pAggr != NULL);
-    assert(cnt > 0);
-    assert(itemIdx < cnt);
-    assert(pAggr->isAddSupported());
-
-    cm_item_len_t componentLen = pAggr->pData->pDesc->getLen();
-    // Reallocate memory, and save pointer in the same location
-    uint8_t ** ppItems = (uint8_t **)(pParentItem + pAggr->pData->offset);
-
-    DBG_PRT("del at %p index %d len %d\n", *ppItems, itemIdx, componentLen);
-
-    assert(*ppItems != NULL);
-
-    // Shift down items to occupy the memory vacated by deleted item
-    memmove(*ppItems + itemIdx * componentLen,
-            *ppItems + (itemIdx + 1) * componentLen,
-            (cnt - itemIdx - 1) * componentLen);
-
-    *ppItems = (uint8_t *)realloc(*ppItems, (cnt - 1) * componentLen);
-
-    // xxx realloc should return NULL if memory to be allocated is 0, but it doesn't seem to...
-    if (cnt == 1)
-    {
-        *ppItems = NULL;
-    }
-    pAggr->setCount(pParentItem, cnt - 1);
 }
 
 
@@ -641,7 +560,7 @@ bool cm_composite_descriptor::getComponentItem(command_stack * cmd,
         if ((*ppAggr)->isAddSupported() && (itemIdx == cnt) && (itemIdx < (*ppAggr)->pData->maxCount))
         {
             // Index refers to an item to create
-            add(pParentItem, *ppAggr);
+            (*ppAggr)->add(pParentItem);
             added = true;
         }
         else
@@ -690,7 +609,7 @@ bool cm_composite_descriptor::getComponentItem(unsigned idx,
 
     if (pAggr->isAddSupported())
     {
-        *ppItem = add(pParentItem, pAggr); 
+        *ppItem = pAggr->add(pParentItem); 
     }
     else
     {
@@ -819,8 +738,7 @@ bool cm_simple_descriptor::handleCmd(command_stack * cmd,
         case command_stack::CM_SET:
             if (cmd->getCount() == 2)
             {
-                cmd->pop();
-                return set(pItem, cmd->getTop());
+                return set(pItem, cmd->pop().getTop());
             }
             break;
 
@@ -977,6 +895,82 @@ void cm_aggregate::print(const uint8_t * pItem, std::string prefix) const
 }
 
 
+// Add OWNED item.
+// @pre Counter is in range
+// This allocates memory for the new item, sets it to default values,
+// and increments the corresponding counter.
+// @return pointer to new allocated memory, or NULL in case of failure
+uint8_t * cm_aggregate::add(uint8_t * pParentItem) const
+{
+    assert(pParentItem != NULL);
+
+    // Reallocate memory, and save pointer in the same location
+    unsigned   cnt     = getCount(pParentItem);
+    uint8_t ** ppItems = (uint8_t **)(pParentItem + pData->offset);
+
+    assert(isAddSupported());
+
+    uint8_t * pNewMem = (uint8_t *)realloc(*ppItems, (cnt + 1) * pData->pDesc->getLen());
+
+    if (pNewMem == NULL)
+    {
+        cout << "No " << pData->pDesc->getLen() << " for " << pData->pDesc->getName() << endl;
+        return NULL;
+    }
+
+    // Memory successfully allocated, so reference the (possibly new) memory
+    *ppItems = pNewMem;
+
+    uint8_t * pNewItem = pNewMem + cnt * pData->pDesc->getLen();
+
+    // Initialize added item with default values. First memset to ensure
+    // counters, which have no setDefault fn, are 0 (also sets pointers to owned to NULL).
+    memset(pNewItem, 0, pData->pDesc->getLen());
+    pData->pDesc->setDefault(pNewItem);
+
+    DBG_PRT("add at %p\n", pNewMem);
+
+    setCount(pParentItem, cnt + 1);
+    return pNewItem;
+}
+
+
+// Del OWNED item.
+// This re-allocates the necessary memory, updates the counter if necessary,
+// and sets the pointer to the memory to NULL if it's all been freed.
+void cm_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
+{
+    // Sanity check input parameters
+    assert(pParentItem != NULL);
+    assert(isAddSupported());
+
+    // Reallocate memory, and save pointer in the same location
+    uint8_t ** ppItems = (uint8_t **)(pParentItem + pData->offset);
+    cm_item_len_t componentLen = pData->pDesc->getLen();
+    unsigned cnt = getCount(pParentItem);
+
+    assert(*ppItems != NULL);
+    assert(cnt > 0);
+    assert(itemIdx < cnt);
+
+    DBG_PRT("del at %p index %d len %d\n", *ppItems, itemIdx, componentLen);
+
+    // Shift down items to occupy the memory vacated by deleted item
+    memmove(*ppItems + itemIdx * componentLen,
+            *ppItems + (itemIdx + 1) * componentLen,
+            (cnt - itemIdx - 1) * componentLen);
+
+    *ppItems = (uint8_t *)realloc(*ppItems, (cnt - 1) * componentLen);
+
+    // xxx realloc should return NULL if memory to be allocated is 0, but it doesn't seem to...
+    if (cnt == 1)
+    {
+        *ppItems = NULL;
+    }
+    setCount(pParentItem, cnt - 1);
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // cm_contained_aggregate
@@ -1097,6 +1091,12 @@ void cm_owned_aggregate::freeItems(uint8_t * pParentItem) const
     }
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// command_stack
+//
+////////////////////////////////////////////////////////////////////////////////
 
 // Return the operation represented by the word at the top of the command stack
 command_stack::eCmOp command_stack::getTopOp() const
