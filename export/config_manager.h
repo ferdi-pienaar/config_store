@@ -31,7 +31,7 @@ typedef void (*CM_PRT_FPTR)(const uint8_t *pItem, cm_item_len_t len);
 
 
 // Item metadata, i.e. information about what's kept in RAM.
-// Place metadata in structure separate from the descriptor,
+// We place metadata in a structure separate from the descriptor,
 // to make it easy to ensure it is ROMable (the rules for ensuring
 // a class object is ROMable, are very restrictive).
 // This comes at the cost of having an additional level of indirection.
@@ -47,9 +47,9 @@ struct cm_simple_metadata
 {
     cm_common_metadata c;
 
-    // populate the following ptrs when creating a descriptor
-    // The config manager itself provides a set for basic types
-    // of configurable items, with 'C' linkage.
+    // Populate the following ptrs when creating a descriptor.
+    // The config manager's extensions provide a set of such functions
+    // for basic types of configurable items, with 'C' linkage.
     //
     const CM_SET_FPTR    pSet;
     const CM_SETDEF_FPTR pSetDefault;
@@ -79,12 +79,35 @@ struct cm_aggregate_data
 
 
 // xxx should not be exported
-typedef struct t_cm_context
+// The command-line context: the current item, its descriptor (i.e. its metadata), and the
+// string that's displayed on the command-line to represent the context, i.e. the location
+// of the item within the hierarchy of items.
+class cm_context
 {
-    std::string            str;
-    const cm_descriptor *  pDesc;
-    uint8_t *              pItem;
-} cm_context;
+public:
+    cm_context (std::string istr = "", const cm_descriptor * desc = NULL, uint8_t * item = NULL):
+        str(istr), pDesc(desc), pItem(item) {}
+    void add(std::string w);
+    void add(unsigned idx);
+    void setDesc(const cm_descriptor * desc)
+    {
+        pDesc = desc;
+    }
+
+    void setItem(uint8_t * item)
+    {
+        pItem = item;
+    }
+
+    std::string getString() const { return str; }
+    const cm_descriptor * getDesc() const { return pDesc; }
+    uint8_t * getItem() const { return pItem; }
+
+private:
+    std::string           str;
+    const cm_descriptor * pDesc;
+    uint8_t *             pItem;
+};
 
 
 // We eliminate the getItem method, and pass the command string recursively down the
@@ -110,7 +133,7 @@ public:
     cm_descriptor() {}
     virtual ~cm_descriptor(){}
 
-    virtual bool handleCmd(command_stack * cmd, uint8_t * pItem, struct t_cm_context & ctxt ) const = 0;
+    virtual bool handleCmd(command_stack * cmd, uint8_t * pItem, cm_context & ctxt ) const = 0;
     virtual std::string getName() const = 0;
     virtual cm_item_id_t getId() const = 0;
     virtual void writeTlv(const uint8_t * pItem) const = 0;
@@ -188,7 +211,7 @@ public:
     virtual unsigned getCount(const uint8_t * pParentItem) const;
     bool isAddSupported() const {return false;}
     void setCount(uint8_t * pParentItem, unsigned int) const {assert(isAddSupported());} // add operation doesn't apply
-    uint8_t * add(uint8_t * pParentItem) const {assert(isAddSupported());}
+    uint8_t * add(uint8_t * pParentItem) const {assert(isAddSupported()); return NULL; }
     void del(uint8_t * pParentItem, unsigned int itemIdx) const {assert(isAddSupported());}
 
 private:

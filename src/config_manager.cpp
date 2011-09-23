@@ -44,9 +44,8 @@ void config_manager::init(const cm_descriptor * desc)
 
     assert(ramBase != NULL);
 
-    // This could be done in the constructor, but I do it here to make
-    // unit tests independent (since the constructor can't be forced
-    // to run at the beginning of each unit tests).
+    // This could be done in the constructor, but I do it here to make unit tests
+    // independent (since the constructor won't run at the beginning of each test).
     resetCtxt();
 
     // Set counters to 0 and pointers to NULL on fresh memory before setDefault
@@ -80,10 +79,10 @@ void config_manager::handleCmd(int argc, char *argv[])
     }
 
     // This may become the new context: a modifiable copy of the current context
-    cm_context tempCtxt = currCtxt;
+    cm_context tempCtxt(currCtxt);
 
-    // Pass command that don't apply to CM as a whole, to current context for handling
-    currCtxt.pDesc->handleCmd(&cmd, currCtxt.pItem, tempCtxt);
+    // Pass command that doesn't apply to CM as a whole, to current context for handling
+    currCtxt.getDesc()->handleCmd(&cmd, currCtxt.getItem(), tempCtxt);
 }
 
 
@@ -91,10 +90,8 @@ void config_manager::handleCmd(int argc, char *argv[])
 void config_manager::resetCtxt()
 {
     DBG_PRT("resetCtxt\n");
-
-    currCtxt.pDesc = base_desc;
-    currCtxt.str = "";
-    currCtxt.pItem = ramBase;
+    cm_context temp("", base_desc, ramBase); // temp context with base properties
+    currCtxt = temp;
 }
 
 
@@ -110,7 +107,7 @@ void config_manager::updateCtxt(cm_context * pC)
 // Get a prompt string to display to user, representing the current context
 const char * config_manager::getPromptString()
 {
-    return currCtxt.str.c_str();
+    return currCtxt.getString().c_str();
 }
 
 
@@ -138,8 +135,7 @@ void config_manager::load()
         return;
     }
     
-    cm_item_id_t id; 
-
+    cm_item_id_t id;
     tlv.getType(&id); // xxx What if this fails?
 
     if (id != base_desc->getId())
@@ -245,11 +241,7 @@ bool cm_composite_descriptor::handleCmd(command_stack * cmd,
 // Handle word in string that's not a command, hence presumably it identifies a component
 bool cm_composite_descriptor::handleIdWord(command_stack * cmd, uint8_t * pItem, cm_context & ctxt) const
 {
-    const cm_aggregate * pAggr;           // Component of this composite identified by cmd
-    uint8_t *            pComponentItem;  // pointer to component RAM
-    bool                 added;           // Did getComponentItem create a new item?
-
-    pAggr = getAggr(cmd->getTop());
+    const cm_aggregate * pAggr = getAggr(cmd->getTop()); // Component of this composite identified by cmd
 
     if (pAggr == NULL)
     {
@@ -258,12 +250,17 @@ bool cm_composite_descriptor::handleIdWord(command_stack * cmd, uint8_t * pItem,
         return false;
     }
 
-    if (!pAggr->getComponentItem(cmd, pItem, &pComponentItem, ctxt, added))
+    ctxt.add(pAggr->pData->pDesc->getName());
+
+    bool      added;           // Did getComponentItem create a new item?
+    uint8_t * pComponentItem;  // pointer to component RAM
+
+    if (!pAggr->getComponentItem(&cmd->pop(), pItem, &pComponentItem, ctxt, added))
     {
         // Index problems are reported by the called fn
         return false;
     }
-    
+
     // A component was found
     if (cmd->getCount() == 0)
     {
@@ -289,6 +286,7 @@ bool cm_composite_descriptor::handleIdWord(command_stack * cmd, uint8_t * pItem,
 
 // Try to add a component named by cmd to a composite.
 // After verifying the operation is applicable, the item is added.
+// @return true if the operation was successful, false if it failed.
 bool cm_composite_descriptor::handleAdd(command_stack * cmd, uint8_t * pItem) const
 {
     DBG_PRT("handleAdd %s\n", cmd->getTop());
@@ -330,6 +328,7 @@ bool cm_composite_descriptor::handleAdd(command_stack * cmd, uint8_t * pItem) co
 
 
 // Del an owned component named by cmd from a composite
+// @return true if the operation was successful, false if it failed.
 bool cm_composite_descriptor::handleDel(command_stack * cmd, uint8_t * pItem) const
 {
     assert(pItem != NULL);
@@ -351,9 +350,6 @@ bool cm_composite_descriptor::handleDel(command_stack * cmd, uint8_t * pItem) co
         return false;
     }
 
-    // Match found
-    cmd->pop();
-    
     if (!pAggr->isAddSupported())
     {
         cout<<"Delete not supported for '"<<pAggr->pData->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
@@ -370,7 +366,7 @@ bool cm_composite_descriptor::handleDel(command_stack * cmd, uint8_t * pItem) co
 
     unsigned int itemIdx = 0; // If no explicit index is needed, use 0 offset
 
-    if (pAggr->needIndex(pItem) && !pAggr->getIndex(cmd, pItem, itemIdx))
+    if (pAggr->needIndex(pItem) && !pAggr->getIndex(&cmd->pop(), pItem, itemIdx))
     {
         // An index is needed but couldn't be extracted from the command
         return false;
@@ -502,7 +498,9 @@ void cm_composite_descriptor::writeTlv(const uint8_t *pItem) const
 
 
 // T already read
-// @pComplete input/output 
+//
+// @param pComplete (output) - the number of outstanding composite completions, i.e.
+//         the number of times we should return from invocations of this method.
 //
 // @note A failure loading any component terminates the entire load
 // 
@@ -516,8 +514,6 @@ t_cm_result cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pCo
     {
         unsigned             idx;
         cm_item_id_t         componentId, prevComponentId;
-        uint8_t *            pComponentItem;
-        const cm_aggregate * pAggr;
         t_cm_result          res;
 
         if ((res = config_manager::getInstance()->tlv.getType(&componentId)) != CM_SUCCESS)
@@ -532,7 +528,8 @@ t_cm_result cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pCo
             first = false;
         }
 
-        pAggr = getAggr(componentId);
+        const cm_aggregate * pAggr = getAggr(componentId);
+        uint8_t *            pComponentItem;
 
         if ((pAggr != NULL) &&
             pAggr->pData->pDesc->isPersistent() &&
@@ -549,10 +546,10 @@ t_cm_result cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pCo
             config_manager::getInstance()->tlv.skipItem(pComplete);
         }
         prevComponentId = componentId;
-
     } while (*pComplete == 0); // while this composite is incomplete
 
-    (*pComplete)--;
+    // This composite is complete, so decrement the number of outstanding completions.
+    (*pComplete)--; 
     return CM_SUCCESS;
 }
 
@@ -683,6 +680,8 @@ void cm_simple_descriptor::writeTlv(const uint8_t *pItem) const
 }
 
 
+// @param pComplete (output) - the number of outstanding composite completions, i.e.
+//        the number of times we should return from cm_composite_descriptor::loadFromTlv
 t_cm_result cm_simple_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pComplete) const
 {
     cm_item_len_t len = pData->c.len;
@@ -793,11 +792,8 @@ bool cm_aggregate::getComponentItem(command_stack * cmd,
     assert(ppItem != NULL);
     
     added = false; // By default, didn't add a new component
-    
-    ctxt.str += pData->pDesc->getName() + " ";
-    
+        
     // Found matching name: now try to get index from next word
-    cmd->pop();
     unsigned int itemIdx = 0; // If no index needed, use offset 0
 
     if (pData->maxCount > 1)
@@ -805,11 +801,8 @@ bool cm_aggregate::getComponentItem(command_stack * cmd,
         // Explicit index is needed if there can be more than one instance
         if (getIndex(cmd, pParentItem, itemIdx))
         {
-            // Index available, it becomes part of the context string
-            char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
-
-            snprintf(indexbuf, sizeof(indexbuf), "%d ", itemIdx);
-            ctxt.str = ctxt.str + indexbuf;
+            // Index is available: add it to the context string
+            ctxt.add(itemIdx);
         }
         else
         {
@@ -840,8 +833,8 @@ bool cm_aggregate::getComponentItem(command_stack * cmd,
     }
 
     *ppItem = getItemAtIndex(pParentItem, itemIdx);
-    ctxt.pDesc = pData->pDesc;
-    ctxt.pItem = *ppItem;
+    ctxt.setDesc(pData->pDesc);
+    ctxt.setItem(*ppItem);
     return true;
 }
 
@@ -969,9 +962,6 @@ void cm_owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) con
 {
     assert(pParentItem != NULL);
 
-    // Sanity check: if add/del operation not supported, the setCount() is meaningless
-    assert(isAddSupported());
-
     if (pCounterAggr == NULL)
     {
         // There is no counter -- it's optional if maxCount == 1
@@ -1021,7 +1011,7 @@ uint8_t * cm_owned_aggregate::add(uint8_t * pParentItem) const
     // Reallocate memory, and save pointer in the same location
     unsigned   cnt     = getCount(pParentItem);
     uint8_t ** ppItems = (uint8_t **)(pParentItem + pData->offset);
-    uint8_t * pNewMem = (uint8_t *)realloc(*ppItems, (cnt + 1) * pData->pDesc->getLen());
+    uint8_t *  pNewMem = (uint8_t *)realloc(*ppItems, (cnt + 1) * pData->pDesc->getLen());
 
     if (pNewMem == NULL)
     {
@@ -1054,7 +1044,6 @@ void cm_owned_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
     // Sanity check input parameters
     assert(pParentItem != NULL);
 
-    // Reallocate memory, and save pointer in the same location
     uint8_t ** ppItems = (uint8_t **)(pParentItem + pData->offset);
     cm_item_len_t componentLen = pData->pDesc->getLen();
     unsigned cnt = getCount(pParentItem);
@@ -1070,6 +1059,7 @@ void cm_owned_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
             *ppItems + (itemIdx + 1) * componentLen,
             (cnt - itemIdx - 1) * componentLen);
 
+    // Reallocate memory, and save pointer in the same location
     *ppItems = (uint8_t *)realloc(*ppItems, (cnt - 1) * componentLen);
 
     // xxx realloc should return NULL if memory to be allocated is 0, but it doesn't seem to...
@@ -1102,5 +1092,28 @@ command_stack::eCmOp command_stack::getTopOp() const
 
     // If no match, it's not an operation
     return CM_OP_NONE;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// cm_context
+//
+////////////////////////////////////////////////////////////////////////////////
+
+// Add a word to the context string
+void cm_context::add(string w)
+{
+    str += w + " ";
+}
+
+
+// Add an unsigned integer to the context string
+void cm_context::add(unsigned idx)
+{
+    char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
+
+    snprintf(indexbuf, sizeof(indexbuf), "%d ", idx);
+    str += indexbuf;
 }
 
