@@ -11,11 +11,8 @@ Usage: python yaml_code_gen.py [source YAML file]
 import yaml
 import sys
 
-def get_child_elements(parent):
-    """Return a list of child nodes that are elements, not text (incl carriage returns) or comments."""
-    return [node for node in parent.childNodes if node.nodeType == minidom.Node.ELEMENT_NODE]
-    
-    
+indent = "    "
+
 class Id_generator():
     """Generate ID for TLV.  This is the simplest thing that could work, but not the best solution"""
     def __init__(self):
@@ -25,131 +22,49 @@ class Id_generator():
         id_string = str(self.id)
         self.id += 1
         return id_string
-        
-        
-def get_element_content(element):
-    """Get the content of an element, i.e. the first of its nodes of type TEXT_NODE"""
-    return [node.data for node in element.childNodes if node.nodeType == minidom.Node.TEXT_NODE][0]
     
 
-class Item():
-    """Class representing some properties of an item; we don't need to represent all, because
-       minidom's Element does most of the job for us, such as the parent/child relationships.
-       """       
-    def __init__(self, element, prefix):
-        self.element = element
-        self.prefix = prefix
-        if 'aggregate' in element:
-            type = 'composite'
-        else:
-            type = 'simple'
-        
-        
-    def print_init_str(self):
-        """.
-           Return the item's name; it's useful to the aggregate it's in.
-        """
-        print "print_init_str", self.element, "PREFIX", self.prefix
-        aggr_name_list = []
-        if len(self.get_aggr_list()) > 0:
-            
-            finit.write("\n// Start composite")
-        else:
-            # Simple item
-            desc_init_str = self.get_simple_init_str()
-        
-        for aggrElement in self.get_aggr_list():
-           newPrefix = self.prefix + self.nameText
-           print "NEWPREFIX", newPrefix
-           aggr = Aggregate(aggrElement, newPrefix)
-           aggr_name_list.append(aggr.init_str())
-                    
-        if len(aggr_name_list) > 0:
-            desc_init_str = self.get_composite_init_str(aggr_name_list)
-
-        finit.write(desc_init_str)
-        return self.nameText
-
-        
-    def get_decl_str(self):
-        """
-        If composite, print the struct, using component aggregates to print
-        the members, and return the structure name to the parent aggregate.
-        If simple, return the name to parent aggregate.
-        """
-        print "print_decl_str", self.element, "PREFIX", self.prefix, "NAME", self.element['name']
-        if type == 'composite':
-            decl_str = "struct " + self.element['name'] + "\n{\n"
-        for aggrElement in self.element['aggregate']:
-            newPrefix = self.prefix + self.element['name']
-            print "NEWPREFIX", newPrefix
-            aggr = Aggregate(aggrElement, newPrefix)
-            decl_str += "    " + aggr.decl_str() + ";\n"
-                    
-        if type == 'composite':
-            decl_str += ";\n"
-            fdecl.write(decl_str)
-            return struct_name + " " + self.element['name']
-        else:
-            return self.type + " " + self.nameText
-                
-        
-    def get_simple_init_str(self):
-        """Simple"""
-        prt_str = "\nconst cm_basic_item_descriptor " + self.prefix + self.nameText + " = cm_basic_item_descriptor\n"
-        prt_str += "(\n    \"" + self.nameText + "\",\n"
-        prt_str += "    sizeof(" + self.type + "),\n"
-        prt_str += "    " + id_gen.get_id() + ",\n"
-        prt_str += "    " + self.prt_fn + ",\n);\n"
-        return prt_str
-        
-    def get_composite_init_str(self, aggr_name_list):
-        """ Composite item"""
-        aggr_list_string = "\n// List of aggregates in composite item " + self.nameText + "\n"
-        aggr_list_string += "const cm_aggregate * const " + self.nameText + "aggrList[] = {\n"
-        for aggr_name in aggr_name_list:
-            # list of aggregates in this composite item
-            aggr_list_string += "    &" + aggr_name + ",\n"
-        aggr_list_string += "};\n"
-        prt_str = aggr_list_string
-        prt_str += "\nconst cm_composite_item_descriptor " + self.prefix + self.nameText + " = cm_composite_item_descriptor\n"
-        prt_str += "(\n    \"" + self.nameText + "\",\n"
-        prt_str += "    " + id_gen.get_id() + ",\n);\n"
-        return prt_str        
-
-
-class Aggregate():
-    """Class represent XML element with tagName 'aggregate'"""
-    def __init__(self, element, prefix):
-        self.element = element
-        self.prefix = prefix        
-        # For all the elements within the aggregate...
-        for element in get_child_elements(self.element):
-            if (element.tagName == "item"):
-                self.item = Item(element, prefix)
-                
-            if (element.tagName == "count"):
-                self.countText = get_element_content(element)            
-            
-            if (element.tagName == "type"):
-                self.type = get_element_content(element)
+class Item:
+    def __init__(self, d):
+        self.d = d
     
-    def init_str(self):
-        print "aggregate init_str"
-        item_name = self.item.print_init_str()
-        aggr_name = item_name + "_aggregate"
-        aggr_init = "\nconst cm_"+ "aggregate " + aggr_name + "(" + ");\n"
-        finit.write(aggr_init)
-        return aggr_name
+class SimpleItem(Item):
+    def __init__(self, d):
+        Item.__init__(self, d)
         
-    def decl_str(self):
-        print "aggregate decl_str"
-        item_name = self.item.print_decl_str()
-        if int(self.countText) > 1:
-            return item_name + "[" + self.countText + "]"
-        else:
-            return item_name
-
+    def get_type (self):
+        return self.d['type']
+        
+    def get_definition(self):
+        return ""
+        
+class CompositeItem(Item):
+    def __init__(self, d):
+        Item.__init__(self, d)
+        
+    def get_type(self):
+        return "t_" + self.d['name']
+        
+    def get_definition(self):
+        """Return string representing definition, including pre-pended definitions of referenced structs"""
+        str = ""
+        for aggr in self.d['aggregate']:
+            item = getItem(aggr['item'])
+            str += item.get_definition()
+        str += "\nstruct " + self.d['name'] + "\n{\n"
+        for aggr in self.d['aggregate']:
+            item = getItem(aggr['item'])
+            str += indent + item.get_type() + " " + item.d['name'] + ";\n"
+        str += "};\n"
+        return str
+        
+        
+def getItem(d):
+    """Factory method returns an Item object of the right type"""
+    if 'aggregate' in d: 
+        return CompositeItem(d)
+    else:
+        return SimpleItem(d)
 
 f = open(sys.argv[1])
 finit = open("out.cpp", "w")
@@ -170,14 +85,17 @@ except:
     
 print i
 print
-print
+
 aggr = i['aggregate']
 for a in aggr:
    print "++++++++++++", a['item']['name']
    print a
    
-baseItem = Item(i, "")
-print baseItem.get_decl_str()
+print
+print
+print "~~~~~~~~~~~~~~~~~~~~~~~~"
+baseItem = getItem(i)
+print baseItem.get_definition()
 
 finit.close()
 fdecl.close()

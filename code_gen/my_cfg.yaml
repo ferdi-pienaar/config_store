@@ -1,10 +1,77 @@
 ---
+item: &user
+    name: user
+    persistent: true
+    aggregate:
+        -   count: 1
+            type: contained
+            item:
+                name: name
+                persistent: true
+                set: cm_set_str
+                setdef: cm_setdef_null
+                print: cm_print_str
+                type: string [16]
+        -   count: 1
+            type: contained
+            item:
+                name: id
+                persistent: true
+                set: cm_set_str
+                setdef: cm_setdef_null
+                print: cm_print_str
+                type: unsigned long
+        -   count: 1
+            type: contained
+            item:
+                name: temp
+                persistent: true
+                set: cm_set_int
+                setdef: setdef_temp
+                print: cm_print_int
+                type: short
+        -   count: 1
+            type: contained
+            item:
+                name: elapsed
+                persistent: false
+                print: cm_print_int
+                type: unsigned
+                    
+item: &home
+    name: home
+    persistent: true
+    aggregate:
+        -   count: 1
+            type: owned
+            item:
+                name: addr
+                persistent: true
+                set: cm_set_int
+                setdef: cm_setdef_null
+                print: cm_print_int
+                type: unsigned
+        -   count: 1
+            type: owned
+            item:
+                name: location
+                persistent: true
+                aggregate:
+                    -   count: 1
+                        type: contained
+                        item:
+                            name: name
+                            persistent: true
+                            set: cm_set_str
+                            setdef: cm_setdef_null
+                            print: cm_print_str
+                            type: string [16]
+
 item:
     name: device
     persistent: true
     aggregate:
-        - 
-            count: 1
+        -   count: 1
             type: contained
             item:
                 name: ipaddr
@@ -12,10 +79,8 @@ item:
                 set: cm_set_int
                 setdef: cm_setdef_null
                 print: cm_print_int
-                data type: unsigned long
-            
-        -
-            count: 4
+                type: unsigned long
+        -   count: 4
             type: contained
             item:
                 name: port
@@ -23,21 +88,19 @@ item:
                 set: cm_set_int
                 setdef: cm_setdef_null
                 print: cm_print_int
-                data type: unsigned short
-            
-        - &userCnt
+                type: unsigned short    
+        - &userCnt_aggr
             count: 1
             type: contained
             item:
                 name: userCnt
                 persistent: false
                 print: cm_print_int
-                data type: unsigned short
-    
-        -
-            count: 3
+                type: unsigned short
+        -   count: 3
             type: owned
-            counter: *userCnt
-            item:
-                name: user
-                persistent: true
+            counter: *userCnt_aggr
+            item: *user        
+        -   count: 1
+            type: contained
+            item: *home
