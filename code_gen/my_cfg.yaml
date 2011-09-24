@@ -1,0 +1,43 @@
+---
+item:
+    name: device
+    persistent: true
+    aggregate:
+        - 
+            count: 1
+            type: contained
+            item:
+                name: ipaddr
+                persistent: true
+                set: cm_set_int
+                setdef: cm_setdef_null
+                print: cm_print_int
+                data type: unsigned long
+            
+        -
+            count: 4
+            type: contained
+            item:
+                name: port
+                persistent: true
+                set: cm_set_int
+                setdef: cm_setdef_null
+                print: cm_print_int
+                data type: unsigned short
+            
+        - &userCnt
+            count: 1
+            type: contained
+            item:
+                name: userCnt
+                persistent: false
+                print: cm_print_int
+                data type: unsigned short
+    
+        -
+            count: 3
+            type: owned
+            counter: *userCnt
+            item:
+                name: user
+                persistent: true

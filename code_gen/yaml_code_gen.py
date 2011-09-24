@@ -1,14 +1,14 @@
 """ C++ code generator
-From XML descriptor, generate .h file(s) containing user data structures
+From YAML descriptor, generate .h file(s) containing user data structures
 and the .cpp file that implements the initialization of the metadata
 describing the contents of those structures.
 
-Usage: python code_gen.py [source XML file]
+Usage: python yaml_code_gen.py [source YAML file]
 
 
 """
 
-from xml.dom import minidom
+import yaml
 import sys
 
 def get_child_elements(parent):
@@ -39,22 +39,10 @@ class Item():
     def __init__(self, element, prefix):
         self.element = element
         self.prefix = prefix
-
-        # For all the elements within the item: name, ID, aggregates(s), etc...
-        for element in get_child_elements(self.element):
-            if (element.tagName == "name"):
-                self.nameText = get_element_content(element)
-                
-            if (element.tagName == "print-function"):
-                self.prt_fn = get_element_content(element)            
-            
-            if (element.tagName == "type"):
-                self.type = get_element_content(element)
-
-        
-    def get_aggr_list(self):
-        """Return the list of child elements with tagName aggregate"""
-        return  [element for element in get_child_elements(self.element) if element.tagName == "aggregate"]
+        if 'aggregate' in element:
+            type = 'composite'
+        else:
+            type = 'simple'
         
         
     def print_init_str(self):
@@ -83,26 +71,25 @@ class Item():
         return self.nameText
 
         
-    def print_decl_str(self):
+    def get_decl_str(self):
         """
         If composite, print the struct, using component aggregates to print
         the members, and return the structure name to the parent aggregate.
         If simple, return the name to parent aggregate.
         """
-        print "print_decl_str", self.element, "PREFIX", self.prefix, "NAME", self.nameText
-        if len(self.get_aggr_list()) > 0:
-            decl_str = "\ntypedef struct\n{\n"
-        for aggrElement in self.get_aggr_list():
-            newPrefix = self.prefix + self.nameText
+        print "print_decl_str", self.element, "PREFIX", self.prefix, "NAME", self.element['name']
+        if type == 'composite':
+            decl_str = "struct " + self.element['name'] + "\n{\n"
+        for aggrElement in self.element['aggregate']:
+            newPrefix = self.prefix + self.element['name']
             print "NEWPREFIX", newPrefix
             aggr = Aggregate(aggrElement, newPrefix)
             decl_str += "    " + aggr.decl_str() + ";\n"
                     
-        if len(self.get_aggr_list()) > 0:
-            struct_name = "t_"+self.nameText
-            decl_str += "} " + struct_name +";\n"
+        if type == 'composite':
+            decl_str += ";\n"
             fdecl.write(decl_str)
-            return struct_name + " " + self.nameText
+            return struct_name + " " + self.element['name']
         else:
             return self.type + " " + self.nameText
                 
@@ -168,16 +155,29 @@ f = open(sys.argv[1])
 finit = open("out.cpp", "w")
 fdecl = open("out.h", "w")
 print "Reading", sys.argv[1]
-xmldoc = minidom.parse(f).documentElement
+data = yaml.load(f)
+print "============================================="
+print data
+print "============================================="
+
 f.close()
 
-if (xmldoc.tagName == "item"):
-    id_gen = Id_generator()
-    item = Item(xmldoc, "device")
-    item.print_init_str()
-    item.print_decl_str()
-else:
-    print "Root element is not an item:", xmldoc.tagName
+try:
+    i = data['item']
+except:
+    print "Root element in", sys.argv[1], "is not an item: exit"
+    sys.exit()
+    
+print i
+print
+print
+aggr = i['aggregate']
+for a in aggr:
+   print "++++++++++++", a['item']['name']
+   print a
+   
+baseItem = Item(i, "")
+print baseItem.get_decl_str()
 
 finit.close()
 fdecl.close()

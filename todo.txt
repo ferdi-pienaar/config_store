@@ -61,5 +61,7 @@
   is there a standard XML way, that would allow an owned aggregate to reference
   the corresponding counter?
 - Another challenge: is the XML format really that much easier to write, or do 
-  we need to go to a graphic representation (UML)?
+  we need to go to a graphic representation (UML)?  XML cross-references and
+  schemas actually just introduce another level of complexity -- maybe what's
+  needed is a simpler representation with better reference support: YAML.
 
