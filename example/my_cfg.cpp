@@ -101,7 +101,7 @@ const cm_simple_metadata userCnt_d =
 };
 
 // A counter is volatile => last param = false
-const cm_simple_descriptor userCnt = cm_simple_descriptor(&userCnt_d);
+const cm_simple_descriptor userCnt(&userCnt_d);
 const cm_aggregate_data userCntAggr_d = {&userCnt, 1, offsetof(tDevice, userCount)};
 const cm_contained_aggregate userCntAggr(&userCntAggr_d);
 
@@ -132,7 +132,7 @@ const cm_simple_metadata user_name_d =
     cm_prt_str
 };
 
-const cm_simple_descriptor user_name = cm_simple_descriptor(&user_name_d);
+const cm_simple_descriptor user_name(&user_name_d);
 const cm_aggregate_data userNameAggr_d = {&user_name, 1, offsetof(tUser, name)};
 const cm_contained_aggregate userNameAggr(&userNameAggr_d);
 
@@ -153,7 +153,7 @@ const cm_simple_metadata user_id_d =
     cm_prt_int /* xxx unsigned */
 };
 
-const cm_simple_descriptor user_id = cm_simple_descriptor(&user_id_d);
+const cm_simple_descriptor user_id(&user_id_d);
 const cm_aggregate_data userIdAggr_d = {&user_id, 1, offsetof(tUser, id)};
 const cm_contained_aggregate userIdAggr(&userIdAggr_d);
 
@@ -174,7 +174,7 @@ const cm_simple_metadata user_temp_d =
     cm_prt_int
 };
 
-const cm_simple_descriptor user_temp = cm_simple_descriptor(&user_temp_d);
+const cm_simple_descriptor user_temp(&user_temp_d);
 const cm_aggregate_data userTempAggr_d = {&user_temp, 1, offsetof(tUser, temperature)};
 const cm_contained_aggregate userTempAggr(&userTempAggr_d);
 
@@ -195,7 +195,7 @@ const cm_simple_metadata user_elapsed_d =
     cm_prt_int
 };
 
-const cm_simple_descriptor user_elapsed = cm_simple_descriptor(&user_elapsed_d);
+const cm_simple_descriptor user_elapsed(&user_elapsed_d);
 const cm_aggregate_data userElapsedAggr_d = {&user_elapsed, 1, offsetof(tUser, elapsed)};
 const cm_contained_aggregate userElapsedAggr(&userElapsedAggr_d);
 
@@ -225,7 +225,7 @@ const cm_composite_metadata user_d =
     sizeof(userAggrList)/sizeof(userAggrList[0])
 };
 
-const cm_composite_descriptor user = cm_composite_descriptor(&user_d);
+const cm_composite_descriptor user(&user_d);
 const cm_aggregate_data userAggr_d = {&user, 3 /* xxx max number of users */, offsetof(tDevice, users)};
 const cm_owned_aggregate userAggr(&userAggr_d, &userCntAggr);
 
@@ -253,7 +253,7 @@ const cm_simple_metadata home_addr_d =
     cm_prt_int
 };
 
-const cm_simple_descriptor home_addr = cm_simple_descriptor(&home_addr_d);
+const cm_simple_descriptor home_addr(&home_addr_d);
 const cm_aggregate_data homeAddrAggr_d = {&home_addr, 1, offsetof(tHome, pAddr)};
 const cm_owned_aggregate homeAddrAggr(&homeAddrAggr_d, NULL); // NULL => no counter
 
@@ -280,7 +280,7 @@ const cm_simple_metadata home_loc_name_d =
     cm_prt_str
 };
 
-const cm_simple_descriptor home_loc_name = cm_simple_descriptor(&home_loc_name_d);
+const cm_simple_descriptor home_loc_name(&home_loc_name_d);
 const cm_aggregate_data homeLocNameAggr_d = {&home_loc_name, 1, offsetof(tLocation, name)};
 const cm_contained_aggregate homeLocNameAggr(&homeLocNameAggr_d);
 
@@ -306,7 +306,7 @@ const cm_composite_metadata home_loc_d =
     sizeof(homeLocAggrList)/sizeof(homeLocAggrList[0])
 };
 
-const cm_composite_descriptor home_loc = cm_composite_descriptor(&home_loc_d);
+const cm_composite_descriptor home_loc(&home_loc_d);
 const cm_aggregate_data homeLocAggr_d = {&home_loc, 1, offsetof(tHome, pLoc)};
 const cm_owned_aggregate homeLocAggr(&homeLocAggr_d, NULL); // NULL because the owned item has no counter
 
@@ -333,7 +333,7 @@ const cm_composite_metadata home_d =
     sizeof(homeAggrList)/sizeof(homeAggrList[0])
 };
 
-const cm_composite_descriptor home = cm_composite_descriptor(&home_d);
+const cm_composite_descriptor home(&home_d);
 const cm_aggregate_data homeAggr_d = {&home, 1, offsetof(tDevice, home)};
 const cm_contained_aggregate homeAggr(&homeAggr_d);
 
@@ -363,7 +363,7 @@ const cm_composite_metadata device_d =
     sizeof(deviceAggrList)/sizeof(deviceAggrList[0])
 };
 
-const cm_composite_descriptor deviceDesc = cm_composite_descriptor(&device_d);
+const cm_composite_descriptor deviceDesc(&device_d);
 
 // A pointer to the base descriptor: a global used by the application code
 // to initialize the config manager xxx

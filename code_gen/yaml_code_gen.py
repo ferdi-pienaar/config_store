@@ -60,7 +60,7 @@ class SimpleItem(Item):
     def get_init(self):
         """Return string containing initialization of the metadata"""
         s = self.get_metadata_init()
-        s += "const cm_simple_descriptor " + self.d['name'] + "_desc = cm_simple_descriptor(&" + self.get_metadata_name() + ");\n"
+        s += "const cm_simple_descriptor " + self.d['name'] + "(&" + self.get_metadata_name() + ");\n"
         return s
         
     def get_metadata_init(self):
@@ -96,7 +96,11 @@ class SimpleItem(Item):
         if self.is_string_type:
             s = "char "
         else:
-            s = self.d['type'] + " "
+            s = self.d['type']
+        if aggrType == 'contained':
+            s += " "
+        else:
+            s += " * "
         s += self.d['name']
         if self.is_string_type:
             s += "[" + self.string_len + "]"
@@ -141,7 +145,7 @@ class CompositeItem(Item):
             s += aggr.get_init(self.get_type()) 
         s += self.get_aggr_list_init()
         s += self.get_metadata_init()
-        s += "const cm_composite_descriptor " + self.d['name'] + "_desc = cm_composite_descriptor(&" + self.get_metadata_name() + ");\n"
+        s += "const cm_composite_descriptor " + self.d['name'] + "(&" + self.get_metadata_name() + ");\n"
         return s
         
     def get_aggr_list_init(self):
@@ -255,14 +259,15 @@ class OwnedAggregate(Aggregate):
         
         
 def getItem(d):
-    """Factory method returns an Item object of the right type"""
+    """Factory method returns an Item object of the requested class"""
     if 'aggregate' in d: 
         return CompositeItem(d)
     else:
         return SimpleItem(d)
         
+
 def getAggregate(d):
-    """Factory method returns an Aggregate of the right type"""
+    """Factory method returns an Aggregate object of the requested class"""
     if d['type'] == 'owned': 
         return OwnedAggregate(d)
     else:

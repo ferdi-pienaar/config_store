@@ -21,7 +21,7 @@ item: &user
               persistent: true
               set: cm_set_str
               setdef: cm_setdef_null
-              print: cm_print_str
+              print: cm_prt_str
               type: cstring 16
         - count: 1
           type: contained
@@ -30,7 +30,7 @@ item: &user
               persistent: true
               set: cm_set_str
               setdef: cm_setdef_null
-              print: cm_print_str
+              print: cm_prt_str
               type: unsigned long
         - count: 1
           type: contained
@@ -39,14 +39,14 @@ item: &user
               persistent: true
               set: cm_set_int
               setdef: setdef_temp
-              print: cm_print_int
+              print: cm_prt_int
               type: short
         - count: 1
           type: contained
           item:
               name: elapsed
               persistent: false
-              print: cm_print_int
+              print: cm_prt_int
               type: unsigned
               
 # Component item defined here to avoid too much indenting                    
@@ -61,7 +61,7 @@ item: &home
               persistent: true
               set: cm_set_int
               setdef: cm_setdef_null
-              print: cm_print_int
+              print: cm_prt_int
               type: unsigned
         - count: 1
           type: owned
@@ -76,7 +76,7 @@ item: &home
                         persistent: true
                         set: cm_set_str
                         setdef: cm_setdef_null
-                        print: cm_print_str
+                        print: cm_prt_str
                         type: cstring 16
 
 # Parent item
@@ -91,7 +91,7 @@ item:
               persistent: true
               set: cm_set_int
               setdef: cm_setdef_null
-              print: cm_print_int
+              print: cm_prt_int
               type: unsigned long
         - count: *nPorts
           type: contained
@@ -100,7 +100,7 @@ item:
               persistent: true
               set: cm_set_int
               setdef: cm_setdef_null
-              print: cm_print_int
+              print: cm_prt_int
               type: unsigned short    
         - &userCnt_aggr
           count: 1
@@ -108,7 +108,7 @@ item:
           item:
               name: userCnt
               persistent: false
-              print: cm_print_int
+              print: cm_prt_int
               type: unsigned short
         - count: *nUsers
           type: owned

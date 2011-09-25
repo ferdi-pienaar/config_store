@@ -58,7 +58,7 @@
 - If a counter aggregate should not be included in its container
   (except as referenced by the counted aggr), how do we indicate that?
   A flag that says "don't include me", which is false by default?
-- Need to pre-pend hierarcy indicators to names to ensure uniqueness?
+- Pre-pend hierarchy to names to avoid name clashes?
 - File headers, footers
 - ID generation: unique within a context, but constant across "generations"...
 - Should YAML file include the names of the output files?
