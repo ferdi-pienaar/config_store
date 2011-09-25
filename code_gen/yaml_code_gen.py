@@ -27,36 +27,208 @@ class Id_generator():
 class Item:
     def __init__(self, d):
         self.d = d
+        
+    def get_metadata_name(self):
+        return self.d['name'] + "_data"
+        
+    def get_common_metadata_init(self):
+        s = indent + "{\n"
+        s += 2 * indent + "\"" + self.d['name'] + "\",\n"
+        s += 2 * indent + id_gen.get_id() + ",\n" # xxx fix this: IDs should be constant as possible within composites
+        s += 2 * indent + self.get_size() + ",\n"
+        s += 2 * indent
+        if self.d['persistent']:
+             s += "true\n"
+        else:
+            s += "false\n"
+        s += indent + "},\n"
+        return s
     
 class SimpleItem(Item):
     def __init__(self, d):
         Item.__init__(self, d)
-        
-    def get_type (self):
-        return self.d['type']
+        self.is_string_type = False # By default, items aren't strings
+        if "string" in d['type']:
+            self.is_string_type = True
+            self.string_len = d['type'].split()[1]
         
     def get_definition(self):
+        """For simple data, no data structure definition needed"""
         return ""
+               
+    def get_init(self):
+        """Return string containing initialization of the metadata"""
+        s = self.get_metadata_init()
+        s += "const cm_simple_descriptor " + self.d['name'] + "_desc = cm_simple_descriptor(&" + self.get_metadata_name() + ");\n"
+        return s
+        
+    def get_metadata_init(self):
+        s = "const cm_simple_metadata " + self.get_metadata_name() + " = \n{\n"
+        s += self.get_common_metadata_init()
+        
+        s += indent
+        if 'set' in self.d:
+            s += self.d['set']
+        else:
+            s += "NULL"
+        s += ",\n"
+        
+        s += indent
+        if 'setdef' in self.d:
+            s += self.d['setdef']
+        else:
+            s += "NULL"
+        s += ",\n"
+        
+        s += indent
+        if 'print' in self.d:
+            s += self.d['print']
+        else:
+            s += "NULL"
+        s += ",\n"
+        
+        s += "};\n"
+        return s
+    
+    def get_type_and_name(self, aggrType):
+        """Get the type and the name, part of the definition line"""
+        if self.is_string_type:
+            s = "char "
+        else:
+            s = self.d['type'] + " "
+        s += self.d['name']
+        if self.is_string_type:
+            s += "[" + self.string_len + "]"
+        return s
+        
+    def get_size(self):
+        s = "sizeof("
+        if self.is_string_type:
+            s += "char) * " + self.string_len
+        else:
+            s += self.d['type'] + ")"
+        return s
+    
         
 class CompositeItem(Item):
     def __init__(self, d):
         Item.__init__(self, d)
+                          
+    def get_definition(self):
+        """Return string representing definition, including pre-pended definitions of referenced structs"""
+        s = ""
+        for a in self.d['aggregate']:
+            item = getItem(a['item'])
+            s += item.get_definition()
+        s += "\nstruct " + self.get_type() + "\n{\n"
+        for a in self.d['aggregate']:
+            aggr = getAggregate(a)
+            s += indent + aggr.get_instance_definition()
+        s += "};\n"
+        return s
+        
+    def get_init(self):
+        """Return string containing initialization of the metadata, including pre-pended initialization of included data"""
+        s = ""
+        for a in self.d['aggregate']:
+            aggr = getAggregate(a)
+            s += aggr.get_init(self.get_type()) 
+        s += self.get_aggr_list_init()
+        s += self.get_metadata_init()
+        s += "const cm_composite_descriptor " + self.d['name'] + "_desc = cm_composite_descriptor(&" + self.get_metadata_name() + ");\n"
+        return s
+        
+    def get_aggr_list_init(self):
+        s = "const cm_aggregate * const " + self.get_aggr_list_name() + "[] = \n{\n"
+        for a in self.d['aggregate']:
+           s += indent + "&" + a['item']['name'] + "_aggr,\n"
+        s += "\n};\n"
+        return s
+        
+    def get_metadata_init(self):
+        s = "const cm_composite_metadata " + self.get_metadata_name() + " = \n{\n"
+        s += self.get_common_metadata_init()
+        s += indent + self.get_aggr_list_name() + ",\n"
+        s += indent + "sizeof(" + self.get_aggr_list_name() + ")/sizeof(" + self.get_aggr_list_name() + "[0])\n"
+        s += "};\n"
+        return s
+        
+    def get_aggr_list_name(self):
+        return self.d['name'] + "_aggr_list"
         
     def get_type(self):
         return "t_" + self.d['name']
         
-    def get_definition(self):
-        """Return string representing definition, including pre-pended definitions of referenced structs"""
-        str = ""
-        for aggr in self.d['aggregate']:
-            item = getItem(aggr['item'])
-            str += item.get_definition()
-        str += "\nstruct " + self.d['name'] + "\n{\n"
-        for aggr in self.d['aggregate']:
-            item = getItem(aggr['item'])
-            str += indent + item.get_type() + " " + item.d['name'] + ";\n"
-        str += "};\n"
-        return str
+    def get_type_and_name(self, aggrType):
+        s = self.get_type() + " "
+        if aggrType == 'owned':
+            s += "* "
+        s += self.d['name']
+        return s
+        
+    def get_size(self):
+        return "sizeof(" + self.get_type() + ")"
+              
+                    
+class Aggregate:
+    def __init__(self, d):
+        self.d = d
+        
+    def get_init(self, container_type_name):
+        item = getItem(self.d['item'])
+        s = item.get_init()
+        s += "const cm_aggregate_data " + self.get_data_name() + " = {&"
+        s += item.d['name'] + ", " + str(self.d['count'])
+        s += ", offsetof(" + container_type_name + ", " + item.d['name'] + ")};\n"
+        s += self.get_instantiate()
+        
+        return s
+        
+    def get_data_name(self):
+        item = getItem(self.d['item'])
+        return item.d['name'] + "_aggr_data"
+    
+        
+class ContainedAggregate(Aggregate):
+    def __init__(self, d):
+        Aggregate.__init__(self, d)
+        
+    def get_instance_definition(self):
+        item = getItem(self.d['item'])
+        line = item.get_type_and_name('contained')
+        if self.d['count'] > 1:
+            line += "[" + str(self.d['count']) + "]"
+        return line + ";\n"
+        
+    def get_type(self):
+        return "cm_contained_aggregate"
+        
+    def get_instantiate(self):
+        item = getItem(self.d['item']) 
+        s = "const " + self.get_type() + " " + item.d['name'] + "_aggr(&" + self.get_data_name() + ");\n\n"
+        return s
+        
+        
+class OwnedAggregate(Aggregate):
+    def __init__(self, d):
+        Aggregate.__init__(self, d)
+        
+    def get_instance_definition(self):
+        item = getItem(self.d['item'])
+        return item.get_type_and_name('owned') + ";\n"
+        
+    def get_type(self):
+        return "cm_owned_aggregate"
+        
+    def get_instantiate(self):
+        item = getItem(self.d['item'])
+        s = "const " + self.get_type() + " " + item.d['name'] + "_aggr(&" + self.get_data_name()
+        if 'counter' in self.d:
+           s += ", &" + self.d['counter']['item']['name'] + "_aggr"
+        else:
+            s += ", NULL"
+        s += ");\n\n"
+        return s
         
         
 def getItem(d):
@@ -65,15 +237,23 @@ def getItem(d):
         return CompositeItem(d)
     else:
         return SimpleItem(d)
+        
+def getAggregate(d):
+    """Factory method returns an Aggregate of the right type"""
+    if d['type'] == 'owned': 
+        return OwnedAggregate(d)
+    else:
+        return ContainedAggregate(d)      
+        
 
 f = open(sys.argv[1])
 finit = open("out.cpp", "w")
 fdecl = open("out.h", "w")
 print "Reading", sys.argv[1]
 data = yaml.load(f)
-print "============================================="
-print data
-print "============================================="
+#print "============================================="
+#print data
+#print "============================================="
 
 f.close()
 
@@ -83,19 +263,9 @@ except:
     print "Root element in", sys.argv[1], "is not an item: exit"
     sys.exit()
     
-print i
-print
-
-aggr = i['aggregate']
-for a in aggr:
-   print "++++++++++++", a['item']['name']
-   print a
-   
-print
-print
-print "~~~~~~~~~~~~~~~~~~~~~~~~"
+id_gen = Id_generator()
 baseItem = getItem(i)
-print baseItem.get_definition()
-
+fdecl.write(baseItem.get_definition())
+finit.write(baseItem.get_init())
 finit.close()
 fdecl.close()
