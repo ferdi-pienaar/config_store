@@ -53,15 +53,14 @@
   instead of actual file access.
 - Integrate cm_tlvTest into the automated tests.
 
-- Generate from XML descriptors
-- The XML file is generated not by hand, but by a graphical tool that shows the relationships
-  between the data (OWNED and CONTAINED relationships).  
-- XML schema
-- Current challenges for the auto-generation: how are cross-references handled:
-  is there a standard XML way, that would allow an owned aggregate to reference
-  the corresponding counter?
-- Another challenge: is the XML format really that much easier to write, or do 
-  we need to go to a graphic representation (UML)?  XML cross-references and
-  schemas actually just introduce another level of complexity -- maybe what's
-  needed is a simpler representation with better reference support: YAML.
+- Generate from YAML descriptor
+- YAML schema to validate a descriptor?
+- If a counter aggregate should not be included in its container
+  (except as referenced by the counted aggr), how do we indicate that?
+  A flag that says "don't include me", which is false by default?
+- Need to pre-pend hierarcy indicators to names to ensure uniqueness?
+- File headers, footers
+- ID generation: unique within a context, but constant across "generations"...
+- Should YAML file include the names of the output files?
+- Unit tests
 

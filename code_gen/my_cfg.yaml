@@ -1,4 +1,14 @@
 ---
+constant: &nUsers
+    name: MAX_NUM_USERS
+    type: unsigned short
+    value: 3
+    
+constant: &nPorts
+    name: NUM_PORTS
+    type: unsigned short
+    value: 4
+
 # Component item defined here to avoid too much indenting
 item: &user
     name: user
@@ -83,7 +93,7 @@ item:
               setdef: cm_setdef_null
               print: cm_print_int
               type: unsigned long
-        - count: 4
+        - count: *nPorts
           type: contained
           item:
               name: port
@@ -100,7 +110,7 @@ item:
               persistent: false
               print: cm_print_int
               type: unsigned short
-        - count: 3
+        - count: *nUsers
           type: owned
           counter: *userCnt_aggr
           item: *user        

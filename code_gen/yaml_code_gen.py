@@ -28,6 +28,10 @@ class Item:
     def __init__(self, d):
         self.d = d
         
+    def get_definition(self):
+        """Definitions of structs definitions for composites"""
+        return self.get_struct_definition()
+        
     def get_metadata_name(self):
         return self.d['name'] + "_data"
         
@@ -43,6 +47,7 @@ class Item:
             s += "false\n"
         s += indent + "},\n"
         return s
+        
     
 class SimpleItem(Item):
     def __init__(self, d):
@@ -51,10 +56,6 @@ class SimpleItem(Item):
         if "string" in d['type']:
             self.is_string_type = True
             self.string_len = d['type'].split()[1]
-        
-    def get_definition(self):
-        """For simple data, no data structure definition needed"""
-        return ""
                
     def get_init(self):
         """Return string containing initialization of the metadata"""
@@ -108,16 +109,21 @@ class SimpleItem(Item):
         else:
             s += self.d['type'] + ")"
         return s
-    
+        
+    def get_definition(self):
+        """No struct def for simple"""
+        return ""
         
 class CompositeItem(Item):
     def __init__(self, d):
         Item.__init__(self, d)
                           
     def get_definition(self):
-        """Return string representing definition, including pre-pended definitions of referenced structs"""
+        """Return string representing struct definition, including pre-pended definitions of referenced structs"""
         s = ""
         for a in self.d['aggregate']:
+            aggr = getAggregate(a)
+            s += aggr.get_constant_definition()
             item = getItem(a['item'])
             s += item.get_definition()
         s += "\nstruct " + self.get_type() + "\n{\n"
@@ -178,7 +184,7 @@ class Aggregate:
         item = getItem(self.d['item'])
         s = item.get_init()
         s += "const cm_aggregate_data " + self.get_data_name() + " = {&"
-        s += item.d['name'] + ", " + str(self.d['count'])
+        s += item.d['name'] + ", " + self.get_count()
         s += ", offsetof(" + container_type_name + ", " + item.d['name'] + ")};\n"
         s += self.get_instantiate()
         
@@ -187,7 +193,24 @@ class Aggregate:
     def get_data_name(self):
         item = getItem(self.d['item'])
         return item.d['name'] + "_aggr_data"
-    
+        
+    def get_count(self):
+        """Return a string representing the count: either the name of a symbolic constant, or just a string of an integer."""
+        try:
+            count = self.d['count']['name']
+        except:
+            count = str(self.d['count'])
+        return count
+        
+    def get_constant_definition(self):
+        s = ""
+        try:
+            constant = self.d['count']
+            s += "const " + constant['type'] + " " + constant['name'] + " = " + str(constant['value']) + ";\n"
+        except:
+            """If no counter that includes type, name and value, then there are no constants"""
+            pass
+        return s
         
 class ContainedAggregate(Aggregate):
     def __init__(self, d):
@@ -195,10 +218,10 @@ class ContainedAggregate(Aggregate):
         
     def get_instance_definition(self):
         item = getItem(self.d['item'])
-        line = item.get_type_and_name('contained')
-        if self.d['count'] > 1:
-            line += "[" + str(self.d['count']) + "]"
-        return line + ";\n"
+        s = item.get_type_and_name('contained')
+        if self.d['count'] != 1:
+            s += "[" + self.get_count() + "]"
+        return s + ";\n"
         
     def get_type(self):
         return "cm_contained_aggregate"
