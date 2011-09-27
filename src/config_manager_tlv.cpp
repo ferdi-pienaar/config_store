@@ -124,9 +124,8 @@ t_cm_result Tlv::getType(cm_item_id_t * id)
 }
 
 
-// T returned has been identified as composite:
-// start loading the composite by returning the next T
-// (and start keeping track of the composite's L)
+// Client has identified T returned by getType() as simple:
+// Load the simple item into the provided memory
 // @param pRam
 // @param length in/out, in: available memory, out: amount of data written to pRam
 // @param containerComplete, out: number of containers complete
@@ -145,16 +144,16 @@ t_cm_result Tlv::loadSimple(uint8_t * pRam, cm_item_len_t * pLength, unsigned * 
         *pLength = 0; // No data loaded into client RAM
         return CM_INCOHERENT_DATA;
     }
-    else
+
+    DBG_PRT("loadSimple: %d at %p\n", length, pRam);
+    
+    if (!nvram->read(pRam, length))
     {
-        if (!nvram->read(pRam, length))
-        {
-            // This error aborts the loading process, and there's no need to updateContainer
-            return CM_READ_FAIL;
-        }
-        // Data has been loaded into client RAM
-        *pLength = length;
+        // This error aborts the loading process, and there's no need to updateContainer
+        return CM_READ_FAIL;
     }
+    // Data has been loaded into client RAM
+    *pLength = length;
 
     *complete = 0;
     t_cm_result ret2 = updateContainer(length, complete);

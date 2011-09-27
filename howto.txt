@@ -1,26 +1,25 @@
 These are rules to be observed by the application programmer creating a 
 hierarchy of configurable items, or perhaps to be implemented by a code 
-generator that generates the C++ code from an XML descriptor.
+generator that generates the C++ code from an XML or YAML descriptor.
 
 Different types of items:
 Items that can be set via the configuration API, are read from application 
 code, and are saved in NVRAM:
 The application programmer selects a set function (he may also 
-implement it).  He sets nonvolatile=true.  prt and setdef functions
+implement it).  He sets persistent=true.  prt and setdef functions
 are optional.
 If a prt option is not provided, it becomes the responsibility of the 
 configuration client to keep its own copy of configuration data, since it can't 
 be recovered from the device.
 
-Items that be read via the configuration API, are set by application code, and 
+Items that can only be read via the configuration API, are set by application code, and 
 are not saved in NVRAM, for example, statistics.
 The application programmer selects a prt function (he may also 
 implement it).  He sets persistent=false.  A setdef function is optional, e.g. 
 to reset statistics.  A set function can be provided, but doesn't make sense.
 
-Setdef functions should be provided, or items may be initialized with garbage.
-This does not apply to counters.  It does not apply to read-only items, which
-the application should initialize.
+Setdef functions are optional; if not provided allocated memory is set to 0,
+but 'setdef' commands have no effect.
 
 (xxx For statistics, would we want an atomic read-and-reset option?)
 
@@ -42,4 +41,32 @@ same composite that the OWNed item it counts is a member of) in its own right,
 which allows it to be printed.  Alternatively, its descriptor may be referenced 
 only by the OWNed item, in which case its value can't be printed.
 The size of the counter can be 1, 2 or 4 bytes.
+
+When modifications to metadata are made in new software releases, certain
+rules must be followed to allow the new software to load old config that
+is still in units in the field.
+ o When adding new items to a composite, use a new ID for the new item (but keep
+   the same ID for the composite).  Don't use an ID that may
+   still be in NVRAM in units in the field running older SW versions.
+   (If you download the new software, when the unit boots it will try to load the item
+   from NVRAM.  If the length is changed, the entire NVRAM config will be rejected.
+   If the length is the same, the old NVRAM config is treated by the software as the new item.)
+ o You can remove items from a composite without changing the composite ID.
+   The software will ignore the unknown ID read from NVRAM.
+ o The number of items in owned arrays can be changed.  If smaller, the
+   additional entries in NVRAM are ignored.
+   If the new array is bigger, the extra entries for which there's nothing in
+   NVRAM are initialized to default.
+ o If the max size of an owned array is decreased, the last array entries in NVRAM are ignored.
+ o When the size of a simple item is changed, treat it as a new item, i.e. 
+   give it a new ID, or the software will reject the entire NVRAM config as corrupt.
+ o By changing the ID of an item to a new ID, you can force cfg_man to ignore currently
+   configured values found in NVRAM and load defaults instead.
+
+
+Accessing managed items from your code:
+Read from items that are set by cfg_man
+Write to items such as statistics that cfg_man reads from but doesn't write to
+Don't write to items that cfg_man writes to.
+ 
 

@@ -96,11 +96,9 @@ class SimpleItem(Item):
         if self.is_string_type:
             s = "char "
         else:
-            s = self.d['type']
-        if aggrType == 'contained':
-            s += " "
-        else:
-            s += " * "
+            s = self.d['type'] + " "
+        if aggrType == 'owned':
+            s += "* "
         s += self.d['name']
         if self.is_string_type:
             s += "[" + self.string_len + "]"
@@ -275,8 +273,8 @@ def getAggregate(d):
         
 
 f = open(sys.argv[1])
-finit = open("out.cpp", "w")
-fdecl = open("out.h", "w")
+finit = open("cfg.cpp", "w")
+fdecl = open("cfg.h", "w")
 print "Reading", sys.argv[1]
 data = yaml.load(f)
 #print "============================================="

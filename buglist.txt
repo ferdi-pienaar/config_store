@@ -10,4 +10,6 @@ other commands, since it's applicable to metadata rather than actual data.
 
 Strings can't contain spaces, because that's seen as a new word...
 
-
+YAML codegen: if item type is cstring and aggregate type is owned, I think
+the code generated is wrong -- wrapping the strings in an struct is
+a workaround.

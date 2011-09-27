@@ -42,6 +42,8 @@ void config_manager::init(const cm_descriptor * desc)
     base_desc = desc;
     ramBase = (uint8_t *)malloc(base_desc->getLen());
 
+    DBG_PRT("init: ramBase, %d at %p\n", base_desc->getLen(), ramBase);
+
     assert(ramBase != NULL);
 
     // This could be done in the constructor, but I do it here to make unit tests
@@ -685,7 +687,7 @@ void cm_simple_descriptor::writeTlv(const uint8_t *pItem) const
 t_cm_result cm_simple_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pComplete) const
 {
     cm_item_len_t len = pData->c.len;
-    return config_manager::getInstance()->tlv.loadSimple(pItem, &len, pComplete);;
+    return config_manager::getInstance()->tlv.loadSimple(pItem, &len, pComplete);
 }
 
 
@@ -928,7 +930,7 @@ uint8_t * cm_owned_aggregate::getFirstItem(const uint8_t * pParentItem) const
 
 // Return the number of items in the component's array
 // xxx giving a fixed size to counters would simplify this, but
-// introduces a dependency on the application programmer doing the right thing
+// would restrict the application developer.
 unsigned cm_owned_aggregate::getCount(const uint8_t * pParentItem) const
 {
     assert(pParentItem != NULL);
@@ -957,7 +959,8 @@ unsigned cm_owned_aggregate::getCount(const uint8_t * pParentItem) const
 
 
 // Set value in RAM that records the number of items in the array of items
-// xxx enforce, run-time or compile-time, that counters are unsigned int sized.
+// xxx giving a fixed size to counters would simplify this, but
+// would restrict the application developer.
 void cm_owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) const
 {
     assert(pParentItem != NULL);
@@ -967,8 +970,40 @@ void cm_owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) con
         // There is no counter -- it's optional if maxCount == 1
         // xxx what happens if there's no counter but maxCount > 1?
         return;
-    }   
-    memcpy(pParentItem + pCounterAggr->pData->offset, &count, sizeof(count));
+    }
+
+    DBG_PRT("setCount: %d, %d bytes at %p)\n",
+            count, pCounterAggr->pData->pDesc->getLen(), pParentItem + pCounterAggr->pData->offset);
+
+    switch (pCounterAggr->pData->pDesc->getLen()) 
+    { 
+        case sizeof(uint8_t):
+        {
+            assert(count <= UINT8_MAX);
+            uint8_t cnt = count;
+            memcpy(pParentItem + pCounterAggr->pData->offset, &cnt, sizeof(cnt));
+            break;
+        }
+       
+        case sizeof(uint16_t):
+        {
+            assert(count <= UINT16_MAX);
+            uint16_t cnt = count;
+            memcpy(pParentItem + pCounterAggr->pData->offset, &cnt, sizeof(cnt));
+            break;
+        }
+       
+        case sizeof(uint32_t):
+        {
+            assert(count <= UINT32_MAX);
+            uint32_t cnt = count;
+            memcpy(pParentItem + pCounterAggr->pData->offset, &cnt, sizeof(cnt));
+            break;
+        }
+
+        default:
+            assert(0);
+    }
 }
 
 
@@ -1011,7 +1046,13 @@ uint8_t * cm_owned_aggregate::add(uint8_t * pParentItem) const
     // Reallocate memory, and save pointer in the same location
     unsigned   cnt     = getCount(pParentItem);
     uint8_t ** ppItems = (uint8_t **)(pParentItem + pData->offset);
-    uint8_t *  pNewMem = (uint8_t *)realloc(*ppItems, (cnt + 1) * pData->pDesc->getLen());
+
+    DBG_PRT("add: %d * %d at %p + %d (%p), currently %p\n",
+            (cnt + 1), pData->pDesc->getLen(),
+            pParentItem, pData->offset, ppItems,
+            *ppItems);
+
+    uint8_t * pNewMem = (uint8_t *)realloc(*ppItems, (cnt + 1) * pData->pDesc->getLen());
 
     if (pNewMem == NULL)
     {

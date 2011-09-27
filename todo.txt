@@ -61,6 +61,15 @@
 - Pre-pend hierarchy to names to avoid name clashes?
 - File headers, footers
 - ID generation: unique within a context, but constant across "generations"...
-- Should YAML file include the names of the output files?
-- Unit tests
+  automate this as much as possible.
+- Should YAML file include the names of the output file(s)?
+- Unit tests for the code generator
+- Warn user of incorrect configuration:
+  - Owned items with count > 1 need counters (what happens if we violate this?)
+  - Counters shouldn't have set or setdef (what happens if we add and use them?)
+  - Counter should be big enough to accomodate max count
+
+Restrict application code from writing to config?  Currently it's temptingly
+easy...
+
 

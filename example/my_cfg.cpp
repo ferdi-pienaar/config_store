@@ -16,13 +16,10 @@
 // when is it initialized?).
 
 // xxx should be a naming convention: camelCase, or underscores, etc.
-#include <iostream>
 #include "my_cfg.h"
 #include "config_manager_util.h"
 #include "config_manager_setdef_null.h"
 #include "my_cfg_fn.h" // User-written functions "plugged in" to config_manager
-
-using namespace std;
 
 // We can get the size of a member of a type without having to declare a variable of that type
 // Using it means that if we change the type of a simple CONTAINED item
@@ -365,7 +362,18 @@ const cm_composite_metadata device_d =
 
 const cm_composite_descriptor deviceDesc(&device_d);
 
-// A pointer to the base descriptor: a global used by the application code
-// to initialize the config manager xxx
-const cm_descriptor * pBaseDesc = &deviceDesc;
+
+// Call this function from application code to initialize the config manager
+// with this application's configuration
+void init_config()
+{
+    config_manager::getInstance()->init(&deviceDesc);
+}
+
+
+// Get access to configurable items.
+tDevice * get_config()
+{
+    return (tDevice *)config_manager::getInstance()->getConfig();
+}
 

@@ -4,7 +4,7 @@
  */
 #include <iostream>
 #include "config_manager.h"
-#include "my_cfg.h"
+#include "my_cfg1.h"
 #include <cstring> // strtok
 #include <pthread.h>
 
@@ -19,14 +19,14 @@ void * stats_thread(void * arg)
     for (;;)
     {
         sleep(5);
-        tDevice * pCfg = get_config();
+        t_device * pCfg = get_config();
         static unsigned userIdx = 0;
 
-        if (pCfg->userCount > 0)
+        if (pCfg->userCnt > 0)
         {
-            userIdx = (userIdx >= pCfg->userCount - 1) ? 0 : userIdx + 1;
+            userIdx = (userIdx >= pCfg->userCnt - 1) ? 0 : userIdx + 1;
 
-            pCfg->users[userIdx].elapsed++;
+            pCfg->user[userIdx].elapsed++;
         }
     }
     return NULL;

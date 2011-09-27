@@ -15,7 +15,6 @@
 // 2. From the configuration interface:
 //    Read/write access via config_manager::handleCmd.
 // 
-#include <iostream>
 #include "config_manager.h"
 
 #define NUM_CLI_PORT      4
@@ -60,11 +59,8 @@ typedef struct
     
 } tDevice;
 
-
-// A pointer to the base descriptor is needed by the code that initializes config_manager
-extern const cm_descriptor * pBaseDesc;
- 
-#define GET_DEVICE_CONFIG ((tDevice *)config_manager::getInstance()->getConfig())
+void init_config();
+tDevice * get_config();
 
 #endif // MY_CFG_H
 
