@@ -72,4 +72,4 @@
 Restrict application code from writing to config?  Currently it's temptingly
 easy...
 
-
+In code_gen_example, Makefile should include dependency on .yaml file

@@ -535,12 +535,13 @@ t_cm_result cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pCo
 
         if ((pAggr != NULL) &&
             pAggr->pData->pDesc->isPersistent() &&
-            pAggr->getComponentItem(idx++, pItem, &pComponentItem))
+            pAggr->getComponentItem(idx, pItem, &pComponentItem))
         {
             if ((res = pAggr->pData->pDesc->loadFromTlv(pComponentItem, pComplete)) != CM_SUCCESS)
             {
                 return res;
             }
+            idx++;
         }
         else
         {      
@@ -860,7 +861,7 @@ bool cm_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem, uint8_t
     assert(pParentItem != NULL);
     assert(ppItem != NULL);
     
-    if (idx == pData->maxCount)
+    if (idx >= pData->maxCount)
     {
         // Maximum number of these items already loaded: fail
         return false;
