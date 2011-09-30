@@ -136,8 +136,8 @@ public:
     virtual bool handleCmd(command_stack * cmd, uint8_t * pItem, cm_context & ctxt ) const = 0;
     virtual std::string getName() const = 0;
     virtual cm_item_id_t getId() const = 0;
-    virtual void writeTlv(const uint8_t * pItem) const = 0;
-    virtual t_cm_result loadFromTlv(uint8_t * pItem, unsigned * pComplete) const = 0;
+    virtual void save(const uint8_t * pItem) const = 0;
+    virtual t_cm_result load(uint8_t * pItem, unsigned * pComplete) const = 0;
     virtual cm_item_len_t getLen() const = 0;
     virtual void print(const uint8_t * pItem, std::string prefix) const = 0;
     virtual void setDefault(uint8_t * pItem) const = 0;
@@ -191,7 +191,7 @@ public:
                           cm_context & ctxt,
                           bool & added) const;
     bool getComponentItem(unsigned idx, uint8_t * pParentItem, uint8_t ** ppItem) const;
-    void writeTlv(const uint8_t *pItem) const;
+    void save(const uint8_t *pItem) const;
 
 private:
     /// returns address of the first item in the array
@@ -263,8 +263,8 @@ public:
     void print(const uint8_t * pItem, std::string prefix) const;
     void setDefault(uint8_t * pItem) const;
     virtual void help(const uint8_t * pItem) const;
-    void writeTlv(const uint8_t * pItem) const;
-    t_cm_result loadFromTlv(uint8_t * pItem, unsigned * pComplete) const;
+    void save(const uint8_t * pItem) const;
+    t_cm_result load(uint8_t * pItem, unsigned * pComplete) const;
     bool isPersistent() const { return pData->c.persistent; }
 
 private:
@@ -297,8 +297,8 @@ public:
     bool set(uint8_t * pItem, std::string val) const;
     void setDefault(uint8_t * pItem) const;
     void help(const uint8_t * pItem) const {std::cout << "len " << getLen() << std::endl;}
-    virtual void writeTlv(const uint8_t * pItem) const;
-    t_cm_result loadFromTlv(uint8_t * pItem, unsigned * pComplete) const;
+    virtual void save(const uint8_t * pItem) const;
+    t_cm_result load(uint8_t * pItem, unsigned * pComplete) const;
     bool isPersistent() const { return pData->c.persistent; }
 
 private:
@@ -328,7 +328,7 @@ public:
     void resetCtxt();
     void updateCtxt(cm_context * pC);
 
-    Tlv tlv;
+    Tlv store;
 
 
 private:

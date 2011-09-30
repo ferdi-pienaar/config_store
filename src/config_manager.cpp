@@ -113,15 +113,15 @@ const char * config_manager::getPromptString()
 }
 
 
-// Save data in RAM to NVRAM, in TLV format.
+// Save data in RAM to persistent storage
 void config_manager::save()
 {
-    tlv.resetWrite();
-    base_desc->writeTlv(ramBase);
+    store.resetWrite();
+    base_desc->save(ramBase);
 }
 
 
-// Load data in NVRAM, in TLV format, to configurable items in RAM.
+// Load data in persistent storage, to configurable items in RAM.
 //
 void config_manager::load()
 {
@@ -131,14 +131,14 @@ void config_manager::load()
         return;
     }
 
-    if (!tlv.resetRead())
+    if (!store.resetRead())
     {
         cout << "No config file." << endl;
         return;
     }
     
     cm_item_id_t id;
-    tlv.getType(&id); // xxx What if this fails?
+    store.getType(&id); // xxx What if this fails?
 
     if (id != base_desc->getId())
     {
@@ -152,7 +152,7 @@ void config_manager::load()
     // Before loading, thus allocating new memory, call setDefault to free owned memory
     base_desc->setDefault(ramBase);
     unsigned int complete = 0;
-    t_cm_result res = base_desc->loadFromTlv(ramBase, &complete);
+    t_cm_result res = base_desc->load(ramBase, &complete);
 
     if (res != CM_SUCCESS)
     {
@@ -469,12 +469,9 @@ const cm_aggregate * cm_composite_descriptor::getAggr(cm_item_id_t id) const
 }
 
 
-/// Write item's TLV to a buffer, and advance the ptr to the end of memory written to.
-//  This is useful for writing to a RAM buffer first, for subsequent write
-//  to NVRAM.
-//  xxx if we want to write directly to NVRAM, we need to implement a method
-//  that does that...
-void cm_composite_descriptor::writeTlv(const uint8_t *pItem) const
+/// Save item to persistent storage, if its metadata says it's a persistent item
+//
+void cm_composite_descriptor::save(const uint8_t *pItem) const
 {
     assert(pItem != NULL);
 
@@ -483,28 +480,30 @@ void cm_composite_descriptor::writeTlv(const uint8_t *pItem) const
         return;
     }
     
-    config_manager::getInstance()->tlv.startWriteComposite(pData->c.id);
+    config_manager::getInstance()->store.startWriteComposite(pData->c.id);
 
     for (unsigned i = 0; i < getAggrCount(); i++)
     {   
-        getAggrAtIndex(i)->writeTlv(pItem);
+        getAggrAtIndex(i)->save(pItem);
     }
-    config_manager::getInstance()->tlv.endWriteComposite();
+    config_manager::getInstance()->store.endWriteComposite();
 }
 
 
-// T already read
+// Load item from persistent storage
+//
+// @pre the item's type is already read
 //
 // @param pComplete (output) - the number of outstanding composite completions, i.e.
 //         the number of times we should return from invocations of this method.
 //
 // @note A failure loading any component terminates the entire load
 // 
-t_cm_result cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pComplete) const
+t_cm_result cm_composite_descriptor::load(uint8_t * pItem, unsigned * pComplete) const
 {
     bool first = true; // Is this the first component item
 
-    config_manager::getInstance()->tlv.loadComposite();
+    config_manager::getInstance()->store.loadComposite();
 
     do
     {
@@ -512,7 +511,7 @@ t_cm_result cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pCo
         cm_item_id_t         componentId, prevComponentId;
         t_cm_result          res;
 
-        if ((res = config_manager::getInstance()->tlv.getType(&componentId)) != CM_SUCCESS)
+        if ((res = config_manager::getInstance()->store.getType(&componentId)) != CM_SUCCESS)
         {
             return res;
         }
@@ -531,7 +530,7 @@ t_cm_result cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pCo
             pAggr->pData->pDesc->isPersistent() &&
             pAggr->getComponentItem(idx, pItem, &pComponentItem))
         {
-            if ((res = pAggr->pData->pDesc->loadFromTlv(pComponentItem, pComplete)) != CM_SUCCESS)
+            if ((res = pAggr->pData->pDesc->load(pComponentItem, pComplete)) != CM_SUCCESS)
             {
                 return res;
             }
@@ -540,7 +539,7 @@ t_cm_result cm_composite_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pCo
         else
         {      
             // Can't find ID, or item not persistent, or idx too big, or no memory...
-            config_manager::getInstance()->tlv.skipItem(pComplete);
+            config_manager::getInstance()->store.skipItem(pComplete);
         }
         prevComponentId = componentId;
     } while (*pComplete == 0); // while this composite is incomplete
@@ -659,12 +658,8 @@ void cm_simple_descriptor::setDefault(uint8_t * pItem) const
 }
 
 
-/// Write item's TLV to a buffer, and advance the ptr to the end of memory written to.
-//  This is useful for writing to a RAM buffer first, for subsequent write
-//  to NVRAM.
-//  xxx if we want to write directly to NVRAM, we need to implement a method
-//  that does that...
-void cm_simple_descriptor::writeTlv(const uint8_t *pItem) const
+/// Save item to persistent storage
+void cm_simple_descriptor::save(const uint8_t *pItem) const
 {
     assert(pItem != NULL);
     
@@ -672,20 +667,20 @@ void cm_simple_descriptor::writeTlv(const uint8_t *pItem) const
     {
         return;
     }
-    config_manager::getInstance()->tlv.writeSimple(pData->c.id, pData->c.len, pItem);
+    config_manager::getInstance()->store.writeSimple(pData->c.id, pData->c.len, pItem);
 }
 
 
 // @param pComplete (output) - the number of outstanding composite completions, i.e.
-//        the number of times we should return from cm_composite_descriptor::loadFromTlv
-t_cm_result cm_simple_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pComplete) const
+//        the number of times we should return from cm_composite_descriptor::load
+t_cm_result cm_simple_descriptor::load(uint8_t * pItem, unsigned * pComplete) const
 {
     cm_item_len_t len = pData->c.len;
     
-    t_cm_result ret = config_manager::getInstance()->tlv.loadSimple(pItem, &len, pComplete);
+    t_cm_result ret = config_manager::getInstance()->store.loadSimple(pItem, &len, pComplete);
 
     // Sanity check: the length loaded is the length that was requested.
-    // In theory we might support truncation by the TLV module, but given that
+    // In theory we might support truncation by the persistent storage module, but given that
     // it doesn't know the nature of the data, it can't truncate it sensibly.
     if (ret == CM_SUCCESS) assert(len == pData->c.len);
     return ret;
@@ -884,12 +879,12 @@ bool cm_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem, uint8_t
 }
 
 
-// Write TLV for all elements in the array
-void cm_aggregate::writeTlv(const uint8_t *pItem) const
+// Save to persistent storage all elements in the array
+void cm_aggregate::save(const uint8_t *pItem) const
 {
     for (unsigned i = 0; i < getCount(pItem); i++)
     {
-        pData->pDesc->writeTlv(getItemAtIndex(pItem, i));
+        pData->pDesc->save(getItemAtIndex(pItem, i));
     }
 }
 

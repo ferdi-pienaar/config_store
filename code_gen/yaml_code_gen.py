@@ -74,6 +74,8 @@ class SimpleItem(Item):
                    
     def verify(self):
         """Check item description in YAML file is valid and consistent."""
+        # Not much to check here -- if the basics like 'name' and 'type' are absent, an exception is raised,
+        # maybe even before we get to this point.        
         return True
             
     def get_init(self):
@@ -265,7 +267,7 @@ class OwnedAggregate(Aggregate):
     def verify(self):
         """Check description in YAML file is valid and consistent."""
         self.verify_counter()
-        makeItem(self.d).verify()
+        makeItem(self.d['item']).verify()
         
     def verify_counter(self):
         """An owned aggregate that can contain more than one instance needs a counter"""
