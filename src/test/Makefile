@@ -5,7 +5,7 @@ OBJS = ../config_manager.o ../config_manager_util.o ../config_manager_tlv.o \
  ../config_manager_setdef_null.o ../nvram.o
 OBJSTLV = ../config_manager_tlv.o ../../stubs/nvram_spy.o
 
-all: simpleTestTag compositeTestTag cmTestTag
+all: simpleTestTag compositeTestTag tlvTestTag cmTestTag
 
 # Execute tests, only if executable is new -- the empty tag files timestamp the last time the test ran
 simpleTestTag: cm_simple_item_descriptorTest
@@ -15,6 +15,10 @@ simpleTestTag: cm_simple_item_descriptorTest
 compositeTestTag: cm_composite_item_descriptorTest
 	./cm_composite_item_descriptorTest
 	touch compositeTestTag
+
+tlvTestTag: cm_tlvTest
+	./cm_tlvTest
+	touch tlvTestTag
 
 cmTestTag: config_managerTest
 	./config_managerTest

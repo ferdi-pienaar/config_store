@@ -191,6 +191,7 @@ public:
                           cm_context & ctxt,
                           bool & added) const;
     bool getComponentItem(unsigned idx, uint8_t * pParentItem, uint8_t ** ppItem) const;
+    void writeTlv(const uint8_t *pItem) const;
 
 private:
     /// returns address of the first item in the array

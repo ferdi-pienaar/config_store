@@ -71,7 +71,11 @@ class SimpleItem(Item):
         if "string" in d['type']:
             self.is_string_type = True
             self.string_len = d['type'].split()[1]
-               
+                   
+    def verify(self):
+        """Check item description in YAML file is valid and consistent."""
+        return True
+            
     def get_init(self):
         """Return string containing initialization of the metadata"""
         s = self.get_metadata_init()
@@ -134,19 +138,22 @@ class SimpleItem(Item):
 class CompositeItem(Item):
     def __init__(self, d):
         Item.__init__(self, d)
-                          
+
+    def verify(self):
+        """Check item description in YAML file is valid and consistent."""
+        for a in self.d['aggregate']:
+            makeAggregate(a).verify()
+        return True
+            
     def get_definition(self):
         """Return string representing struct definition, including pre-pended definitions of referenced structs"""
         s = ""
         for a in self.d['aggregate']:
-            aggr = getAggregate(a)
-            s += aggr.get_constant_definition()
-            item = getItem(a['item'])
-            s += item.get_definition()
+            s += makeAggregate(a).get_constant_definition()
+            s += makeItem(a['item']).get_definition()
         s += "\nstruct " + self.get_type() + "\n{\n"
         for a in self.d['aggregate']:
-            aggr = getAggregate(a)
-            s += indent + aggr.get_instance_definition()
+            s += indent + makeAggregate(a).get_instance_definition()
         s += "};\n"
         return s
         
@@ -154,8 +161,7 @@ class CompositeItem(Item):
         """Return string containing initialization of the metadata, including pre-pended initialization of included data"""
         s = ""
         for a in self.d['aggregate']:
-            aggr = getAggregate(a)
-            s += aggr.get_init(self.get_type()) 
+            s += makeAggregate(a).get_init(self.get_type()) 
         s += self.get_aggr_list_init()
         s += self.get_metadata_init()
         s += "const cm_composite_descriptor " + self.d['name'] + "(&" + self.get_metadata_name() + ");\n"
@@ -197,21 +203,25 @@ class Aggregate:
     def __init__(self, d):
         self.d = d
         
+    def verify(self):
+        """Check description in YAML file is valid and consistent."""
+        return makeItem(self.d['item']).verify()       
+        
     def get_init(self, container_type_name):
-        item = getItem(self.d['item'])
+        """Return initialization string"""
+        item = makeItem(self.d['item'])
         s = item.get_init()
         s += "const cm_aggregate_data " + self.get_data_name() + " = {&"
-        s += item.d['name'] + ", " + self.get_count()
+        s += item.d['name'] + ", " + self.get_count_str()
         s += ", offsetof(" + container_type_name + ", " + item.d['name'] + ")};\n"
         s += self.get_instantiate()
         
         return s
         
     def get_data_name(self):
-        item = getItem(self.d['item'])
-        return item.d['name'] + "_aggr_data"
+        return self.d['item']['name'] + "_aggr_data"
         
-    def get_count(self):
+    def get_count_str(self):
         """Return a string representing the count: either the name of a symbolic constant, or just a string of an integer."""
         try:
             count = self.d['count']['name']
@@ -234,34 +244,47 @@ class ContainedAggregate(Aggregate):
         Aggregate.__init__(self, d)
         
     def get_instance_definition(self):
-        item = getItem(self.d['item'])
-        s = item.get_type_and_name('contained')
+        s = makeItem(self.d['item']).get_type_and_name('contained')
         if self.d['count'] != 1:
-            s += "[" + self.get_count() + "]"
+            s += "[" + self.get_count_str() + "]"
         return s + ";\n"
         
     def get_type(self):
         return "cm_contained_aggregate"
         
     def get_instantiate(self):
-        item = getItem(self.d['item']) 
+        item = makeItem(self.d['item']) 
         s = "const " + self.get_type() + " " + item.d['name'] + "_aggr(&" + self.get_data_name() + ");\n\n"
         return s
         
         
 class OwnedAggregate(Aggregate):
-    def __init__(self, d):
+    def __init__(self, d):        
         Aggregate.__init__(self, d)
         
+    def verify(self):
+        """Check description in YAML file is valid and consistent."""
+        self.verify_counter()
+        makeItem(self.d).verify()
+        
+    def verify_counter(self):
+        """An owned aggregate that can contain more than one instance needs a counter"""
+        if not 'counter' in self.d:
+            max_count = self.get_max_count()
+            if max_count > 1:
+                print "Warning: aggregate for", self.d['item']['name'], "has no counter, but max_count is", max_count
+                return False
+        return True  
+        
     def get_instance_definition(self):
-        item = getItem(self.d['item'])
+        item = makeItem(self.d['item'])
         return item.get_type_and_name('owned') + ";\n"
         
     def get_type(self):
         return "cm_owned_aggregate"
         
     def get_instantiate(self):
-        item = getItem(self.d['item'])
+        item = makeItem(self.d['item'])
         s = "const " + self.get_type() + " " + item.d['name'] + "_aggr(&" + self.get_data_name()
         if 'counter' in self.d:
             s += ", &" + self.d['counter']['item']['name'] + "_aggr"
@@ -270,8 +293,17 @@ class OwnedAggregate(Aggregate):
         s += ");\n\n"
         return s
         
+    def get_max_count(self):
+        """Return numerical value for maximum number of instances of owned aggregate"""
+        try:
+            # The value of the symbolic constant
+            return self.d['count']['value']
+        except:
+            # Simple case: return the value
+            return self.d['count']
         
-def getItem(d):
+        
+def makeItem(d):
     """Factory method returns an Item object of the requested class"""
     if 'aggregate' in d: 
         return CompositeItem(d)
@@ -279,7 +311,7 @@ def getItem(d):
         return SimpleItem(d)
         
 
-def getAggregate(d):
+def makeAggregate(d):
     """Factory method returns an Aggregate object of the requested class"""
     if d['type'] == 'owned': 
         return OwnedAggregate(d)
@@ -303,7 +335,8 @@ except:
     sys.exit()
     
 id_gen = Id_generator()
-baseItem = getItem(i)
+baseItem = makeItem(i)
+baseItem.verify()
 finit = open("cfg.cpp", "w")
 fdecl = open("cfg.h", "w")
 fdecl.write(getDeclHeader(sys.argv[0], sys.argv[1]))

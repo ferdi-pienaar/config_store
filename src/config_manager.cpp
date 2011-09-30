@@ -486,15 +486,9 @@ void cm_composite_descriptor::writeTlv(const uint8_t *pItem) const
     config_manager::getInstance()->tlv.startWriteComposite(pData->c.id);
 
     for (unsigned i = 0; i < getAggrCount(); i++)
-    {            
-        const cm_aggregate * pAggr = getAggrAtIndex(i);
-
-        for (unsigned j = 0; j < pAggr->getCount(pItem); j++)
-        {
-            pAggr->pData->pDesc->writeTlv(pAggr->getItemAtIndex(pItem, j));
-        }
+    {   
+        getAggrAtIndex(i)->writeTlv(pItem);
     }
-
     config_manager::getInstance()->tlv.endWriteComposite();
 }
 
@@ -678,7 +672,6 @@ void cm_simple_descriptor::writeTlv(const uint8_t *pItem) const
     {
         return;
     }
-    
     config_manager::getInstance()->tlv.writeSimple(pData->c.id, pData->c.len, pItem);
 }
 
@@ -688,7 +681,14 @@ void cm_simple_descriptor::writeTlv(const uint8_t *pItem) const
 t_cm_result cm_simple_descriptor::loadFromTlv(uint8_t * pItem, unsigned * pComplete) const
 {
     cm_item_len_t len = pData->c.len;
-    return config_manager::getInstance()->tlv.loadSimple(pItem, &len, pComplete);
+    
+    t_cm_result ret = config_manager::getInstance()->tlv.loadSimple(pItem, &len, pComplete);
+
+    // Sanity check: the length loaded is the length that was requested.
+    // In theory we might support truncation by the TLV module, but given that
+    // it doesn't know the nature of the data, it can't truncate it sensibly.
+    if (ret == CM_SUCCESS) assert(len == pData->c.len);
+    return ret;
 }
 
 
@@ -881,6 +881,16 @@ bool cm_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem, uint8_t
         return false;
     }
     return true;
+}
+
+
+// Write TLV for all elements in the array
+void cm_aggregate::writeTlv(const uint8_t *pItem) const
+{
+    for (unsigned i = 0; i < getCount(pItem); i++)
+    {
+        pData->pDesc->writeTlv(getItemAtIndex(pItem, i));
+    }
 }
 
 

@@ -1,5 +1,5 @@
 - Optionally, save NVRAM not as TLV, but as text -- the same text produced on
-  command "prt".
+  command "prt", or a YAML configuration file.
 - Allow an owned array element to be identified by a name instead of an index.
 - Create iterators that can iterate across item descriptors and items themselves.
 - Produce quality documentation from doxygen.
@@ -14,8 +14,6 @@
 - Having an ID in a counter descriptor is not needed, since it's not saved to TLV.
   The same applies to any non-persistent items like stats, that are not saved 
   in NVRAM.
-- Do we support counters that are not 4 bytes -- do both setCnt and getCnt handle it?
-  
 - Provide context-sensitive help in a way that could be used for "tabbing out" input strings.
   Step 1: respond to inputs without a carriage return.
 - Strategy for making fewer methods public: do we need friends, or interface classes...
@@ -51,7 +49,6 @@
 
 - The unit tests for config_manager could also use a test double for NVRAM,
   instead of actual file access.
-- Integrate cm_tlvTest into the automated tests.
 
 - Generate from YAML descriptor
 - YAML schema to validate a descriptor?
@@ -73,3 +70,4 @@ Restrict application code from writing to config?  Currently it's temptingly
 easy...
 
 In code_gen_example, Makefile should include dependency on .yaml file
+Makefiles should do automatic dependency generation.
