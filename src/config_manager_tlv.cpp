@@ -24,7 +24,7 @@
 
 #include <stdint.h> // uint8_t, etc
 #include "config_manager_tlv.h"
-#include "../../cfg_man/src/config_manager_dbg.h"
+#include "config_manager_dbg.h"
 #include <iostream>
 #include <string.h> // memcpy
 #include "nvram.h"
@@ -32,16 +32,18 @@
 
 using namespace std;
 
-Tlv::Tlv(): stackIndex(-1)
+Tlv::Tlv(Nvram * pNvram): nvram(pNvram), stackIndex(-1)
 {
-    nvram = new Nvram;
 }
 
 Tlv::~Tlv()
 {
-    delete nvram;
 }
 
+void Tlv::reset()
+{
+    stackIndex = -1;
+}
 
 void Tlv::writeSimple(cm_item_id_t t, cm_item_len_t len, const uint8_t * v)
 {

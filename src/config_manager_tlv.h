@@ -10,20 +10,10 @@ class Tlv
 public:
     static const unsigned int stackDepth = 8;
 
-    Tlv();
+    Tlv(Nvram * pNvram);
     ~Tlv();
-    bool resetRead()
-    {
-        reset();
-        return nvram->initRead();
-    }
-    
-    bool resetWrite()
-    {
-        reset();
-        return nvram->initWrite();
-    }
-    
+
+    void reset();
     void writeSimple(cm_item_id_t t, cm_item_len_t length, const uint8_t * v);
     void startWriteComposite(cm_item_id_t t);
     void endWriteComposite();
@@ -31,7 +21,7 @@ public:
     t_cm_result loadSimple(uint8_t * pRam, cm_item_len_t * length, unsigned * complete);
     t_cm_result loadComposite();
     void skipItem(unsigned * complete);
-    
+
 private:
     // Context used in writing
     struct compositeWriteContext
@@ -47,10 +37,6 @@ private:
         cm_item_len_t readBytes;    // number of composite bytes read from MVRAM
     };
 
-    void reset()
-    {
-        stackIndex = -1;
-    }
 
     void addLengthToComposite(unsigned length);
     t_cm_result updateContainer(cm_item_len_t length, unsigned * complete);

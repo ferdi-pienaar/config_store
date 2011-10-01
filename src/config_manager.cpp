@@ -19,6 +19,11 @@ config_manager * config_manager::instance = NULL;
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+config_manager::config_manager(): base_desc(NULL), ramBase(NULL)
+{
+}
+
+
 // Singleton's single access point
 config_manager * config_manager::getInstance()
 {
@@ -480,7 +485,7 @@ void cm_composite_descriptor::save(const uint8_t *pItem) const
         return;
     }
     
-    config_manager::getInstance()->store.startWriteComposite(pData->c.id);
+    config_manager::getInstance()->store.startWriteComposite(pData);
 
     for (unsigned i = 0; i < getAggrCount(); i++)
     {   
@@ -667,23 +672,15 @@ void cm_simple_descriptor::save(const uint8_t *pItem) const
     {
         return;
     }
-    config_manager::getInstance()->store.writeSimple(pData->c.id, pData->c.len, pItem);
+    config_manager::getInstance()->store.writeSimple(pData, pItem);
 }
 
 
 // @param pComplete (output) - the number of outstanding composite completions, i.e.
 //        the number of times we should return from cm_composite_descriptor::load
 t_cm_result cm_simple_descriptor::load(uint8_t * pItem, unsigned * pComplete) const
-{
-    cm_item_len_t len = pData->c.len;
-    
-    t_cm_result ret = config_manager::getInstance()->store.loadSimple(pItem, &len, pComplete);
-
-    // Sanity check: the length loaded is the length that was requested.
-    // In theory we might support truncation by the persistent storage module, but given that
-    // it doesn't know the nature of the data, it can't truncate it sensibly.
-    if (ret == CM_SUCCESS) assert(len == pData->c.len);
-    return ret;
+{   
+    return config_manager::getInstance()->store.loadSimple(pItem, pData, pComplete);
 }
 
 

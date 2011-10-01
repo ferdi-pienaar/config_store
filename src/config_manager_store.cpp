@@ -1,0 +1,81 @@
+/// 
+//
+
+#include <stdint.h> // uint8_t, etc
+#include "config_manager_store.h"
+#include "config_manager.h"
+#include "config_manager_dbg.h"
+#include "nvram.h"
+#include <assert.h>
+
+using namespace std;
+
+cm_store::cm_store()
+{
+    tlv = new Tlv(&nvram);
+    
+}
+
+cm_store::~cm_store()
+{
+    delete tlv;
+}
+
+
+bool cm_store::resetRead()
+{
+    tlv->reset();
+    return nvram.initRead();
+}
+
+bool cm_store::resetWrite()
+{
+    tlv->reset();
+    return nvram.initWrite();
+}
+
+void cm_store::writeSimple(const cm_simple_metadata * data, const uint8_t * v)
+{
+    tlv->writeSimple(data->c.id, data->c.len, v);
+}
+
+void cm_store::startWriteComposite(const cm_composite_metadata * data)
+{
+    tlv->startWriteComposite(data->c.id);
+}
+
+void cm_store::endWriteComposite()
+{
+    tlv->endWriteComposite();
+}
+
+t_cm_result cm_store::getType(cm_item_id_t * t)
+{
+    return tlv->getType(t);
+}
+
+t_cm_result cm_store::loadSimple(uint8_t * pRam, const cm_simple_metadata * data, unsigned * complete)
+{
+    cm_item_len_t len = data->c.len;
+    t_cm_result ret = tlv->loadSimple(pRam, &len, complete);
+
+    // Sanity check: the length loaded is the length that was requested.
+    // In theory we might support truncation by the persistent storage module, but given that
+    // it doesn't know the nature of the data, it can't truncate it sensibly.
+    if (ret == CM_SUCCESS) assert(len == data->c.len);
+
+    return ret;
+}
+
+t_cm_result cm_store::loadComposite()
+{
+    return tlv->loadComposite();
+}
+
+void cm_store::skipItem(unsigned * complete)
+{
+    tlv->skipItem(complete);
+}
+
+
+
