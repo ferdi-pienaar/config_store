@@ -276,7 +276,7 @@ public:
     void resetCtxt();
     void updateCtxt(cm_context * pC);
 
-    cm_store store;
+    cm_store * store;
 
 
 private:

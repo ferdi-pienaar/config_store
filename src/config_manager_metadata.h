@@ -7,9 +7,9 @@
 
 
 // Function pointers -- types registered by user when descriptor is created
-typedef bool (*CM_SET_FPTR)(uint8_t *pItem, cm_item_len_t len, std::string val);
+typedef bool (*CM_SET_FPTR)(FILE * f, uint8_t *pItem, cm_item_len_t len, std::string val);
 typedef void (*CM_SETDEF_FPTR)(uint8_t *pItem, cm_item_len_t len);
-typedef void (*CM_PRT_FPTR)(const uint8_t *pItem, cm_item_len_t len);
+typedef void (*CM_PRT_FPTR)(FILE * f, const uint8_t *pItem, cm_item_len_t len);
 
 
 // Item metadata, i.e. information about what's kept in RAM.

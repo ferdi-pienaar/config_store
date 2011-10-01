@@ -21,6 +21,7 @@ config_manager * config_manager::instance = NULL;
 
 config_manager::config_manager(): base_desc(NULL), ramBase(NULL)
 {
+    store = new cm_tlv_store;
 }
 
 
@@ -121,7 +122,7 @@ const char * config_manager::getPromptString()
 // Save data in RAM to persistent storage
 void config_manager::save()
 {
-    store.resetWrite();
+    store->resetWrite();
     base_desc->save(ramBase);
 }
 
@@ -136,14 +137,14 @@ void config_manager::load()
         return;
     }
 
-    if (!store.resetRead())
+    if (!store->resetRead())
     {
         cout << "No config file." << endl;
         return;
     }
     
     cm_item_id_t id;
-    store.getType(&id); // xxx What if this fails?
+    store->getType(&id); // xxx What if this fails?
 
     if (id != base_desc->getId())
     {
@@ -485,13 +486,13 @@ void cm_composite_descriptor::save(const uint8_t *pItem) const
         return;
     }
     
-    config_manager::getInstance()->store.startWriteComposite(pData);
+    config_manager::getInstance()->store->startWriteComposite(pData);
 
     for (unsigned i = 0; i < getAggrCount(); i++)
     {   
         getAggrAtIndex(i)->save(pItem);
     }
-    config_manager::getInstance()->store.endWriteComposite();
+    config_manager::getInstance()->store->endWriteComposite();
 }
 
 
@@ -508,7 +509,7 @@ t_cm_result cm_composite_descriptor::load(uint8_t * pItem, unsigned * pComplete)
 {
     bool first = true; // Is this the first component item
 
-    config_manager::getInstance()->store.loadComposite();
+    config_manager::getInstance()->store->loadComposite();
 
     do
     {
@@ -516,7 +517,7 @@ t_cm_result cm_composite_descriptor::load(uint8_t * pItem, unsigned * pComplete)
         cm_item_id_t         componentId, prevComponentId;
         t_cm_result          res;
 
-        if ((res = config_manager::getInstance()->store.getType(&componentId)) != CM_SUCCESS)
+        if ((res = config_manager::getInstance()->store->getType(&componentId)) != CM_SUCCESS)
         {
             return res;
         }
@@ -544,7 +545,7 @@ t_cm_result cm_composite_descriptor::load(uint8_t * pItem, unsigned * pComplete)
         else
         {      
             // Can't find ID, or item not persistent, or idx too big, or no memory...
-            config_manager::getInstance()->store.skipItem(pComplete);
+            config_manager::getInstance()->store->skipItem(pComplete);
         }
         prevComponentId = componentId;
     } while (*pComplete == 0); // while this composite is incomplete
@@ -582,11 +583,11 @@ void cm_simple_descriptor::print(const uint8_t * pItem, string prefix) const
     if (pData->pPrt == NULL)
     {
         // No function installed so default print function: hex chars
-        cm_prt_hexstr(pItem, getLen());
+        cm_prt_hexstr(stdout, pItem, getLen());
     }
     else
     {
-        pData->pPrt(pItem, getLen());
+        pData->pPrt(stdout, pItem, getLen());
     }
     cout << endl;
 }
@@ -641,7 +642,7 @@ bool cm_simple_descriptor::set(uint8_t * pItem, string val) const
 
     if (pData->pSet != NULL)
     {
-        return pData->pSet(pItem, getLen(), val);
+        return pData->pSet(stdout, pItem, getLen(), val);
     }
     else
     {
@@ -672,7 +673,7 @@ void cm_simple_descriptor::save(const uint8_t *pItem) const
     {
         return;
     }
-    config_manager::getInstance()->store.writeSimple(pData, pItem);
+    config_manager::getInstance()->store->writeSimple(pData, pItem);
 }
 
 
@@ -680,7 +681,7 @@ void cm_simple_descriptor::save(const uint8_t *pItem) const
 //        the number of times we should return from cm_composite_descriptor::load
 t_cm_result cm_simple_descriptor::load(uint8_t * pItem, unsigned * pComplete) const
 {   
-    return config_manager::getInstance()->store.loadSimple(pItem, pData, pComplete);
+    return config_manager::getInstance()->store->loadSimple(pItem, pData, pComplete);
 }
 
 

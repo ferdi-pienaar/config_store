@@ -1,5 +1,5 @@
 /// 
-// Type-Length-Value format of data, for storage in non-volatile media, e.g. a file.
+// YAML format of data, for storage in non-volatile media, e.g. a file.
 // This is defined as a separate class hierarchy, since it's an optional feature:
 // not all managed objects are saved in NVRAM.
 //
@@ -23,7 +23,7 @@
 //
 
 #include <stdint.h> // uint8_t, etc
-#include "config_manager_tlv.h"
+#include "config_manager_yaml.h"
 #include "config_manager_dbg.h"
 #include <iostream>
 #include <string.h> // memcpy
@@ -32,41 +32,43 @@
 
 using namespace std;
 
-Tlv::Tlv(Nvram * pNvram): nvram(pNvram), stackIndex(-1)
+Yaml::Yaml(Nvram * pNvram): nvram(pNvram), stackIndex(-1)
 {
 }
 
 
-Tlv::~Tlv()
+Yaml::~Yaml()
 {
 }
 
 
-void Tlv::reset()
+void Yaml::reset()
 {
     stackIndex = -1;
 }
 
 
-void Tlv::writeSimple(cm_item_id_t t, cm_item_len_t len, const uint8_t * v)
-{
-    nvram->write((uint8_t *)&t, sizeof(t));
-    nvram->write((uint8_t *)&len, sizeof(len));
-    nvram->write(v, len);
+void Yaml::writeSimple(const char * name, cm_item_id_t t, const uint8_t * v, cm_item_len_t length, YAML_PRT_FPTR prt)
+{    
+    cout << "simple " << name << ": " << " ";
+    prt(stdout, v, length);
 
-    addLengthToComposite(len);
+    cout << endl;
 }
 
 
 // Don't actually write anything yet, since it may turn out that this
 // composite is empty.
-void Tlv::startWriteComposite(cm_item_id_t t)
+void Yaml::startWriteComposite(const char * name, cm_item_id_t t)
 {
     assert(stackIndex < (int)stackDepth);
 
     stackIndex++;
 
-    Tlv::compositeWriteContext * context = &(writeStack[stackIndex]);
+    cout << "composite " << name << endl;
+
+
+    Yaml::compositeWriteContext * context = &(writeStack[stackIndex]);
 
     context->id = t;
     context->length = 0;
@@ -79,12 +81,12 @@ void Tlv::startWriteComposite(cm_item_id_t t)
 
 // Close writing of composite by writing L of TLV
 // xxx return boolean to indicate if we've reached the bottom of the stack?
-void Tlv::endWriteComposite()
+void Yaml::endWriteComposite()
 {
     assert(stackIndex >= 0); // we must be inside a composite to end one
     
     unsigned int endOffset = nvram->getOffset(); // current offset, at end of composite
-    Tlv::compositeWriteContext * context = &(writeStack[stackIndex]);
+    Yaml::compositeWriteContext * context = &(writeStack[stackIndex]);
 
     // switch to context of owning composite (or set to -1 if we're exiting the final composite)
     stackIndex--;
@@ -102,7 +104,6 @@ void Tlv::endWriteComposite()
         nvram->write((uint8_t *)&(context->id), sizeof(context->id));
         nvram->write((uint8_t *)&(context->length), sizeof(context->length));
 
-        addLengthToComposite(context->length);
     }
 
     if (stackIndex >= 0)
@@ -119,7 +120,7 @@ void Tlv::endWriteComposite()
 
 
 // Load T from NVRAM and return it
-t_cm_result Tlv::getType(cm_item_id_t * id)
+t_cm_result Yaml::getType(cm_item_id_t * id)
 {
     if (!nvram->read((uint8_t *)id, sizeof(cm_item_id_t)))
     {
@@ -138,7 +139,7 @@ t_cm_result Tlv::getType(cm_item_id_t * id)
 // @note: if the length is unexpected, we could skip just that item, but it's
 //        simpler to just return an error, presumably forcing the client to abandon
 //        the load process completely.
-t_cm_result Tlv::loadSimple(uint8_t * pRam, cm_item_len_t * pLength, unsigned * complete)
+t_cm_result Yaml::loadSimple(uint8_t * pRam, cm_item_len_t * pLength, unsigned * complete)
 {
     t_cm_result ret = CM_SUCCESS;
     cm_item_len_t length;
@@ -172,7 +173,7 @@ t_cm_result Tlv::loadSimple(uint8_t * pRam, cm_item_len_t * pLength, unsigned * 
 
 // Client has identified T returned by getType() as composite:
 // start loading the composite.
-t_cm_result Tlv::loadComposite()
+t_cm_result Yaml::loadComposite()
 {
     cm_item_len_t length;
     nvram->read((uint8_t *)&length, sizeof(cm_item_len_t));
@@ -191,7 +192,7 @@ t_cm_result Tlv::loadComposite()
 
 
 // Skip item: should be called after getType() only
-void Tlv::skipItem(unsigned * complete)
+void Yaml::skipItem(unsigned * complete)
 {
     cm_item_len_t length;
     nvram->read((uint8_t *)&length, sizeof(cm_item_len_t));
@@ -203,16 +204,6 @@ void Tlv::skipItem(unsigned * complete)
 }
 
 
-// Add component's contribution to the length of the composite it is contained in.
-// @param L field of component, excluding length of its T + L, which is added by this method
-void Tlv::addLengthToComposite(unsigned length)
-{
-    if (stackIndex >= 0)
-    {
-        // Current item is member of a composite, so add component's contribution to its length
-        writeStack[stackIndex].length += length + sizeof(cm_item_id_t) + sizeof(cm_item_len_t);
-    }
-}
 
 
 // After loading an item, check if the composite container it is in has been completely loaded, and,
@@ -221,7 +212,7 @@ void Tlv::addLengthToComposite(unsigned length)
 // This function may call itself recursively.
 // @param length - input, length (L in its TLV) of the item that has finished loading.
 // @param complete - input/output, the number of composites which have been completely loaded.
-t_cm_result Tlv::updateContainer(cm_item_len_t length, unsigned * complete)
+t_cm_result Yaml::updateContainer(cm_item_len_t length, unsigned * complete)
 {
     if (stackIndex == -1)
     {
@@ -229,7 +220,7 @@ t_cm_result Tlv::updateContainer(cm_item_len_t length, unsigned * complete)
         return CM_SUCCESS;
     }
     
-    Tlv::compositeLoadContext * context = &(loadStack[stackIndex]);
+    Yaml::compositeLoadContext * context = &(loadStack[stackIndex]);
 
     context->readBytes += length + sizeof(cm_item_id_t) + sizeof(cm_item_len_t);
     

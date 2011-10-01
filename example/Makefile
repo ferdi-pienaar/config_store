@@ -6,6 +6,7 @@ test_cfg_man: $(CFG_MAN_SRC_DIR)config_manager.o \
 $(CFG_MAN_SRC_DIR)config_manager_util.o \
 $(CFG_MAN_SRC_DIR)config_manager_setdef_null.o \
 $(CFG_MAN_SRC_DIR)config_manager_store.o \
+$(CFG_MAN_SRC_DIR)config_manager_yaml.o \
 $(CFG_MAN_SRC_DIR)config_manager_tlv.o \
 $(CFG_MAN_SRC_DIR)nvram.o \
 $(CFG_MAN_SRC_DIR)config_manager_tlv.h \

@@ -1,9 +1,10 @@
 #CXXFLAGS = -Wall -g -I ../../../CppUTest/include -I .. -DDEBUG_PRINT # -save-temps
 CXXFLAGS = -Wall -g -I ../../../CppUTest/include -I .. -I ../../export -I ../../stubs # -save-temps
 VPATH = ../../../CppUTest/lib # so make can find the library
-OBJS = ../config_manager.o ../config_manager_util.o ../config_manager_store.o ../config_manager_tlv.o \
+OBJS = ../config_manager.o ../config_manager_util.o \
+ ../config_manager_store.o ../config_manager_tlv.o ../config_manager_yaml.o \
  ../config_manager_setdef_null.o ../nvram.o
-OBJSTLV = ../config_manager_tlv.o ../config_manager_store.o ../../stubs/nvram_spy.o
+OBJSTLV = ../config_manager_yaml.o ../config_manager_tlv.o ../config_manager_store.o ../../stubs/nvram_spy.o
 
 all: simpleTestTag compositeTestTag tlvTestTag cmTestTag
 
@@ -62,6 +63,9 @@ config_manager_store.o: config_manager_store.cpp \
 
 config_manager_tlv.o: config_manager_tlv.cpp \
  ../../export/config_manager.h ../config_manager_types.h ../config_manager_tlv.h ../config_manager_dbg.h
+
+config_manager_yaml.o: config_manager_yamlt.cpp \
+ ../../export/config_manager.h ../config_manager_types.h ../config_manager_yaml.h ../config_manager_dbg.h
 
 config_manager_setdef_null.o: config_manager_setdef_null.cpp \
  ../config_manager_types.h ../config_manager_setdef_null.h
