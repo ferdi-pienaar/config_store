@@ -54,7 +54,7 @@ void cm_prt_int(FILE * f, const uint8_t *pItem, cm_item_len_t len)
 // Integers are kept in the order prescribed by the given
 // system (little-endian or big-endian).
 //
-bool cm_set_int(FILE * f, uint8_t *pItem, cm_item_len_t len, string val)
+bool cm_set_int(uint8_t *pItem, cm_item_len_t len, string val)
 {
     char * pEnd; // pointer to char after chars accepted by strtol
 
@@ -126,7 +126,7 @@ void cm_prt_str(FILE * f, const uint8_t *pItem, cm_item_len_t len)
 // len - number of bytes the string consists of
 // val - a string representing the new value
 //
-bool cm_set_str(FILE * f, uint8_t *pItem, cm_item_len_t len, string val)
+bool cm_set_str(uint8_t *pItem, cm_item_len_t len, string val)
 {
     snprintf((char *)pItem, len, val.c_str());
     return true;

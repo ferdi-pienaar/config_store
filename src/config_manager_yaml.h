@@ -6,7 +6,7 @@
 #include "config_manager_types.h"
 
 // Function pointer to convert a string into data in RAM
-typedef bool (*YAML_SET_FPTR)(FILE * f, uint8_t *pItem, cm_item_len_t len, std::string val);
+typedef bool (*YAML_SET_FPTR)(uint8_t *pItem, cm_item_len_t len, std::string val);
 // Function pointer to convert data in RAM into a string
 typedef void (*YAML_PRT_FPTR)(FILE * f, const uint8_t *pItem, cm_item_len_t len);
 
@@ -42,13 +42,13 @@ private:
         cm_item_len_t readBytes;    // number of composite bytes read from MVRAM
     };
 
+    void write_indent();
 
     t_cm_result updateContainer(cm_item_len_t length, unsigned * complete);
     Nvram *  nvram;
     int stackIndex;  // write stack index; -1 means the current item is top-level, not part of a composite
     compositeWriteContext writeStack[stackDepth];
     compositeLoadContext  loadStack[stackDepth];
-
 };
 
 #endif // CFG_MAN_YAML_H

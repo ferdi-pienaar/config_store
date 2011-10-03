@@ -2,9 +2,13 @@
 CXXFLAGS = -Wall -g -I ../../../CppUTest/include -I .. -I ../../export -I ../../stubs # -save-temps
 VPATH = ../../../CppUTest/lib # so make can find the library
 OBJS = ../config_manager.o ../config_manager_util.o \
- ../config_manager_store.o ../config_manager_tlv.o ../config_manager_yaml.o \
- ../config_manager_setdef_null.o ../nvram.o
-OBJSTLV = ../config_manager_yaml.o ../config_manager_tlv.o ../config_manager_store.o ../../stubs/nvram_spy.o
+ ../config_manager_setdef_null.o ../config_manager_store.o ../nvram.o \
+
+OBJS += ../config_manager_tlv_store.o ../config_manager_tlv.o
+
+OBJS += ../config_manager_yaml_store.o ../config_manager_yaml.o
+
+OBJSTLV = ../config_manager_tlv.o ../../stubs/nvram_spy.o
 
 all: simpleTestTag compositeTestTag tlvTestTag cmTestTag
 
@@ -59,7 +63,13 @@ config_manager_util.o: config_manager_util.cpp \
  ../config_manager_types.h ../config_manager_util.h
 
 config_manager_store.o: config_manager_store.cpp \
- ../config_manager_store.h ../config_manager_dbg.h
+ ../config_manager_store.h  ../config_manager_tlv_store.h ../config_manager_yaml_store.h ../config_manager_dbg.h
+
+config_manager_tlv_store.o: config_manager_tlv_store.cpp \
+ ../config_manager_store.h  ../config_manager_tlv_store.h ../config_manager_dbg.h
+
+config_manager_yaml_store.o: config_manager_yaml_store.cpp \
+ ../config_manager_store.h  ../config_manager_yaml_store.h ../config_manager_dbg.h
 
 config_manager_tlv.o: config_manager_tlv.cpp \
  ../../export/config_manager.h ../config_manager_types.h ../config_manager_tlv.h ../config_manager_dbg.h

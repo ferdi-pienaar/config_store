@@ -32,7 +32,7 @@
 
 using namespace std;
 
-Yaml::Yaml(Nvram * pNvram): nvram(pNvram), stackIndex(-1)
+Yaml::Yaml(Nvram * pNvram): nvram(pNvram), stackIndex(0)
 {
 }
 
@@ -44,13 +44,14 @@ Yaml::~Yaml()
 
 void Yaml::reset()
 {
-    stackIndex = -1;
+    stackIndex = 0;
 }
 
 
 void Yaml::writeSimple(const char * name, cm_item_id_t t, const uint8_t * v, cm_item_len_t length, YAML_PRT_FPTR prt)
 {    
-    cout << "simple " << name << ": " << " ";
+    write_indent();
+    cout << name << ": ";
     prt(stdout, v, length);
 
     cout << endl;
@@ -61,21 +62,9 @@ void Yaml::writeSimple(const char * name, cm_item_id_t t, const uint8_t * v, cm_
 // composite is empty.
 void Yaml::startWriteComposite(const char * name, cm_item_id_t t)
 {
-    assert(stackIndex < (int)stackDepth);
-
+    write_indent();
+    cout << name << ": " << endl;
     stackIndex++;
-
-    cout << "composite " << name << endl;
-
-
-    Yaml::compositeWriteContext * context = &(writeStack[stackIndex]);
-
-    context->id = t;
-    context->length = 0;
-    context->headerOffset = nvram->getOffset();
-
-    // reserve space for T + L, to be written by endWriteComposite()
-    nvram->adjustOffset(sizeof(cm_item_id_t) + sizeof(cm_item_len_t));
 }
 
 
@@ -83,39 +72,10 @@ void Yaml::startWriteComposite(const char * name, cm_item_id_t t)
 // xxx return boolean to indicate if we've reached the bottom of the stack?
 void Yaml::endWriteComposite()
 {
-    assert(stackIndex >= 0); // we must be inside a composite to end one
-    
-    unsigned int endOffset = nvram->getOffset(); // current offset, at end of composite
-    Yaml::compositeWriteContext * context = &(writeStack[stackIndex]);
-
-    // switch to context of owning composite (or set to -1 if we're exiting the final composite)
     stackIndex--;
 
-    if (context->length == 0)
-    {
-        // Empty composite: write nothing, and set offset to beginning of composite
-        assert(endOffset >= sizeof(cm_item_id_t) + sizeof(cm_item_len_t));
-        endOffset -= sizeof(cm_item_id_t) + sizeof(cm_item_len_t);
-    }
-    else
-    {
-        // Non-empty composite: write its header
-        nvram->setOffset(context->headerOffset);
-        nvram->write((uint8_t *)&(context->id), sizeof(context->id));
-        nvram->write((uint8_t *)&(context->length), sizeof(context->length));
-
-    }
-
-    if (stackIndex >= 0)
-    {
-        // We're still inside a composite, so set offset for writing next component
-        nvram->setOffset(endOffset);
-    }
-    else
-    {
-        // Final composite is complete: we're done reading from NVRAM
-        nvram->accessComplete();
-    }
+    write_indent();
+    cout << "end" << endl;
 }
 
 
@@ -241,5 +201,13 @@ t_cm_result Yaml::updateContainer(cm_item_len_t length, unsigned * complete)
     stackIndex--; // Maybe next-level container is also complete...
     updateContainer(context->length, complete); // update contribution of container to its container
     return CM_SUCCESS;
+}
+
+void Yaml::write_indent()
+{
+    for (unsigned i = 0; i < stackIndex; i++)
+    {
+        cout << " ";
+    }
 }
 

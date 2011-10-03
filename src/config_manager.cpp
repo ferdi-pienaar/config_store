@@ -2,6 +2,7 @@
 #include "config_manager.h"
 #include "config_manager_util.h"
 #include "config_manager_dbg.h"
+#include "config_manager_store.h"
 
 #include <stdlib.h> // malloc
 #include <string.h> // memset, strcmp, memcpy
@@ -21,7 +22,7 @@ config_manager * config_manager::instance = NULL;
 
 config_manager::config_manager(): base_desc(NULL), ramBase(NULL)
 {
-    store = new cm_tlv_store;
+    store = cm_store::getStore();
 }
 
 
@@ -642,7 +643,7 @@ bool cm_simple_descriptor::set(uint8_t * pItem, string val) const
 
     if (pData->pSet != NULL)
     {
-        return pData->pSet(stdout, pItem, getLen(), val);
+        return pData->pSet(pItem, getLen(), val);
     }
     else
     {

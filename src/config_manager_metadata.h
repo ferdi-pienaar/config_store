@@ -1,22 +1,24 @@
+//
+// Item metadata, i.e. information about the configurable items that are kept in RAM.
+// We place metadata in a structures separate from the descriptor classes,
+// to make it easy to ensure this constant data is ROMable (the rules for ensuring
+// a class object is ROMable, are very restrictive).
+// This comes at the cost of having an additional level of indirection.
 
 #ifndef CFG_MAN_METADATA_H
 #define CFG_MAN_METADATA_H
 
 #include <stdint.h> // uint8_t, etc
+#include <string>
 #include "config_manager_types.h"
 
 
 // Function pointers -- types registered by user when descriptor is created
-typedef bool (*CM_SET_FPTR)(FILE * f, uint8_t *pItem, cm_item_len_t len, std::string val);
+typedef bool (*CM_SET_FPTR)(uint8_t *pItem, cm_item_len_t len, std::string val);
 typedef void (*CM_SETDEF_FPTR)(uint8_t *pItem, cm_item_len_t len);
 typedef void (*CM_PRT_FPTR)(FILE * f, const uint8_t *pItem, cm_item_len_t len);
 
 
-// Item metadata, i.e. information about what's kept in RAM.
-// We place metadata in a structure separate from the descriptor,
-// to make it easy to ensure it is ROMable (the rules for ensuring
-// a class object is ROMable, are very restrictive).
-// This comes at the cost of having an additional level of indirection.
 struct cm_common_metadata
 {
     const char *  name;       ///< name by which item is addressed on CLI    
