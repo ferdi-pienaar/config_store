@@ -29,9 +29,12 @@ def getInitHeader(script, inputFile):
 
     
 class Id_generator():
-    """Generate ID for TLV.  This is the simplest thing that could work, but not the best solution"""
-    def __init__(self):
-        self.id = 0
+    """Generate ID for TLV."""
+    def __init__(self, initial_id = None):
+        if initial_id is None:
+            self.id = 0
+        else:
+            self.id = initial_id
         
     def get_id(self):
         id_string = str(self.id)
@@ -40,8 +43,9 @@ class Id_generator():
     
 
 class Item:
-    def __init__(self, d):
+    def __init__(self, d, container_id_gen):
         self.d = d
+        self.container_id_gen = container_id_gen
         
     def get_definition(self):
         """Definitions of structs definitions for composites"""
@@ -51,9 +55,10 @@ class Item:
         return self.d['name'] + "_data"
         
     def get_common_metadata_init(self):
+        """Return string representing initialization of the common metadata structure"""
         s = indent + "{\n"
         s += 2 * indent + "\"" + self.d['name'] + "\",\n"
-        s += 2 * indent + id_gen.get_id() + ",\n" # xxx fix this: IDs should be constant as possible within composites
+        s += 2 * indent + self.container_id_gen.get_id() + ",\n" # xxx fix this: IDs should be constant as possible within composites
         s += 2 * indent + self.get_size() + ",\n"
         s += 2 * indent
         if self.d['persistent']:
@@ -65,8 +70,8 @@ class Item:
         
     
 class SimpleItem(Item):
-    def __init__(self, d):
-        Item.__init__(self, d)
+    def __init__(self, d, container_id_gen):
+        Item.__init__(self, d, container_id_gen)
         self.is_string_type = False # By default, items aren't strings
         if "string" in d['type']:
             self.is_string_type = True
@@ -138,8 +143,9 @@ class SimpleItem(Item):
         return ""
         
 class CompositeItem(Item):
-    def __init__(self, d):
-        Item.__init__(self, d)
+    def __init__(self, d, container_id_gen):
+        Item.__init__(self, d, container_id_gen)
+        self.id_gen = Id_generator()
 
     def verify(self):
         """Check item description in YAML file is valid and consistent."""
@@ -163,7 +169,7 @@ class CompositeItem(Item):
         """Return string containing initialization of the metadata, including pre-pended initialization of included data"""
         s = ""
         for a in self.d['aggregate']:
-            s += makeAggregate(a).get_init(self.get_type()) 
+            s += makeAggregate(a).get_init(self.get_type(), self.id_gen) 
         s += self.get_aggr_list_init()
         s += self.get_metadata_init()
         s += "const cm_composite_descriptor " + self.d['name'] + "(&" + self.get_metadata_name() + ");\n"
@@ -209,9 +215,9 @@ class Aggregate:
         """Check description in YAML file is valid and consistent."""
         return makeItem(self.d['item']).verify()       
         
-    def get_init(self, container_type_name):
+    def get_init(self, container_type_name, id_gen):
         """Return initialization string"""
-        item = makeItem(self.d['item'])
+        item = makeItem(self.d['item'], id_gen)
         s = item.get_init()
         s += "const cm_aggregate_data " + self.get_data_name() + " = {&"
         s += item.d['name'] + ", " + self.get_count_str()
@@ -305,12 +311,12 @@ class OwnedAggregate(Aggregate):
             return self.d['count']
         
         
-def makeItem(d):
+def makeItem(d, id_gen = None):
     """Factory method returns an Item object of the requested class"""
     if 'aggregate' in d: 
-        return CompositeItem(d)
+        return CompositeItem(d, id_gen)
     else:
-        return SimpleItem(d)
+        return SimpleItem(d, id_gen)
         
 
 def makeAggregate(d):
@@ -335,9 +341,8 @@ try:
 except:
     print "Root element in", sys.argv[1], "is not an item: exit"
     sys.exit()
-    
-id_gen = Id_generator()
-baseItem = makeItem(i)
+
+baseItem = makeItem(i, Id_generator(0xbab0))
 baseItem.verify()
 finit = open("cfg.cpp", "w")
 fdecl = open("cfg.h", "w")

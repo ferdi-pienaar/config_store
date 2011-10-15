@@ -62,7 +62,8 @@
 - Pre-pend hierarchy to names to avoid name clashes?
 - File headers, footers
 - ID generation: unique within a context, but constant across "generations"...
-  automate this as much as possible.
+  automate this as much as possible.  How?
+  Compare with an earlier version of the .cpp file, or a special auxilliary file?
 - Should YAML file include the names of the output file(s)?
 - Unit tests for the code generator
 - Warn user of incorrect configuration:

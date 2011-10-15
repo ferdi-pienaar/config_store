@@ -8,7 +8,9 @@
 #include "nvram.h"
 
 
-// xxx move this to separate file
+// Access to YAML persistent storage via the abstract interface represented by cm_store.
+// This class implements the adapter pattern, adapting the interface provided
+// by the YAML class to the needs of the client.
 class cm_yaml_store : public cm_store
 {
 public:

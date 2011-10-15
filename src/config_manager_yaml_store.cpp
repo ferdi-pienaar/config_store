@@ -66,8 +66,6 @@ t_cm_result cm_yaml_store::getType(cm_item_id_t * t)
 {    
     cout << "cm_yaml_store::getType()" << endl;
     return yaml->getType(t);
-
-    //return CM_SUCCESS;
 }
 
 
@@ -85,8 +83,6 @@ t_cm_result cm_yaml_store::loadComposite()
     cout << "cm_yaml_store::loadComposite()" << endl;
 
     return yaml->loadComposite();
-    //return CM_SUCCESS;
-
 }
 
 

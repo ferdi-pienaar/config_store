@@ -1,4 +1,7 @@
-CXXFLAGS = -Wall -g -I . -I ../src -I ../export # -DDEBUG_PRINT # -save-temps 
+CXXFLAGS = -Wall -g -I . -I ../src -I ../export 
+#CXXFLAGS += -DDEBUG_PRINT 
+#CXXFLAGS += -save-temps 
+CXXFLAGS += -D M_DEFINED_STORE_TYPE=TLV_STORE
 
 CFG_MAN_SRC_DIR = ../src/
 

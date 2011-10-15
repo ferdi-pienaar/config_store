@@ -6,7 +6,7 @@
 #include "nvram.h"
 
 
-// Abstract interface to classes that represent persistent storage
+// Abstract interface to classes that give access to persistent storage
 class cm_store
 {
 public:

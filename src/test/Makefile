@@ -1,5 +1,8 @@
-#CXXFLAGS = -Wall -g -I ../../../CppUTest/include -I .. -DDEBUG_PRINT # -save-temps
-CXXFLAGS = -Wall -g -I ../../../CppUTest/include -I .. -I ../../export -I ../../stubs # -save-temps
+CXXFLAGS = -Wall -g -I ../../../CppUTest/include -I .. -I ../../export -I ../../stubs
+CXXFLAGS += -D M_DEFINED_STORE_TYPE=TLV_STORE
+#CXXFLAGS += -D M_DEFINED_STORE_TYPE=YAML_STORE
+#CXXFLAGS += -save-temps
+#CXXFLAGS += -D DEBUG_PRINT
 VPATH = ../../../CppUTest/lib # so make can find the library
 OBJS = ../config_manager.o ../config_manager_util.o \
  ../config_manager_setdef_null.o ../config_manager_store.o ../nvram.o \

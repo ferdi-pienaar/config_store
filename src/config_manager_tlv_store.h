@@ -8,7 +8,9 @@
 #include "nvram.h"
 
 
-// 
+// Access to TLV persistent storage via the abstract interface represented by cm_store.
+// This class implements the adapter pattern, adapting the interface provided
+// by the TLV class to the needs of the client.
 class cm_tlv_store : public cm_store
 {
 public:
