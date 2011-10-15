@@ -45,7 +45,7 @@ class Id_generator():
 class Item:
     def __init__(self, d, container_id_gen):
         self.d = d
-        self.container_id_gen = container_id_gen
+        self.id = container_id_gen.get_id()
         
     def get_definition(self):
         """Definitions of structs definitions for composites"""
@@ -58,7 +58,7 @@ class Item:
         """Return string representing initialization of the common metadata structure"""
         s = indent + "{\n"
         s += 2 * indent + "\"" + self.d['name'] + "\",\n"
-        s += 2 * indent + self.container_id_gen.get_id() + ",\n" # xxx fix this: IDs should be constant as possible within composites
+        s += 2 * indent + self.id + ",\n" # xxx fix this: IDs should be constant as possible within composites
         s += 2 * indent + self.get_size() + ",\n"
         s += 2 * indent
         if self.d['persistent']:
@@ -82,6 +82,10 @@ class SimpleItem(Item):
         # Not much to check here -- if the basics like 'name' and 'type' are absent, an exception is raised,
         # maybe even before we get to this point.        
         return True
+        
+    def get_ids(self):
+        """Get xxx"""
+        return {'aname': self.d['name'], 'id': int(self.id)}
             
     def get_init(self):
         """Return string containing initialization of the metadata"""
@@ -153,6 +157,14 @@ class CompositeItem(Item):
         for aggr in self.aggregates:
             aggr.verify()
         return True
+        
+    def get_ids(self):
+        """Get xxx"""
+        d = {'aname': self.d['name'], 'id': int(self.id)}
+        d['items'] = []
+        for aggr in self.aggregates:
+            d['items'].append(aggr.item.get_ids())
+        return d
             
     def get_definition(self):
         """Return string representing struct definition, including pre-pended definitions of referenced structs"""
@@ -326,7 +338,12 @@ def makeAggregate(d, id_gen):
         return ContainedAggregate(d, id_gen)      
         
 
-f = open(sys.argv[1])
+try:
+    f = open(sys.argv[1])
+except:
+    print "Configuration file name not given."
+    sys.exit()
+    
 print "Reading", sys.argv[1]
 data = yaml.load(f)
 #print "============================================="
@@ -351,3 +368,5 @@ fdecl.write(baseItem.get_definition())
 finit.write(baseItem.get_init())
 finit.close()
 fdecl.close()
+
+print yaml.dump(baseItem.get_ids(), default_flow_style=False)
