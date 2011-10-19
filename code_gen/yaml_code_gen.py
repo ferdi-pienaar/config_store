@@ -5,7 +5,6 @@ describing the contents of those structures.
 
 Usage: python yaml_code_gen.py [source YAML file]
 
-
 """
 
 import yaml
@@ -29,7 +28,7 @@ def getInitHeader(script, inputFile):
 
     
 class Id_generator():
-    """Generate ID for TLV."""
+    "Generate ID for TLV."
     def __init__(self, initial_id = None):
         if initial_id is None:
             self.id = 0
@@ -43,19 +42,23 @@ class Id_generator():
     
 
 class Item:
-    def __init__(self, d, container_id_gen):
+    def __init__(self, d, container_id_gen, old_id):
         self.d = d
+        if old_id is not None:
+            print d['name'], "has old ID",old_id['id']
+        else:
+            print d['name'], "has no old ID"
         self.id = container_id_gen.get_id()
         
     def get_definition(self):
-        """Definitions of structs definitions for composites"""
+        "Definitions of structs definitions for composites"
         return self.get_struct_definition()
         
     def get_metadata_name(self):
         return self.d['name'] + "_data"
         
     def get_common_metadata_init(self):
-        """Return string representing initialization of the common metadata structure"""
+        "Return string representing initialization of the common metadata structure"
         s = indent + "{\n"
         s += 2 * indent + "\"" + self.d['name'] + "\",\n"
         s += 2 * indent + self.id + ",\n" # xxx fix this: IDs should be constant as possible within composites
@@ -70,25 +73,25 @@ class Item:
         
     
 class SimpleItem(Item):
-    def __init__(self, d, container_id_gen):
-        Item.__init__(self, d, container_id_gen)
+    def __init__(self, d, container_id_gen, old_id):
+        Item.__init__(self, d, container_id_gen, old_id)
         self.is_string_type = False # By default, items aren't strings
         if "string" in d['type']:
             self.is_string_type = True
             self.string_len = d['type'].split()[1]
                    
     def verify(self):
-        """Check item description in YAML file is valid and consistent."""
+        "Check item description in YAML file is valid and consistent."
         # Not much to check here -- if the basics like 'name' and 'type' are absent, an exception is raised,
         # maybe even before we get to this point.        
         return True
         
     def get_ids(self):
-        """Get xxx"""
-        return {'aname': self.d['name'], 'id': int(self.id)}
+        "Get xxx"
+        return {self.d['name']: {'id': int(self.id)}}
             
     def get_init(self):
-        """Return string containing initialization of the metadata"""
+        "Return string containing initialization of the metadata"
         s = self.get_metadata_init()
         s += "const cm_simple_descriptor " + self.d['name'] + "(&" + self.get_metadata_name() + ");\n"
         return s
@@ -122,7 +125,7 @@ class SimpleItem(Item):
         return s
     
     def get_type_and_name(self, aggrType):
-        """Get the type and the name, part of the definition line"""
+        "Get the type and the name, part of the definition line"
         if self.is_string_type:
             s = "char "
         else:
@@ -147,27 +150,41 @@ class SimpleItem(Item):
         return ""
         
 class CompositeItem(Item):
-    def __init__(self, d, container_id_gen):
-        Item.__init__(self, d, container_id_gen)
-        self.id_gen = Id_generator()   
-        self.aggregates = [makeAggregate(a, self.id_gen) for a in self.d['aggregate']]
+    def __init__(self, d, container_id_gen, old_id):
+        Item.__init__(self, d, container_id_gen, old_id)
+        self.id_gen = Id_generator()
+        if old_id is not None:
+            print "Items in ID dictionary for", d['name']
+            print old_id['items']
+            print
+        self.aggregates = []
+        for a in self.d['aggregate']:
+            component_id = None
+            # xxx I think the following can be simplified: surely no need for iteration here
+            for item_id in old_id['items']:
+                # For each item in the ID dictionary, see if it matches the item's name
+                try:
+                    component_id = item_id[a['item']['name']]
+                except:
+                    pass
+            self.aggregates.append(makeAggregate(a, self.id_gen, component_id))
 
     def verify(self):
-        """Check item description in YAML file is valid and consistent."""
+        "Check item description in YAML file is valid and consistent."
         for aggr in self.aggregates:
             aggr.verify()
         return True
         
     def get_ids(self):
-        """Get xxx"""
-        d = {'aname': self.d['name'], 'id': int(self.id)}
-        d['items'] = []
+        "Generate dictionary of IDs, showing IDs assigned in the object hierarchy"
+        items = []
+        id_dict = {self.d['name']: {'id': int(self.id), 'items': items}}
         for aggr in self.aggregates:
-            d['items'].append(aggr.item.get_ids())
-        return d
+            items.append(aggr.item.get_ids())
+        return id_dict
             
     def get_definition(self):
-        """Return string representing struct definition, including pre-pended definitions of referenced structs"""
+        "Return string representing struct definition, including pre-pended definitions of referenced structs"
         s = ""
         for aggr in self.aggregates:
             s += aggr.get_constant_definition()
@@ -179,7 +196,7 @@ class CompositeItem(Item):
         return s
         
     def get_init(self):
-        """Return string containing initialization of the metadata, including pre-pended initialization of included data"""
+        "Return string containing initialization of the metadata, including pre-pended initialization of included data"
         s = ""
         for aggr in self.aggregates:
             s += aggr.get_init(self.get_type(), self.id_gen) 
@@ -221,16 +238,16 @@ class CompositeItem(Item):
               
                     
 class Aggregate:
-    def __init__(self, d, id_gen):
+    def __init__(self, d, id_gen, old_id):
         self.d = d
-        self.item = makeItem(self.d['item'], id_gen)
+        self.item = makeItem(self.d['item'], id_gen, old_id)
         
     def verify(self):
-        """Check description in YAML file is valid and consistent."""
+        "Check description in YAML file is valid and consistent."
         return self.item.verify()       
         
     def get_init(self, container_type_name, id_gen):
-        """Return initialization string"""
+        "Return initialization string"
         s = self.item.get_init()
         s += "const cm_aggregate_data " + self.get_data_name() + " = {&"
         s += self.item.d['name'] + ", " + self.get_count_str()
@@ -243,7 +260,7 @@ class Aggregate:
         return self.d['item']['name'] + "_aggr_data"
         
     def get_count_str(self):
-        """Return a string representing the count: either the name of a symbolic constant, or just a string of an integer."""
+        "Return a string representing the count: either the name of a symbolic constant, or just a string of an integer."
         try:
             count = self.d['count']['name']
         except:
@@ -251,7 +268,7 @@ class Aggregate:
         return count
         
     def get_constant_definition(self):
-        """Return string representing the symbolic constants used in the aggregate count"""
+        "Return string representing the symbolic constants used in the aggregate count"
         s = ""
         try:
             constant = self.d['count']
@@ -262,8 +279,8 @@ class Aggregate:
         return s
         
 class ContainedAggregate(Aggregate):
-    def __init__(self, d, id_gen):
-        Aggregate.__init__(self, d, id_gen)
+    def __init__(self, d, id_gen, old_id):
+        Aggregate.__init__(self, d, id_gen, old_id)
         
     def get_instance_definition(self):
         s = self.item.get_type_and_name('contained')
@@ -280,16 +297,16 @@ class ContainedAggregate(Aggregate):
         
         
 class OwnedAggregate(Aggregate):
-    def __init__(self, d, id_gen):        
-        Aggregate.__init__(self, d, id_gen)
+    def __init__(self, d, id_gen, old_id):        
+        Aggregate.__init__(self, d, id_gen, old_id)
         
     def verify(self):
-        """Check description in YAML file is valid and consistent."""
+        "Check description in YAML file is valid and consistent."
         self.verify_counter()
         self.item.verify()
         
     def verify_counter(self):
-        """An owned aggregate that can contain more than one instance needs a counter"""
+        "An owned aggregate that can contain more than one instance needs a counter"
         if not 'counter' in self.d:
             max_count = self.get_max_count()
             if max_count > 1:
@@ -313,7 +330,7 @@ class OwnedAggregate(Aggregate):
         return s
         
     def get_max_count(self):
-        """Return numerical value for maximum number of instances of owned aggregate"""
+        "Return numerical value for maximum number of instances of owned aggregate"
         try:
             # The value of the symbolic constant
             return self.d['count']['value']
@@ -322,20 +339,49 @@ class OwnedAggregate(Aggregate):
             return self.d['count']
         
         
-def makeItem(d, id_gen):
-    """Factory method returns an Item object of the requested class"""
+def makeItem(d, container_id_gen, old_id):
+    "Factory method returns an Item object of the requested class"
     if 'aggregate' in d: 
-        return CompositeItem(d, id_gen)
+        return CompositeItem(d, container_id_gen, old_id)
     else:
-        return SimpleItem(d, id_gen)
+        return SimpleItem(d, container_id_gen, old_id)
         
 
-def makeAggregate(d, id_gen):
-    """Factory method returns an Aggregate object of the requested class"""
+def makeAggregate(d, id_gen, old_id):
+    "Factory method returns an Aggregate object of the requested class"
     if d['type'] == 'owned': 
-        return OwnedAggregate(d, id_gen)
+        return OwnedAggregate(d, id_gen, old_id)
     else:
-        return ContainedAggregate(d, id_gen)      
+        return ContainedAggregate(d, id_gen, old_id)
+
+
+def loadIdData():
+    "Load ID data and return version and dictionary, or None if there's a problem with the input file"
+    fname = "cfg_id.yaml"
+    v = None
+    data = None
+
+    try:
+        fid_old = open(fname)
+        d = yaml.load(fid_old)
+        v = d['version']
+        data = d['data']
+    
+    except IOError:
+        print "Can't open", fname
+    except KeyError:
+        print fname, "is missing mandatory keys"
+    except:
+        print fname, "is not a valid YAML file"
+    return v, data
+
+
+def saveIdData(version):
+    fid_new = open("cfg_id.yaml", "w")
+    d = {}
+    d['data'] = baseItem.get_ids()
+    d['version'] = version
+    fid_new.write(yaml.dump(d, default_flow_style=False))
         
 
 try:
@@ -345,10 +391,10 @@ except:
     sys.exit()
     
 print "Reading", sys.argv[1]
-data = yaml.load(f)
-#print "============================================="
-#print data
-#print "============================================="
+try:
+    data = yaml.load(f)
+except:
+    print sys.argv[1], "is not a YAML file"
 
 f.close()
 
@@ -358,7 +404,15 @@ except:
     print "Root element in", sys.argv[1], "is not an item: exit"
     sys.exit()
 
-baseItem = makeItem(i, Id_generator(0xbab0))
+version, id_dict = loadIdData()
+print "Version of ID dictionary is", version
+
+try:
+    base_id_dict = id_dict[i['name']]
+except:
+    base_id_dict = None
+
+baseItem = makeItem(i, Id_generator(0xbab0), base_id_dict)
 baseItem.verify()
 finit = open("cfg.cpp", "w")
 fdecl = open("cfg.h", "w")
@@ -369,4 +423,4 @@ finit.write(baseItem.get_init())
 finit.close()
 fdecl.close()
 
-print yaml.dump(baseItem.get_ids(), default_flow_style=False)
+saveIdData(0)
