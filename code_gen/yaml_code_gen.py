@@ -26,42 +26,44 @@ def getInitHeader(script, inputFile):
     return (getCommonHdr(script, inputFile) +
             "// It contains initialization of metadata for configurable items managed by cfg_man.\n\n")
 
+def getIdHeader(script):
+    return ("# This file is both input to and output from " + script + ".  It may be modified,\n" +
+            "# typically to remove an item whose ID may be re-allocated because it is no longer used anywhere.\n")
     
 class Id_generator():
     "Generate ID for TLV: the data struct of existing IDs in the context is used to avoid allocating an IDs that is taken"
     def __init__(self, id_dlist):
-
-        self.id = 0
-        self.id_dict = id_dlist
-        
-        # xxx debug code
-        if id_dlist is not None:
-	        for d in id_dlist:
-	            print d
-        
+        self.__make_id_list(id_dlist)
         
     def get_id(self):
         "Generate an ID, but not one that's already in use in the context"
-        if self.id_dict is None:
-            id_string = str(self.id)
-            self.id += 1
-            return id_string
-        else:
-            print "The data struct where we should find", component_name, "is", self.id_dict
-            #id = get_value_from_dictionary_list(self.id_dict, component_name)
-            #print "and the ID we got therefrom is" , id
+        id = 0
+        while id in self.allocated_id:
+            # This int is already allocated, so go to next one
+            id = id + 1
+        self.allocated_id.append(id)
+        return str(id)
             
+    def __make_id_list(self, id_dlist):
+        "From more complex data struct, generate a simple list of allocated IDs"
+        self.allocated_id = []
+        if id_dlist is not None:
+            for d in id_dlist['items']:
+                print d.values()
+                # d.values is a list containing a single dictionary
+                self.allocated_id.append(d.values()[0]['id'])
+        #print "Start w", self.allocated_id
 
 
 class Item:
     def __init__(self, d, container_id_gen, old_id):
         self.d = d
         if old_id is not None:
-            print d['name'], "has old ID", old_id['id']
+            #print d['name'], "has old ID", old_id['id']
             self.id = str(old_id['id'])
         else:
-            print d['name'], "has no old ID"
             self.id = container_id_gen.get_id()
+            print d['name'], "assigned new ID", self.id
         
     def get_definition(self):
         "Definitions of structs definitions for composites"
@@ -159,7 +161,7 @@ class SimpleItem(Item):
         return s
         
     def get_definition(self):
-        """No struct def for simple"""
+        "No struct def for simple"
         return ""
         
         
@@ -174,11 +176,6 @@ class CompositeItem(Item):
     def __init__(self, d, container_id_gen, old_id):
         Item.__init__(self, d, container_id_gen, old_id)
         self.id_gen = Id_generator(old_id)
-        # xxx debug code
-        if old_id is not None:
-            print "Items in ID dictionary for", d['name']
-            print old_id['items']
-            print
         self.aggregates = []
         for a in self.d['aggregate']:
             component_id = None
@@ -426,8 +423,9 @@ def saveIdData(version, old_id):
     else:
         d['version'] = version + 1
     print "saveIdData: changed, version", d['version']
-    fid_new = open("cfg_id.yaml", "w")
-    fid_new.write(yaml.dump(d, default_flow_style=False))
+    f = open("cfg_id.yaml", "w")
+    f.write(getIdHeader(sys.argv[0]))
+    f.write(yaml.dump(d, default_flow_style=False))
         
 
 base_item_config = loadCfgData(sys.argv[1])
