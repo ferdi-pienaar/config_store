@@ -371,6 +371,27 @@ def makeAggregate(d, id_gen, old_id):
     else:
         return ContainedAggregate(d, id_gen, old_id)
 
+        
+def loadCfgData(cfgFileName):
+    "Load configuration metadata from YAML config file"
+    try:
+        f = open(cfgFileName)
+    except:
+        print "Configuration file name not given."
+        return
+        
+    print "Reading config file", cfgFileName
+    try:
+        data = yaml.load(f)
+    except:
+        print cfgFileName, "is not a YAML file"
+    
+    f.close()
+    
+    try:
+        return data['item']
+    except:
+        print "Root element in", cfgFileName, "is not an item."
 
 def loadIdData():
     "Load ID data and return version and dictionary, or None if there's a problem with the input file"
@@ -393,43 +414,36 @@ def loadIdData():
     return v, data
 
 
-def saveIdData(version):
-    fid_new = open("cfg_id.yaml", "w")
+def saveIdData(version, old_id):
+    "If there has been a change in ID data, save it with a new version number."
     d = {}
     d['data'] = baseItem.get_ids()
-    d['version'] = version
+    if d['data'] == old_id:
+        return
+        
+    if version is None:
+        d['version'] = 0
+    else:
+        d['version'] = version + 1
+    print "saveIdData: changed, version", d['version']
+    fid_new = open("cfg_id.yaml", "w")
     fid_new.write(yaml.dump(d, default_flow_style=False))
         
 
-try:
-    f = open(sys.argv[1])
-except:
-    print "Configuration file name not given."
+base_item_config = loadCfgData(sys.argv[1])
+if base_item_config is None:
     sys.exit()
     
-print "Reading", sys.argv[1]
-try:
-    data = yaml.load(f)
-except:
-    print sys.argv[1], "is not a YAML file"
-
-f.close()
-
-try:
-    i = data['item']
-except:
-    print "Root element in", sys.argv[1], "is not an item: exit"
-    sys.exit()
-
 version, id_dict = loadIdData()
-print "Version of ID dictionary is", version
 
 try:
-    base_id_dict = id_dict[i['name']]
+    base_id_dict = id_dict[base_item_config['name']]
 except:
+    # The ID data file has no ID corresponding to the base item's name
+    print "No", base_item_config['name'], "in ID data file: generate new IDs"
     base_id_dict = None
 
-baseItem = makeItem(i, Id_generator(None), base_id_dict)
+baseItem = makeItem(base_item_config, Id_generator(None), base_id_dict)
 baseItem.verify()
 finit = open("cfg.cpp", "w")
 fdecl = open("cfg.h", "w")
@@ -439,5 +453,4 @@ fdecl.write(baseItem.get_definition())
 finit.write(baseItem.get_init())
 finit.close()
 fdecl.close()
-
-saveIdData(0)
+saveIdData(version, id_dict)
