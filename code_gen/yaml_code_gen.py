@@ -20,35 +20,48 @@ def getCommonHdr(script, inputFile):
 
 def getDeclHeader(script, inputFile):
     return (getCommonHdr(script, inputFile) +
-            """// It contains data structure definitions for configurable items managed by cfg_man.\n\n""")
+            "// It contains data structure definitions for configurable items managed by cfg_man.\n\n")
     
 def getInitHeader(script, inputFile):
     return (getCommonHdr(script, inputFile) +
-            """// It contains initialization of metadata for configurable items managed by cfg_man.\n\n""")
+            "// It contains initialization of metadata for configurable items managed by cfg_man.\n\n")
 
     
 class Id_generator():
-    "Generate ID for TLV."
-    def __init__(self, initial_id = None):
-        if initial_id is None:
-            self.id = 0
-        else:
-            self.id = initial_id
+    "Generate ID for TLV: the data struct of existing IDs in the context is used to avoid allocating an IDs that is taken"
+    def __init__(self, id_dlist):
+
+        self.id = 0
+        self.id_dict = id_dlist
+        
+        # xxx debug code
+        if id_dlist is not None:
+	        for d in id_dlist:
+	            print d
+        
         
     def get_id(self):
-        id_string = str(self.id)
-        self.id += 1
-        return id_string
-    
+        "Generate an ID, but not one that's already in use in the context"
+        if self.id_dict is None:
+            id_string = str(self.id)
+            self.id += 1
+            return id_string
+        else:
+            print "The data struct where we should find", component_name, "is", self.id_dict
+            #id = get_value_from_dictionary_list(self.id_dict, component_name)
+            #print "and the ID we got therefrom is" , id
+            
+
 
 class Item:
     def __init__(self, d, container_id_gen, old_id):
         self.d = d
         if old_id is not None:
-            print d['name'], "has old ID",old_id['id']
+            print d['name'], "has old ID", old_id['id']
+            self.id = str(old_id['id'])
         else:
             print d['name'], "has no old ID"
-        self.id = container_id_gen.get_id()
+            self.id = container_id_gen.get_id()
         
     def get_definition(self):
         "Definitions of structs definitions for composites"
@@ -149,10 +162,19 @@ class SimpleItem(Item):
         """No struct def for simple"""
         return ""
         
+        
+def get_value_from_dictionary_list(dlist, key):
+    "Helper function: from input list of dictionaries, return the value of dictionary with the desired key (or None)"
+    for d in dlist:
+        if key in d:
+            return d[key]
+
+      
 class CompositeItem(Item):
     def __init__(self, d, container_id_gen, old_id):
         Item.__init__(self, d, container_id_gen, old_id)
-        self.id_gen = Id_generator()
+        self.id_gen = Id_generator(old_id)
+        # xxx debug code
         if old_id is not None:
             print "Items in ID dictionary for", d['name']
             print old_id['items']
@@ -160,13 +182,8 @@ class CompositeItem(Item):
         self.aggregates = []
         for a in self.d['aggregate']:
             component_id = None
-            # xxx I think the following can be simplified: surely no need for iteration here
-            for item_id in old_id['items']:
-                # For each item in the ID dictionary, see if it matches the item's name
-                try:
-                    component_id = item_id[a['item']['name']]
-                except:
-                    pass
+            if old_id is not None:
+                component_id = get_value_from_dictionary_list(old_id['items'], a['item']['name'])
             self.aggregates.append(makeAggregate(a, self.id_gen, component_id))
 
     def verify(self):
@@ -412,7 +429,7 @@ try:
 except:
     base_id_dict = None
 
-baseItem = makeItem(i, Id_generator(0xbab0), base_id_dict)
+baseItem = makeItem(i, Id_generator(None), base_id_dict)
 baseItem.verify()
 finit = open("cfg.cpp", "w")
 fdecl = open("cfg.h", "w")
