@@ -17,12 +17,12 @@ item: &user
     -   count: 1
         type: contained
         item:
-              name: name
-              persistent: true
-              set: cm_set_str
-              setdef: cm_setdef_null
-              print: cm_prt_str
-              type: cstring 16
+            name: name
+            persistent: true
+            set: cm_set_str
+            setdef: cm_setdef_null
+            print: cm_prt_str
+            type: cstring 16
     -   count: 1
         type: contained
         item:

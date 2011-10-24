@@ -11,6 +11,7 @@ import yaml
 import sys
 import time
 import datetime
+import os
 
 indent = "    "
 
@@ -49,7 +50,6 @@ class Id_generator():
         self.allocated_id = []
         if id_dlist is not None:
             for d in id_dlist['items']:
-                print d.values()
                 # d.values is a list containing a single dictionary
                 self.allocated_id.append(d.values()[0]['id'])
         #print "Start w", self.allocated_id
@@ -274,7 +274,7 @@ class Aggregate:
         return self.d['item']['name'] + "_aggr_data"
         
     def get_count_str(self):
-        "Return a string representing the count: either the name of a symbolic constant, or just a string of an integer."
+        "Return a string representing the count: either a symbolic constant's name, or just a string of an integer."
         try:
             count = self.d['count']['name']
         except:
@@ -388,17 +388,17 @@ def loadCfgData(cfgFileName):
     try:
         return data['item']
     except:
-        print "Root element in", cfgFileName, "is not an item."
+        print "Root element in", cfgFileName, "is not an item"
 
-def loadIdData():
+def loadIdData(baseFileName):
     "Load ID data and return version and dictionary, or None if there's a problem with the input file"
-    fname = "cfg_id.yaml"
+    fname = baseFileName + "_id.yaml"
     v = None
     data = None
 
     try:
-        fid_old = open(fname)
-        d = yaml.load(fid_old)
+        f = open(fname)
+        d = yaml.load(f)
         v = d['version']
         data = d['data']
     
@@ -411,7 +411,7 @@ def loadIdData():
     return v, data
 
 
-def saveIdData(version, old_id):
+def saveIdData(baseFileName, version, old_id):
     "If there has been a change in ID data, save it with a new version number."
     d = {}
     d['data'] = baseItem.get_ids()
@@ -422,33 +422,39 @@ def saveIdData(version, old_id):
         d['version'] = 0
     else:
         d['version'] = version + 1
-    print "saveIdData: changed, version", d['version']
-    f = open("cfg_id.yaml", "w")
+    fname = baseFileName + "_id.yaml"
+    print "saveIdData: changed, version", d['version'], "in", fname
+    f = open(fname, "w")
     f.write(getIdHeader(sys.argv[0]))
     f.write(yaml.dump(d, default_flow_style=False))
+
+
+if __name__ == "__main__":
+    base_item_config = loadCfgData(sys.argv[1])
+    if base_item_config is None:
+        sys.exit()
         
-
-base_item_config = loadCfgData(sys.argv[1])
-if base_item_config is None:
-    sys.exit()
+    baseFileName, extension = os.path.splitext(sys.argv[1])
+    version, id_dict = loadIdData(baseFileName)
     
-version, id_dict = loadIdData()
-
-try:
-    base_id_dict = id_dict[base_item_config['name']]
-except:
-    # The ID data file has no ID corresponding to the base item's name
-    print "No", base_item_config['name'], "in ID data file: generate new IDs"
-    base_id_dict = None
-
-baseItem = makeItem(base_item_config, Id_generator(None), base_id_dict)
-baseItem.verify()
-finit = open("cfg.cpp", "w")
-fdecl = open("cfg.h", "w")
-fdecl.write(getDeclHeader(sys.argv[0], sys.argv[1]))
-finit.write(getInitHeader(sys.argv[0], sys.argv[1]))
-fdecl.write(baseItem.get_definition())
-finit.write(baseItem.get_init())
-finit.close()
-fdecl.close()
-saveIdData(version, id_dict)
+    try:
+        base_id_dict = id_dict[base_item_config['name']]
+    except:
+        # The ID data file has no ID corresponding to the base item's name
+        print "No", base_item_config['name'], "in ID data file: generate new IDs"
+        base_id_dict = None
+    
+    baseItem = makeItem(base_item_config, Id_generator(None), base_id_dict)
+    baseItem.verify()
+    
+    fdecl = open("cfg.h", "w")
+    fdecl.write(getDeclHeader(sys.argv[0], sys.argv[1]))
+    fdecl.write(baseItem.get_definition())
+    fdecl.close()
+    
+    finit = open("cfg.cpp", "w")
+    finit.write(getInitHeader(sys.argv[0], sys.argv[1]))
+    finit.write(baseItem.get_init())
+    finit.close()
+    
+    saveIdData(baseFileName, version, id_dict)
