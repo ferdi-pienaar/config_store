@@ -17,11 +17,11 @@ $(CFG_MAN_SRC_DIR)config_manager_util.h \
 ../export/config_manager.h \
 my_cfg1.o my_cfg_fn1.o my_cfg_fn1.h my_cfg1.h
 
-my_cfg1.h: cfg.h
+# .o depends on both cpp files, but only one of them is in the command
+my_cfg1.o: cfg.cpp my_cfg1.cpp
+	$(CXX) $(CXXFLAGS) -c -o $@ my_cfg1.cpp
 
-my_cfg1.cpp: cfg.cpp
-
-cfg.cpp cfg.h: cfg.yaml
+cfg.cpp: cfg.yaml
 	python ../code_gen/yaml_code_gen.py cfg.yaml
 
 .PHONY: clean

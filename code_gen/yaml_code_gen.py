@@ -391,7 +391,7 @@ def loadCfgData(cfgFileName):
         print "Root element in", cfgFileName, "is not an item"
 
 def loadIdData(baseFileName):
-    "Load ID data and return version and dictionary, or None if there's a problem with the input file"
+    "Read ID data file and return version and dictionary, or None if there's a problem with the input file"
     fname = baseFileName + "_id.yaml"
     v = None
     data = None
@@ -405,9 +405,11 @@ def loadIdData(baseFileName):
     except IOError:
         print "Can't open", fname
     except KeyError:
-        print fname, "is missing mandatory keys"
+        print fname, "is missing mandatory keys!"
     except:
-        print fname, "is not a valid YAML file"
+        print fname, "is not a valid YAML file!"
+    else:
+        print "Reading ID file", fname
     return v, data
 
 
@@ -440,8 +442,8 @@ if __name__ == "__main__":
     try:
         base_id_dict = id_dict[base_item_config['name']]
     except:
-        # The ID data file has no ID corresponding to the base item's name
-        print "No", base_item_config['name'], "in ID data file: generate new IDs"
+        # The ID data file doesn't exist, is defective, or has no ID for the base item's name
+        print "No", base_item_config['name'], "in ID data file: generating new IDs!"
         base_id_dict = None
     
     baseItem = makeItem(base_item_config, Id_generator(None), base_id_dict)

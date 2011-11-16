@@ -1,5 +1,5 @@
 /// 
-// Type-Length-Value format of data, for storage in non-volatile media, e.g. a file.
+// Type-Length-Value format config data, for storage in non-volatile media, e.g. a file.
 // This is defined as a separate class hierarchy, since it's an optional feature:
 // not all managed objects are saved in NVRAM.
 //

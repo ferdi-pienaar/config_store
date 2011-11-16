@@ -54,7 +54,6 @@
 - The unit tests for config_manager could also use a test double for NVRAM,
   instead of actual file access.
 
-- Generate from YAML descriptor
 - YAML schema to validate a descriptor?
 - If a counter aggregate should not be included in its container
   (except as referenced by the counted aggr), how do we indicate that?
