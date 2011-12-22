@@ -54,7 +54,7 @@
 - The unit tests for config_manager could also use a test double for NVRAM,
   instead of actual file access.
 
-- YAML schema to validate a descriptor?
+- YAML schemas to validate descriptor and ID files?
 - If a counter aggregate should not be included in its container
   (except as referenced by the counted aggr), how do we indicate that?
   A flag that says "don't include me", which is false by default?
@@ -70,5 +70,6 @@
 Restrict application code from writing to config?  Currently it's temptingly
 easy...
 
-In code_gen_example, Makefile should include dependency on .yaml file
 Makefiles should do automatic dependency generation.
+howto should be written in html, probably in a way that can be integrated with
+Doxygen.

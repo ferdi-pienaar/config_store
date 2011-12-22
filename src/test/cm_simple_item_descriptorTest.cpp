@@ -49,7 +49,7 @@ TEST_GROUP(cm_simple_descriptor)
 
 TEST(cm_simple_descriptor, getLen)
 {
-    cm_simple_metadata d_d = {{"d01", 1 , 55}, NULL, NULL, NULL};
+    cm_simple_metadata d_d = {{"d01", 1 , 55, true}, NULL, NULL, NULL};
 
     cm_simple_descriptor d(&d_d);
     LONGS_EQUAL(55, d.getLen());
@@ -61,7 +61,7 @@ TEST(cm_simple_descriptor, print)
     string prefix = "";
     unsigned mem = 7;
     char outstring[64];
-    cm_simple_metadata d_d = {{"d01", 1 , sizeof(mem)}, NULL, NULL, NULL};
+    cm_simple_metadata d_d = {{"d01", 1 , sizeof(mem), true}, NULL, NULL, NULL};
 
     cm_simple_descriptor d(&d_d);
 
@@ -85,7 +85,7 @@ TEST(cm_simple_descriptor, print)
 TEST(cm_simple_descriptor, set)
 {
     int mem = 0;
-    cm_simple_metadata d_d = {{"d01", 1 , sizeof(mem)}, cm_set_int, NULL, NULL};
+    cm_simple_metadata d_d = {{"d01", 1 , sizeof(mem), true}, cm_set_int, NULL, NULL};
 
     cm_simple_descriptor d(&d_d);
     
@@ -98,7 +98,7 @@ TEST(cm_simple_descriptor, set)
 TEST(cm_simple_descriptor, setdefFunc)
 {
     int mem = 8;
-    cm_simple_metadata d_d = {{"d01", 1 , sizeof(mem)}, NULL, setint11, NULL};
+    cm_simple_metadata d_d = {{"d01", 1 , sizeof(mem), true}, NULL, setint11, NULL};
 
     cm_simple_descriptor d(&d_d);
     
@@ -111,7 +111,7 @@ TEST(cm_simple_descriptor, setdefFunc)
 TEST(cm_simple_descriptor, setdef)
 {
     int mem = 8;
-    cm_simple_metadata d_d = {{"d01", 1 , sizeof(mem)}, NULL, NULL, NULL};
+    cm_simple_metadata d_d = {{"d01", 1 , sizeof(mem), true}, NULL, NULL, NULL};
 
     cm_simple_descriptor d(&d_d);
     

@@ -53,7 +53,7 @@ TEST_GROUP(cm_composite_descriptor)
 
 TEST(cm_composite_descriptor, getLen)
 {
-    cm_composite_metadata d_d  = {{"c1", 1, 55}, NULL, 0};
+    cm_composite_metadata d_d  = {{"c1", 1, 55, true}, NULL, 0};
     cm_composite_descriptor d(&d_d);
 
     CHECK(d.getLen() == 55);
@@ -70,18 +70,18 @@ struct m
 };
 
 // test set 1 metadata
-const cm_simple_metadata s1_d = {{"name1", 1, sizeof(int)}, NULL, NULL, NULL};
+const cm_simple_metadata s1_d = {{"name1", 1, sizeof(int), true}, NULL, NULL, NULL};
 const cm_simple_descriptor s1(&s1_d);
 const cm_aggregate_data ca1_d = {&s1, 1, offsetof(struct m, m1)};
 const cm_contained_aggregate ca1(&ca1_d);
 
-const cm_simple_metadata s2_d = {{"name2", 2, sizeof(int)}, NULL, NULL, NULL};
+const cm_simple_metadata s2_d = {{"name2", 2, sizeof(int), true}, NULL, NULL, NULL};
 const cm_simple_descriptor s2(&s2_d);
 const cm_aggregate_data ca2_d = {&s2, 1, offsetof(struct m, m2)};
 const cm_contained_aggregate ca2(&ca2_d);
 
 const cm_aggregate * const aggrList1[] = {&ca1, &ca2};
-const cm_composite_metadata c1_d = {{"c1", 1, sizeof(struct m)}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
+const cm_composite_metadata c1_d = {{"c1", 1, sizeof(struct m), true}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
 const cm_composite_descriptor c1(&c1_d);
 
 
@@ -145,18 +145,18 @@ struct m2
 };
 
 // test set 2 metadata
-const cm_simple_metadata s3_d = {{"count", 1, sizeof(int)}, NULL, NULL, NULL};
+const cm_simple_metadata s3_d = {{"count", 1, sizeof(int), true}, NULL, NULL, NULL};
 const cm_simple_descriptor s3(&s3_d);
 const cm_aggregate_data ca3_d = {&s3, 1, offsetof(struct m2, cnt)};
 const cm_contained_aggregate ca3(&ca3_d);
 
-const cm_simple_metadata s4_d = {{"owned", 2, sizeof(int)}, cm_set_int, setdef_spy, NULL};
+const cm_simple_metadata s4_d = {{"owned", 2, sizeof(int), true}, cm_set_int, setdef_spy, NULL};
 const cm_simple_descriptor s4(&s4_d);
 const cm_aggregate_data oa4_d = {&s4, MAX_NUMBER_OWNED_SET2, offsetof(struct m2, owned)};
 const cm_owned_aggregate oa4(&oa4_d, &ca3);
 
 const cm_aggregate * const aggrList2[] = {&ca3, &oa4};
-const cm_composite_metadata c2_d = {{"c2", 1, sizeof(struct m2)}, aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0])};
+const cm_composite_metadata c2_d = {{"c2", 1, sizeof(struct m2), true}, aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0])};
 const cm_composite_descriptor c2(&c2_d);
 
 
@@ -415,13 +415,13 @@ struct m4
 };
 
 // test set 4 metadata
-const cm_simple_metadata s7_d = {{"owned", 1, sizeof(int)}, NULL, NULL, NULL};
+const cm_simple_metadata s7_d = {{"owned", 1, sizeof(int), true}, NULL, NULL, NULL};
 const cm_simple_descriptor s7(&s7_d);
 const cm_aggregate_data oa7_d = {&s7, MAX_NUMBER_OWNED_SET4, offsetof(struct m4, owned)};
 const cm_owned_aggregate oa7(&oa7_d, NULL); // NULL => no counter
 
 const cm_aggregate * const aggrList4[] = {&oa7};
-const cm_composite_metadata c4_d = {{"c4", 1, sizeof(struct m4)}, aggrList4, sizeof(aggrList4)/sizeof(aggrList4[0])};
+const cm_composite_metadata c4_d = {{"c4", 1, sizeof(struct m4), true}, aggrList4, sizeof(aggrList4)/sizeof(aggrList4[0])};
 const cm_composite_descriptor c4(&c4_d);
 
 

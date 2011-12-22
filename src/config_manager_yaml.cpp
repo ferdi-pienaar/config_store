@@ -205,7 +205,7 @@ t_cm_result Yaml::updateContainer(cm_item_len_t length, unsigned * complete)
 
 void Yaml::write_indent()
 {
-    for (unsigned i = 0; i < stackIndex; i++)
+    for (int i = 0; i < stackIndex; i++)
     {
         cout << " ";
     }

@@ -114,7 +114,7 @@ void config_manager::updateCtxt(cm_context * pC)
 
 
 // Get a prompt string to display to user, representing the current context
-const char * config_manager::getPromptString()
+const char * config_manager::getPromptString() const
 {
     return currCtxt.getString().c_str();
 }

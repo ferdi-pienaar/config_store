@@ -117,7 +117,7 @@ public:
 class cm_aggregate
 {
 public: // Should be private; currently public so we can call methods on pData->pDesc
-    const cm_aggregate_data * pData;
+    const cm_aggregate_data * const pData;
     
 public:   
     cm_aggregate(const cm_aggregate_data * d): pData(d){};
@@ -191,7 +191,7 @@ private:
     uint8_t * getFirstItem(const uint8_t * pParentItem) const;
     void freeItems(uint8_t * pParentItem) const;
     
-    const cm_contained_aggregate * pCounterAggr; // the counter for this owned component
+    const cm_contained_aggregate * const pCounterAggr; // the counter for this owned component
 };
 
 
@@ -268,7 +268,7 @@ class config_manager
 public:
     void handleCmd(int argc, char *argv[]);
     void init(const cm_descriptor * pDesc);
-    const char * getPromptString(); ///< get context-dependent prompt string h file
+    const char * getPromptString() const; ///< get context-dependent prompt string h file
     void * getConfig(){return (void *)ramBase;}
     static config_manager * getInstance();
 

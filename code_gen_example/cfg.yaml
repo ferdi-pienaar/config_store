@@ -28,9 +28,9 @@ item: &user
         item:
             name: id
             persistent: true
-            set: cm_set_str
+            set: cm_set_int
             setdef: cm_setdef_null
-            print: cm_prt_str
+            print: cm_prt_int
             type: unsigned long
     -   count: 1
         type: contained

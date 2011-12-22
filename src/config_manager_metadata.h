@@ -21,15 +21,15 @@ typedef void (*CM_PRT_FPTR)(FILE * f, const uint8_t *pItem, cm_item_len_t len);
 
 struct cm_common_metadata
 {
-    const char *  name;       ///< name by which item is addressed on CLI    
-    cm_item_id_t  id;         ///< ID (unique within the context of the component's composite) of item in NVRAM
-    cm_item_len_t len;        ///< Number of bytes occupied by an item in RAM
-    bool          persistent; ///< Saved to NVRAM?
+    const char * const  name;       ///< name by which item is addressed on CLI    
+    const cm_item_id_t  id;         ///< ID (unique within the context of the component's composite) of item in NVRAM
+    const cm_item_len_t len;        ///< Number of bytes occupied by an item in RAM
+    const bool          persistent; ///< Saved to NVRAM?
 };
 
 struct cm_simple_metadata
 {
-    cm_common_metadata c;
+    const cm_common_metadata c;
 
     // Populate the following ptrs when creating a descriptor.
     // The config manager's extensions provide a set of such functions
@@ -44,11 +44,11 @@ class cm_aggregate;
 
 struct cm_composite_metadata
 {
-    cm_common_metadata c;
+    const cm_common_metadata c;
 
     // Information about the components of the composite
-    const cm_aggregate * const * aggrList;  // Array of pointers to aggregates (pointers, because abstract cm_aggregate can't be instantiated)
-    const unsigned short         aggrCount; // Number of aggregates in the list (number of descriptors, not items)
+    const cm_aggregate * const * const aggrList;  // Array of pointers to aggregates (pointers, because abstract cm_aggregate can't be instantiated)
+    const unsigned short               aggrCount; // Number of aggregates in the list (number of descriptors, not items)
 
 };
 
@@ -56,9 +56,9 @@ class cm_descriptor;
 
 struct cm_aggregate_data
 {    
-    const cm_descriptor * pDesc;     ///< the component's descriptor
-    const unsigned short  maxCount;  ///< Max number of instances of the item
-    const unsigned int    offset;    ///< Offset [bytes] of items, or pointer to items, within the composite item
+    const cm_descriptor * const pDesc; ///< the component's descriptor
+    const unsigned short  maxCount;    ///< Max number of instances of the item
+    const unsigned int    offset;      ///< Offset [bytes] of items, or pointer to items, within the composite item
 };
 
 
