@@ -3,7 +3,7 @@ CXXFLAGS += -D M_DEFINED_STORE_TYPE=TLV_STORE
 #CXXFLAGS += -D M_DEFINED_STORE_TYPE=YAML_STORE
 #CXXFLAGS += -save-temps
 #CXXFLAGS += -D DEBUG_PRINT
-VPATH = ../../../CppUTest/lib # so make can find the library
+VPATH = .. ../../../CppUTest/lib # so make can find the sources and library
 OBJS = ../config_manager.o ../config_manager_util.o \
  ../config_manager_setdef_null.o ../config_manager_store.o ../nvram.o \
 
@@ -80,10 +80,15 @@ config_manager_tlv.o: config_manager_tlv.cpp \
 config_manager_yaml.o: config_manager_yamlt.cpp \
  ../../export/config_manager.h ../config_manager_types.h ../config_manager_yaml.h ../config_manager_dbg.h
 
-config_manager_setdef_null.o: config_manager_setdef_null.cpp \
- ../config_manager_types.h ../config_manager_setdef_null.h
-
 nvram.o: nvram.cpp
+
+include config_manager_setdef_null.d
+
+# auto generation of dependencies -- see 'Managing Projects with GNU Make'
+%.d: %.cpp
+	$(CXX) -MM $(CXXFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
 
 .PHONY: clean
 clean:

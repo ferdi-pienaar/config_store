@@ -102,7 +102,7 @@ class SimpleItem(Item):
         return True
         
     def get_ids(self):
-        "Get xxx"
+        "Generate dictionary with key=name, value a dictionary of 'id': value of id"
         return {self.d['name']: {'id': int(self.id)}}
             
     def get_init(self):
@@ -134,9 +134,7 @@ class SimpleItem(Item):
             s += self.d['print']
         else:
             s += "NULL"
-        s += ",\n"
-        
-        s += "};\n"
+        s += ",\n};\n"
         return s
     
     def get_type_and_name(self, aggrType):
@@ -266,8 +264,7 @@ class Aggregate:
         s += "const cm_aggregate_data " + self.get_data_name() + " = {&"
         s += self.item.d['name'] + ", " + self.get_count_str()
         s += ", offsetof(" + container_type_name + ", " + self.item.d['name'] + ")};\n"
-        s += self.get_instantiate()
-        
+        s += self.get_instantiate()       
         return s
         
     def get_data_name(self):
@@ -291,7 +288,8 @@ class Aggregate:
             # If no counter that includes type, name and value, then there are no constants
             pass
         return s
-        
+
+
 class ContainedAggregate(Aggregate):
     def __init__(self, d, id_gen, old_id):
         Aggregate.__init__(self, d, id_gen, old_id)
@@ -390,6 +388,7 @@ def loadCfgData(cfgFileName):
     except:
         print "Root element in", cfgFileName, "is not an item"
 
+
 def loadIdData(baseFileName):
     "Read ID data file and return version and dictionary, or None if there's a problem with the input file"
     fname = baseFileName + "_id.yaml"
@@ -449,14 +448,15 @@ if __name__ == "__main__":
     baseItem = makeItem(base_item_config, Id_generator(None), base_id_dict)
     baseItem.verify()
     
-    fdecl = open("cfg.h", "w")
+    fdecl = open(baseFileName + ".h", "w")
     fdecl.write(getDeclHeader(sys.argv[0], sys.argv[1]))
     fdecl.write(baseItem.get_definition())
     fdecl.close()
     
-    finit = open("cfg.cpp", "w")
+    finit = open(baseFileName + ".cpp", "w")
     finit.write(getInitHeader(sys.argv[0], sys.argv[1]))
     finit.write(baseItem.get_init())
     finit.close()
     
     saveIdData(baseFileName, version, id_dict)
+    

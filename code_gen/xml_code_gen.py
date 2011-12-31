@@ -7,6 +7,10 @@ Usage: python xml_code_gen.py [source XML file]
 
 
 """
+# NB: This is a work in progress that will probably never be completed --
+#     neither this code nor the concept of how the metadata should be stored
+#     in XML are complete.  YAML seemed to be a much  better fit, and I chose
+#     that instead.
 
 from xml.dom import minidom
 import sys
