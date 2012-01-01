@@ -45,54 +45,21 @@ config_managerTest: $(OBJS) config_managerTest.o -lCppUTest
 cm_tlvTest: $(OBJSTLV) cm_tlvTest.o -lCppUTest
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
-# Dependencies, manually arrived at!
-# None of the test .o depend on dbg.h
-# config_manager.o is dependent on all h files
-# util is not dependent on dbg.h
-# tlv is not dependent on util.h
-cm_simple_item_descriptorTest.o: cm_simple_item_descriptorTest.cpp \
- ../../export/config_manager.h ../config_manager_types.h ../config_manager_tlv.h ../config_manager_util.h
-
-cm_composite_item_descriptorTest.o: cm_composite_item_descriptorTest.cpp \
- ../../export/config_manager.h ../config_manager_types.h ../config_manager_tlv.h ../config_manager_util.h
-
-config_managerTest.o: config_managerTest.cpp \
- ../../export/config_manager.h  ../config_manager_types.h ../config_manager_tlv.h ../config_manager_util.h
-
-config_manager.o: config_manager.cpp \
- ../../export/config_manager.h ../config_manager_types.h ../config_manager_tlv.h ../config_manager_dbg.h ../config_manager_util.h
-
-config_manager_util.o: config_manager_util.cpp \
- ../config_manager_types.h ../config_manager_util.h
-
-config_manager_store.o: config_manager_store.cpp \
- ../config_manager_store.h  ../config_manager_tlv_store.h ../config_manager_yaml_store.h ../config_manager_dbg.h
-
-config_manager_tlv_store.o: config_manager_tlv_store.cpp \
- ../config_manager_store.h  ../config_manager_tlv_store.h ../config_manager_dbg.h
-
-config_manager_yaml_store.o: config_manager_yaml_store.cpp \
- ../config_manager_store.h  ../config_manager_yaml_store.h ../config_manager_dbg.h
-
-config_manager_tlv.o: config_manager_tlv.cpp \
- ../../export/config_manager.h ../config_manager_types.h ../config_manager_tlv.h ../config_manager_dbg.h
-
-config_manager_yaml.o: config_manager_yamlt.cpp \
- ../../export/config_manager.h ../config_manager_types.h ../config_manager_yaml.h ../config_manager_dbg.h
-
-nvram.o: nvram.cpp
-
-include config_manager_setdef_null.d
-
-# auto generation of dependencies -- see 'Managing Projects with GNU Make'
-%.d: %.cpp
-	$(CXX) -MM $(CXXFLAGS) $< > $@.$$$$; \
-	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
-	rm -f $@.$$$$
-
 .PHONY: clean
 clean:
 	rm -f ../*o
 	rm -f *o
 	rm -f ../../stubs/*o
+
+
+# Auto-generate dependencies using gcc's MM option -- see 'Managing Projects with GNU Make'
+include config_manager_setdef_null.d config_manager.d nvram.d config_manager_yaml.d \
+ config_manager_tlv.d config_manager_yaml_store.d config_manager_tlv_store.d \
+ config_manager_store.d config_manager_util.d \
+ cm_simple_item_descriptorTest.d cm_composite_item_descriptorTest.d config_managerTest.d
+
+%.d: %.cpp
+	$(CXX) -MM $(CXXFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
 
