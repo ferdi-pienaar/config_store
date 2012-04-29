@@ -6,7 +6,10 @@
 #include "nvram.h"
 
 
-// Abstract interface to classes that give access to persistent storage
+// Abstract interface to classes that give access to persistent storage.
+// The static method getStore returns an instance of a concrete sub-class
+// (_Head First Design Patterns_ calls this a "static factory" -- it's the equivalent
+// of putting a static createPizza() method in that book's abstract Pizza class).
 class cm_store
 {
 public:

@@ -1,7 +1,7 @@
 // Unit test using open-source unit test framework
 // These tests use the cm_composite_descriptor's public interface
-// to test it.  This includes redirecting to a file output that it sends to
-// stdout, so that it can be read from the file and compared to the
+// to test it.  This includes redirecting to a file the UUT's output to stdout,
+// so that it can be read from the file and compared to the
 // expected output.
 // We also read/write the items themselves.
 //
@@ -234,9 +234,8 @@ TEST(owned, addFirst)
 {
     char * commandWord[] = {(char *)"add", (char *)"owned"};
     command_stack cmd(2, commandWord);
-    cm_context ctxt;
 
-    c2.handleCmd(&cmd, (uint8_t *)&mem, ctxt);
+    c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Counter is incremented and ptr to owned item is no longer NULL
     CHECK(mem.cnt == 1);
@@ -252,10 +251,9 @@ TEST(owned, addAnother)
     char * commandWord[] = {(char *)"add", (char *)"owned"};
     command_stack cmd1(2, commandWord);
     command_stack cmd2(2, commandWord);
-    cm_context ctxt;
 
-    c2.handleCmd(&cmd1, (uint8_t *)&mem, ctxt);
-    c2.handleCmd(&cmd2, (uint8_t *)&mem, ctxt);
+    c2.handleCmd(&cmd1, (uint8_t *)&mem);
+    c2.handleCmd(&cmd2, (uint8_t *)&mem);
 
     // Counter is incremented and ptr to owned item is no longer NULL
     CHECK(mem.cnt == 2);
@@ -271,9 +269,8 @@ TEST(owned, delNull)
 {
     char * commandWord[] = {(char *)"del", (char *)"owned", (char *)"1"};
     command_stack cmd(3, commandWord);
-    cm_context ctxt;
 
-    c2.handleCmd(&cmd, (uint8_t *)&mem, ctxt);
+    c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // The command does nothing since there's nothing to delete; verify count remains unchanged
     CHECK(mem.cnt == 0);
@@ -292,9 +289,7 @@ TEST(owned, delEnd)
     mem.owned[0] = 7;
     mem.cnt = NUM_OWNED;
 
-    cm_context ctxt;
-
-    c2.handleCmd(&cmd, (uint8_t *)&mem, ctxt);
+    c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Counter is decremented
     CHECK(mem.cnt == NUM_OWNED - 1);
@@ -317,9 +312,7 @@ TEST(owned, delFirst)
     mem.owned[1] = 8;
     mem.cnt = NUM_OWNED;
 
-    cm_context ctxt;
-
-    c2.handleCmd(&cmd, (uint8_t *)&mem, ctxt);
+    c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Counter is decremented
     CHECK(mem.cnt == NUM_OWNED - 1);
@@ -339,9 +332,7 @@ TEST(owned, delSingle)
     mem.owned = (int *)malloc(NUM_OWNED * sizeof(int));
     mem.cnt = NUM_OWNED;
 
-    cm_context ctxt;
-
-    c2.handleCmd(&cmd, (uint8_t *)&mem, ctxt);
+    c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Counter is decremented to 0
     CHECK(mem.cnt == 0);
@@ -356,10 +347,8 @@ TEST(owned, implicitAdd)
 {
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"=", (char *)"42"};
     command_stack cmd(4, commandWord);
-    cm_context ctxt;
-
     
-    c2.handleCmd(&cmd, (uint8_t *)&mem, ctxt);
+    c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Counter is incremented and ptr to owned item is no longer NULL
     CHECK(mem.cnt == 1);
@@ -373,10 +362,8 @@ TEST(owned, implicitAddFail)
 {
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"blabla"};
     command_stack cmd(3, commandWord);
-    cm_context ctxt;
-
     
-    c2.handleCmd(&cmd, (uint8_t *)&mem, ctxt);
+    c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Counter is not incremented and ptr to owned item is NULL
     CHECK(mem.cnt == 0);
@@ -446,9 +433,8 @@ TEST(ownedWithoutCounter, addOnly)
 {
     char * commandWord[] = {(char *)"add", (char *)"owned"};
     command_stack cmd(2, commandWord);
-    cm_context ctxt;
 
-    c4.handleCmd(&cmd, (uint8_t *)&mem, ctxt);
+    c4.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Pointer updated
     CHECK(mem.owned != NULL);
@@ -463,12 +449,11 @@ TEST(ownedWithoutCounter, delOnly)
 {
     char * commandWord[] = {(char *)"del", (char *)"owned"};
     command_stack cmd(2, commandWord);
-    cm_context ctxt;
     
     // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
     mem.owned = (int *)malloc(MAX_NUMBER_OWNED_SET4 * sizeof(int));
 
-    c4.handleCmd(&cmd, (uint8_t *)&mem, ctxt);
+    c4.handleCmd(&cmd, (uint8_t *)&mem);
 
     // And the pointer to owned is set to NULL after owned memory freed
     CHECK(mem.owned == NULL);

@@ -70,6 +70,17 @@
 Restrict application code from writing to config?  Currently it's temptingly
 easy...
 
-Makefiles should do automatic dependency generation.
-howto should be written in html, probably in a way that can be integrated with
-Doxygen.
+- Makefiles should do automatic dependency generation.  I've started this for the
+  test files, but it's not done for the examples.
+- The examples should use cfg_man as a library -- modify the Makefiles to do that.
+  This would make it clearer that cfg_man is independent of changes in the application's
+  configurable item hierarchy.
+- howto should be written in html, probably in a way that can be integrated with
+  Doxygen.
+- Code would be easier to test if output wasn't directly to stdout, but used a
+  function that could be stubbed for testing -- is this worth doing?  I have actually
+  solved the testing problem fairly satisfactorily be redirecting stdout to a file.
+
+- The cfg_man library shouldn't output to stdout: it should return a character
+  string for the client to handle.  This makes the library more portable, and
+  simplifies testing.

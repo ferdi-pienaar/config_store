@@ -27,7 +27,8 @@
 
 
 // xxx should not be exported
-// The command-line context: the current item, its descriptor (i.e. its metadata), and the
+// The command-line context is the context in which a command string is interpreted:
+// the current item, its descriptor (i.e. its metadata), and the
 // string that's displayed on the command-line to represent the context, i.e. the location
 // of the item within the hierarchy of items.
 class cm_context
@@ -81,7 +82,7 @@ public:
     cm_descriptor() {}
     virtual ~cm_descriptor(){}
 
-    virtual bool handleCmd(command_stack * cmd, uint8_t * pItem, cm_context & ctxt ) const = 0;
+    virtual bool handleCmd(command_stack * cmd, uint8_t * pItem) const = 0;
     virtual std::string getName() const = 0;
     virtual cm_item_id_t getId() const = 0;
     virtual void save(const uint8_t * pItem) const = 0;
@@ -136,7 +137,6 @@ public:
     bool getComponentItem(command_stack * cmd,
                           uint8_t * pParentItem,
                           uint8_t ** ppItem,
-                          cm_context & ctxt,
                           bool & added) const;
     bool getComponentItem(unsigned idx, uint8_t * pParentItem, uint8_t ** ppItem) const;
     void save(const uint8_t *pItem) const;
@@ -207,7 +207,7 @@ public:
     std::string getName() const {return pData->c.name;}
     virtual cm_item_id_t getId() const {return pData->c.id;}
     virtual cm_item_len_t getLen() const {return pData->c.len;}
-    bool handleCmd(command_stack * cmd, uint8_t * pItem, cm_context & ctxt) const;
+    bool handleCmd(command_stack * cmd, uint8_t * pItem) const;
     void print(const uint8_t * pItem, std::string prefix) const;
     void setDefault(uint8_t * pItem) const;
     virtual void help(const uint8_t * pItem) const;
@@ -218,7 +218,7 @@ public:
 private:
     bool handleAdd(command_stack * cmd, uint8_t * pItem) const;
     bool handleDel(command_stack * cmd, uint8_t * pItem) const;
-    bool handleIdWord(command_stack * cmd, uint8_t * pItem, cm_context & ctxt) const;
+    bool handleIdWord(command_stack * cmd, uint8_t * pItem) const;
     virtual unsigned short getAggrCount() const {return pData->aggrCount;}
     virtual const cm_aggregate * getAggrAtIndex(unsigned int i) const {return pData->aggrList[i];}
     const cm_aggregate * getAggr(const char * name) const;
@@ -237,7 +237,7 @@ class cm_simple_descriptor : public cm_descriptor
 public:
     cm_simple_descriptor(const cm_simple_metadata * pMeta);
     virtual ~cm_simple_descriptor() {}
-    bool handleCmd(command_stack * cmd, uint8_t * pItem, cm_context & ctxt) const;
+    bool handleCmd(command_stack * cmd, uint8_t * pItem) const;
     std::string getName() const {return pData->c.name;}
     virtual cm_item_id_t getId() const {return pData->c.id;}
     virtual cm_item_len_t getLen() const {return pData->c.len;}
@@ -274,7 +274,8 @@ public:
 
     // xxx should only be accessible to friend classes
     void resetCtxt();
-    void updateCtxt(cm_context * pC);
+    void updateCtxt() {currCtxt = candidateCtxt;}    
+    cm_context   candidateCtxt; // context built while handling current command
 
     cm_store * store;
 
@@ -287,9 +288,7 @@ private:
     static config_manager * instance;
     const cm_descriptor * base_desc;    
     uint8_t *    ramBase;
-    cm_context   currCtxt; // current context
-
-
+    cm_context   currCtxt;      // current context
 };
 
 

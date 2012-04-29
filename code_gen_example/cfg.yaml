@@ -1,3 +1,7 @@
+# This source file in YAML language is written by the designer of the
+# configurable items hierarchy, and describes those items.  It's an input
+# to the build system that makes the executable that also includes
+# the config manager library.
 ---
 constant: &nUsers
     name: MAX_NUM_USERS

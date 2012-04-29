@@ -3,6 +3,7 @@ CXXFLAGS = -Wall -g -I . -I $(CFG_MAN_SRC_DIR) -I ../export
 #CXXFLAGS += -DDEBUG_PRINT 
 #CXXFLAGS += -save-temps 
 CXXFLAGS += -D M_DEFINED_STORE_TYPE=TLV_STORE
+CXXFLAGS += -Wl,-Map=output.map
 
 test_cfg1: $(CFG_MAN_SRC_DIR)config_manager.o \
 $(CFG_MAN_SRC_DIR)config_manager_util.o \
