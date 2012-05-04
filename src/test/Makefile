@@ -33,6 +33,8 @@ cmTestTag: config_managerTest
 	touch cmTestTag
 
 # Make unit tests, using CppUTest framework
+# Note that make has special support for the -l<NAME> syntax: it looks for a library called lib<NAME>.a
+# or lib<NAME>.so
 cm_simple_item_descriptorTest: $(OBJS) cm_simple_item_descriptorTest.o -lCppUTest
 	$(CXX) $(CXXFLAGS) $^ -o $@
 

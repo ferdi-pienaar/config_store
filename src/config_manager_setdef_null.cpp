@@ -5,7 +5,7 @@
 
 #include "config_manager_setdef_null.h"
 #include <assert.h>
-#include <string.h> // memcpy
+#include <string.h> // memset
 
 using namespace std;
 

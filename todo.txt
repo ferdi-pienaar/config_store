@@ -84,3 +84,6 @@ easy...
 - The cfg_man library shouldn't output to stdout: it should return a character
   string for the client to handle.  This makes the library more portable, and
   simplifies testing.
+
+- The /export directory is not complete, since we also export cm_setdef_null and cm_util...
+  Need to clarify what the public interface is, precisely.
