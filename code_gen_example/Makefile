@@ -5,13 +5,12 @@ CXXFLAGS = -Wall -g -I . -I $(CFG_MAN_SRC_DIR) -I ../export
 CXXFLAGS += -Wl,-Map=output.map
 VPATH = $(CFG_MAN_SRC_DIR) # so make can find the library
 
-# xxx Why do we need config_manager_setdef_null.o here?  It should be in libCfgMan.a!!!
-test_cfg1: -lCfgMan \
-$(CFG_MAN_SRC_DIR)config_manager_setdef_null.o \
+test_cfg1: \
 $(CFG_MAN_SRC_DIR)config_manager_util.h \
 $(CFG_MAN_SRC_DIR)config_manager_setdef_null.h \
 ../export/config_manager.h \
-my_cfg1.o my_cfg_fn1.o my_cfg_fn1.h my_cfg1.h
+my_cfg1.o my_cfg_fn1.o my_cfg_fn1.h my_cfg1.h \
+-lCfgMan
 
 # .o depends on both cpp files, but only one of them is in the command
 my_cfg1.o: cfg.cpp my_cfg1.cpp my_cfg1.h

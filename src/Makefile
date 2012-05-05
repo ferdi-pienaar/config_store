@@ -3,7 +3,6 @@ CXXFLAGS += -D M_DEFINED_STORE_TYPE=TLV_STORE
 #CXXFLAGS += -D M_DEFINED_STORE_TYPE=YAML_STORE
 #CXXFLAGS += -save-temps
 #CXXFLAGS += -D DEBUG_PRINT
-VPATH = . # so make can find the sources
 OBJS = config_manager.o config_manager_util.o config_manager_setdef_null.o config_manager_store.o nvram.o
 
 OBJS += config_manager_tlv_store.o config_manager_tlv.o

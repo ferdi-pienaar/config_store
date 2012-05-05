@@ -19,5 +19,3 @@ in the unit tests is a workaround?  Or should handleCmd have the freedom
 to manipulate the input strings, in which case I should modify the test
 framework to make the strings passed to UUT, modifiable.
 
-libCfgMan.a users have a problem with cm_setdef_null -- they need to include
-it separately...
