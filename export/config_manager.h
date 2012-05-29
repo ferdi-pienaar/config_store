@@ -99,14 +99,14 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 /// The way in which a component cm_descriptor forms part of a composite.
 /// Within a composite descriptor, there's an aggregate for each
-/// component descriptor (i.e. one for each aggregate of component items).
+/// component descriptor (i.e. one for each array of component items).
 /// These are the aspects of the relationship between composite and component
 /// that are controlled by the aggregate:
 /// - Components may be contained (memory allocated as part of the same
 ///   structure as the composite) or owned (memory allocated separately
 ///   from that of the component, and just referenced by the composite).
 /// - There may be one or more instances (i.e. single item or an array of items).
-/// - Offset, of the item itself (if embedded) or of a pointer to the item
+/// - Offset, of the item array itself (if embedded) or of a pointer to the array
 ///   (if owned)
 // xxx we could embed this class in cm_composite_descriptor, but then
 // client could not create component lists at init.  The constructor for this
@@ -124,7 +124,7 @@ public:
     cm_aggregate(const cm_aggregate_data * d): pData(d){};
     virtual ~cm_aggregate(){}
     bool needIndex(const uint8_t * pParentItem) const {return getCount(pParentItem) > 1;}
-    bool getIndex(command_stack * cmd, const uint8_t * pParentItem, unsigned int & itemIndex) const;
+    bool getIndex(command_stack * cmd, unsigned int & itemIndex) const;
     uint8_t * getItemAtIndex(const uint8_t * pParentItem, unsigned idx) const;
     /// returns number of items currently in the aggregate
     virtual unsigned getCount(const uint8_t * pParentItem) const = 0;
@@ -139,7 +139,8 @@ public:
                           uint8_t ** ppItem,
                           bool & added) const;
     bool getComponentItem(unsigned idx, uint8_t * pParentItem, uint8_t ** ppItem) const;
-    void save(const uint8_t *pItem) const;
+    void save(const uint8_t *pItem) const;    
+    void help(const uint8_t * pItem) const;
 
 private:
     /// returns address of the first item in the array
@@ -292,7 +293,8 @@ private:
 };
 
 
-//
+// Container for the command passed to cfg_man.  It's a stack of words, i.e.
+// a stack of C-strings, each string consisting of 1 word only (i.e. no spaces).
 class command_stack
 {
 public:
@@ -312,6 +314,9 @@ public:
     };
     
     command_stack(int argc, char ** argv) : count(argc), wordPtr(argv) {}
+
+    // Pop top word.
+    // Return ref to self so the value returned by the command can be passed to a fn
     command_stack & pop()
     {
         count--;

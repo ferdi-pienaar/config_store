@@ -32,7 +32,7 @@ def getIdHeader(script):
             "# typically to remove an item whose ID may be re-allocated because it is no longer used anywhere.\n")
     
 class Id_generator():
-    "Generate ID for TLV: the data struct of existing IDs in the context is used to avoid allocating an IDs that is taken"
+    "Generate IDs for TLV: the data struct of existing IDs in the context is used to avoid allocating IDs that are taken"
     def __init__(self, id_dlist):
         self.__make_id_list(id_dlist)
         
@@ -76,7 +76,7 @@ class Item:
         "Return string representing initialization of the common metadata structure"
         s = indent + "{\n"
         s += 2 * indent + "\"" + self.d['name'] + "\",\n"
-        s += 2 * indent + self.id + ",\n" # xxx fix this: IDs should be constant as possible within composites
+        s += 2 * indent + self.id + ",\n"
         s += 2 * indent + self.get_size() + ",\n"
         s += 2 * indent
         if self.d['persistent']:
@@ -408,7 +408,7 @@ def loadIdData(baseFileName):
     except:
         print fname, "is not a valid YAML file!"
     else:
-        print "Reading ID file", fname
+        print "Reading ID file", fname, "version", v
     return v, data
 
 
@@ -434,7 +434,8 @@ if __name__ == "__main__":
     base_item_config = loadCfgData(sys.argv[1])
     if base_item_config is None:
         sys.exit()
-        
+
+    # Try to get associations between item names and IDs from the ID file
     baseFileName, extension = os.path.splitext(sys.argv[1])
     version, id_dict = loadIdData(baseFileName)
     
@@ -444,15 +445,19 @@ if __name__ == "__main__":
         # The ID data file doesn't exist, is defective, or has no ID for the base item's name
         print "No", base_item_config['name'], "in ID data file: generating new IDs!"
         base_id_dict = None
-    
+
+    # From the config file and the ID file, create objects that
+    # generate C++ code.
     baseItem = makeItem(base_item_config, Id_generator(None), base_id_dict)
     baseItem.verify()
-    
+
+    # Make .h file containing type definitions
     fdecl = open(baseFileName + ".h", "w")
     fdecl.write(getDeclHeader(sys.argv[0], sys.argv[1]))
     fdecl.write(baseItem.get_definition())
     fdecl.close()
-    
+
+    # Make .cpp file containing definitions and initializations
     finit = open(baseFileName + ".cpp", "w")
     finit.write(getInitHeader(sys.argv[0], sys.argv[1]))
     finit.write(baseItem.get_init())

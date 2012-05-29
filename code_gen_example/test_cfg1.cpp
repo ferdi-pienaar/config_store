@@ -20,7 +20,7 @@ void * stats_thread(void * arg)
     {
         sleep(5);
         t_device * pCfg = get_config();
-        static unsigned userIdx = 0;
+        static unsigned short userIdx = 0;
 
         if (pCfg->userCnt > 0)
         {
@@ -68,6 +68,5 @@ int main()
         }
     }
 }
-
 
 

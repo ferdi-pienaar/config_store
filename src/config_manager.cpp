@@ -44,8 +44,6 @@ config_manager * config_manager::getInstance()
 // init cycle, but delay malloc and NVRAM reads until later.
 void config_manager::init(const cm_descriptor * desc)
 {
-    assert(desc != NULL);
-    
     base_desc = desc;
     ramBase = (uint8_t *)malloc(base_desc->getLen());
 
@@ -290,8 +288,6 @@ bool cm_composite_descriptor::handleAdd(command_stack * cmd, uint8_t * pItem) co
 {
     DBG_PRT("handleAdd %s\n", cmd->getTop());
 
-    assert(pItem != NULL);
-
     if (cmd->getCount() != 1)
     {
         cout << cmd->getCount() << " parameters for 'add'." << endl;
@@ -330,8 +326,6 @@ bool cm_composite_descriptor::handleAdd(command_stack * cmd, uint8_t * pItem) co
 // @return true if the operation was successful, false if it failed.
 bool cm_composite_descriptor::handleDel(command_stack * cmd, uint8_t * pItem) const
 {
-    assert(pItem != NULL);
-
     DBG_PRT("handleDel %s\n", cmd->getTop());
 
     if ((cmd->getCount() != 1) && (cmd->getCount() != 2))
@@ -365,7 +359,7 @@ bool cm_composite_descriptor::handleDel(command_stack * cmd, uint8_t * pItem) co
 
     unsigned int itemIdx = 0; // If no explicit index is needed, use 0 offset
 
-    if (pAggr->needIndex(pItem) && !pAggr->getIndex(&cmd->pop(), pItem, itemIdx))
+    if (pAggr->needIndex(pItem) && !pAggr->getIndex(&cmd->pop(), itemIdx))
     {
         // An index is needed but couldn't be extracted from the command
         return false;
@@ -386,8 +380,6 @@ bool cm_composite_descriptor::handleDel(command_stack * cmd, uint8_t * pItem) co
 // 
 void cm_composite_descriptor::print(const uint8_t * pItem, string prefix) const
 {
-    assert(pItem != NULL);
-
     DBG_PRT("print composite %s len %d\n", getName().c_str(), getLen());
 
     for (unsigned i = 0; i < pData->aggrCount; i++)
@@ -408,8 +400,6 @@ void cm_composite_descriptor::print(const uint8_t * pItem, string prefix) const
 //
 void cm_composite_descriptor::setDefault(uint8_t * pItem) const
 {    
-    assert(pItem != NULL);
-
     // Set each component to default
     for (unsigned i = 0; i < pData->aggrCount; i++)
     {            
@@ -418,20 +408,12 @@ void cm_composite_descriptor::setDefault(uint8_t * pItem) const
 }
 
 
-// Give name of each component, current count, and maxcount if OWNed.
+// Give help for each component.
 void cm_composite_descriptor::help(const uint8_t * pItem) const
 {
-    assert(pItem != NULL);
-
     for (unsigned i = 0; i < pData->aggrCount; i++)
     {   
-        cout << getAggrAtIndex(i)->pData->pDesc->getName() << " [" << getAggrAtIndex(i)->getCount(pItem);
-
-        if (getAggrAtIndex(i)->isAddSupported())
-        {
-            cout << "/" << getAggrAtIndex(i)->pData->maxCount;
-        }
-        cout << "]" << endl;
+        getAggrAtIndex(i)->help(pItem);
     }
 }
 
@@ -439,8 +421,6 @@ void cm_composite_descriptor::help(const uint8_t * pItem) const
 // Look for the aggregate whose component has a matching name
 const cm_aggregate * cm_composite_descriptor::getAggr(const char * name) const
 {
-    assert(name != NULL);
-
     for (unsigned i = 0; i < pData->aggrCount; i++)
     {            
         if (strcmp(name, getAggrAtIndex(i)->pData->pDesc->getName().c_str()) == 0)
@@ -470,8 +450,6 @@ const cm_aggregate * cm_composite_descriptor::getAggr(cm_item_id_t id) const
 //
 void cm_composite_descriptor::save(const uint8_t *pItem) const
 {
-    assert(pItem != NULL);
-
     if (!pData->c.persistent)
     {
         return;
@@ -526,7 +504,7 @@ t_cm_result cm_composite_descriptor::load(uint8_t * pItem, unsigned * pComplete)
         if ((pAggr != NULL) && pAggr->pData->pDesc->isPersistent() &&
             pAggr->getComponentItem(idx, pItem, &pComponentItem))
         {
-            // The ID in persistent storage is in our metadata context, so load the item
+            // The ID in persistent storage is in this metadata context, so load the item
             if ((res = pAggr->pData->pDesc->load(pComponentItem, pComplete)) != CM_SUCCESS)
             {
                 return res;
@@ -565,8 +543,6 @@ pData(pMeta)
 // to the item's composite but not to the item.
 void cm_simple_descriptor::print(const uint8_t * pItem, string prefix) const
 {
-    assert(pItem != NULL);
-    
     cout << prefix << "= ";
 
     DBG_PRT("print simple %s len %d at %p\n", getName().c_str(), getLen(), pItem);
@@ -590,8 +566,6 @@ void cm_simple_descriptor::print(const uint8_t * pItem, string prefix) const
 //
 bool cm_simple_descriptor::handleCmd(command_stack * cmd, uint8_t * pItem) const
 {
-    assert(pItem != NULL);
-    
     DBG_PRT("simple cmd at %p\n", pItem);
     
     switch (cmd->getTopOp())
@@ -625,8 +599,6 @@ bool cm_simple_descriptor::handleCmd(command_stack * cmd, uint8_t * pItem) const
 // Set item to a value input as string on command line
 bool cm_simple_descriptor::set(uint8_t * pItem, string val) const
 {
-    assert(pItem != NULL);
-
     DBG_PRT("set simple %s at %p to '%s'\n", getName().c_str(), pItem, val.c_str());
 
     if (pData->pSet != NULL)
@@ -644,8 +616,6 @@ bool cm_simple_descriptor::set(uint8_t * pItem, string val) const
 // Set configurable item to its default value.
 void cm_simple_descriptor::setDefault(uint8_t * pItem) const
 {
-    assert(pItem != NULL);
-
     if (pData->pSetDefault != NULL)
     {
         pData->pSetDefault(pItem, getLen());
@@ -656,8 +626,6 @@ void cm_simple_descriptor::setDefault(uint8_t * pItem) const
 /// Save item to persistent storage
 void cm_simple_descriptor::save(const uint8_t *pItem) const
 {
-    assert(pItem != NULL);
-    
     if (!pData->c.persistent)
     {
         return;
@@ -684,12 +652,8 @@ t_cm_result cm_simple_descriptor::load(uint8_t * pItem, unsigned * pComplete) co
 // @return false if unable to extract a valid (in-range) index,
 //         true if returning a valid (in-range) index.
 //
-bool cm_aggregate::getIndex(command_stack * cmd,
-                            const uint8_t * pParentItem,
-                            unsigned int & itemIdx) const
+bool cm_aggregate::getIndex(command_stack * cmd, unsigned int & itemIdx) const
 {
-    assert(pParentItem != NULL);
-    
     if (cmd->getCount() > 0)
     {
         char * pEnd; // pointer to char after chars accepted by strtoul
@@ -772,17 +736,13 @@ bool cm_aggregate::getComponentItem(command_stack * cmd,
                                     uint8_t ** ppItem,
                                     bool & added) const
 {
-    assert(cmd != NULL);
-    assert(pParentItem != NULL);
-    assert(ppItem != NULL);
-    
     added = false; // By default, didn't add a new component
     unsigned int itemIdx = 0; // If no index is needed, we'll use offset 0
 
     if (pData->maxCount > 1)
     {
         // There can be more than one instance, so we need an explicit index
-        if (getIndex(cmd, pParentItem, itemIdx))
+        if (getIndex(cmd, itemIdx))
         {
             // Index is available: add it to the context string
 			config_manager::getInstance()->candidateCtxt.add(itemIdx);
@@ -838,9 +798,6 @@ bool cm_aggregate::getComponentItem(command_stack * cmd,
 //
 bool cm_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem, uint8_t ** ppItem) const
 {
-    assert(pParentItem != NULL);
-    assert(ppItem != NULL);
-    
     if (idx >= pData->maxCount)
     {
         // Maximum number of these items already loaded: fail
@@ -874,6 +831,19 @@ void cm_aggregate::save(const uint8_t *pItem) const
 }
 
 
+// Give name, current count, and maxcount if OWNed.
+void cm_aggregate::help(const uint8_t * pItem) const
+{
+    cout << pData->pDesc->getName() << " [" << getCount(pItem);
+
+    if (isAddSupported())
+    {
+        cout << "/" << pData->maxCount;
+    }
+    cout << "]" << endl;
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // cm_contained_aggregate
@@ -886,8 +856,6 @@ void cm_aggregate::save(const uint8_t *pItem) const
 //
 uint8_t * cm_contained_aggregate::getFirstItem(const uint8_t * pParentItem) const
 {
-    assert(pParentItem != NULL);
-
     return (uint8_t *)(pParentItem + pData->offset);
 }
 
@@ -913,8 +881,6 @@ unsigned cm_contained_aggregate::getCount(const uint8_t * pParentItem) const
 //
 uint8_t * cm_owned_aggregate::getFirstItem(const uint8_t * pParentItem) const
 {
-    assert(pParentItem != NULL);
-
     return *(uint8_t **)(pParentItem + pData->offset); // location is a pointer to the OWNED item
 }
 
@@ -924,8 +890,6 @@ uint8_t * cm_owned_aggregate::getFirstItem(const uint8_t * pParentItem) const
 // would restrict the application developer.
 unsigned cm_owned_aggregate::getCount(const uint8_t * pParentItem) const
 {
-    assert(pParentItem != NULL);
-
     if (pCounterAggr == NULL)
     {
         // If there's no counter, then count is just 0 (absence) or 1 (presence)
@@ -954,8 +918,6 @@ unsigned cm_owned_aggregate::getCount(const uint8_t * pParentItem) const
 // would restrict the application developer.
 void cm_owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) const
 {
-    assert(pParentItem != NULL);
-
     if (pCounterAggr == NULL)
     {
         // There is no counter -- it's optional if maxCount == 1
@@ -1007,7 +969,7 @@ void cm_owned_aggregate::freeItems(uint8_t * pParentItem) const
 
     if (*ppItems != NULL)
     {
-        // Sanity check
+        // Sanity check: if there's a pointer to items, there are some items
         assert(getCount(pParentItem) > 0);
 
         // There are items, so free their block of memory, and set counter to 0
@@ -1032,8 +994,6 @@ void cm_owned_aggregate::freeItems(uint8_t * pParentItem) const
 // @return pointer to new allocated memory, or NULL in case of failure
 uint8_t * cm_owned_aggregate::add(uint8_t * pParentItem) const
 {
-    assert(pParentItem != NULL);
-
     // Reallocate memory, and save pointer in the same location
     unsigned   cnt     = getCount(pParentItem);
     uint8_t ** ppItems = (uint8_t **)(pParentItem + pData->offset);
@@ -1071,9 +1031,6 @@ uint8_t * cm_owned_aggregate::add(uint8_t * pParentItem) const
 // and sets the pointer to the memory to NULL if it's all been freed.
 void cm_owned_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
 {
-    // Sanity check input parameters
-    assert(pParentItem != NULL);
-
     uint8_t ** ppItems = (uint8_t **)(pParentItem + pData->offset);
     cm_item_len_t componentLen = pData->pDesc->getLen();
     unsigned cnt = getCount(pParentItem);
