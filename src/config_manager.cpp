@@ -86,7 +86,7 @@ void config_manager::handleCmd(int argc, char *argv[])
     }
 
     // The candidate context starts as a copy of the current context
-	candidateCtxt = currCtxt;
+    candidateCtxt = currCtxt;
 
     // Pass command that doesn't apply to CM as a whole, to current context for handling
     currCtxt.getDesc()->handleCmd(&cmd, currCtxt.getItem());
@@ -225,17 +225,19 @@ bool cm_composite_descriptor::handleCmd(command_stack * cmd,
             help(pItem);
             return true; // xxx true?
 
-        default: 
+        default:
             break;
     }
-
-    // Don't use argv[0] here, because it may have been modified by getComponentItem
     cout << "Command '" << cmd->getTop() << "' not handled in composite item '" << getName() << "'" << endl;
     return false;
 }
 
 
-// Handle word in string that's not a command, hence presumably it identifies a component
+// Handle word in command string that's not a reserved command word,
+// hence presumably it identifies a component
+//
+// @return true if a word was from cmd was parsed
+//
 bool cm_composite_descriptor::handleIdWord(command_stack * cmd, uint8_t * pItem) const
 {
     const cm_aggregate * pAggr = getAggr(cmd->getTop()); // Component of this composite identified by cmd
@@ -301,24 +303,7 @@ bool cm_composite_descriptor::handleAdd(command_stack * cmd, uint8_t * pItem) co
         cout << "No item '" << cmd->getTop() << "' in '" << getName() << "'." << endl;
         return false;
     }
-    
-    if (!pAggr->isAddSupported())
-    {
-        cout<<"Add not supported for '"<<pAggr->pData->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
-        return false;
-    }
-
-    if (pAggr->getCount(pItem) >= pAggr->pData->maxCount)
-    {
-        cout<<"Can't add '"<<pAggr->pData->pDesc->getName()<<"' (max "<<pAggr->pData->maxCount<<")."<<endl;
-        return false;
-    }  
-        
-    if (pAggr->add(pItem) == NULL)
-    {
-        return false;
-    }
-    return true;
+    return pAggr->handleAdd(pItem);
 }
 
 
@@ -342,37 +327,7 @@ bool cm_composite_descriptor::handleDel(command_stack * cmd, uint8_t * pItem) co
         cout << "No item '" << cmd->getTop() << "' in '" << getName() << "'." << endl;
         return false;
     }
-
-    if (!pAggr->isAddSupported())
-    {
-        cout<<"Delete not supported for '"<<pAggr->pData->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
-        return false;
-    }
-
-    unsigned int cnt = pAggr->getCount(pItem); // number of items currently in array
-
-    if (cnt == 0)
-    {
-        cout << "Currently no '" <<pAggr->pData->pDesc->getName()<<"' in '"<<getName()<<"'."<< endl;
-        return false;
-    }
-
-    unsigned int itemIdx = 0; // If no explicit index is needed, use 0 offset
-
-    if (pAggr->needIndex(pItem) && !pAggr->getIndex(&cmd->pop(), itemIdx))
-    {
-        // An index is needed but couldn't be extracted from the command
-        return false;
-    }
-
-    if (itemIdx >= cnt)
-    {
-        cout<<"Index "<<itemIdx<<" out of range (0.. "<<pAggr->getCount(pItem)-1<<")."<<endl;
-        return false;
-    }
-
-    pAggr->del(pItem, itemIdx);
-    return true;
+    return pAggr->handleDel(cmd, pItem);
 }
 
 
@@ -502,7 +457,7 @@ t_cm_result cm_composite_descriptor::load(uint8_t * pItem, unsigned * pComplete)
         uint8_t *            pComponentItem;
 
         if ((pAggr != NULL) && pAggr->pData->pDesc->isPersistent() &&
-            pAggr->getComponentItem(idx, pItem, &pComponentItem))
+            ((pComponentItem = pAggr->getComponentItem(idx, pItem)) != NULL))
         {
             // The ID in persistent storage is in this metadata context, so load the item
             if ((res = pAggr->pData->pDesc->load(pComponentItem, pComplete)) != CM_SUCCESS)
@@ -745,7 +700,7 @@ bool cm_aggregate::getComponentItem(command_stack * cmd,
         if (getIndex(cmd, itemIdx))
         {
             // Index is available: add it to the context string
-			config_manager::getInstance()->candidateCtxt.add(itemIdx);
+            config_manager::getInstance()->candidateCtxt.add(itemIdx);
         }
         else
         {
@@ -754,23 +709,15 @@ bool cm_aggregate::getComponentItem(command_stack * cmd,
         }
     }
 
-    unsigned int cnt = getCount(pParentItem); // Number of items currently in the aggregate
-
     DBG_PRT("getComponentItem %p offset %d idx %d cnt %d len %d\n",
-            *ppItem, pData->offset, itemIdx, cnt, pData->pDesc->getLen());
+            *ppItem, pData->offset, itemIdx, getCount(pParentItem), pData->pDesc->getLen());
 
-    if (itemIdx >= cnt)
+    if (itemIdx >= getCount(pParentItem))
     {
-        // Index refers to an item that doesn't exist
-        if (isAddSupported() && (itemIdx == cnt) && (itemIdx < pData->maxCount))
-        {
-            // Index refers to an item to create
-            add(pParentItem);
-            added = true;
-        }
-        else
-        {
-            cout<<"Index "<<itemIdx<<" out of range"<<endl;
+        // We may add a new item, depending on index and aggregate type
+	    if (!(added = addImplicit(pParentItem, itemIdx)))
+	    {
+            cout << "Index " << itemIdx << " out of range" << endl;
             return false;
         }
     }
@@ -792,11 +739,10 @@ bool cm_aggregate::getComponentItem(command_stack * cmd,
 //           the index previously passed to this method for the
 //           same id in the same composite
 // pParentItem: (in) the owning item
-// ppItem: (out) the wanted item
 //
-// @return true if item is returned
+// @return the wanted item, or NULL
 //
-bool cm_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem, uint8_t ** ppItem) const
+uint8_t * cm_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem) const
 {
     if (idx >= pData->maxCount)
     {
@@ -806,18 +752,12 @@ bool cm_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem, uint8_t
 
     if (isAddSupported())
     {
-        *ppItem = add(pParentItem); 
+        return add(pParentItem); 
     }
     else
     {
-        *ppItem = getItemAtIndex(pParentItem, idx);
+        return getItemAtIndex(pParentItem, idx);
     }
-
-    if (*ppItem == NULL)
-    {
-        return false;
-    }
-    return true;
 }
 
 
@@ -865,6 +805,29 @@ uint8_t * cm_contained_aggregate::getFirstItem(const uint8_t * pParentItem) cons
 unsigned cm_contained_aggregate::getCount(const uint8_t * pParentItem) const
 {
     return pData->maxCount;
+}
+
+
+// Handle command 'add' on command line
+bool cm_contained_aggregate::handleAdd(uint8_t * pItem) const
+{
+    cout << "Add not supported for contained '" << pData->pDesc->getName() << "'." << endl;
+    return false;
+}
+
+
+// Handle command 'del' on command line
+bool cm_contained_aggregate::handleDel(command_stack * cmd, uint8_t * pItem) const
+{
+    cout << "Del not supported for contained '" << pData->pDesc->getName() << "'." << endl;
+    return false;
+}
+
+
+// Implicit add is not supported for contained components, because add isn't supported
+bool cm_contained_aggregate::addImplicit(uint8_t * pParentItem,  unsigned int itemIdx) const
+{
+    return false;
 }
 
 
@@ -987,6 +950,53 @@ void cm_owned_aggregate::freeItems(uint8_t * pParentItem) const
 }
 
 
+// Handle command 'add' on command line
+bool cm_owned_aggregate::handleAdd(uint8_t * pItem) const
+{
+    if (getCount(pItem) >= pData->maxCount)
+    {
+        cout<<"Can't add '" << pData->pDesc->getName() << "' (max " << pData->maxCount << ")." << endl;
+        return false;
+    }  
+        
+    if (add(pItem) == NULL)
+    {
+        return false;
+    }
+    return true;
+}
+
+
+// Handle command 'del' on command line
+bool cm_owned_aggregate::handleDel(command_stack * cmd, uint8_t * pItem) const
+{
+    unsigned int cnt = getCount(pItem); // number of items currently in array
+
+    if (cnt == 0)
+    {
+        cout << "Currently no '" << pData->pDesc->getName() << "'." << endl;
+        return false;
+    }
+
+    unsigned int itemIdx = 0; // If no explicit index is needed, use 0 offset
+
+    if (needIndex(pItem) && !getIndex(&cmd->pop(), itemIdx))
+    {
+        // An index is needed but couldn't be extracted from the command
+        return false;
+    }
+
+    if (itemIdx >= cnt)
+    {
+        cout << "Index " << itemIdx << " out of range (0.. " << cnt-1 << ")." << endl;
+        return false;
+    }
+
+    del(pItem, itemIdx);
+    return true;
+}
+
+
 // Add OWNED item.
 // @pre Counter is in range
 // This allocates memory for the new item, sets it to default values,
@@ -1055,6 +1065,20 @@ void cm_owned_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
         *ppItems = NULL;
     }
     setCount(pParentItem, cnt - 1);
+}
+
+
+// Implicit add when handling a command is supported, if the index is one larger than
+// the current largest item index, and not out-of-range
+bool cm_owned_aggregate::addImplicit(uint8_t * pParentItem,  unsigned int itemIdx) const
+{
+    if ((itemIdx == getCount(pParentItem)) && (itemIdx < pData->maxCount))
+    {
+        // Index refers to an item to create
+        add(pParentItem);
+        return true;
+    }
+    return false;
 }
 
 
