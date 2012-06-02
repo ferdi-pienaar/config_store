@@ -632,6 +632,10 @@ bool cm_aggregate::getIndex(command_stack * cmd, unsigned int & itemIdx) const
 // Return pointer to item, given parent item and index
 uint8_t * cm_aggregate::getItemAtIndex(const uint8_t * pParentItem, unsigned idx) const
 {
+    if (idx >= getCount(pParentItem))
+    {
+        return NULL;
+    }
     return getFirstItem(pParentItem) + idx * pData->pDesc->getLen();
 }
 
@@ -715,49 +719,18 @@ bool cm_aggregate::getComponentItem(command_stack * cmd,
     if (itemIdx >= getCount(pParentItem))
     {
         // We may add a new item, depending on index and aggregate type
-	    if (!(added = addImplicit(pParentItem, itemIdx)))
-	    {
+        if ((*ppItem = addImplicit(itemIdx, pParentItem)) == NULL)
+        {
             cout << "Index " << itemIdx << " out of range" << endl;
             return false;
         }
+        added = true;
     }
 
     *ppItem = getItemAtIndex(pParentItem, itemIdx);
     config_manager::getInstance()->candidateCtxt.setDesc(pData->pDesc);
     config_manager::getInstance()->candidateCtxt.setItem(*ppItem);
     return true;
-}
-
-
-//
-// From index, return the pointer to component item in this aggregate.
-// Because this function is called during loading, items are created as
-// needed: if the item is contained, the pointer to the already-allocated
-// memory is returned, and if it's owned, memory for the item is allocated.
-//
-// idx: (in) index of wanted component, 1 larger than
-//           the index previously passed to this method for the
-//           same id in the same composite
-// pParentItem: (in) the owning item
-//
-// @return the wanted item, or NULL
-//
-uint8_t * cm_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem) const
-{
-    if (idx >= pData->maxCount)
-    {
-        // Maximum number of these items already loaded: fail
-        return false;
-    }
-
-    if (isAddSupported())
-    {
-        return add(pParentItem); 
-    }
-    else
-    {
-        return getItemAtIndex(pParentItem, idx);
-    }
 }
 
 
@@ -768,19 +741,6 @@ void cm_aggregate::save(const uint8_t *pItem) const
     {
         pData->pDesc->save(getItemAtIndex(pItem, i));
     }
-}
-
-
-// Give name, current count, and maxcount if OWNed.
-void cm_aggregate::help(const uint8_t * pItem) const
-{
-    cout << pData->pDesc->getName() << " [" << getCount(pItem);
-
-    if (isAddSupported())
-    {
-        cout << "/" << pData->maxCount;
-    }
-    cout << "]" << endl;
 }
 
 
@@ -825,9 +785,30 @@ bool cm_contained_aggregate::handleDel(command_stack * cmd, uint8_t * pItem) con
 
 
 // Implicit add is not supported for contained components, because add isn't supported
-bool cm_contained_aggregate::addImplicit(uint8_t * pParentItem,  unsigned int itemIdx) const
+uint8_t * cm_contained_aggregate::addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const
 {
-    return false;
+    return NULL;
+}
+
+
+//
+// From index, return the pointer to component item in this aggregate.
+//
+// idx: (in) index of wanted component
+// pParentItem: (in) the owning item
+//
+// @return the wanted item, or NULL
+//
+uint8_t * cm_contained_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem) const
+{
+    return getItemAtIndex(pParentItem, idx);
+}
+
+
+// Give name, current count
+void cm_contained_aggregate::help(const uint8_t * pItem) const
+{
+    cout << pData->pDesc->getName() << " [" << getCount(pItem) << "]" << endl;;
 }
 
 
@@ -1068,17 +1049,39 @@ void cm_owned_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
 }
 
 
-// Implicit add when handling a command is supported, if the index is one larger than
+// Implicit add is successful if the index is one larger than
 // the current largest item index, and not out-of-range
-bool cm_owned_aggregate::addImplicit(uint8_t * pParentItem,  unsigned int itemIdx) const
+uint8_t * cm_owned_aggregate::addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const
 {
     if ((itemIdx == getCount(pParentItem)) && (itemIdx < pData->maxCount))
     {
         // Index refers to an item to create
-        add(pParentItem);
-        return true;
+        return add(pParentItem);
     }
-    return false;
+    return NULL;
+}
+
+
+// From index, return the pointer to component item in this aggregate.
+// Because this function is called during loading, items are created as needed.
+//
+// idx: (in) index of wanted component, 1 larger than
+//           the index previously passed to this method for the
+//           same id in the same composite
+// pParentItem: (in) the owning item
+//
+// @return the wanted item, or NULL
+//
+uint8_t * cm_owned_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem) const
+{
+    return addImplicit(idx, pParentItem); 
+}
+
+
+// Give name, current count, and maxcount.
+void cm_owned_aggregate::help(const uint8_t * pItem) const
+{
+    cout << pData->pDesc->getName() << " [" << getCount(pItem) << "/" << pData->maxCount << "]" << endl;
 }
 
 

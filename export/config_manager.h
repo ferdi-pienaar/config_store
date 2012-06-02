@@ -128,7 +128,6 @@ public:
     uint8_t * getItemAtIndex(const uint8_t * pParentItem, unsigned idx) const;
     /// returns number of items currently in the aggregate
     virtual unsigned getCount(const uint8_t * pParentItem) const = 0;
-    virtual bool isAddSupported() const = 0;
     virtual bool handleAdd(uint8_t * pItem) const = 0;
     virtual bool handleDel(command_stack * cmd, uint8_t * pItem) const = 0;
     virtual void setCount(uint8_t * pParentItem, unsigned int) const = 0;
@@ -140,10 +139,10 @@ public:
                           uint8_t * pParentItem,
                           uint8_t ** ppItem,
                           bool & added) const;
-    uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const;
+    virtual uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const = 0;
     void save(const uint8_t *pItem) const;    
-    void help(const uint8_t * pItem) const;
-    virtual bool addImplicit(uint8_t * pParentItem,  unsigned int itemIdx) const = 0;
+    virtual void help(const uint8_t * pItem) const = 0;
+    virtual uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const = 0;
 
 private:
     /// returns address of the first item in the array
@@ -162,13 +161,14 @@ public:
     cm_contained_aggregate(const cm_aggregate_data * d): cm_aggregate(d){}
 
     virtual unsigned getCount(const uint8_t * pParentItem) const;
-    bool isAddSupported() const {return false;}
-    void setCount(uint8_t * pParentItem, unsigned int) const {assert(isAddSupported());} // add operation doesn't apply    
+    void setCount(uint8_t * pParentItem, unsigned int) const {assert(false);} // not modifiable    
     bool handleAdd(uint8_t * pItem) const;
     bool handleDel(command_stack * cmd, uint8_t * pItem) const;
-    uint8_t * add(uint8_t * pParentItem) const {assert(isAddSupported()); return NULL; }
-    void del(uint8_t * pParentItem, unsigned int itemIdx) const {assert(isAddSupported());}    
-    bool addImplicit(uint8_t * pParentItem,  unsigned int itemIdx) const;
+    uint8_t * add(uint8_t * pParentItem) const {assert(false); return NULL; }
+    void del(uint8_t * pParentItem, unsigned int itemIdx) const {assert(false);}    
+    uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const;    
+    uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const;    
+    void help(const uint8_t * pItem) const;
 
 private:
     uint8_t * getFirstItem(const uint8_t * pParentItem) const;
@@ -189,13 +189,14 @@ public:
                        cm_aggregate(d), pCounterAggr(cntAggr){}
 
     virtual unsigned getCount(const uint8_t * pParentItem) const;
-    bool isAddSupported() const {return true;}    
     bool handleAdd(uint8_t * pItem) const;
     bool handleDel(command_stack * cmd, uint8_t * pItem) const;
     void setCount(uint8_t * pParentItem, unsigned int) const;
     uint8_t * add(uint8_t * pParentItem) const;
     void del(uint8_t * pParentItem, unsigned int itemIdx) const;
-    bool addImplicit(uint8_t * pParentItem,  unsigned int itemIdx) const;
+    uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const;
+    uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const;
+    void help(const uint8_t * pItem) const;
 
 private:
     uint8_t * getFirstItem(const uint8_t * pParentItem) const;
