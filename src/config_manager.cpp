@@ -388,6 +388,7 @@ const cm_aggregate * cm_composite_descriptor::getAggr(const char * name) const
 
 
 // Look for the aggregate whose component has a matching ID
+// @return aggregate, or NULL if ID does not identify an aggregate in this context
 const cm_aggregate * cm_composite_descriptor::getAggr(cm_item_id_t id) const
 {
     for (unsigned i = 0; i < pData->aggrCount; i++)
@@ -422,7 +423,7 @@ void cm_composite_descriptor::save(const uint8_t *pItem) const
 
 // Load item from persistent storage
 //
-// @pre the item's type is already read from persistent memory
+// @pre the item's type has been read from persistent store
 //
 // @param pComplete (output) - the number of outstanding composite completions, i.e.
 //         the number of times we should return from invocations of this method.
@@ -431,52 +432,75 @@ void cm_composite_descriptor::save(const uint8_t *pItem) const
 // 
 t_cm_result cm_composite_descriptor::load(uint8_t * pItem, unsigned * pComplete) const
 {
-    bool first = true; // Are we handling the first component item?
-
     config_manager::getInstance()->store->loadComposite();
-
+    bool first = true; // Are we handling the first component item?
+    
     do
     {
-        unsigned             idx; // index of component item in its aggregate
-        cm_item_id_t         componentId, prevComponentId;
-        t_cm_result          res;
+        // These variables persist from one call to the next at a given level
+        // of recursion, so they can't be local or static in the called function.
+        cm_item_id_t componentId;  // ID read from persistent store
+        unsigned int componentIdx; // index of a component item within its aggregate array
+        t_cm_result res = loadComponent(pItem, first, componentIdx, componentId, pComplete);
 
-        if ((res = config_manager::getInstance()->store->getType(&componentId)) != CM_SUCCESS)
+        if (res != CM_SUCCESS)
         {
             return res;
         }
-
-        if (first || (prevComponentId != componentId))
-        {
-            // First read of this component ID, i.e. first item in an aggregate
-            idx = 0;
-            first = false;
-        }
-
-        const cm_aggregate * pAggr = getAggr(componentId);
-        uint8_t *            pComponentItem;
-
-        if ((pAggr != NULL) && pAggr->pData->pDesc->isPersistent() &&
-            ((pComponentItem = pAggr->getComponentItem(idx, pItem)) != NULL))
-        {
-            // The ID in persistent storage is in this metadata context, so load the item
-            if ((res = pAggr->pData->pDesc->load(pComponentItem, pComplete)) != CM_SUCCESS)
-            {
-                return res;
-            }
-            idx++;
-        }
-        else
-        {      
-            // Can't find ID, or item not persistent, or idx too big, or no memory...
-            config_manager::getInstance()->store->skipItem(pComplete);
-        }
-        prevComponentId = componentId;
-    } while (*pComplete == 0); // while this composite is incomplete
+    } while (*pComplete == 0); // load components while this composite is incomplete
 
     // This composite is complete, so decrement the number of outstanding completions.
-    (*pComplete)--; 
+    (*pComplete)--;
     return CM_SUCCESS;
+}
+
+
+// Load a component of this composite from persistent store
+//
+// @param pParentItem
+// @param first (in/out) - true on first input, subsequently set to
+//          false by this function and remains that way
+// @param idx (in/out) - unused on input if first==true, subsequently set
+//           and used by this function
+// @param id (in/out) -  unused on input if first==true, subsequently is
+//           the value set by this function the last time it ran
+// @param pComplete (out) - value returned by store, indicating if
+//           the load of composite item(s) is complete
+//
+// @return CM_SUCCESS if item successfully loaded from store (it may have
+//           been saved into RAM or dumped)
+//         else an indication of why store load failed
+t_cm_result cm_composite_descriptor::loadComponent(uint8_t * pParentItem,
+                                                   bool & first,
+                                                   unsigned int & idx,
+                                                   cm_item_id_t & id,
+                                                   unsigned * pComplete) const
+{
+    cm_item_id_t prevId = id; // the previous ID read from the store
+    t_cm_result  res;
+	
+    if ((res = config_manager::getInstance()->store->getType(&id)) != CM_SUCCESS)
+    {
+        return res;
+    }
+	
+    if (first || (prevId != id))
+    {
+        // First read of this component ID, i.e. first item in an aggregate array
+        idx = 0;
+        first = false;
+    }
+	
+    DBG_PRT("loadComponent: id %d idx %d\n", id, idx); 
+	
+    const cm_aggregate * pAggr = getAggr(id);
+
+    if (pAggr == NULL)
+    {
+        config_manager::getInstance()->store->skipItem(pComplete);
+        return CM_SUCCESS;
+    }
+    return pAggr->load(pParentItem, idx, pComplete);
 }
 
 
@@ -744,6 +768,42 @@ void cm_aggregate::save(const uint8_t *pItem) const
 }
 
 
+// Load an item from persistent storage into RAM, which may be allocated (if owned)
+// or just retrieved (if contained, thus already allocated)
+//
+// @param pParentItem
+// @param idx (in/out) - offset in array, incremented by this function if item is written to RAM
+// @param pComplete (out) - value returned by store, indicating if
+//           the load of composite item(s) is complete
+//
+// @return CM_SUCCESS if item successfully loaded from store (it may have
+//           been saved into RAM or dumped)
+//         else an indication of why store load failed
+t_cm_result cm_aggregate::load(uint8_t * pParentItem, unsigned & idx, unsigned * pComplete) const
+{
+    if (!pData->pDesc->isPersistent())
+    {
+        config_manager::getInstance()->store->skipItem(pComplete);
+        return CM_SUCCESS;
+    }
+
+    uint8_t * pItem = getComponentItem(idx, pParentItem);
+    if (pItem == NULL)
+    {
+        // Memory couldn't be allocated for the item, or out-of-range idx
+        config_manager::getInstance()->store->skipItem(pComplete);
+        return CM_SUCCESS;
+    }
+	
+    t_cm_result res = pData->pDesc->load(pItem, pComplete);
+    if (res == CM_SUCCESS)
+    {
+        idx++;
+    }
+    return res;
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // cm_contained_aggregate
@@ -805,10 +865,10 @@ uint8_t * cm_contained_aggregate::getComponentItem(unsigned idx, uint8_t * pPare
 }
 
 
-// Give name, current count
+// Give name, count
 void cm_contained_aggregate::help(const uint8_t * pItem) const
 {
-    cout << pData->pDesc->getName() << " [" << getCount(pItem) << "]" << endl;;
+    cout << pData->pDesc->getName() << " [" << getCount(pItem) << "]" << endl;
 }
 
 
@@ -868,9 +928,11 @@ void cm_owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) con
         // xxx what happens if there's no counter but maxCount > 1?
         return;
     }
+	
+    DBG_PRT("setCount %s: %d, %d bytes at %p)\n",
+            pData->pDesc->getName().c_str(), count, pCounterAggr->pData->pDesc->getLen(), pParentItem + pCounterAggr->pData->offset);
 
-    DBG_PRT("setCount: %d, %d bytes at %p)\n",
-            count, pCounterAggr->pData->pDesc->getLen(), pParentItem + pCounterAggr->pData->offset);
+    assert(count <= pData->maxCount);
 
     switch (pCounterAggr->pData->pDesc->getLen()) 
     { 
@@ -989,6 +1051,8 @@ uint8_t * cm_owned_aggregate::add(uint8_t * pParentItem) const
     unsigned   cnt     = getCount(pParentItem);
     uint8_t ** ppItems = (uint8_t **)(pParentItem + pData->offset);
 
+    assert(cnt < pData->maxCount);
+
     DBG_PRT("add: %d * %d at %p + %d (%p), currently %p\n",
             cnt+1, pData->pDesc->getLen(), pParentItem, pData->offset, ppItems, *ppItems);
 
@@ -1053,6 +1117,9 @@ void cm_owned_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
 // the current largest item index, and not out-of-range
 uint8_t * cm_owned_aggregate::addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const
 {
+    DBG_PRT("addImplicit %s: idx %d cnt %d\n",
+            pData->pDesc->getName().c_str(), itemIdx, getCount(pParentItem));
+
     if ((itemIdx == getCount(pParentItem)) && (itemIdx < pData->maxCount))
     {
         // Index refers to an item to create

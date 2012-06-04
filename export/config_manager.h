@@ -141,6 +141,7 @@ public:
                           bool & added) const;
     virtual uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const = 0;
     void save(const uint8_t *pItem) const;    
+    t_cm_result load(uint8_t * pParentItem, unsigned & idx, unsigned * pComplete) const;
     virtual void help(const uint8_t * pItem) const = 0;
     virtual uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const = 0;
 
@@ -224,6 +225,11 @@ public:
     virtual void help(const uint8_t * pItem) const;
     void save(const uint8_t * pItem) const;
     t_cm_result load(uint8_t * pItem, unsigned * pComplete) const;
+    t_cm_result loadComponent(uint8_t * pParentItem,
+                              bool & first,
+                              unsigned int & idx,
+                              cm_item_id_t & componentId,
+                              unsigned * pComplete) const;
     bool isPersistent() const { return pData->c.persistent; }
 
 private:
