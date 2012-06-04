@@ -5,6 +5,12 @@ describing the contents of those structures.
 
 Usage: python yaml_code_gen.py [source YAML file]
 
+todo:
+Should we mark items in the ID file that are no longer present in the config file?
+We retain the IDs in the ID file (so this script can avoid re-using them), but
+it could be useful to see what's no longer used in the current config without
+having to compare the config file and the ID file.
+
 """
 
 import yaml
@@ -34,24 +40,28 @@ def getIdHeader(script):
 class Id_generator():
     "Generate IDs for TLV: the data struct of existing IDs in the context is used to avoid allocating IDs that are taken"
     def __init__(self, id_dlist):
-        self.__make_id_list(id_dlist)
+        "id_dlist is a data structure that contains IDs that are already allocated, i.e. not available"
+        self.__make_id_dict(id_dlist)
         
-    def get_id(self):
-        "Generate an ID, but not one that's already in use in the context"
+    def get_id(self, name):
+        "Generate an ID for a name, but not one that's already in use in the context"
         id = 0
-        while id in self.allocated_id:
+        while id in self.allocated_id.values():
             # This int is already allocated, so go to next one
             id = id + 1
-        self.allocated_id.append(id)
+        self.allocated_id[name] = id
         return str(id)
+        
+    def get_ids(self):
+        "Get all IDs in use, newly-generated or not"
+        return self.allocated_id
             
-    def __make_id_list(self, id_dlist):
-        "From more complex data struct, generate a simple list of allocated IDs"
-        self.allocated_id = []
+    def __make_id_dict(self, id_dlist):
+        "From more complex data struct passed to constructor, generate a name:ID dictionary"
+        self.allocated_id = {}
         if id_dlist is not None:
             for d in id_dlist['items']:
-                # d.values is a list containing a single dictionary
-                self.allocated_id.append(d.values()[0]['id'])
+                self.allocated_id[d.keys()[0]] = d.values()[0]['id']
         #print "Start w", self.allocated_id
 
 
@@ -62,7 +72,7 @@ class Item:
             #print d['name'], "has old ID", old_id['id']
             self.id = str(old_id['id'])
         else:
-            self.id = container_id_gen.get_id()
+            self.id = container_id_gen.get_id(d['name'])
             print d['name'], "assigned new ID", self.id
         
     def get_definition(self):
@@ -86,6 +96,10 @@ class Item:
         s += indent + "},\n"
         return s
         
+    def get_component_ids(self):
+        "Implemented by CompositeItem"
+        pass
+        
     
 class SimpleItem(Item):
     def __init__(self, d, container_id_gen, old_id):
@@ -100,11 +114,7 @@ class SimpleItem(Item):
         # Not much to check here -- if the basics like 'name' and 'type' are absent, an exception is raised,
         # maybe even before we get to this point.        
         return True
-        
-    def get_ids(self):
-        "Generate dictionary with key=name, value a dictionary of 'id': value of id"
-        return {self.d['name']: {'id': int(self.id)}}
-            
+                    
     def get_init(self):
         "Return string containing initialization of the metadata"
         s = self.get_metadata_init()
@@ -187,13 +197,26 @@ class CompositeItem(Item):
             aggr.verify()
         return True
         
-    def get_ids(self):
-        "Generate dictionary of IDs, showing IDs assigned in the object hierarchy"
+    def get_component_ids(self):
+        "Get list of component IDs in format used to generate the ID yaml file"
+        component_dict = self.id_gen.get_ids() # This dictionary includes old IDs from ID file
         items = []
-        id_dict = {self.d['name']: {'id': int(self.id), 'items': items}}
-        for aggr in self.aggregates:
-            items.append(aggr.item.get_ids())
-        return id_dict
+        for name in component_dict:
+            # An item in the complete dictionary of IDs from ID generator
+            d = {}
+            d[name] = {"id": component_dict[name]}                
+            try:
+                item = [a.item for a in self.aggregates if a.item.d['name'] == name][0]
+                id_list = item.get_component_ids()
+                if id_list is not None:
+                    # The component is itself composite, so insert its items
+                    d[name]['items'] = id_list
+            except:
+                # Can't find a component item with a matching name -- no longer supported
+                print name, "is no longer in use"
+            items.append(d)
+        return items
+    
             
     def get_definition(self):
         "Return string representing struct definition, including pre-pended definitions of referenced structs"
@@ -390,46 +413,39 @@ def loadCfgData(cfgFileName):
 
 
 def loadIdData(baseFileName):
-    "Read ID data file and return version and dictionary, or None if there's a problem with the input file"
+    "Read ID data file and return dictionary, or None if there's a problem with the input file"
     fname = baseFileName + "_id.yaml"
-    v = None
     data = None
 
     try:
         f = open(fname)
-        d = yaml.load(f)
-        v = d['version']
-        data = d['data']
+        data = yaml.load(f)
     
     except IOError:
         print "Can't open", fname
-    except KeyError:
-        print fname, "is missing mandatory keys!"
     except:
         print fname, "is not a valid YAML file!"
     else:
-        print "Reading ID file", fname, "version", v
-    return v, data
+        print "Reading ID file", fname
+    return data
 
 
-def saveIdData(baseFileName, version, old_id):
-    "If there has been a change in ID data, save it with a new version number."
-    d = {}
-    d['data'] = baseItem.get_ids()
-    if d['data'] == old_id:
-        return
-        
-    if version is None:
-        d['version'] = 0
-    else:
-        d['version'] = version + 1
+def saveIdData(baseFileName):
+    "Save IDs to the ID file, newly allocated ones and ones in the previous ID file."
     fname = baseFileName + "_id.yaml"
-    print "saveIdData: changed, version", d['version'], "in", fname
     f = open(fname, "w")
     f.write(getIdHeader(sys.argv[0]))
-    f.write(yaml.dump(d, default_flow_style=False))
+    f.write(yaml.dump(getIdData(), default_flow_style=False))
+    
+    
+def getIdData():
+    "Get current ID data, newly allocated ones and ones in the previous ID file, in ID file format."
+    # Special case: the top-level item is the only one that doesn't get its ID from a generator object
+    id_dict = {baseItem.d['name']: {'id': int(baseItem.id)}}
+    id_dict[baseItem.d['name']]['items'] = baseItem.get_component_ids()
+    return id_dict
 
-
+    
 if __name__ == "__main__":
     base_item_config = loadCfgData(sys.argv[1])
     if base_item_config is None:
@@ -437,7 +453,7 @@ if __name__ == "__main__":
 
     # Try to get associations between item names and IDs from the ID file
     baseFileName, extension = os.path.splitext(sys.argv[1])
-    version, id_dict = loadIdData(baseFileName)
+    id_dict = loadIdData(baseFileName)
     
     try:
         base_id_dict = id_dict[base_item_config['name']]
@@ -463,5 +479,5 @@ if __name__ == "__main__":
     finit.write(baseItem.get_init())
     finit.close()
     
-    saveIdData(baseFileName, version, id_dict)
+    saveIdData(baseFileName)
     
