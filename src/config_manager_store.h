@@ -22,7 +22,7 @@ public:
     virtual t_cm_result getType(cm_item_id_t * t) = 0;
     virtual t_cm_result loadSimple(uint8_t * pRam, const cm_simple_metadata * data, unsigned * complete) = 0;
     virtual t_cm_result loadComposite() = 0;
-    virtual void skipItem(unsigned * complete) = 0;
+    virtual t_cm_result skipItem(unsigned * complete) = 0;
     static cm_store * getStore();
 
 protected:

@@ -86,10 +86,10 @@ t_cm_result cm_yaml_store::loadComposite()
 }
 
 
-void cm_yaml_store::skipItem(unsigned * complete)
+t_cm_result cm_yaml_store::skipItem(unsigned * complete)
 {
     cout << "cm_yaml_store::skipItem()" << endl;
 
-    yaml->skipItem(complete);
+    return yaml->skipItem(complete);
 }
 

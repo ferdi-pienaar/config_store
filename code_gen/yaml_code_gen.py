@@ -15,7 +15,6 @@ having to compare the config file and the ID file.
 
 import yaml
 import sys
-import time
 import datetime
 import os
 
@@ -44,7 +43,7 @@ class Id_generator():
         self.__make_id_dict(id_dlist)
         
     def get_id(self, name):
-        "Generate an ID for a name, but not one that's already in use in the context"
+        "Generate an int ID for a name, but not one that's already in use in the context"
         id = 0
         while id in self.allocated_id.values():
             # This int is already allocated, so go to next one
@@ -53,7 +52,7 @@ class Id_generator():
         return str(id)
         
     def get_ids(self):
-        "Get all IDs in use, newly-generated or not"
+        "Get the dictionary of name:ID in use, newly-generated or not"
         return self.allocated_id
             
     def __make_id_dict(self, id_dlist):
@@ -61,6 +60,7 @@ class Id_generator():
         self.allocated_id = {}
         if id_dlist is not None:
             for d in id_dlist['items']:
+                # d.values is a list containing a single dictionary
                 self.allocated_id[d.keys()[0]] = d.values()[0]['id']
         #print "Start w", self.allocated_id
 
@@ -124,21 +124,18 @@ class SimpleItem(Item):
     def get_metadata_init(self):
         s = "const cm_simple_metadata " + self.get_metadata_name() + " = \n{\n"
         s += self.get_common_metadata_init()
-        
         s += indent
         if 'set' in self.d:
             s += self.d['set']
         else:
             s += "NULL"
         s += ",\n"
-        
         s += indent
         if 'setdef' in self.d:
             s += self.d['setdef']
         else:
             s += "NULL"
         s += ",\n"
-        
         s += indent
         if 'print' in self.d:
             s += self.d['print']
@@ -174,10 +171,11 @@ class SimpleItem(Item):
         
         
 def get_value_from_dictionary_list(dlist, key):
-    "Helper function: from input list of dictionaries, return the value of dictionary with the desired key (or None)"
+    "Helper function: from list of dictionaries, return the value of 1st dictionary with the desired key (or None)"
     for d in dlist:
         if key in d:
             return d[key]
+    #return [d[key] for d in dlist if key in d][0]
 
       
 class CompositeItem(Item):
@@ -203,7 +201,7 @@ class CompositeItem(Item):
         items = []
         for name in component_dict:
             # An item in the complete dictionary of IDs from ID generator
-            d = {}
+            d = {} # Dictionary of dictionaries: ID, and optionally 'items', a list of item dictionaries
             d[name] = {"id": component_dict[name]}                
             try:
                 item = [a.item for a in self.aggregates if a.item.d['name'] == name][0]
@@ -213,11 +211,10 @@ class CompositeItem(Item):
                     d[name]['items'] = id_list
             except:
                 # Can't find a component item with a matching name -- no longer supported
-                print name, "is no longer in use"
+                print "%s, ID %d, is no longer in use" % (name, component_dict[name])
             items.append(d)
         return items
-    
-            
+
     def get_definition(self):
         "Return string representing struct definition, including pre-pended definitions of referenced structs"
         s = ""
@@ -397,15 +394,12 @@ def loadCfgData(cfgFileName):
     except:
         print "Configuration file name not given."
         return
-        
     print "Reading config file", cfgFileName
     try:
         data = yaml.load(f)
     except:
         print cfgFileName, "is not a YAML file"
-    
     f.close()
-    
     try:
         return data['item']
     except:
@@ -415,19 +409,32 @@ def loadCfgData(cfgFileName):
 def loadIdData(baseFileName):
     "Read ID data file and return dictionary, or None if there's a problem with the input file"
     fname = baseFileName + "_id.yaml"
-    data = None
-
     try:
         f = open(fname)
         data = yaml.load(f)
-    
     except IOError:
         print "Can't open", fname
+        return
     except:
         print fname, "is not a valid YAML file!"
-    else:
-        print "Reading ID file", fname
+        return
+    print "Reading ID file", fname
     return data
+
+    
+def makeBaseItem(baseFileName):
+    "From the config file and the ID file, create objects to generate C++ code and a new ID file."
+    base_item_config = loadCfgData(sys.argv[1])
+    if base_item_config is None:
+        return
+    id_dict = loadIdData(baseFileName)
+    try:
+        base_id_dict = id_dict[base_item_config['name']]
+    except:
+        # The ID data file doesn't exist, is defective, or has no ID for the base item's name
+        print "No", base_item_config['name'], "in ID data file: generating new IDs!"
+        base_id_dict = None
+    return makeItem(base_item_config, Id_generator(None), base_id_dict)
 
 
 def saveIdData(baseFileName):
@@ -444,40 +451,30 @@ def getIdData():
     id_dict = {baseItem.d['name']: {'id': int(baseItem.id)}}
     id_dict[baseItem.d['name']]['items'] = baseItem.get_component_ids()
     return id_dict
-
     
-if __name__ == "__main__":
-    base_item_config = loadCfgData(sys.argv[1])
-    if base_item_config is None:
-        sys.exit()
-
-    # Try to get associations between item names and IDs from the ID file
-    baseFileName, extension = os.path.splitext(sys.argv[1])
-    id_dict = loadIdData(baseFileName)
     
-    try:
-        base_id_dict = id_dict[base_item_config['name']]
-    except:
-        # The ID data file doesn't exist, is defective, or has no ID for the base item's name
-        print "No", base_item_config['name'], "in ID data file: generating new IDs!"
-        base_id_dict = None
-
-    # From the config file and the ID file, create objects that
-    # generate C++ code.
-    baseItem = makeItem(base_item_config, Id_generator(None), base_id_dict)
-    baseItem.verify()
-
-    # Make .h file containing type definitions
+def saveDefinitionFile(baseFileName, baseItem):
+    "Make .h file containing type definitions"
     fdecl = open(baseFileName + ".h", "w")
     fdecl.write(getDeclHeader(sys.argv[0], sys.argv[1]))
     fdecl.write(baseItem.get_definition())
     fdecl.close()
-
-    # Make .cpp file containing definitions and initializations
+    
+    
+def saveInititializationFile(baseFileName, baseItem):
+    "Make .cpp file containing definitions and initializations"
     finit = open(baseFileName + ".cpp", "w")
     finit.write(getInitHeader(sys.argv[0], sys.argv[1]))
     finit.write(baseItem.get_init())
-    finit.close()
+    finit.close()    
     
+    
+if __name__ == "__main__":
+    baseFileName, extension = os.path.splitext(sys.argv[1])
+    baseItem = makeBaseItem(baseFileName)
+    if baseItem == None:
+        sys.exit()
+    baseItem.verify()
+    saveDefinitionFile(baseFileName, baseItem)
+    saveInititializationFile(baseFileName, baseItem)
     saveIdData(baseFileName)
-    

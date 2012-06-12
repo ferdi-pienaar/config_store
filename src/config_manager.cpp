@@ -156,7 +156,6 @@ void config_manager::load()
         base_desc->setDefault(ramBase);
         return;
     }
-
     assert(complete == 0); // We've exited the top-level composite, so nothing can be left
 
     // Reset context, since a reload re-allocates memory and makes current context invalid
@@ -497,8 +496,7 @@ t_cm_result cm_composite_descriptor::loadComponent(uint8_t * pParentItem,
 
     if (pAggr == NULL)
     {
-        config_manager::getInstance()->store->skipItem(pComplete);
-        return CM_SUCCESS;
+        return config_manager::getInstance()->store->skipItem(pComplete);
     }
     return pAggr->load(pParentItem, idx, pComplete);
 }
@@ -584,11 +582,8 @@ bool cm_simple_descriptor::set(uint8_t * pItem, string val) const
     {
         return pData->pSet(pItem, getLen(), val);
     }
-    else
-    {
-        cout << "'" << getName() << "' can't be set." << endl;
-        return false;
-    }
+    cout << "'" << getName() << "' can't be set." << endl;
+    return false;
 }
 
 
@@ -633,21 +628,7 @@ t_cm_result cm_simple_descriptor::load(uint8_t * pItem, unsigned * pComplete) co
 //
 bool cm_aggregate::getIndex(command_stack * cmd, unsigned int & itemIdx) const
 {
-    if (cmd->getCount() > 0)
-    {
-        char * pEnd; // pointer to char after chars accepted by strtoul
-
-        // An index is needed, so try to extract one
-        itemIdx = strtoul(cmd->getTop(), &pEnd, 0);
-
-        if (pEnd > cmd->getTop())
-        {
-            // Success: strtoul read an unsigned integer from the input
-            cmd->pop();
-            return true;
-        }
-    }
-
+    if (cmd->getIndex(itemIdx)) return true;
     cout << "'" << pData->pDesc->getName() << "' needs index." <<endl;
     return false;
 }
@@ -683,19 +664,14 @@ void cm_aggregate::setDefault(uint8_t * pItem) const
 // @param prefix string to be pre-pended to the value, representing its context
 void cm_aggregate::print(const uint8_t * pItem, std::string prefix) const
 {
-    char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
+    char indexbuf[6] = {0}; // xxx big enough to avoid truncation in all cases?
 
     for (unsigned i = 0; i < getCount(pItem); i++)
     {
         if (pData->maxCount > 1)
         {
-            // There's more than one item, so print the index to distinguish among them
+            // There can be more than one item, so print the index to distinguish among them
             snprintf(indexbuf, sizeof(indexbuf), " %d", i);
-        }
-        else
-        {
-            // There's only one item, so we needn't print an index
-            indexbuf[0] = 0;
         }
         pData->pDesc->print(getItemAtIndex(pItem, i),
                             prefix + pData->pDesc->getName() + indexbuf + " ");
@@ -783,16 +759,14 @@ t_cm_result cm_aggregate::load(uint8_t * pParentItem, unsigned & idx, unsigned *
 {
     if (!pData->pDesc->isPersistent())
     {
-        config_manager::getInstance()->store->skipItem(pComplete);
-        return CM_SUCCESS;
+        return config_manager::getInstance()->store->skipItem(pComplete);
     }
 
     uint8_t * pItem = getComponentItem(idx, pParentItem);
     if (pItem == NULL)
     {
         // Memory couldn't be allocated for the item, or out-of-range idx
-        config_manager::getInstance()->store->skipItem(pComplete);
-        return CM_SUCCESS;
+        return config_manager::getInstance()->store->skipItem(pComplete);
     }
 	
     t_cm_result res = pData->pDesc->load(pItem, pComplete);
@@ -1034,7 +1008,6 @@ bool cm_owned_aggregate::handleDel(command_stack * cmd, uint8_t * pItem) const
         cout << "Index " << itemIdx << " out of range (0.. " << cnt-1 << ")." << endl;
         return false;
     }
-
     del(pItem, itemIdx);
     return true;
 }
@@ -1132,9 +1105,8 @@ uint8_t * cm_owned_aggregate::addImplicit(unsigned int itemIdx, uint8_t * pParen
 // From index, return the pointer to component item in this aggregate.
 // Because this function is called during loading, items are created as needed.
 //
-// idx: (in) index of wanted component, 1 larger than
-//           the index previously passed to this method for the
-//           same id in the same composite
+// idx: (in) index of wanted component, 1 larger than the index previously
+//           passed to this method for the same id in the same composite
 // pParentItem: (in) the owning item
 //
 // @return the wanted item, or NULL
@@ -1173,6 +1145,23 @@ command_stack::eCmOp command_stack::getTopOp() const
 
     // If no match, it's not an operation
     return CM_OP_NONE;
+}
+
+
+// extract index from top word in command stack and pop it
+bool command_stack::getIndex(unsigned int & itemIdx)
+{
+    if (count == 0) return false;
+	
+    char * pEnd; // pointer to char after chars accepted by strtoul
+    itemIdx = strtoul(getTop(), &pEnd, 0);
+    if (pEnd == getTop())
+    {
+        // strtoul didn't get an index from the word
+        return false;
+    }
+    pop();
+    return true;
 }
 
 

@@ -351,6 +351,7 @@ public:
     }
 
     eCmOp getTopOp() const;
+    bool getIndex(unsigned int & itemIdx);
     
 private:
     int     count;

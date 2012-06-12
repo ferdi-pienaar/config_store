@@ -140,7 +140,6 @@ t_cm_result Tlv::getType(cm_item_id_t * id)
 //        the load process completely.
 t_cm_result Tlv::loadSimple(uint8_t * pRam, cm_item_len_t * pLength, unsigned * complete)
 {
-    t_cm_result ret = CM_SUCCESS;
     cm_item_len_t length;
     nvram->read((uint8_t *)&length, sizeof(cm_item_len_t));
 
@@ -159,14 +158,8 @@ t_cm_result Tlv::loadSimple(uint8_t * pRam, cm_item_len_t * pLength, unsigned * 
     }
     // Data has been loaded into client RAM
     *pLength = length;
-
     *complete = 0;
-    t_cm_result ret2 = updateContainer(length, complete);
-    if (ret2 != CM_SUCCESS)
-    {
-        return ret2;
-    }
-    return ret;
+    return updateContainer(length, complete);
 }
 
 
@@ -191,7 +184,7 @@ t_cm_result Tlv::loadComposite()
 
 
 // Skip item: should be called after getType() only
-void Tlv::skipItem(unsigned * complete)
+t_cm_result Tlv::skipItem(unsigned * complete)
 {
     cm_item_len_t length;
     nvram->read((uint8_t *)&length, sizeof(cm_item_len_t));
@@ -199,7 +192,7 @@ void Tlv::skipItem(unsigned * complete)
     // Skip over the V of TLV
     nvram->adjustOffset(length);
 
-    updateContainer(length, complete);
+    return updateContainer(length, complete);
 }
 
 
@@ -225,7 +218,7 @@ t_cm_result Tlv::updateContainer(cm_item_len_t length, unsigned * complete)
 {
     if (stackIndex == -1)
     {
-        // Already at bottom of stack: nothing to pop
+        // Already at bottom of stack: nothing to pop, so stop recursing
         return CM_SUCCESS;
     }
     
@@ -248,7 +241,6 @@ t_cm_result Tlv::updateContainer(cm_item_len_t length, unsigned * complete)
     // readBytes == length => component completes its container
     (*complete)++;
     stackIndex--; // Maybe next-level container is also complete...
-    updateContainer(context->length, complete); // update contribution of container to its container
-    return CM_SUCCESS;
+    return updateContainer(context->length, complete); // update contribution of container to its container
 }
 

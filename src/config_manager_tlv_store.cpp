@@ -81,7 +81,7 @@ t_cm_result cm_tlv_store::loadComposite()
 }
 
 
-void cm_tlv_store::skipItem(unsigned * complete)
+t_cm_result cm_tlv_store::skipItem(unsigned * complete)
 {
     tlv->skipItem(complete);
 }

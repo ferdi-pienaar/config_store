@@ -152,7 +152,7 @@ t_cm_result Yaml::loadComposite()
 
 
 // Skip item: should be called after getType() only
-void Yaml::skipItem(unsigned * complete)
+t_cm_result Yaml::skipItem(unsigned * complete)
 {
     cm_item_len_t length;
     nvram->read((uint8_t *)&length, sizeof(cm_item_len_t));
@@ -160,7 +160,7 @@ void Yaml::skipItem(unsigned * complete)
     // Skip over the V of TLV
     nvram->adjustOffset(length);
 
-    updateContainer(length, complete);
+    return updateContainer(length, complete);
 }
 
 

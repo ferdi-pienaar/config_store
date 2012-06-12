@@ -84,3 +84,9 @@ easy...
 
 - The /export directory is not complete, since we also export cm_setdef_null and cm_util...
   Need to clarify what the public interface is, precisely.
+- code_gen_example's makefile should include a dependency on the ID file, as this may
+  be modified by the user
+- Add a specific index, e.g. "add user 0" -- is this worth doing?  It would allow us to
+  insert entries, in lists where the order matters, e.g. encodes priority.
+- Default values don't need to be saved.  Is that worth doing?  Risky?  What if
+  defaults change?

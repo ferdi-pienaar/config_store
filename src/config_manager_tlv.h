@@ -20,7 +20,7 @@ public:
     t_cm_result getType(cm_item_id_t * t);
     t_cm_result loadSimple(uint8_t * pRam, cm_item_len_t * length, unsigned * complete);
     t_cm_result loadComposite();
-    void skipItem(unsigned * complete);
+    t_cm_result skipItem(unsigned * complete);
 
 private:
     // Context used in writing
