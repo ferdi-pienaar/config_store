@@ -18,8 +18,8 @@
 // - getType, then
 // - loadComposite or loadSimple, depending on client's interpretation of the type
 //   returned by getType
-// The client monitors the "complete" field returned by loadSimple to determine if
-// one or more of the composite loads in progress are complete.
+// The client monitors the "complete" field returned by loadSimple and skipItem
+// to determine if one or more of the composite loads in progress are complete.
 //
 
 #include <stdint.h> // uint8_t, etc
@@ -133,7 +133,7 @@ t_cm_result Tlv::getType(cm_item_id_t * id)
 // Load the simple item into the provided memory
 // @param pRam
 // @param length in/out, in: available memory, out: amount of data written to pRam
-// @param containerComplete, out: number of containers complete
+// @param complete, out: number of containers completed
 //
 // @note: if the length is unexpected, we could skip just that item, but it's
 //        simpler to just return an error, presumably forcing the client to abandon
@@ -184,6 +184,9 @@ t_cm_result Tlv::loadComposite()
 
 
 // Skip item: should be called after getType() only
+//
+// @param complete, out: number of containers completed
+//
 t_cm_result Tlv::skipItem(unsigned * complete)
 {
     cm_item_len_t length;
@@ -191,7 +194,7 @@ t_cm_result Tlv::skipItem(unsigned * complete)
 
     // Skip over the V of TLV
     nvram->adjustOffset(length);
-
+    *complete = 0;
     return updateContainer(length, complete);
 }
 

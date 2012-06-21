@@ -301,6 +301,7 @@ private:
     config_manager();
     void save();
     void load();
+    bool loadBaseId();
 
     static config_manager * instance;
     const cm_descriptor * base_desc;    
