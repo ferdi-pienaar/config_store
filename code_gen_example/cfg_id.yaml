@@ -1,0 +1,32 @@
+# This file is both input to and output from ../code_gen/yaml_code_gen.py.  It may be modified,
+# typically to remove an item whose ID may be re-allocated because it is no longer used anywhere.
+device:
+  id: 47792
+  items:
+  - home:
+      id: 4
+      items:
+      - addr:
+          id: 0
+      - location:
+          id: 1
+          items:
+          - lname:
+              id: 0
+  - userCnt:
+      id: 2
+  - ipaddr:
+      id: 0
+  - user:
+      id: 3
+      items:
+      - elapsed:
+          id: 3
+      - id:
+          id: 1
+      - temp:
+          id: 2
+      - name:
+          id: 0
+  - port:
+      id: 1

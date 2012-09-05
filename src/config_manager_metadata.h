@@ -1,6 +1,6 @@
 //
 // Item metadata, i.e. information about the configurable items that are kept in RAM.
-// We place metadata in a structures separate from the descriptor classes,
+// We place metadata in structures separate from the descriptor classes that own them,
 // to make it easy to ensure this constant data is ROMable (the rules for ensuring
 // a class object is ROMable, are very restrictive).
 // This comes at the cost of having an additional level of indirection.
