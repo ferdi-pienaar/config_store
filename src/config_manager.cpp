@@ -6,7 +6,7 @@
 
 #include <stdlib.h> // malloc
 #include <string.h> // memset, strcmp, memcpy
-
+#include <stdint.h> // UINT8_MAX, etc
 
 #include <sstream>
 using namespace std;

@@ -2,6 +2,7 @@
 #define CFG_MAN_YAML_H
 
 #include <stdint.h> // uint8_t, etc
+#include <iostream>
 #include "nvram.h"
 #include "config_manager_types.h"
 

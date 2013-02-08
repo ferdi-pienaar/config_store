@@ -8,7 +8,7 @@
 #define NVRAM_H
 
 #include <stdint.h> // uint8_t, etc
-#include <iostream> // FILE  xxx is this really the file to include for that definition?
+#include <stdio.h> // FILE
  
 
 class Nvram

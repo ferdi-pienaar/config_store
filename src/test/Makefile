@@ -1,9 +1,12 @@
-CXXFLAGS = -Wall -g -I ../../../CppUTest/include -I .. -I ../../export -I ../../stubs
+CPPUTEST_HOME = ../../../CppUTest3.3
+CXXFLAGS = -Wall -g -I $(CPPUTEST_HOME)/include -I .. -I ../../export -I ../../stubs
+# Include some C99 macros that are not part of the C++ standard
+CXXFLAGS += -D __STDC_LIMIT_MACROS
 CXXFLAGS += -D M_DEFINED_STORE_TYPE=TLV_STORE
 #CXXFLAGS += -D M_DEFINED_STORE_TYPE=YAML_STORE
 #CXXFLAGS += -save-temps
 #CXXFLAGS += -D DEBUG_PRINT
-VPATH = .. ../../../CppUTest/lib # so make can find the sources and library
+VPATH = .. $(CPPUTEST_HOME)/lib # so make can find the sources and library
 OBJS = ../config_manager.o ../config_manager_util.o \
  ../config_manager_setdef_null.o ../config_manager_store.o ../nvram.o \
 

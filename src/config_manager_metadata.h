@@ -11,6 +11,7 @@
 #include <stdint.h> // uint8_t, etc
 #include <string>
 #include "config_manager_types.h"
+#include <stdio.h> // FILE
 
 
 // Function pointers -- types registered by user when descriptor is created

@@ -2,7 +2,7 @@
 CFG_MAN_SRC_DIR = ../src/
 CXXFLAGS = -Wall -g -I . -I $(CFG_MAN_SRC_DIR) -I ../export 
 #CXXFLAGS += -save-temps 
-CXXFLAGS += -Wl,-Map=output.map
+#CXXFLAGS += -Wl,-Map=output.map # pass option to linker
 VPATH = $(CFG_MAN_SRC_DIR) # so make can find the library
 
 test_cfg1: \
