@@ -235,7 +235,7 @@ bool cm_composite_descriptor::handleCmd(command_stack * cmd,
         default:
             break;
     }
-    cout << "Command '" << cmd->getTop() << "' not handled in composite item '" << getName() << "'" << endl;
+    cout<<"Command '"<<cmd->getTop()<< "' not handled in composite item '"<<getName()<<"'"<<endl;
     return false;
 }
 
@@ -247,7 +247,7 @@ bool cm_composite_descriptor::handleCmd(command_stack * cmd,
 //
 bool cm_composite_descriptor::handleIdWord(command_stack * cmd, uint8_t * pItem) const
 {
-    const cm_aggregate * pAggr = getAggr(cmd->getTop()); // Component of this composite identified by cmd
+    const cm_aggregate * pAggr = getAggr(cmd->getTop()); // Component that is identified by cmd
 
     if (pAggr == NULL)
     {
@@ -575,7 +575,7 @@ bool cm_simple_descriptor::handleCmd(command_stack * cmd, uint8_t * pItem) const
             return true; // true?
 
         default:
-            cout << "'" << cmd->getTop() << "' not handled by simple item '" << getName() << "'" << endl;
+            cout<<"'"<<cmd->getTop()<< "' not handled by simple item '"<<getName()<<"'"<<endl;
     }
     return false;
 }
@@ -709,16 +709,13 @@ bool cm_aggregate::getComponentItem(command_stack * cmd,
     if (pData->maxCount > 1)
     {
         // There can be more than one instance, so we need an explicit index
-        if (getIndex(cmd, itemIdx))
-        {
-            // Index is available: add it to the context string
-            config_manager::getInstance()->candidateCtxt.add(itemIdx);
-        }
-        else
+        if (!getIndex(cmd, itemIdx))
         {
             // The necessary index was not in the command
             return false;
         }
+        // Index is available: add it to the context string
+        config_manager::getInstance()->candidateCtxt.add(itemIdx);
     }
 
     DBG_PRT("getComponentItem %p offset %d idx %d cnt %d len %d\n",
@@ -911,7 +908,7 @@ void cm_owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) con
         return;
     }
 
-    DBG_PRT("setCount %s: %d, %d bytes at %p)\n",
+    DBG_PRT("setCount %s: %d, %d bytes at %p\n",
             pData->pDesc->getName().c_str(), count,
             pCounterAggr->pData->pDesc->getLen(), pParentItem + pCounterAggr->pData->offset);
 
@@ -977,7 +974,7 @@ bool cm_owned_aggregate::handleAdd(uint8_t * pItem) const
 {
     if (getCount(pItem) >= pData->maxCount)
     {
-        cout<<"Can't add '" << pData->pDesc->getName() << "' (max " << pData->maxCount << ")." << endl;
+        cout<<"Can't add '"<<pData->pDesc->getName()<<"' (max "<<pData->maxCount<<")."<<endl;
         return false;
     }
 
@@ -1038,7 +1035,7 @@ uint8_t * cm_owned_aggregate::add(uint8_t * pParentItem) const
 
     if (pNewMem == NULL)
     {
-        cout << "No " << pData->pDesc->getLen() << " for " << pData->pDesc->getName() << endl;
+        cout<<"No "<<pData->pDesc->getLen()<<" for "<<pData->pDesc->getName()<<endl;
         return NULL;
     }
 
@@ -1091,8 +1088,8 @@ void cm_owned_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
 }
 
 
-// Implicit add is successful if the index is one larger than
-// the current largest item index, and not out-of-range
+// Implicit add succeeds if the index is one larger than the current
+// largest item index, and in-range
 uint8_t * cm_owned_aggregate::addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const
 {
     DBG_PRT("addImplicit %s: idx %d cnt %d\n",
@@ -1125,7 +1122,7 @@ uint8_t * cm_owned_aggregate::getComponentItem(unsigned idx, uint8_t * pParentIt
 // Give name, current count, and maxcount.
 void cm_owned_aggregate::help(const uint8_t * pItem) const
 {
-    cout << pData->pDesc->getName() << " [" << getCount(pItem) << "/" << pData->maxCount << "]" << endl;
+    cout<<pData->pDesc->getName()<<" [" << getCount(pItem)<<"/"<<pData->maxCount<< "]"<<endl;
 }
 
 

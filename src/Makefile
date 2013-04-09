@@ -22,9 +22,7 @@ clean:
 	rm -f *o
 
 # Auto-generate dependencies using gcc's MM option -- see 'Managing Projects with GNU Make'
-include config_manager_setdef_null.d config_manager.d nvram.d config_manager_yaml.d \
- config_manager_tlv.d config_manager_yaml_store.d config_manager_tlv_store.d \
- config_manager_store.d config_manager_util.d
+include $(subst .o,.d,$(OBJS))
 
 %.d: %.cpp
 	$(CXX) -MM $(CXXFLAGS) $< > $@.$$$$; \
