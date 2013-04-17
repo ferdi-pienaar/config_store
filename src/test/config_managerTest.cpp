@@ -9,25 +9,15 @@
 // 
 
 #include "CppUTest/TestHarness.h"
-#include "CppUTest/CommandLineTestRunner.h"
 #include "config_manager.h"       // Unit under test
 #include "config_manager_util.h"  // Extensions to unit under test (generic "set" functions)
 #include "config_manager_setdef_null.h" // generic setdef function
+#include "nvram_spy.h"
 
 #include <string>
 #include <string.h> // memcmp, strncmp, etc
 
-#define CFG_FILE_NAME "cfg.bin" // xxx don't duplicate this here!!
-
-
 using namespace std;
-
-
-int main(int argc, char** argv)
-{
-    return RUN_ALL_TESTS(argc, argv);
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // test set 1, CONTAINED
@@ -67,14 +57,13 @@ const cm_composite_descriptor c1(&c1_d);
 
 TEST_GROUP(contained)
 {
-    FILE *           fp;
     config_manager * cm;
 
     //Define data accessible to test group members here.
     void setup()
     {
         cm = config_manager::getInstance();
-
+        nvram_spy_init();
     }
     
     void teardown()
@@ -91,25 +80,13 @@ TEST(contained, save)
     /* The following assumes little-endian integers */
     /*T    L     T    L    V        T    L    V    */
     { 1,0, 16,0, 1,0, 4,0, 0,0,0,0, 2,0, 4,0, 7,0,0,0};
-    uint8_t actualTlv [20];
-
-    // Remove the bin file to ensure RAM is init'd with default values
-    remove(CFG_FILE_NAME);
 
     cm->init(&c1);
 
     char * commandWord[] = {(char *)"save"};
     cm->handleCmd(1, commandWord);
 
-    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fread(actualTlv, sizeof(actualTlv), 1, fp);
-
-    CHECK(memcmp(expectedTlv, actualTlv, sizeof(expectedTlv)) == 0);
-    fclose(fp);
+    CHECK(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
 }
 
 
@@ -123,13 +100,7 @@ TEST(contained, load)
 
 
     /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);
+    nvram_spy_set(tlv, sizeof(tlv));
 
     cm->init(&c1);
 
@@ -149,13 +120,7 @@ TEST(contained, loadChangedSimpleLen)
 
 
     /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);
+    nvram_spy_set(tlv, sizeof(tlv));
 
     cm->init(&c1);
 
@@ -178,17 +143,10 @@ TEST(contained, loadUnknown)
     /* The following assumes little-endian integers */
     /*T    L     T    L    V        T    L    V    */
     { 1,0, 16,0, 1,0, 4,0, 0,0,0,0, 2,0, 4,0, 0,0,0,0};
-    uint8_t savedTlv[20];
 
 
     /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);    
+    nvram_spy_set(tlv, sizeof(tlv));
 
     cm->init(&c1);
 
@@ -196,15 +154,7 @@ TEST(contained, loadUnknown)
     cm->handleCmd(1, commandWord);
 
     // See what CM made of the file it loaded
-    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fread(savedTlv, sizeof(savedTlv), 1, fp);
-
-    CHECK(memcmp(expectedTlv, savedTlv, sizeof(savedTlv)) == 0);
-    fclose(fp);    
+    CHECK(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
 }
 
 
@@ -221,17 +171,10 @@ TEST(contained, loadMissing)
     /* The following assumes little-endian integers */
     /*T    L     T    L    V        T    L    V    */
     { 1,0, 16,0, 1,0, 4,0, 0,0,0,0, 2,0, 4,0, 0,0,0,0};
-    uint8_t savedTlv[20];
 
 
     /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);    
+    nvram_spy_set(tlv, sizeof(tlv));
 
     cm->init(&c1);
 
@@ -239,15 +182,7 @@ TEST(contained, loadMissing)
     cm->handleCmd(1, commandWord);
 
     // See what CM made of the file it loaded
-    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fread(savedTlv, sizeof(savedTlv), 1, fp);
-
-    CHECK(memcmp(expectedTlv, savedTlv, sizeof(savedTlv)) == 0);
-    fclose(fp);    
+    CHECK(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
 }
 
 
@@ -262,13 +197,7 @@ TEST(contained, loadTruncated)
 
 
     /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);
+    nvram_spy_set(tlv, sizeof(tlv));
 
     cm->init(&c1);
 
@@ -288,13 +217,7 @@ TEST(contained, loadTruncated1)
 
 
     /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);
+    nvram_spy_set(tlv, sizeof(tlv));
 
     cm->init(&c1);
 
@@ -314,13 +237,7 @@ TEST(contained, loadTruncated2)
 
 
     /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);
+    nvram_spy_set(tlv, sizeof(tlv));
 
     cm->init(&c1);
 
@@ -341,13 +258,7 @@ TEST(contained, loadIncoherent)
 
 
     /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);
+    nvram_spy_set(tlv, sizeof(tlv));
 
     cm->init(&c1);
 
@@ -368,13 +279,7 @@ TEST(contained, loadIncoherent1)
 
 
     /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);
+    nvram_spy_set(tlv, sizeof(tlv));
 
     cm->init(&c1);
 
@@ -412,14 +317,13 @@ const cm_composite_descriptor c2(&c2_d);
 
 TEST_GROUP(owned)
 {
-    FILE *           fp;
     config_manager * cm;
 
     //Define data accessible to test group members here.
     void setup()
     {
         cm = config_manager::getInstance();
-
+        nvram_spy_init();
     }
     
     void teardown()
@@ -438,13 +342,7 @@ TEST(owned, load)
 
 
     /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);
+    nvram_spy_set(tlv, sizeof(tlv));
 
     cm->init(&c2);
 
@@ -466,17 +364,10 @@ TEST(owned, loadTooMany)
     /* The following assumes little-endian integers */
     /*T    L     T    L    V        T    L    V    */
     { 1,0, 16,0, 4,0, 4,0, 7,0,0,0, 4,0, 4,0, 8,0,0,0};
-    uint8_t savedTlv[20];
 
 
     /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);    
+    nvram_spy_set(tlv, sizeof(tlv));
 
     cm->init(&c2);
 
@@ -486,15 +377,7 @@ TEST(owned, loadTooMany)
     cm->handleCmd(1, commandWord);
 
     // See what CM made of the file it loaded
-    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fread(savedTlv, sizeof(savedTlv), 1, fp);
-
-    CHECK(memcmp(expectedTlv, savedTlv, sizeof(savedTlv)) == 0);
-    fclose(fp);    
+    CHECK(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
 }
 
 
@@ -510,13 +393,7 @@ TEST(owned, loadNonPersistent)
 
 
     /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);
+    nvram_spy_set(tlv, sizeof(tlv));
 
     cm->init(&c2);
 
@@ -533,26 +410,13 @@ TEST(owned, save)
     /* The following assumes little-endian integers */
     /*T    L     T    L    V        T    L    V    */
     {};
-    uint8_t actualTlv [4];
-
-
-    // Remove the bin file to ensure RAM is init'd with default values
-    remove(CFG_FILE_NAME);    
 
     cm->init(&c2);
 
     char * commandWord[] = {(char *)"save"};
     cm->handleCmd(1, commandWord);
 
-    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fread(actualTlv, sizeof(actualTlv), 1, fp);
-
-    CHECK(memcmp(expectedTlv, actualTlv, sizeof(expectedTlv)) == 0);
-    fclose(fp);    
+    CHECK(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
 }
 
 
@@ -563,11 +427,6 @@ TEST(owned, implicitAdd)
     /* The following assumes little-endian integers */
     /*T    L    T    L    V    */
     { 1,0, 8,0, 4,0, 4,0, 0,0,0,0};
-    uint8_t actualTlv [12];
-
-
-    // Remove the bin file to ensure RAM is init'd with default values
-    remove(CFG_FILE_NAME);    
 
     cm->init(&c2);
 
@@ -582,15 +441,7 @@ TEST(owned, implicitAdd)
     char * commandWord2[] = {(char *)"save"};
     cm->handleCmd(1, commandWord2);
 
-    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fread(actualTlv, sizeof(actualTlv), 1, fp);
-
-    CHECK(memcmp(expectedTlv, actualTlv, sizeof(expectedTlv)) == 0);
-    fclose(fp);
+    CHECK(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
 }
 
 
@@ -601,11 +452,6 @@ TEST(owned, implicitAddnSet)
     /* The following assumes little-endian integers */
     /*T    L    T    L    V    */
     { 1,0, 8,0, 4,0, 4,0, 7,0,0,0};
-    uint8_t actualTlv [12];
-
-
-    // Remove the bin file to ensure RAM is init'd with default values
-    remove(CFG_FILE_NAME);    
 
     cm->init(&c2);
 
@@ -621,15 +467,7 @@ TEST(owned, implicitAddnSet)
     char * commandWord2[] = {(char *)"save"};
     cm->handleCmd(1, commandWord2);
 
-    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fread(actualTlv, sizeof(actualTlv), 1, fp);
-
-    CHECK(memcmp(expectedTlv, actualTlv, sizeof(expectedTlv)) == 0);
-    fclose(fp);    
+    CHECK(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
 }
 
 
@@ -640,11 +478,7 @@ TEST(owned, explicitAdd)
     /* The following assumes little-endian integers */
     /*T    L    T    L    V    */
     { 1,0, 8,0, 4,0, 4,0, 0,0,0,0};
-    uint8_t actualTlv [12];
 
-
-    // Remove the bin file to ensure RAM is init'd with default values
-    remove(CFG_FILE_NAME);    
 
     cm->init(&c2);
 
@@ -660,15 +494,7 @@ TEST(owned, explicitAdd)
     char * commandWord2[] = {(char *)"save"};
     cm->handleCmd(1, commandWord2);
 
-    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fread(actualTlv, sizeof(actualTlv), 1, fp);
-
-    CHECK(memcmp(expectedTlv, actualTlv, sizeof(expectedTlv)) == 0);
-    fclose(fp);    
+    CHECK(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
 }
 
 
@@ -686,17 +512,10 @@ TEST(owned, del)
     /* The following assumes little-endian integers */
     /*T    L  */
     {};
-    uint8_t savedTlv[0];
 
 
     /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);
+    nvram_spy_set(tlv, sizeof(tlv));
 
     cm->init(&c2);
 
@@ -713,15 +532,7 @@ TEST(owned, del)
     cm->handleCmd(1, commandWord2);
 
     // See what CM made of the file it loaded
-    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fread(savedTlv, sizeof(savedTlv), 1, fp);
-
-    CHECK(memcmp(expectedTlv, savedTlv, sizeof(savedTlv)) == 0);
-    fclose(fp);
+    CHECK(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
 }
 
 
@@ -748,14 +559,13 @@ const cm_composite_descriptor c3(&c3_d);
 
 TEST_GROUP(containedArray)
 {
-    FILE *           fp;
     config_manager * cm;
 
     //Define data accessible to test group members here.
     void setup()
     {
         cm = config_manager::getInstance();
-
+        nvram_spy_init();
     }
     
     void teardown()
@@ -772,20 +582,11 @@ TEST(containedArray, load)
     /*T    L     T    L    V    T    L    V */
     { 1,0, 12,0, 1,0, 2,0, 7,0, 1,0, 2,0, 8,0};
 
-
     /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);
-
+    nvram_spy_set(tlv, sizeof(tlv));
     cm->init(&c3);
-
-    CHECK(GET_C3_CONFIG->m1[0] == 7);
-    CHECK(GET_C3_CONFIG->m1[1] == 8);
+    LONGS_EQUAL(7, GET_C3_CONFIG->m1[0]);
+    LONGS_EQUAL(8, GET_C3_CONFIG->m1[1]);
 }
 
 
@@ -801,17 +602,9 @@ TEST(containedArray, loadTooMany)
     /* The following assumes little-endian integers */
     /*T    L     T    L    V    T    L    V    */
     { 1,0, 12,0, 1,0, 2,0, 7,0, 1,0, 2,0, 8,0};
-    uint8_t savedTlv[16];
-
 
     /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);    
+    nvram_spy_set(tlv, sizeof(tlv));
 
     cm->init(&c3);
 
@@ -819,15 +612,7 @@ TEST(containedArray, loadTooMany)
     cm->handleCmd(1, commandWord);
 
     // See what CM made of the file it loaded
-    if ((fp = fopen(CFG_FILE_NAME, "rb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fread(savedTlv, sizeof(savedTlv), 1, fp);
-
-    CHECK(memcmp(expectedTlv, savedTlv, sizeof(savedTlv)) == 0);
-    fclose(fp);    
+    CHECK(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
 }
 
 
@@ -840,7 +625,6 @@ struct m6
 {
     short int m1[T6_ARRAY_SIZE];
     short int m2[T7_ARRAY_SIZE];
-
 };
 
 // test set 4 metadata
@@ -862,14 +646,13 @@ const cm_composite_descriptor c4(&c4_d);
 
 TEST_GROUP(containedArrays)
 {
-    FILE *           fp;
     config_manager * cm;
 
     //Define data accessible to test group members here.
     void setup()
     {
         cm = config_manager::getInstance();
-
+        nvram_spy_init();
     }
     
     void teardown()
@@ -880,7 +663,6 @@ TEST_GROUP(containedArrays)
 
 
 // Verify what's loaded into memory, given TLV file that's read on startup.
-// Verify what's loaded into memory, given TLV file that's read on startup.
 TEST(containedArrays, load)
 {    
     uint8_t tlv[28] =
@@ -888,22 +670,12 @@ TEST(containedArrays, load)
     /*T    L     T    L    V    T    L    V    T    L    V    T    L    V */
     { 1,0, 24,0, 1,0, 2,0, 4,0, 1,0, 2,0, 5,0, 2,0, 2,0, 6,0, 2,0, 2,0, 7,0};
 
-
-    /* Create config file to be loaded */
-    if ((fp = fopen(CFG_FILE_NAME, "wb")) == NULL)
-    {
-        FAIL("Couldn't open file");
-    }
-
-    fwrite(tlv, sizeof(tlv), 1, fp);
-    fclose(fp);
+    nvram_spy_set(tlv, sizeof(tlv));
 
     cm->init(&c4);
 
-    CHECK(GET_C4_CONFIG->m1[0] == 4);
-    CHECK(GET_C4_CONFIG->m1[1] == 5);
-    CHECK(GET_C4_CONFIG->m2[0] == 6);
-    CHECK(GET_C4_CONFIG->m2[1] == 7);
+    LONGS_EQUAL(4, GET_C4_CONFIG->m1[0]);
+    LONGS_EQUAL(5, GET_C4_CONFIG->m1[1]);
+    LONGS_EQUAL(6, GET_C4_CONFIG->m2[0]);
+    LONGS_EQUAL(7, GET_C4_CONFIG->m2[1]);
 }
-
-

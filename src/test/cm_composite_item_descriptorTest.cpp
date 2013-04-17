@@ -1,16 +1,14 @@
 // Unit test using open-source unit test framework
 // These tests use the cm_composite_descriptor's public interface
-// to test it.  This includes redirecting to a file the UUT's output to stdout,
-// so that it can be read from the file and compared to the
-// expected output.
+// to test it, and a spy to verify what the CUT prints to its console.
 // We also read/write the items themselves.
 //
 
 
 #include "CppUTest/TestHarness.h"
-#include "CppUTest/CommandLineTestRunner.h"
 #include "config_manager.h"       // Unit under test
 #include "config_manager_util.h"  // Extensions to unit under test (generic "set" functions)
+#include "config_manager_printf_spy.h"
 
 #include <string>
 #include <stdlib.h> // malloc
@@ -18,12 +16,6 @@
 
 
 using namespace std;
-
-
-int main(int argc, char** argv)
-{
-    return RUN_ALL_TESTS(argc, argv);
-}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -85,13 +77,14 @@ const cm_composite_metadata c1_d = {{"c1", 1, sizeof(struct m), true}, aggrList1
 const cm_composite_descriptor c1(&c1_d);
 
 
-TEST_GROUP(contained)
+TEST_GROUP(cm_composite_descriptor_contained)
 {
     struct m mem;
     
     void setup()
     {
         memset(&mem, 0, sizeof(mem));
+        cm_printf_spy_init();
     }
     
     void teardown()
@@ -101,28 +94,18 @@ TEST_GROUP(contained)
 };
 
 
-TEST(contained, print)
+TEST(cm_composite_descriptor_contained, print)
 {
     string prefix = "";
-    char outstring[64];
+    const char * expected =
+        "name1 = 03000000\n"
+        "name2 = 05000000\n";
 
     mem.m1 = 3;
     mem.m2 = 5;
 
-    // Redirect STDOUT to a file, so the test can examine what UUT writes there
-    if (freopen("testout.txt", "w", stdout) == NULL)
-    {
-        cout << "redirecting stdout failed" << endl;
-    }
     c1.print((uint8_t *)&mem, prefix);
-
-    freopen("/dev/console", "w", stdout);
-
-    FILE * resf = fopen("testout.txt", "r");
-    fgets(outstring, sizeof(outstring), resf);
-    CHECK(strncmp(outstring, "name1 = 03000000\n", sizeof(outstring)) == 0);
-    fgets(outstring, sizeof(outstring), resf);
-    CHECK(strncmp(outstring, "name2 = 05000000\n", sizeof(outstring)) == 0);
+    STRCMP_EQUAL(expected, cm_printf_spy_get());
 }
 
 
@@ -160,7 +143,7 @@ const cm_composite_metadata c2_d = {{"c2", 1, sizeof(struct m2), true}, aggrList
 const cm_composite_descriptor c2(&c2_d);
 
 
-TEST_GROUP(owned)
+TEST_GROUP(cm_composite_descriptor_owned)
 {
     struct m2 mem;
     
@@ -168,6 +151,7 @@ TEST_GROUP(owned)
     {
         memset(&mem, 0, sizeof(mem));
         setdef_spy_calls = 0;
+        cm_printf_spy_init();
     }
     
     void teardown()
@@ -178,59 +162,37 @@ TEST_GROUP(owned)
 
 
 // Owned component in metadata, but not allocated
-TEST(owned, printNull)
+TEST(cm_composite_descriptor_owned, printNull)
 {
     string prefix = "";
-    char outstring[64];
+    char * expected =
+        "count = 00000000\n";
 
-    
-    // Redirect STDOUT to a file, so the test can examine what UUT writes there
-    if (freopen("testout.txt", "w", stdout) == NULL)
-    {
-        cout << "redirecting stdout failed" << endl;
-    }
     c2.print((uint8_t *)&mem, prefix);
-
-    freopen("/dev/console", "w", stdout);
-
-    FILE * resf = fopen("testout.txt", "r");
-    fgets(outstring, sizeof(outstring), resf);
-    CHECK(strncmp(outstring, "count = 00000000\n", sizeof(outstring)) == 0);
+    STRCMP_EQUAL(expected, cm_printf_spy_get());
 }
 
 
 // Owned component in metadata, correctly allocated
-TEST(owned, printData)
+TEST(cm_composite_descriptor_owned, printData)
 {
     const unsigned NUM_OWNED = 2;
 
     string prefix = "";
-    char outstring[64];
+    char * expected =
+        "count = 02000000\n"
+        "owned 0 = 07000000\n"
+        "owned 1 = 08000000\n";
     int owned[NUM_OWNED] = {7, 8};
     mem.cnt = NUM_OWNED;
     mem.owned = owned;
     
-    
-    // Redirect STDOUT to a file, so the test can examine what UUT writes there
-    if (freopen("testout.txt", "w", stdout) == NULL)
-    {
-        cout << "redirecting stdout failed" << endl;
-    }
     c2.print((uint8_t *)&mem, prefix);
-
-    freopen("/dev/console", "w", stdout);
-
-    FILE * resf = fopen("testout.txt", "r");
-    fgets(outstring, sizeof(outstring), resf);
-    CHECK(strncmp(outstring, "count = 02000000\n", sizeof(outstring)) == 0);
-    fgets(outstring, sizeof(outstring), resf);
-    CHECK(strncmp(outstring, "owned 0 = 07000000\n", sizeof(outstring)) == 0);
-    fgets(outstring, sizeof(outstring), resf);
-    CHECK(strncmp(outstring, "owned 1 = 08000000\n", sizeof(outstring)) == 0);
+    STRCMP_EQUAL(expected, cm_printf_spy_get());
 }
 
 
-TEST(owned, addFirst)
+TEST(cm_composite_descriptor_owned, addFirst)
 {
     char * commandWord[] = {(char *)"add", (char *)"owned"};
     command_stack cmd(2, commandWord);
@@ -246,7 +208,7 @@ TEST(owned, addFirst)
 }
 
 
-TEST(owned, addAnother)
+TEST(cm_composite_descriptor_owned, addAnother)
 {
     char * commandWord[] = {(char *)"add", (char *)"owned"};
     command_stack cmd1(2, commandWord);
@@ -265,7 +227,7 @@ TEST(owned, addAnother)
 }
 
 
-TEST(owned, delNull)
+TEST(cm_composite_descriptor_owned, delNull)
 {
     char * commandWord[] = {(char *)"del", (char *)"owned", (char *)"1"};
     command_stack cmd(3, commandWord);
@@ -278,7 +240,7 @@ TEST(owned, delNull)
 
 
 // Delete the 2nd of two owned items; the first is unchanged
-TEST(owned, delEnd)
+TEST(cm_composite_descriptor_owned, delEnd)
 {
     char * commandWord[] = {(char *)"del", (char *)"owned", (char *)"1"};
     command_stack cmd(3, commandWord);
@@ -300,7 +262,7 @@ TEST(owned, delEnd)
 
 
 // Delete the 1st of two owned items; the 2nd moves down
-TEST(owned, delFirst)
+TEST(cm_composite_descriptor_owned, delFirst)
 {
     char * commandWord[] = {(char *)"del", (char *)"owned", (char *)"0"};
     command_stack cmd(3, commandWord);
@@ -322,7 +284,7 @@ TEST(owned, delFirst)
 }
 
 
-TEST(owned, delSingle)
+TEST(cm_composite_descriptor_owned, delSingle)
 {
     char * commandWord[] = {(char *)"del", (char *)"owned", (char *)"0"};
     command_stack cmd(3, commandWord);
@@ -343,7 +305,7 @@ TEST(owned, delSingle)
 
 
 // Allocate memory as side-effect of set command
-TEST(owned, implicitAdd)
+TEST(cm_composite_descriptor_owned, implicitAdd)
 {
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"=", (char *)"42"};
     command_stack cmd(4, commandWord);
@@ -358,7 +320,7 @@ TEST(owned, implicitAdd)
  
 
 // Do not (permanently) allocate memory as side-effect of executing invalid command
-TEST(owned, implicitAddFail)
+TEST(cm_composite_descriptor_owned, implicitAddFail)
 {
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"blabla"};
     command_stack cmd(3, commandWord);
@@ -372,7 +334,7 @@ TEST(owned, implicitAddFail)
 
 
 // Setting to default frees items
-TEST(owned, setdef)
+TEST(cm_composite_descriptor_owned, setdef)
 {
     const unsigned NUM_OWNED = 2;
 

@@ -7,47 +7,22 @@ CXXFLAGS += -D M_DEFINED_STORE_TYPE=TLV_STORE
 #CXXFLAGS += -save-temps
 #CXXFLAGS += -D DEBUG_PRINT
 VPATH = .. $(CPPUTEST_HOME)/lib # so make can find the sources and library
-OBJS = ../config_manager.o ../config_manager_util.o \
- ../config_manager_setdef_null.o ../config_manager_store.o ../nvram.o \
+MOCK_OBJS = ../../stubs/nvram_spy.o ../../stubs/config_manager_printf_spy.o
+TEST_OBJS = AllTests.o \
+ cm_tlvTest.o \
+ cm_simple_item_descriptorTest.o \
+ config_managerTest.o \
+ cm_composite_item_descriptorTest.o
 
-OBJS += ../config_manager_tlv_store.o ../config_manager_tlv.o
-
-OBJS += ../config_manager_yaml_store.o ../config_manager_yaml.o
-
-OBJSTLV = ../config_manager_tlv.o ../../stubs/nvram_spy.o
-
-all: simpleTestTag compositeTestTag tlvTestTag cmTestTag
-
-# Execute tests, only if executable is new -- the empty tag files timestamp the last time the test ran
-simpleTestTag: cm_simple_item_descriptorTest
-	./cm_simple_item_descriptorTest
-	touch simpleTestTag
-
-compositeTestTag: cm_composite_item_descriptorTest
-	./cm_composite_item_descriptorTest
-	touch compositeTestTag
-
-tlvTestTag: cm_tlvTest
-	./cm_tlvTest
-	touch tlvTestTag
-
-cmTestTag: config_managerTest
-	./config_managerTest
-	touch cmTestTag
+# Execute tests, only if executable is new -- the empty tag file timestamps the last time the test ran
+testTag: cm_test
+	./cm_test
+	touch testTag
 
 # Make unit tests, using CppUTest framework
 # Note that make has special support for the -l<NAME> syntax: it looks for a library called lib<NAME>.a
 # or lib<NAME>.so
-cm_simple_item_descriptorTest: $(OBJS) cm_simple_item_descriptorTest.o -lCppUTest
-	$(CXX) $(CXXFLAGS) $^ -o $@
-
-cm_composite_item_descriptorTest: $(OBJS) cm_composite_item_descriptorTest.o -lCppUTest
-	$(CXX) $(CXXFLAGS) $^ -o $@
-
-config_managerTest: $(OBJS) config_managerTest.o -lCppUTest
-	$(CXX) $(CXXFLAGS) $^ -o $@
-
-cm_tlvTest: $(OBJSTLV) cm_tlvTest.o -lCppUTest
+cm_test: $(MOCK_OBJS) $(TEST_OBJS) -lCppUTest -lCfgMan 
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 .PHONY: clean
@@ -67,4 +42,5 @@ include config_manager_setdef_null.d config_manager.d nvram.d config_manager_yam
 	$(CXX) -MM $(CXXFLAGS) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$
+
 

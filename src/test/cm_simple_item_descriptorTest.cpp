@@ -1,15 +1,13 @@
 // Unit test using open-source unit test framework
 // These tests use the cm_simple_descriptor's public interface
-// to test it.  This includes redirecting to a file the UUT's output to stdout,
-// so that it can be read from the file and compared to the
-// expected output.
+// to test it, and a spy to verify what the CUT prints to its console.
 // We also read/write the items themselves. 
 //
 
 #include "CppUTest/TestHarness.h"
-#include "CppUTest/CommandLineTestRunner.h"
 #include "config_manager.h"  // Unit under test
 #include "config_manager_util.h"     // Extensions to unit under test (generic "set" functions)
+#include "config_manager_printf_spy.h"
 #include <string.h> // strncmp
 
 #include <string>
@@ -23,12 +21,6 @@ void setint11(uint8_t *pItem, cm_item_len_t len)
     assert(len == sizeof(int));
 
     *((int *)pItem) = 11;
-}    
-
-
-int main(int argc, char** argv)
-{
-    return RUN_ALL_TESTS(argc, argv);
 }
 
 
@@ -64,21 +56,8 @@ TEST(cm_simple_descriptor, print)
     cm_simple_metadata d_d = {{"d01", 1 , sizeof(mem), true}, NULL, NULL, NULL};
 
     cm_simple_descriptor d(&d_d);
-
-    // Redirect STDOUT to a file, so the test can examine what UUT writes there
-    if (freopen("testout.txt", "w", stdout) == NULL)
-    {
-        cout << "redirecting stdout failed" << endl;
-    }
     d.print((uint8_t *)&mem, prefix);
-
-    // I tried using /dev/stdout instead of /dev/console -- that didn't work (no output to console was produced)
-    freopen("/dev/console", "w", stdout);
-
-    // xxx Reading from a file and comparing the contents could be re-implemented as an assert method
-    FILE * resf = fopen("testout.txt", "r");
-    fgets(outstring, sizeof(outstring), resf);
-    STRCMP_EQUAL("= 07000000\n", outstring);
+    STRCMP_EQUAL("= 07000000\n", cm_printf_spy_get());
 }
 
 

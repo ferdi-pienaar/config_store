@@ -83,7 +83,7 @@ public:
     virtual ~cm_descriptor(){}
 
     virtual bool handleCmd(command_stack * cmd, uint8_t * pItem) const = 0;
-    virtual std::string getName() const = 0;
+    virtual const char * getName() const = 0;
     virtual cm_item_id_t getId() const = 0;
     virtual void save(const uint8_t * pItem) const = 0;
     virtual t_cm_result load(uint8_t * pItem, unsigned * pComplete) const = 0;
@@ -216,7 +216,7 @@ class cm_composite_descriptor : public cm_descriptor
 public:    
     cm_composite_descriptor(const cm_composite_metadata * pMeta);
     ~cm_composite_descriptor(){};
-    std::string getName() const {return pData->c.name;}
+    const char * getName() const {return pData->c.name;}
     virtual cm_item_id_t getId() const {return pData->c.id;}
     virtual cm_item_len_t getLen() const {return pData->c.len;}
     bool handleCmd(command_stack * cmd, uint8_t * pItem) const;
@@ -255,7 +255,7 @@ public:
     cm_simple_descriptor(const cm_simple_metadata * pMeta);
     virtual ~cm_simple_descriptor() {}
     bool handleCmd(command_stack * cmd, uint8_t * pItem) const;
-    std::string getName() const {return pData->c.name;}
+    const char * getName() const {return pData->c.name;}
     virtual cm_item_id_t getId() const {return pData->c.id;}
     virtual cm_item_len_t getLen() const {return pData->c.len;}
     void print(const uint8_t * pItem, std::string prefix) const;

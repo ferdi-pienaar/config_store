@@ -3,6 +3,7 @@
 #include "config_manager_util.h"
 #include "config_manager_dbg.h"
 #include "config_manager_store.h"
+#include "config_manager_printf.h"
 
 #include <stdlib.h> // malloc
 #include <string.h> // memset, strcmp, memcpy
@@ -130,7 +131,7 @@ void config_manager::load()
 
     if (res != CM_SUCCESS)
     {
-        cout << "Load failed: defaults restored." << endl;
+        cm_printf("Load failed: defaults restored.\n");
         base_desc->setDefault(ramBase);
         return;
     }
@@ -144,29 +145,29 @@ bool config_manager::loadBaseId()
 {
     if (!base_desc->isPersistent())
     {
-        cout << "No persistent items." << endl;
+        cm_printf("No persistent items.\n");
         return false;
     }
 
     if (!store->resetRead())
     {
-        cout << "No config file." << endl;
+        cm_printf("No config file.\n");
         return false;
     }
 
     cm_item_id_t id;
     if (store->getType(&id) != CM_SUCCESS)
     {
-        printf("Can't load store.\n");
+        cm_printf("Can't load store.\n");
         return false;
     }
 
     if (id != base_desc->getId())
     {
-        printf("Can't load id %#x, expected %#x.\n", id, base_desc->getId());
+        cm_printf("Can't load id %#x, expected %#x.\n", id, base_desc->getId());
         return false;
     }
-    printf("Load id %#x.\n", id);
+    cm_printf("Load id %#x.\n", id);
     return true;
 }
 
@@ -235,7 +236,7 @@ bool cm_composite_descriptor::handleCmd(command_stack * cmd,
         default:
             break;
     }
-    cout<<"Command '"<<cmd->getTop()<< "' not handled in composite item '"<<getName()<<"'"<<endl;
+    cm_printf("Command '%s' not handled in composite item '%s'\n", cmd->getTop(), getName());
     return false;
 }
 
@@ -252,7 +253,7 @@ bool cm_composite_descriptor::handleIdWord(command_stack * cmd, uint8_t * pItem)
     if (pAggr == NULL)
     {
         // Unhandled word(s): not a command, and also doesn't identify a component
-        cout << "'" << cmd->getTop() << "' not in composite item '" << getName() << "'" << endl;
+        cm_printf("'%s' not in composite item '%s'\n", cmd->getTop(), getName());
         return false;
     }
 
@@ -299,14 +300,14 @@ bool cm_composite_descriptor::handleAdd(command_stack * cmd, uint8_t * pItem) co
 
     if (cmd->getCount() != 1)
     {
-        cout << cmd->getCount() << " parameters for 'add'." << endl;
+        cm_printf("%u parameters for 'add'.\n", cmd->getCount());
         return false;
     }
 
     const cm_aggregate * pAggr = getAggr(cmd->getTop());
     if (pAggr == NULL)
     {
-        cout << "No item '" << cmd->getTop() << "' in '" << getName() << "'." << endl;
+        cm_printf("No item '%s' in '%s'.\n", cmd->getTop(), getName());
         return false;
     }
     return pAggr->handleAdd(pItem);
@@ -322,7 +323,7 @@ bool cm_composite_descriptor::handleDel(command_stack * cmd, uint8_t * pItem) co
     if ((cmd->getCount() != 1) && (cmd->getCount() != 2))
     {
         // Provide item name and, optionally, index
-        cout << cmd->getCount() << " parameters for 'del'." << endl;
+        cm_printf("%u parameters for 'del'.\n", cmd->getCount());
         return false;
     }
 
@@ -330,7 +331,7 @@ bool cm_composite_descriptor::handleDel(command_stack * cmd, uint8_t * pItem) co
 
     if (pAggr == NULL)
     {
-        cout << "No item '" << cmd->getTop() << "' in '" << getName() << "'." << endl;
+        cm_printf("No item '%s' in '%s'.\n", cmd->getTop(), getName());
         return false;
     }
     return pAggr->handleDel(cmd, pItem);
@@ -341,7 +342,7 @@ bool cm_composite_descriptor::handleDel(command_stack * cmd, uint8_t * pItem) co
 //
 void cm_composite_descriptor::print(const uint8_t * pItem, string prefix) const
 {
-    DBG_PRT("print composite %s len %d\n", getName().c_str(), getLen());
+    DBG_PRT("print composite %s len %d\n", getName(), getLen());
 
     for (unsigned i = 0; i < pData->aggrCount; i++)
     {
@@ -384,7 +385,7 @@ const cm_aggregate * cm_composite_descriptor::getAggr(const char * name) const
 {
     for (unsigned i = 0; i < pData->aggrCount; i++)
     {
-        if (strcmp(name, getAggrAtIndex(i)->pData->pDesc->getName().c_str()) == 0)
+        if (strcmp(name, getAggrAtIndex(i)->pData->pDesc->getName()) == 0)
         {
             return getAggrAtIndex(i);
         }
@@ -528,9 +529,9 @@ cm_simple_descriptor::cm_simple_descriptor(const cm_simple_metadata * pMeta):
 // to the item's composite but not to the item.
 void cm_simple_descriptor::print(const uint8_t * pItem, string prefix) const
 {
-    cout << prefix << "= ";
+    cm_printf("%s= ", prefix.c_str());
 
-    DBG_PRT("print simple %s len %d at %p\n", getName().c_str(), getLen(), pItem);
+    DBG_PRT("print simple %s len %d at %p\n", getName(), getLen(), pItem);
 
     if (pData->pPrt == NULL)
     {
@@ -541,7 +542,7 @@ void cm_simple_descriptor::print(const uint8_t * pItem, string prefix) const
     {
         pData->pPrt(stdout, pItem, getLen());
     }
-    cout << endl;
+    cm_printf("\n");
 }
 
 
@@ -575,7 +576,7 @@ bool cm_simple_descriptor::handleCmd(command_stack * cmd, uint8_t * pItem) const
             return true; // true?
 
         default:
-            cout<<"'"<<cmd->getTop()<< "' not handled by simple item '"<<getName()<<"'"<<endl;
+            cm_printf("'%s' not handled by simple item '%s'\n", cmd->getTop(), getName());
     }
     return false;
 }
@@ -584,13 +585,13 @@ bool cm_simple_descriptor::handleCmd(command_stack * cmd, uint8_t * pItem) const
 // Set item to a value input as string on command line
 bool cm_simple_descriptor::set(uint8_t * pItem, string val) const
 {
-    DBG_PRT("set simple %s at %p to '%s'\n", getName().c_str(), pItem, val.c_str());
+    DBG_PRT("set simple %s at %p to '%s'\n", getName(), pItem, val.c_str());
 
     if (pData->pSet != NULL)
     {
         return pData->pSet(pItem, getLen(), val);
     }
-    cout << "'" << getName() << "' can't be set." << endl;
+    cm_printf("'%s' can't be set.\n", getName());
     return false;
 }
 
@@ -637,7 +638,7 @@ t_cm_result cm_simple_descriptor::load(uint8_t * pItem, unsigned * pComplete) co
 bool cm_aggregate::getIndex(command_stack * cmd, unsigned int & itemIdx) const
 {
     if (cmd->getIndex(itemIdx)) return true;
-    cout << "'" << pData->pDesc->getName() << "' needs index." <<endl;
+    cm_printf("'%s' needs index.\n", pData->pDesc->getName());
     return false;
 }
 
@@ -726,7 +727,7 @@ bool cm_aggregate::getComponentItem(command_stack * cmd,
         // We may add a new item, depending on index and aggregate type
         if ((*ppItem = addImplicit(itemIdx, pParentItem)) == NULL)
         {
-            cout << "Index " << itemIdx << " out of range" << endl;
+            cm_printf("Index %u out of range\n", itemIdx);
             return false;
         }
         added = true;
@@ -810,7 +811,7 @@ unsigned cm_contained_aggregate::getCount(const uint8_t * pParentItem) const
 // Handle command 'add' on command line
 bool cm_contained_aggregate::handleAdd(uint8_t * pItem) const
 {
-    cout << "Add not supported for contained '" << pData->pDesc->getName() << "'." << endl;
+    cm_printf("Add not supported for contained %s.\n", pData->pDesc->getName());
     return false;
 }
 
@@ -818,7 +819,7 @@ bool cm_contained_aggregate::handleAdd(uint8_t * pItem) const
 // Handle command 'del' on command line
 bool cm_contained_aggregate::handleDel(command_stack * cmd, uint8_t * pItem) const
 {
-    cout << "Del not supported for contained '" << pData->pDesc->getName() << "'." << endl;
+    cm_printf("Del not supported for contained %s.\n", pData->pDesc->getName());
     return false;
 }
 
@@ -847,7 +848,7 @@ uint8_t * cm_contained_aggregate::getComponentItem(unsigned idx, uint8_t * pPare
 // Give name, count
 void cm_contained_aggregate::help(const uint8_t * pItem) const
 {
-    cout << pData->pDesc->getName() << " [" << getCount(pItem) << "]" << endl;
+    cm_printf("%s [%u]\n", pData->pDesc->getName(), getCount(pItem));
 }
 
 
@@ -909,7 +910,7 @@ void cm_owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) con
     }
 
     DBG_PRT("setCount %s: %d, %d bytes at %p\n",
-            pData->pDesc->getName().c_str(), count,
+            pData->pDesc->getName(), count,
             pCounterAggr->pData->pDesc->getLen(), pParentItem + pCounterAggr->pData->offset);
 
     assert(count <= pData->maxCount);
@@ -974,7 +975,7 @@ bool cm_owned_aggregate::handleAdd(uint8_t * pItem) const
 {
     if (getCount(pItem) >= pData->maxCount)
     {
-        cout<<"Can't add '"<<pData->pDesc->getName()<<"' (max "<<pData->maxCount<<")."<<endl;
+        cm_printf("Can't add '%s' (max %u).\n", pData->pDesc->getName(), pData->maxCount);
         return false;
     }
 
@@ -993,7 +994,7 @@ bool cm_owned_aggregate::handleDel(command_stack * cmd, uint8_t * pItem) const
 
     if (cnt == 0)
     {
-        cout << "Currently no '" << pData->pDesc->getName() << "'." << endl;
+        cm_printf("Currently no '%s'.\n", pData->pDesc->getName());
         return false;
     }
 
@@ -1007,7 +1008,7 @@ bool cm_owned_aggregate::handleDel(command_stack * cmd, uint8_t * pItem) const
 
     if (itemIdx >= cnt)
     {
-        cout << "Index " << itemIdx << " out of range (0.. " << cnt-1 << ")." << endl;
+        cm_printf("Index %u out of range (0.. %u).\n", itemIdx, cnt-1);
         return false;
     }
     del(pItem, itemIdx);
@@ -1035,7 +1036,7 @@ uint8_t * cm_owned_aggregate::add(uint8_t * pParentItem) const
 
     if (pNewMem == NULL)
     {
-        cout<<"No "<<pData->pDesc->getLen()<<" for "<<pData->pDesc->getName()<<endl;
+        cm_printf("No %u for %s\n", pData->pDesc->getLen(), pData->pDesc->getName());
         return NULL;
     }
 
@@ -1093,7 +1094,7 @@ void cm_owned_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
 uint8_t * cm_owned_aggregate::addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const
 {
     DBG_PRT("addImplicit %s: idx %d cnt %d\n",
-            pData->pDesc->getName().c_str(), itemIdx, getCount(pParentItem));
+            pData->pDesc->getName(), itemIdx, getCount(pParentItem));
 
     if ((itemIdx == getCount(pParentItem)) && (itemIdx < pData->maxCount))
     {
@@ -1122,7 +1123,7 @@ uint8_t * cm_owned_aggregate::getComponentItem(unsigned idx, uint8_t * pParentIt
 // Give name, current count, and maxcount.
 void cm_owned_aggregate::help(const uint8_t * pItem) const
 {
-    cout<<pData->pDesc->getName()<<" [" << getCount(pItem)<<"/"<<pData->maxCount<< "]"<<endl;
+    cm_printf(" [%u/%u]/n", getCount(pItem), pData->maxCount);
 }
 
 

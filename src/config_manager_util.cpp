@@ -4,6 +4,7 @@
 //  for special types, such as IP or Ethernet addresses.
 
 #include "config_manager_util.h"
+#include "config_manager_printf.h"
 #include <assert.h>
 #include <limits.h>
 #include <stdint.h> // uint8_t, etc
@@ -26,15 +27,15 @@ void cm_prt_int(FILE * f, const uint8_t *pItem, cm_item_len_t len)
     switch (len)
     {
     case sizeof(int8_t):
-        printf("%d", *((int8_t *)pItem));
+        cm_printf("%d", *((int8_t *)pItem));
         break;
 
     case sizeof(int16_t):
-        printf("%d", *((int16_t *)pItem));
+        cm_printf("%d", *((int16_t *)pItem));
         break;
 
     case sizeof(int32_t):
-        printf("%d", *((int32_t *)pItem));
+        cm_printf("%d", *((int32_t *)pItem));
         break;
 
     default:
@@ -65,7 +66,7 @@ bool cm_set_int(uint8_t *pItem, cm_item_len_t len, string val)
     // subsequent calls?
     if (pEnd == val.c_str())
     {
-        cout << "Not an integer." << endl;
+        cm_printf("Not an integer.\n");
         return false;
     }
 
@@ -117,7 +118,7 @@ bool cm_set_int(uint8_t *pItem, cm_item_len_t len, string val)
 //
 void cm_prt_str(FILE * f, const uint8_t *pItem, cm_item_len_t len)
 {
-    printf("%s", (char *)pItem);
+    cm_printf("%s", (char *)pItem);
 }
 
 
@@ -141,7 +142,7 @@ void cm_prt_hexstr(FILE * f, const uint8_t *pItem, cm_item_len_t len)
 {
     for (cm_item_len_t i = 0; i < len; i++)
     {
-        printf("%02x", pItem[i]);
+        cm_printf("%02x", pItem[i]);
     }
 }
 

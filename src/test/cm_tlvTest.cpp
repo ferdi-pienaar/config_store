@@ -4,7 +4,6 @@
 //
 
 #include "CppUTest/TestHarness.h"
-#include "CppUTest/CommandLineTestRunner.h"
 #include "config_manager_tlv.h"  // Unit under test
 #include <string.h> // strncmp
 #include "nvram_spy.h"
@@ -13,11 +12,6 @@
 using namespace std;
 
 static uint8_t clientRam[1024];
-
-int main(int argc, char** argv)
-{
-    return RUN_ALL_TESTS(argc, argv);
-}
 
 
 TEST_GROUP(tlv)

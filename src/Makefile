@@ -5,7 +5,12 @@ CXXFLAGS += -D M_DEFINED_STORE_TYPE=TLV_STORE
 #CXXFLAGS += -D M_DEFINED_STORE_TYPE=YAML_STORE
 #CXXFLAGS += -save-temps
 #CXXFLAGS += -D DEBUG_PRINT
-OBJS = config_manager.o config_manager_util.o config_manager_setdef_null.o config_manager_store.o nvram.o
+OBJS = config_manager.o \
+config_manager_util.o \
+config_manager_setdef_null.o \
+config_manager_store.o \
+nvram.o \
+config_manager_printf.o
 
 OBJS += config_manager_tlv_store.o config_manager_tlv.o
 
@@ -14,15 +19,19 @@ OBJS += config_manager_tlv_store.o config_manager_tlv.o
 # -cr means
 # c: create the archive (without this option, if archive doesn't exist, there's a warning)
 # r: insert the files into archive (with replacement)
+# We only pass newer prerequisites to the command ($? instead of $^)
 libCfgMan.a: $(OBJS)
-	ar -cr $@ $^
+	ar cr $@ $?
 
 .PHONY: clean
 clean:
 	rm -f *o
 
 # Auto-generate dependencies using gcc's MM option -- see 'Managing Projects with GNU Make'
+# But don't include if the target is 'clean'
+ifneq "$(MAKECMDGOALS)" "clean"
 include $(subst .o,.d,$(OBJS))
+endif
 
 %.d: %.cpp
 	$(CXX) -MM $(CXXFLAGS) $< > $@.$$$$; \

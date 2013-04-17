@@ -1,19 +1,19 @@
 // NVRAM implementation using a block of memory for "persistent" storage.
 //
 
-#include "nvram.h"
+#include "nvram_spy.h"
 #include <string.h> // memset, strcmp, memcpy
 
 #define CFG_FILE_NAME "cfg.bin"
 
 static const unsigned int memSize = 1024;
 static uint8_t nvMem[memSize];
-static uint8_t nvMemClean[memSize];
-static unsigned bytesSet = 0;
+static unsigned bytesWritten = 0; // max number of bytes written, i.e. the file size
 
 bool Nvram::initWrite()
 {        
     offset = 0;
+    bytesWritten = 0;
     return true;
 }
 
@@ -54,13 +54,17 @@ bool Nvram::write(const uint8_t * d, unsigned int len)
 {
     memcpy(nvMem + offset, d, len);
     offset += len;
+    if (offset > bytesWritten)
+    {
+        bytesWritten = offset;
+    }
     return true;
 }
 
 
 bool Nvram::read(uint8_t * d, unsigned int len)
 {
-    if (offset + len > bytesSet)
+    if (offset + len > bytesWritten)
     {
         // Fail: attempt to read bytes that haven't been set
         return false;
@@ -77,14 +81,17 @@ bool Nvram::read(uint8_t * d, unsigned int len)
 // Methods outside of NVRAM's interface, for test purposes
 //
 ////////////////////////////////////////////////////////////////////////////////
+
+// xxx can I obsolete this?
 void nvram_spy_init()
 {
-    // Set pattern in nvMem, and init nvMemClean with same pattern for later comparison
-    memset(nvMemClean, 0xfa, memSize);
-    memcpy(nvMem, nvMemClean, memSize);
+    // Set pattern in nvMem
+    memset(nvMem, 0xfa, memSize);
+    bytesWritten = 0;
 }
 
 
+// Compare expected contents and length of NVRAM to what has been written to it.
 bool nvram_spy_match(uint8_t * expected, unsigned len)
 {
     if (memcmp(expected, nvMem, len) != 0)
@@ -92,19 +99,20 @@ bool nvram_spy_match(uint8_t * expected, unsigned len)
         return false;
     }
 
-    // Verify the remainder of nvMem is unaffected by the test
-    if (memcmp(nvMem + len, nvMemClean + len, memSize - len) != 0)
+    // The amount written is what's expected
+    if (len != bytesWritten)
     {
         return false;
     }
     return true;
 }
 
-
-void  nvram_spy_set(uint8_t * d, unsigned len)
+// Set the contents of NVRAM. This allows a test to start
+// with values already present, as if saved in a file -- it allows us
+// to simulate the non-volatility of NVRAM.
+void nvram_spy_set(uint8_t * d, unsigned len)
 {
     memcpy(nvMem, d, len);
-
-    bytesSet = len;
+    bytesWritten = len;
 }
 
