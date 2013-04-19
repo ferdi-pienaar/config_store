@@ -1,3 +1,7 @@
+CppUTest says there are memory leaks. Do I just need to modify
+the tests (e.g. end with call to setdef) to release allocated
+memory?
+
 Is it a bug that we create things as we go, even if the command is just 'prt', 
 or some other valid command, but one that should not result in us allocating 
 OWNED components?

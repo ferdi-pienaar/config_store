@@ -52,7 +52,6 @@ TEST(cm_simple_descriptor, print)
 {
     string prefix = "";
     unsigned mem = 7;
-    char outstring[64];
     cm_simple_metadata d_d = {{"d01", 1 , sizeof(mem), true}, NULL, NULL, NULL};
 
     cm_simple_descriptor d(&d_d);

@@ -1,3 +1,9 @@
+- The cfg_man library shouldn't output to stdout: the client should pass a callback function
+  with a prototype similar to printf (dependency injection.  This makes the library more portable
+  and simplifies testing.
+
+- Tests are now dependent on the library, so the test Makefile doesn't
+  need to generate CUT dependencies anymore.
 - Optionally, save NVRAM not as TLV, but as text -- the same text produced on
   command "prt", or a YAML configuration file.
   o Parsing the YAML file should be much the same as parsing an input command.
@@ -36,7 +42,7 @@
   I already know the length.  What do we do if a simple item's size is not what's expected?
   We should just discard it: At least for big-endian systems, correct truncation would depend 
   on knowing if the item is an integer or a character array (string or hex string)
-- Test for memory leaks.  How?
+
 - Set more than one component of a composite in a single command?
 - Display members of an array by giving array name without index
 - An example of a bitmap item, just to show how the set and prt functions look
@@ -50,9 +56,6 @@
   3. NVRAM, that knows how to read, write and skip through a file.
   4. Perhaps abstraction of file access at the lowest level, if only to simplify unit
      testing.
-
-- The unit tests for config_manager could also use a test double for NVRAM,
-  instead of actual file access.
 
 - YAML schemas to validate descriptor and ID files?
 - If a counter aggregate should not be included in its container
@@ -70,17 +73,8 @@
 Restrict application code from writing to config?  Currently it's temptingly
 easy...
 
-- Makefiles should do automatic dependency generation.  I've started this for the
-  test files, but it's not done for the examples.
 - howto should be written in html, probably in a way that can be integrated with
   Doxygen.
-- Code would be easier to test if output wasn't directly to stdout, but used a
-  function that could be stubbed for testing -- is this worth doing?  I have actually
-  solved the testing problem fairly satisfactorily be redirecting stdout to a file.
-
-- The cfg_man library shouldn't output to stdout: it should return a character
-  string for the client to handle.  This makes the library more portable, and
-  simplifies testing.
 
 - The /export directory is not complete, since we also export cm_setdef_null and cm_util...
   Need to clarify what the public interface is, precisely.

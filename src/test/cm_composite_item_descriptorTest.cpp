@@ -165,7 +165,7 @@ TEST_GROUP(cm_composite_descriptor_owned)
 TEST(cm_composite_descriptor_owned, printNull)
 {
     string prefix = "";
-    char * expected =
+    const char * expected =
         "count = 00000000\n";
 
     c2.print((uint8_t *)&mem, prefix);
@@ -179,7 +179,7 @@ TEST(cm_composite_descriptor_owned, printData)
     const unsigned NUM_OWNED = 2;
 
     string prefix = "";
-    char * expected =
+    const char * expected =
         "count = 02000000\n"
         "owned 0 = 07000000\n"
         "owned 1 = 08000000\n";
@@ -313,9 +313,9 @@ TEST(cm_composite_descriptor_owned, implicitAdd)
     c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Counter is incremented and ptr to owned item is no longer NULL
-    CHECK(mem.cnt == 1);
+    LONGS_EQUAL(1, mem.cnt);
     CHECK(mem.owned != NULL);
-    CHECK(mem.owned[0] == 42);
+    LONGS_EQUAL(42, mem.owned[0]);
 }
  
 
@@ -328,8 +328,8 @@ TEST(cm_composite_descriptor_owned, implicitAddFail)
     c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Counter is not incremented and ptr to owned item is NULL
-    CHECK(mem.cnt == 0);
-    CHECK(mem.owned == NULL);
+    LONGS_EQUAL(0, mem.cnt);
+    POINTERS_EQUAL(NULL, mem.owned);
 }
 
 
@@ -346,7 +346,7 @@ TEST(cm_composite_descriptor_owned, setdef)
     
     c2.setDefault((uint8_t *)&mem);
 
-    CHECK(mem.cnt == 0);
+    LONGS_EQUAL(0, mem.cnt);
     POINTERS_EQUAL(NULL, mem.owned);
     LONGS_EQUAL(NUM_OWNED, setdef_spy_calls); // verify setdef of components is called
 }
