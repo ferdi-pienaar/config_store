@@ -1,10 +1,10 @@
 CXXFLAGS = -Wall -g -I . -I ../export
 # Include some C99 macros that are not part of the C++ standard
-CXXFLAGS += -D __STDC_LIMIT_MACROS
-CXXFLAGS += -D M_DEFINED_STORE_TYPE=TLV_STORE
-#CXXFLAGS += -D M_DEFINED_STORE_TYPE=YAML_STORE
+CPPFLAGS += -D __STDC_LIMIT_MACROS
+CPPFLAGS += -D M_DEFINED_STORE_TYPE=TLV_STORE
+#CPPFLAGS += -D M_DEFINED_STORE_TYPE=YAML_STORE
 #CXXFLAGS += -save-temps
-#CXXFLAGS += -D DEBUG_PRINT
+#CPPFLAGS += -D DEBUG_PRINT
 OBJS = config_manager.o \
 config_manager_util.o \
 config_manager_setdef_null.o \
