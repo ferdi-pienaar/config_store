@@ -1,7 +1,6 @@
 /// 
 //
 
-#include <stdint.h> // uint8_t, etc
 #include "config_manager_store.h"
 #include "config_manager_tlv_store.h"
 #include "config_manager_yaml_store.h"

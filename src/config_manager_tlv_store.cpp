@@ -23,17 +23,17 @@ cm_tlv_store::~cm_tlv_store()
 }
 
 
-bool cm_tlv_store::resetRead()
+bool cm_tlv_store::initForRead()
 {
     tlv->reset();
-    return nvram.initRead();
+    return nvram.initForRead();
 }
 
 
-bool cm_tlv_store::resetWrite()
+bool cm_tlv_store::initForWrite()
 {
     tlv->reset();
-    return nvram.initWrite();
+    return nvram.initForWrite();
 }
 
 

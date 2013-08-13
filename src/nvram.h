@@ -15,8 +15,8 @@ class Nvram
 {
 public:
     Nvram(): offset(0), fp(NULL) {}
-    bool initWrite();
-    bool initRead();
+    bool initForWrite();
+    bool initForRead();
     void accessComplete();
     bool write(const uint8_t * d, unsigned int len);
     bool read(uint8_t * d, unsigned int len);

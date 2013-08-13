@@ -5,7 +5,7 @@
 
 #define CFG_FILE_NAME "cfg.bin"
 
-bool Nvram::initWrite()
+bool Nvram::initForWrite()
 {        
     offset = 0;
 
@@ -19,7 +19,7 @@ bool Nvram::initWrite()
 }
 
 
-bool Nvram::initRead()
+bool Nvram::initForRead()
 {
     offset = 0;
 

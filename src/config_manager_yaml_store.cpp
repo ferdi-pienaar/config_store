@@ -26,7 +26,7 @@ cm_yaml_store::~cm_yaml_store()
 }
 
 
-bool cm_yaml_store::resetRead()
+bool cm_yaml_store::initForRead()
 {    
     cout << "cm_yaml_store::resetRead()" << endl;
 
@@ -35,7 +35,7 @@ bool cm_yaml_store::resetRead()
 }
 
 
-bool cm_yaml_store::resetWrite()
+bool cm_yaml_store::initForWrite()
 {    
     cout << "cm_yaml_store::resetWrite()" << endl;
 

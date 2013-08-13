@@ -113,7 +113,7 @@ const char * config_manager::getPromptString() const
 // Save data in RAM to persistent storage
 void config_manager::save()
 {
-    store->resetWrite();
+    store->initForWrite();
     base_desc->save(ramBase);
 }
 
@@ -149,7 +149,7 @@ bool config_manager::loadBaseId()
         return false;
     }
 
-    if (!store->resetRead())
+    if (!store->initForRead())
     {
         cm_printf("No config file.\n");
         return false;
