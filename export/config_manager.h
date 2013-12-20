@@ -27,7 +27,7 @@
 
 
 // xxx should not be exported
-// The command-line context is the context in which a command string is interpreted:
+// The context in which a command string is interpreted:
 // the current item, its descriptor (i.e. its metadata), and the
 // string that's displayed on the command-line to represent the context, i.e. the location
 // of the item within the hierarchy of items.

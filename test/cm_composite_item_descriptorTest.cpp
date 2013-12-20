@@ -48,7 +48,7 @@ TEST(cm_composite_descriptor, getLen)
     cm_composite_metadata d_d  = {{"c1", 1, 55, true}, NULL, 0};
     cm_composite_descriptor d(&d_d);
 
-    CHECK(d.getLen() == 55);
+    LONGS_EQUAL(55, d.getLen());
 }
 
 
@@ -200,11 +200,11 @@ TEST(cm_composite_descriptor_owned, addFirst)
     c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Counter is incremented and ptr to owned item is no longer NULL
-    CHECK(mem.cnt == 1);
+    LONGS_EQUAL(1, mem.cnt);
     CHECK(mem.owned != NULL);
 
     // Item initialized to "default default"
-    CHECK(mem.owned[0] == 0);
+    LONGS_EQUAL(0, mem.owned[0]);
 }
 
 
@@ -218,12 +218,12 @@ TEST(cm_composite_descriptor_owned, addAnother)
     c2.handleCmd(&cmd2, (uint8_t *)&mem);
 
     // Counter is incremented and ptr to owned item is no longer NULL
-    CHECK(mem.cnt == 2);
+    LONGS_EQUAL(2, mem.cnt);
     CHECK(mem.owned != NULL);
 
     // Items initialized to "default default"
-    CHECK(mem.owned[0] == 0);
-    CHECK(mem.owned[1] == 0);
+    LONGS_EQUAL(0, mem.owned[0]);
+    LONGS_EQUAL(0, mem.owned[1]);
 }
 
 
@@ -235,7 +235,7 @@ TEST(cm_composite_descriptor_owned, delNull)
     c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // The command does nothing since there's nothing to delete; verify count remains unchanged
-    CHECK(mem.cnt == 0);
+    LONGS_EQUAL(0, mem.cnt);
 }
 
 
@@ -254,10 +254,9 @@ TEST(cm_composite_descriptor_owned, delEnd)
     c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Counter is decremented
-    CHECK(mem.cnt == NUM_OWNED - 1);
-
+    LONGS_EQUAL(NUM_OWNED - 1, mem.cnt);
     // But the 0th item is unaffected by the deletion of the 1th item
-    CHECK(mem.owned[0] == 7);
+    LONGS_EQUAL(7, mem.owned[0]);
 }
 
 
@@ -277,10 +276,10 @@ TEST(cm_composite_descriptor_owned, delFirst)
     c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Counter is decremented
-    CHECK(mem.cnt == NUM_OWNED - 1);
+    LONGS_EQUAL(NUM_OWNED - 1, mem.cnt);
 
     // And the 1th item has become the 0th item
-    CHECK(mem.owned[0] == 8);
+    LONGS_EQUAL(8, mem.owned[0]);
 }
 
 
@@ -297,10 +296,10 @@ TEST(cm_composite_descriptor_owned, delSingle)
     c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Counter is decremented to 0
-    CHECK(mem.cnt == 0);
+    LONGS_EQUAL(0, mem.cnt);
 
     // And the pointer to owned is set to NULL after owned memory freed
-    CHECK(mem.owned == NULL);
+    POINTERS_EQUAL(NULL, mem.owned);
 }
 
 
@@ -337,7 +336,6 @@ TEST(cm_composite_descriptor_owned, implicitAddFail)
 TEST(cm_composite_descriptor_owned, setdef)
 {
     const unsigned NUM_OWNED = 2;
-
 
     // We have to malloc, not use automatic variables, since setdef operation results in free() for owned memory
     mem.owned = (int *)malloc(NUM_OWNED * sizeof(int));
@@ -402,7 +400,7 @@ TEST(ownedWithoutCounter, addOnly)
     CHECK(mem.owned != NULL);
 
     // Item initialized to "default default"
-    CHECK(*(mem.owned) == 0);
+    LONGS_EQUAL(0, *(mem.owned));
 }
 
 
@@ -418,6 +416,6 @@ TEST(ownedWithoutCounter, delOnly)
     c4.handleCmd(&cmd, (uint8_t *)&mem);
 
     // And the pointer to owned is set to NULL after owned memory freed
-    CHECK(mem.owned == NULL);
+    POINTERS_EQUAL(NULL, mem.owned);
 }
 

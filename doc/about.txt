@@ -1,0 +1,14 @@
+This project uses three DSLs.
+First, the subset of C++ in which the application developer writes
+the configuration item metadata initialization. This arguably does
+not qualify as a real DSL, since it just looks like a restricted subset of C++.
+Second, the YAML descriptor used as input to the automatic code generation
+alternative for creating metadata structures and initializers.
+These first two DSLs are interpreted at compile-time, to generate and
+populate C++ data structures that exist in RAM at runtime.
+Third, the TLV format used to store the configuration data in NVRAM.
+This DSL is interpreted and modified by the application at runtime.
+But is this really a DSL, or just a data encoding? According to Fowler's
+book on DSLs, a configuration file which is more than just a list of property
+assignments can be considered a DSL, but this TLV may not meet Fowler's
+criteria because it's not intended for interpretation by humans.

@@ -17,7 +17,7 @@ my_cfg1.o: cfg.cpp my_cfg1.cpp my_cfg1.h
 	$(CXX) $(CXXFLAGS) -c -o $@ my_cfg1.cpp
 
 cfg.cpp: cfg.yaml
-	python ../code_gen/yaml_code_gen.py cfg.yaml
+	python ../code_gen/yaml_code_gen.py $<
 
 .PHONY: clean
 clean:

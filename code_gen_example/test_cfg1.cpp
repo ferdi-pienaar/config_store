@@ -7,6 +7,7 @@
 #include "my_cfg1.h"
 #include <cstring> // strtok
 #include <pthread.h>
+#include <unistd.h> // sleep
 
 using namespace std;
 

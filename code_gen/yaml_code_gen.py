@@ -33,8 +33,11 @@ def getInitHeader(script, inputFile):
             "// It contains initialization of metadata for configurable items managed by cfg_man.\n\n")
 
 def getIdHeader(script):
-    return ("# This file is both input to and output from " + script + ".  It may be modified,\n" +
-            "# typically to remove an item whose ID may be re-allocated because it is no longer used anywhere.\n")
+    return ("# This file is both input to and output from " + script + ".\n" +
+	        "# It 'remembers' the ID that's used to identify each item in NVRAM, for interoperability\n" +
+			"# between different versions of the user-defined configurable item hierarchy.\n" +
+	        "# It may be modified, typically to remove an item whose ID may be re-allocated because it\n" +
+            "# is no longer used anywhere.\n")
     
 class Id_generator():
     "Generate IDs for TLV: the data struct of existing IDs in the context is used to avoid allocating IDs that are taken"

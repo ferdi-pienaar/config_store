@@ -1,3 +1,4 @@
+- In Makefile, use gcc's -MMD option, instead of MM, it's much simpler
 - The cfg_man library shouldn't output to stdout: the client should pass a callback function
   with a prototype similar to printf (dependency injection.  This makes the library more portable
   and simplifies testing.

@@ -7,6 +7,14 @@ or some other valid command, but one that should not result in us allocating
 OWNED components?
 We could pre-analyze the command, and only add as a side-effect if the "=" 
 command is present.
+Or a command could return a value indicating whether changes made
+during its analysis should be permanent. But how do we implement the
+required rollback -- do we need a duplicate RAM image, then modify a copy
+and only overwrite the original if the new one is valid? That won't work
+since the RAM image is not just a block of memory, it contains pointers.
+So maybe pre-analysis is needed, to determine the validity (correctness)
+and/or effectiveness (should it result in a change to RAM, or just
+a printout)... 
 
 Help in any case needs a re-think, since it shouldn't be necessary to provide 
 an index when asking for help, so perhaps help needs to work differently to 

@@ -1,7 +1,10 @@
-# This file is both input to and output from ../code_gen/yaml_code_gen.py.  It may be modified,
-# typically to remove an item whose ID may be re-allocated because it is no longer used anywhere.
+# This file is both input to and output from ../code_gen/yaml_code_gen.py.
+# It 'remembers' the ID that's used to identify each item in NVRAM, for interoperability
+# between different versions of the user-defined configurable item hierarchy.
+# It may be modified, typically to remove an item whose ID may be re-allocated because it
+# is no longer used anywhere.
 device:
-  id: 47792
+  id: 0
   items:
   - home:
       id: 4
@@ -13,20 +16,20 @@ device:
           items:
           - lname:
               id: 0
-  - userCnt:
-      id: 2
-  - ipaddr:
-      id: 0
   - user:
       id: 3
       items:
-      - elapsed:
-          id: 3
       - id:
           id: 1
-      - temp:
-          id: 2
       - name:
           id: 0
+      - temp:
+          id: 2
+      - elapsed:
+          id: 3
+  - ipaddr:
+      id: 0
   - port:
       id: 1
+  - userCnt:
+      id: 2

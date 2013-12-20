@@ -5,7 +5,6 @@
 //    for non-volatile storage
 //
 // xxx how many of these tests belong in cm_tlvTest.cpp?
-// use LONGS_EQUAL and other macros instead of only using CHECK
 // 
 
 #include "CppUTest/TestHarness.h"
@@ -104,8 +103,8 @@ TEST(contained, load)
 
     cm->init(&c1);
 
-    CHECK(GET_C1_CONFIG->m1 == 8);
-    CHECK(GET_C1_CONFIG->m2 == 9);
+    LONGS_EQUAL(8, GET_C1_CONFIG->m1);
+    LONGS_EQUAL(9, GET_C1_CONFIG->m2);
 }
 
 
@@ -124,8 +123,8 @@ TEST(contained, loadChangedSimpleLen)
 
     cm->init(&c1);
 
-    CHECK(GET_C1_CONFIG->m1 == 0);
-    CHECK(GET_C1_CONFIG->m2 == 7); // Default; not read from the file, because TLV's L is bad
+    LONGS_EQUAL(0, GET_C1_CONFIG->m1);
+    LONGS_EQUAL(7, GET_C1_CONFIG->m2); // Default; not read from the file, because TLV's L is bad
 }
 
 
@@ -201,8 +200,8 @@ TEST(contained, loadTruncated)
 
     cm->init(&c1);
 
-    CHECK(GET_C1_CONFIG->m1 == 0);
-    CHECK(GET_C1_CONFIG->m2 == 7);
+    LONGS_EQUAL(0, GET_C1_CONFIG->m1);
+    LONGS_EQUAL(7, GET_C1_CONFIG->m2);
 }
 
 
@@ -221,8 +220,8 @@ TEST(contained, loadTruncated1)
 
     cm->init(&c1);
 
-    CHECK(GET_C1_CONFIG->m1 == 0);
-    CHECK(GET_C1_CONFIG->m2 == 7);
+    LONGS_EQUAL(0, GET_C1_CONFIG->m1);
+    LONGS_EQUAL(7, GET_C1_CONFIG->m2);
 }
 
 
@@ -241,8 +240,8 @@ TEST(contained, loadTruncated2)
 
     cm->init(&c1);
 
-    CHECK(GET_C1_CONFIG->m1 == 0);
-    CHECK(GET_C1_CONFIG->m2 == 7);
+    LONGS_EQUAL(0, GET_C1_CONFIG->m1);
+    LONGS_EQUAL(7, GET_C1_CONFIG->m2);
 }
 
 
@@ -262,8 +261,8 @@ TEST(contained, loadIncoherent)
 
     cm->init(&c1);
 
-    CHECK(GET_C1_CONFIG->m1 == 0);
-    CHECK(GET_C1_CONFIG->m2 == 7);
+    LONGS_EQUAL(0, GET_C1_CONFIG->m1);
+    LONGS_EQUAL(7, GET_C1_CONFIG->m2);
 }
 
 
@@ -283,8 +282,8 @@ TEST(contained, loadIncoherent1)
 
     cm->init(&c1);
 
-    CHECK(GET_C1_CONFIG->m1 == 0);
-    CHECK(GET_C1_CONFIG->m2 == 7);
+    LONGS_EQUAL(0, GET_C1_CONFIG->m1);
+    LONGS_EQUAL(7, GET_C1_CONFIG->m2);
 }
 
 
@@ -346,9 +345,9 @@ TEST(owned, load)
 
     cm->init(&c2);
 
-    CHECK(GET_C2_CONFIG->cnt == 2);
-    CHECK(GET_C2_CONFIG->owned[0] == 7);
-    CHECK(GET_C2_CONFIG->owned[1] == 8);
+    LONGS_EQUAL(2, GET_C2_CONFIG->cnt);
+    LONGS_EQUAL(7, GET_C2_CONFIG->owned[0]);
+    LONGS_EQUAL(8, GET_C2_CONFIG->owned[1]);
 }
 
 
@@ -371,7 +370,7 @@ TEST(owned, loadTooMany)
 
     cm->init(&c2);
 
-    CHECK(GET_C2_CONFIG->cnt == 2);
+    LONGS_EQUAL(2, GET_C2_CONFIG->cnt);
 
     char * commandWord[] = {(char *)"save"};
     cm->handleCmd(1, commandWord);
@@ -430,13 +429,13 @@ TEST(owned, implicitAdd)
 
     cm->init(&c2);
 
-    CHECK(GET_C2_CONFIG->cnt == 0);
-    CHECK(GET_C2_CONFIG->owned == NULL);   
+    LONGS_EQUAL(0, GET_C2_CONFIG->cnt);
+    POINTERS_EQUAL(NULL, GET_C2_CONFIG->owned);   
 
     char * commandWord[] = {(char *)"owned", (char *)"0"}; // reference owned item 0, causing implicit add
     cm->handleCmd(2, commandWord);
 
-    CHECK(GET_C2_CONFIG->cnt == 1);
+    LONGS_EQUAL(1, GET_C2_CONFIG->cnt);
 
     char * commandWord2[] = {(char *)"save"};
     cm->handleCmd(1, commandWord2);
@@ -455,14 +454,14 @@ TEST(owned, implicitAddnSet)
 
     cm->init(&c2);
 
-    CHECK(GET_C2_CONFIG->cnt == 0);
-    CHECK(GET_C2_CONFIG->owned == NULL);   
+    LONGS_EQUAL(0, GET_C2_CONFIG->cnt);
+    POINTERS_EQUAL(NULL, GET_C2_CONFIG->owned);   
 
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"=", (char *)"7"}; // set item 0, causing implicit add
     cm->handleCmd(4, commandWord);
 
-    CHECK(GET_C2_CONFIG->cnt == 1);
-    CHECK(GET_C2_CONFIG->owned[0] == 7);   
+    LONGS_EQUAL(1, GET_C2_CONFIG->cnt);
+    LONGS_EQUAL(7, GET_C2_CONFIG->owned[0]);   
 
     char * commandWord2[] = {(char *)"save"};
     cm->handleCmd(1, commandWord2);
@@ -482,13 +481,13 @@ TEST(owned, explicitAdd)
 
     cm->init(&c2);
 
-    CHECK(GET_C2_CONFIG->cnt == 0);
-    CHECK(GET_C2_CONFIG->owned == NULL);
+    LONGS_EQUAL(0, GET_C2_CONFIG->cnt);
+    POINTERS_EQUAL(NULL, GET_C2_CONFIG->owned);
 
     char * commandWord[] = {(char *)"add", (char *)"owned"};
     cm->handleCmd(2, commandWord);
 
-    CHECK(GET_C2_CONFIG->cnt == 1);
+    LONGS_EQUAL(1, GET_C2_CONFIG->cnt);
     CHECK(GET_C2_CONFIG->owned != NULL);
 
     char * commandWord2[] = {(char *)"save"};
@@ -519,14 +518,14 @@ TEST(owned, del)
 
     cm->init(&c2);
 
-    CHECK(GET_C2_CONFIG->cnt == 1);
-    CHECK(GET_C2_CONFIG->owned[0] == 5);
+    LONGS_EQUAL(1, GET_C2_CONFIG->cnt);
+    LONGS_EQUAL(5, GET_C2_CONFIG->owned[0]);
 
     char * commandWord[] = {(char *)"del", (char *)"owned"};
     cm->handleCmd(2, commandWord);
 
-    CHECK(GET_C2_CONFIG->cnt == 0);
-    CHECK(GET_C2_CONFIG->owned == NULL);
+    LONGS_EQUAL(0, GET_C2_CONFIG->cnt);
+    POINTERS_EQUAL(NULL, GET_C2_CONFIG->owned);
 
     char * commandWord2[] = {(char *)"save"};
     cm->handleCmd(1, commandWord2);
