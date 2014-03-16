@@ -3,33 +3,35 @@
 # between different versions of the user-defined configurable item hierarchy.
 # It may be modified, typically to remove an item whose ID may be re-allocated because it
 # is no longer used anywhere.
-device:
-  id: 0
-  items:
-  - home:
-      id: 4
-      items:
-      - addr:
-          id: 0
-      - location:
-          id: 1
-          items:
-          - lname:
-              id: 0
-  - user:
-      id: 3
-      items:
-      - id:
-          id: 1
-      - name:
-          id: 0
-      - temp:
-          id: 2
-      - elapsed:
-          id: 3
-  - ipaddr:
-      id: 0
-  - port:
-      id: 1
-  - userCnt:
-      id: 2
+components:
+- components:
+  - id: 0
+    name: addr
+  - components:
+    - id: 0
+      name: lname
+    id: 1
+    name: location
+  id: 4
+  name: home
+- id: 2
+  name: userCnt
+- id: 0
+  name: ipaddr
+- id: 1
+  name: port
+- components:
+  - id: 3
+    name: elapsed
+  - id: 45
+    name: boso
+  - id: 0
+    name: name
+  - id: 2
+    name: temp
+  - id: 1
+    name: id
+  id: 3
+  name: user
+id: 0
+name: device

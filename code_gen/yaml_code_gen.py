@@ -62,9 +62,9 @@ class Id_generator():
         "From more complex data struct passed to constructor, generate a name:ID dictionary"
         self.allocated_id = {}
         if id_dlist is not None:
-            for d in id_dlist['items']:
-                # d.values is a list containing a single dictionary
-                self.allocated_id[d.keys()[0]] = d.values()[0]['id']
+            for id in id_dlist:
+                # Each element in ids is a dictionary with keys 'name' and 'id'
+                self.allocated_id[id['name']] = id['id']
         #print "Start w", self.allocated_id
 
 
@@ -174,22 +174,21 @@ class SimpleItem(Item):
         
         
 def get_value_from_dictionary_list(dlist, key):
-    "Helper function: from list of dictionaries, return the value of 1st dictionary with the desired key (or None)"
+    "Helper function: from list of dictionaries, return the value of 1st dictionary with the desired 'name' entry(or None)"
     for d in dlist:
-        if key in d:
-            return d[key]
-    #return [d[key] for d in dlist if key in d][0]
+        if d['name'] == key:
+            return d
 
       
 class CompositeItem(Item):
     def __init__(self, d, container_id_gen, old_id):
         Item.__init__(self, d, container_id_gen, old_id)
-        self.id_gen = Id_generator(old_id)
+        self.id_gen = Id_generator(old_id['components'])
         self.aggregates = []
         for a in self.d['aggregate']:
             component_id = None
             if old_id is not None:
-                component_id = get_value_from_dictionary_list(old_id['items'], a['item']['name'])
+                component_id = get_value_from_dictionary_list(old_id['components'], a['item']['name'])
             self.aggregates.append(makeAggregate(a, self.id_gen, component_id))
 
     def verify(self):
@@ -200,23 +199,24 @@ class CompositeItem(Item):
         
     def get_component_ids(self):
         "Get list of component IDs in format used to generate the ID yaml file"
-        component_dict = self.id_gen.get_ids() # This dictionary includes old IDs from ID file
-        items = []
-        for name in component_dict:
+        component_ids = self.id_gen.get_ids() # This dictionary includes old IDs from ID file
+        components = []
+        for name in component_ids:
             # An item in the complete dictionary of IDs from ID generator
             d = {} # Dictionary of dictionaries: ID, and optionally 'items', a list of item dictionaries
-            d[name] = {"id": component_dict[name]}                
+            d['name'] = name
+            d['id'] = component_ids[name]        
             try:
-                item = [a.item for a in self.aggregates if a.item.d['name'] == name][0]
-                id_list = item.get_component_ids()
+                component = [a.item for a in self.aggregates if a.item.d['name'] == name][0]
+                id_list = component.get_component_ids()
                 if id_list is not None:
-                    # The component is itself composite, so insert its items
-                    d[name]['items'] = id_list
+                    # The component is itself composite, so insert its entry
+                    d['components'] = id_list
             except:
                 # Can't find a component item with a matching name -- no longer supported
-                print "%s, ID %d, is no longer in use" % (name, component_dict[name])
-            items.append(d)
-        return items
+                print "%s, ID %d, is no longer in use" % (name, component_ids[name])
+            components.append(d)
+        return components
 
     def get_definition(self):
         "Return string representing struct definition, including pre-pended definitions of referenced structs"
@@ -431,13 +431,11 @@ def makeBaseItem(baseFileName):
     if base_item_config is None:
         return
     id_dict = loadIdData(baseFileName)
-    try:
-        base_id_dict = id_dict[base_item_config['name']]
-    except:
-        # The ID data file doesn't exist, is defective, or has no ID for the base item's name
+    if id_dict['name'] != base_item_config['name']:
+        # The ID data file doesn't exist, is defective, or has no entry for the base item
         print "No", base_item_config['name'], "in ID data file: generating new IDs!"
         base_id_dict = None
-    return makeItem(base_item_config, Id_generator(None), base_id_dict)
+    return makeItem(base_item_config, Id_generator(None), id_dict)
 
 
 def saveIdData(baseFileName):
@@ -451,8 +449,10 @@ def saveIdData(baseFileName):
 def getIdData():
     "Get current ID data, newly allocated ones and ones in the previous ID file, in ID file format."
     # Special case: the top-level item is the only one that doesn't get its ID from a generator object
-    id_dict = {baseItem.d['name']: {'id': int(baseItem.id)}}
-    id_dict[baseItem.d['name']]['items'] = baseItem.get_component_ids()
+    id_dict = {}
+    id_dict['name'] = baseItem.d['name']
+    id_dict['id'] = int(baseItem.id)
+    id_dict['components'] = baseItem.get_component_ids()
     return id_dict
     
     
