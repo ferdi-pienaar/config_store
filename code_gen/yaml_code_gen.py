@@ -416,7 +416,7 @@ def loadIdData(baseFileName):
         f = open(fname)
         data = yaml.load(f)
     except IOError:
-        print "Can't open", fname
+        print "Can't open ID file", fname
         return
     except:
         print fname, "is not a valid YAML file!"
@@ -425,12 +425,8 @@ def loadIdData(baseFileName):
     return data
 
     
-def makeBaseItem(baseFileName):
+def makeBaseItem(base_item_config, id_dict):
     "From the config file and the ID file, create objects to generate C++ code and a new ID file."
-    base_item_config = loadCfgData(sys.argv[1])
-    if base_item_config is None:
-        return
-    id_dict = loadIdData(baseFileName)
     if id_dict['name'] != base_item_config['name']:
         # The ID data file doesn't exist, is defective, or has no entry for the base item
         print "No", base_item_config['name'], "in ID data file: generating new IDs!"
@@ -474,8 +470,12 @@ def saveInititializationFile(baseFileName, baseItem):
     
 if __name__ == "__main__":
     baseFileName, extension = os.path.splitext(sys.argv[1])
-    baseItem = makeBaseItem(baseFileName)
-    if baseItem == None:
+    cfg_data = loadCfgData(sys.argv[1])
+    if cfg_data is None:
+        sys.exit()
+    id_dict = loadIdData(baseFileName)
+    baseItem = makeBaseItem(cfg_data, id_dict)
+    if baseItem is None:
         sys.exit()
     baseItem.verify()
     saveDefinitionFile(baseFileName, baseItem)

@@ -50,6 +50,14 @@ class Test_Id_generator(unittest.TestCase):
         ]
         g = yaml_code_gen.Id_generator(i)
         self.assertEqual('1', g.get_id("x"))
+
+class Test_Item_gen(unittest.TestCase):
+        
+    def test_simple_init(self):
+        c = {'name': 'alf', 'persistent': 'true', 'type': 'int'}
+        i = {'name': 'alf', 'id': 0}
+        b = yaml_code_gen.makeBaseItem(c, i)
+        print b.get_init()
         
 if __name__ == "__main__":
     unittest.main()
