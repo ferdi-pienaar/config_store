@@ -394,15 +394,9 @@ def loadCfgData(cfgFileName):
         print "Configuration file name not given."
         return
     print "Reading config file", cfgFileName
-    try:
-        data = yaml.load(f)
-    except:
-        print cfgFileName, "is not a YAML file"
+    data = f.read()
     f.close()
-    try:
-        return data['item']
-    except:
-        print "Root element in", cfgFileName, "is not an item"
+    return data
 
 
 def loadIdData(baseFileName):
@@ -410,22 +404,35 @@ def loadIdData(baseFileName):
     fname = baseFileName + "_id.yaml"
     try:
         f = open(fname)
-        data = yaml.load(f)
     except IOError:
         print "Can't open ID file", fname
         return
-    except:
-        print fname, "is not a valid YAML file!"
-        return
     print "Reading ID file", fname
+    data = f.read()
+    f.close()
     return data
 
     
-def makeBaseItem(base_item_config, id_dict):
+def makeBaseItem(yaml_text, id_text):
     "From the config file and the ID file, create objects to generate C++ code and a new ID file."
+    try:
+        cfg = yaml.load(yaml_text)
+    except:
+        print "config file can't be loaded as YAML"
+        return
+    try:
+        base_item_config = cfg['item']
+    except:
+        print "Root element in configuration is not an item"
+        return
+    try:
+        id_dict = yaml.load(id_text)
+    except:
+        print "ID file can't be loaded as YAML"
+        return
     if id_dict['name'] != base_item_config['name']:
         # The ID data file doesn't exist, is defective, or has no entry for the base item
-        print "No", base_item_config['name'], "in ID data file: generating new IDs!"
+        print "'{0}' in ID data file doesn't match '{1}' in config file: generating new IDs!".format(id_dict['name'], base_item_config['name'])
         base_id_dict = None
     return makeItem(base_item_config, Id_generator(None), id_dict)
 
@@ -469,8 +476,8 @@ if __name__ == "__main__":
     cfg_data = loadCfgData(sys.argv[1])
     if cfg_data is None:
         sys.exit()
-    id_dict = loadIdData(baseFileName)
-    baseItem = makeBaseItem(cfg_data, id_dict)
+    id_data = loadIdData(baseFileName)
+    baseItem = makeBaseItem(cfg_data, id_data)
     if baseItem is None:
         sys.exit()
     baseItem.verify()

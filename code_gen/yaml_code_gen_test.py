@@ -2,6 +2,7 @@
 """
 
 import yaml_code_gen
+import yaml
 import unittest
 from pprint import pprint
 
@@ -53,14 +54,21 @@ class Test_Id_generator(unittest.TestCase):
 
 class Test_Item_gen(unittest.TestCase):
     def test_simple_init(self):
-        c = {'name': 'alf', 'persistent': 'true', 'type': 'int'}
-        i = {'name': 'alf', 'id': 0}
-        b = yaml_code_gen.makeBaseItem(c, i)
+        "Check C++ init code produced from a YAML config descriptor"
+        cfg = \
+        "item:\n"\
+        "  name: alf\n"\
+        "  persistent: true\n"\
+        "  type: int\n"
+        id = \
+        "name: alf\n"\
+        "id: 55\n"
+        b = yaml_code_gen.makeBaseItem(cfg, id)
         expected_init = 'const cm_simple_metadata alf_data =\n'\
         '{\n'\
         '    {\n'\
         '        "alf",\n'\
-        '        0,\n'\
+        '        55,\n'\
         '        sizeof(int),\n'\
         '        true\n'\
         '    },\n'\
@@ -73,32 +81,36 @@ class Test_Item_gen(unittest.TestCase):
         
         
 class Test_contained_array_gen(unittest.TestCase):
-    i = {'name': 'alf', 'id': 0, 'components':[{'name': 'ipaddr', 'id': 0}]}
-    c = {'name': 'alf',
-        'persistent': 'true',
-        'aggregate':
-        [
-            {
-                'count': 2,
-                'type': 'contained',
-                'item':
-                {
-                    'name': 'ipaddr',
-                    'persistent': 'true',
-                    'type': 'unsigned long'
-                }
-            }
-        ]
-    }
+    id = \
+    "name: alf\n"\
+    "id: 0\n"\
+    "components:\n"\
+    " - name: ipaddr\n"\
+    "   id: 0\n"
+    cfg = \
+    "item:\n"\
+    "  name: alf\n"\
+    "  persistent: true\n"\
+    "  aggregate:\n"\
+    "  - count: 2\n"\
+    "    type: contained\n"\
+    "    item:\n"\
+    "       name: ipaddr\n"\
+    "       persistent: true\n"\
+    "       type: unsigned long\n"\
     
     def test_contained_array_definition(self):
-        b = yaml_code_gen.makeBaseItem(self.c, self.i)
+        b = yaml_code_gen.makeBaseItem(self.cfg, self.id)
         expected_def = '\n'\
         'struct t_alf\n'\
         '{\n'\
         '    unsigned long ipaddr[2];\n'\
         '};\n'
         self.assertEqual(expected_def, b.get_definition())
+        
+    def test_contained_array_init(self):
+        b = yaml_code_gen.makeBaseItem(self.cfg, self.id)
+        print b.get_init()
         
 if __name__ == "__main__":
     unittest.main()
