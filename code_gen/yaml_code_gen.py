@@ -78,10 +78,6 @@ class Item:
             self.id = container_id_gen.get_id(d['name'])
             print d['name'], "assigned new ID", self.id
         
-    def get_definition(self):
-        "Definitions of structs definitions for composites"
-        return self.get_struct_definition()
-        
     def get_metadata_name(self):
         return self.d['name'] + "_data"
         
@@ -125,7 +121,7 @@ class SimpleItem(Item):
         return s
         
     def get_metadata_init(self):
-        s = "const cm_simple_metadata " + self.get_metadata_name() + " = \n{\n"
+        s = "const cm_simple_metadata " + self.get_metadata_name() + " =\n{\n"
         s += self.get_common_metadata_init()
         s += indent
         if 'set' in self.d:
@@ -241,14 +237,14 @@ class CompositeItem(Item):
         return s
         
     def get_aggr_list_init(self):
-        s = "const cm_aggregate * const " + self.get_aggr_list_name() + "[] = \n{\n"
+        s = "const cm_aggregate * const " + self.get_aggr_list_name() + "[] =\n{\n"
         for a in self.d['aggregate']:
             s += indent + "&" + a['item']['name'] + "_aggr,\n"
         s += "\n};\n"
         return s
         
     def get_metadata_init(self):
-        s = "const cm_composite_metadata " + self.get_metadata_name() + " = \n{\n"
+        s = "const cm_composite_metadata " + self.get_metadata_name() + " =\n{\n"
         s += self.get_common_metadata_init()
         s += indent + self.get_aggr_list_name() + ",\n"
         s += indent + "sizeof(" + self.get_aggr_list_name() + ")/sizeof(" + self.get_aggr_list_name() + "[0])\n"
