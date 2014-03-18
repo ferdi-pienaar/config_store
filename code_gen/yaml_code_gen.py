@@ -179,7 +179,10 @@ def get_value_from_dictionary_list(dlist, key):
 class CompositeItem(Item):
     def __init__(self, d, container_id_gen, old_id):
         Item.__init__(self, d, container_id_gen, old_id)
-        self.id_gen = Id_generator(old_id['components'])
+        if old_id is not None:
+            self.id_gen = Id_generator(old_id['components'])
+        else:
+            self.id_gen = Id_generator(None)
         self.aggregates = []
         for a in self.d['aggregate']:
             component_id = None
@@ -428,12 +431,13 @@ def makeBaseItem(yaml_text, id_text):
     try:
         id_dict = yaml.load(id_text)
     except:
+        # This happens in the normal case where no ID file exists yet
         print "ID file can't be loaded as YAML"
-        return
+        return makeItem(base_item_config, Id_generator(None), None)
     if id_dict['name'] != base_item_config['name']:
-        # The ID data file doesn't exist, is defective, or has no entry for the base item
+        # The ID data has no entry for the base item
         print "'{0}' in ID data file doesn't match '{1}' in config file: generating new IDs!".format(id_dict['name'], base_item_config['name'])
-        base_id_dict = None
+        id_dict = None
     return makeItem(base_item_config, Id_generator(None), id_dict)
 
 
