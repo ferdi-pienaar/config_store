@@ -1123,7 +1123,7 @@ uint8_t * cm_owned_aggregate::getComponentItem(unsigned idx, uint8_t * pParentIt
 // Give name, current count, and maxcount.
 void cm_owned_aggregate::help(const uint8_t * pItem) const
 {
-    cm_printf(" [%u/%u]/n", getCount(pItem), pData->maxCount);
+    cm_printf("%s [%u/%u]\n", pData->pDesc->getName(), getCount(pItem), pData->maxCount);
 }
 
 
