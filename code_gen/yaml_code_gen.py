@@ -69,9 +69,9 @@ class Id_generator():
 
 
 class Item:
-    def __init__(self, d, container_id_gen, old_id, prefix_string):
+    def __init__(self, d, container_id_gen, old_id, full_name):
         self.d = d
-        self.prefix_string = prefix_string
+        self.full_name = full_name
         if old_id is not None:
             #print d['name'], "has old ID", old_id['id']
             self.id = str(old_id['id'])
@@ -102,8 +102,8 @@ class Item:
         
     
 class SimpleItem(Item):
-    def __init__(self, d, container_id_gen, old_id, prefix_string):
-        Item.__init__(self, d, container_id_gen, old_id, prefix_string)
+    def __init__(self, d, container_id_gen, old_id, full_name):
+        Item.__init__(self, d, container_id_gen, old_id, full_name)
         self.is_string_type = False # By default, items aren't strings
         if "string" in d['type']:
             self.is_string_type = True
@@ -178,9 +178,9 @@ def get_value_from_dictionary_list(dlist, key):
 
       
 class CompositeItem(Item):
-    def __init__(self, d, container_id_gen, old_id, prefix_string):
+    def __init__(self, d, container_id_gen, old_id, full_name):
         "prefix_string, from containing item, is prefixed to this item's name to give this item's structure name"
-        Item.__init__(self, d, container_id_gen, old_id, prefix_string)
+        Item.__init__(self, d, container_id_gen, old_id, full_name)
         if old_id is not None:
             self.id_gen = Id_generator(old_id['components'])
         else:
@@ -190,11 +190,7 @@ class CompositeItem(Item):
             component_id = None
             if old_id is not None:
                 component_id = get_value_from_dictionary_list(old_id['components'], a['item']['name'])
-            if len(prefix_string) == 0:
-                component_prefix_string = d['name'] + "_"
-            else:
-                component_prefix_string = prefix_string + d['name'] + "_"
-            self.aggregates.append(makeAggregate(a, self.id_gen, component_id, component_prefix_string))
+            self.aggregates.append(makeAggregate(a, self.id_gen, component_id, full_name))
 
     def verify(self):
         "Check item description in YAML file is valid and consistent."
@@ -264,7 +260,7 @@ class CompositeItem(Item):
         return self.d['name'] + "_aggr_list"
         
     def get_type(self):
-        return "t_" + self.prefix_string + self.d['name']
+        return "t_" + self.full_name
         
     def get_type_and_name(self, aggrType):
         s = self.get_type() + " "
@@ -278,9 +274,10 @@ class CompositeItem(Item):
               
                     
 class Aggregate:
-    def __init__(self, d, id_gen, old_id, prefix_string):
+    def __init__(self, d, id_gen, old_id, container_name):
         self.d = d
-        self.item = makeItem(self.d['item'], id_gen, old_id, prefix_string)
+        self.full_name = container_name + "_" + self.d['item']['name']
+        self.item = makeItem(self.d['item'], id_gen, old_id, self.full_name)
         
     def verify(self):
         "Check description in YAML file is valid and consistent."
@@ -319,8 +316,8 @@ class Aggregate:
 
 
 class ContainedAggregate(Aggregate):
-    def __init__(self, d, id_gen, old_id, prefix_string):
-        Aggregate.__init__(self, d, id_gen, old_id, prefix_string)
+    def __init__(self, d, id_gen, old_id, container_name):
+        Aggregate.__init__(self, d, id_gen, old_id, container_name)
         
     def get_instance_definition(self):
         s = self.item.get_type_and_name('contained')
@@ -337,8 +334,8 @@ class ContainedAggregate(Aggregate):
         
         
 class OwnedAggregate(Aggregate):
-    def __init__(self, d, id_gen, old_id, prefix_string):        
-        Aggregate.__init__(self, d, id_gen, old_id, prefix_string)
+    def __init__(self, d, id_gen, old_id, containter_name):        
+        Aggregate.__init__(self, d, id_gen, old_id, containter_name)
         
     def verify(self):
         "Check description in YAML file is valid and consistent."
@@ -379,20 +376,20 @@ class OwnedAggregate(Aggregate):
             return self.d['count']
         
         
-def makeItem(d, container_id_gen, old_id, prefix_string):
+def makeItem(d, container_id_gen, old_id, full_name):
     "Factory method returns an Item object of the requested class"
     if 'aggregate' in d: 
-        return CompositeItem(d, container_id_gen, old_id, prefix_string)
+        return CompositeItem(d, container_id_gen, old_id, full_name)
     else:
-        return SimpleItem(d, container_id_gen, old_id, prefix_string)
+        return SimpleItem(d, container_id_gen, old_id, full_name)
         
 
-def makeAggregate(d, id_gen, old_id, prefix_string):
+def makeAggregate(d, id_gen, old_id, container_name):
     "Factory method returns an Aggregate object of the requested class"
     if d['type'] == 'owned': 
-        return OwnedAggregate(d, id_gen, old_id, prefix_string)
+        return OwnedAggregate(d, id_gen, old_id, container_name)
     else:
-        return ContainedAggregate(d, id_gen, old_id, prefix_string)
+        return ContainedAggregate(d, id_gen, old_id, container_name)
 
         
 def loadCfgData(cfgFileName):
@@ -439,12 +436,12 @@ def makeBaseItem(yaml_text, id_text):
     except:
         # This happens in the normal case where no ID file exists yet
         print "ID file can't be loaded as YAML"
-        return makeItem(base_item_config, Id_generator(None), None, "")
+        return makeItem(base_item_config, Id_generator(None), None, base_item_config['name'])
     if id_dict['name'] != base_item_config['name']:
         # The ID data has no entry for the base item
         print "'{0}' in ID data file doesn't match '{1}' in config file: generating new IDs!".format(id_dict['name'], base_item_config['name'])
         id_dict = None
-    return makeItem(base_item_config, Id_generator(None), id_dict, "")
+    return makeItem(base_item_config, Id_generator(None), id_dict, base_item_config['name'])
 
 
 def saveIdData(baseFileName):
