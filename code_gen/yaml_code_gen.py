@@ -80,7 +80,7 @@ class Item:
             print d['name'], "assigned new ID", self.id
         
     def get_metadata_name(self):
-        return self.d['name'] + "_data"
+        return self.full_name + "_data"
         
     def get_common_metadata_init(self):
         "Return string representing initialization of the common metadata structure"
@@ -118,7 +118,7 @@ class SimpleItem(Item):
     def get_init(self):
         "Return string containing initialization of the metadata"
         s = self.get_metadata_init()
-        s += "const cm_simple_descriptor " + self.d['name'] + "(&" + self.get_metadata_name() + ");\n"
+        s += "const cm_simple_descriptor " + self.full_name + "(&" + self.get_metadata_name() + ");\n"
         return s
         
     def get_metadata_init(self):
@@ -238,13 +238,13 @@ class CompositeItem(Item):
             s += aggr.get_init(self.get_type(), self.id_gen) 
         s += self.get_aggr_list_init()
         s += self.get_metadata_init()
-        s += "const cm_composite_descriptor " + self.d['name'] + "(&" + self.get_metadata_name() + ");\n"
+        s += "const cm_composite_descriptor " + self.full_name + "(&" + self.get_metadata_name() + ");\n"
         return s
         
     def get_aggr_list_init(self):
         s = "const cm_aggregate * const " + self.get_aggr_list_name() + "[] =\n{\n"
-        for a in self.d['aggregate']:
-            s += indent + "&" + a['item']['name'] + "_aggr,\n"
+        for a in self.aggregates:
+            s += indent + "&" + a.full_name + "_aggr,\n"
         s += "\n};\n"
         return s
         
@@ -257,7 +257,7 @@ class CompositeItem(Item):
         return s
         
     def get_aggr_list_name(self):
-        return self.d['name'] + "_aggr_list"
+        return self.full_name + "_aggr_list"
         
     def get_type(self):
         return "t_" + self.full_name
@@ -287,13 +287,13 @@ class Aggregate:
         "Return initialization string"
         s = self.item.get_init()
         s += "const cm_aggregate_data " + self.get_data_name() + " = {&"
-        s += self.item.d['name'] + ", " + self.get_count_str()
+        s += self.full_name + ", " + self.get_count_str()
         s += ", offsetof(" + container_type_name + ", " + self.item.d['name'] + ")};\n"
         s += self.get_instantiate()       
         return s
         
     def get_data_name(self):
-        return self.d['item']['name'] + "_aggr_data"
+        return self.full_name  + "_aggr_data"
         
     def get_count_str(self):
         "Return a string representing the count: either a symbolic constant's name, or just a string of an integer."
@@ -318,25 +318,26 @@ class Aggregate:
 class ContainedAggregate(Aggregate):
     def __init__(self, d, id_gen, old_id, container_name):
         Aggregate.__init__(self, d, id_gen, old_id, container_name)
-        
+
     def get_instance_definition(self):
         s = self.item.get_type_and_name('contained')
         if self.d['count'] != 1:
             s += "[" + self.get_count_str() + "]"
         return s + ";\n"
-        
-    def get_type(self):
-        return "cm_contained_aggregate"
-        
+                
     def get_instantiate(self):
-        s = "const " + self.get_type() + " " + self.item.d['name'] + "_aggr(&" + self.get_data_name() + ");\n\n"
+        s = "const cm_contained_aggregate " + self.full_name + "_aggr(&" + self.get_data_name() + ");\n\n"
         return s
         
         
 class OwnedAggregate(Aggregate):
-    def __init__(self, d, id_gen, old_id, containter_name):        
-        Aggregate.__init__(self, d, id_gen, old_id, containter_name)
-        
+    def __init__(self, d, id_gen, old_id, container_name):        
+        Aggregate.__init__(self, d, id_gen, old_id, container_name)
+        self.counter_name = ""
+        if 'counter' in self.d:
+            print "Counter in", self.full_name, self.d['counter']
+            self.counter_name += container_name + "_" + self.d['counter']['item']['name']
+            
     def verify(self):
         "Check description in YAML file is valid and consistent."
         self.verify_counter()
@@ -354,13 +355,10 @@ class OwnedAggregate(Aggregate):
     def get_instance_definition(self):
         return self.item.get_type_and_name('owned') + ";\n"
         
-    def get_type(self):
-        return "cm_owned_aggregate"
-        
     def get_instantiate(self):
-        s = "const " + self.get_type() + " " + self.item.d['name'] + "_aggr(&" + self.get_data_name()
-        if 'counter' in self.d:
-            s += ", &" + self.d['counter']['item']['name'] + "_aggr"
+        s = "const cm_owned_aggregate " + self.full_name + "_aggr(&" + self.get_data_name()
+        if len(self.counter_name) > 0:
+            s += ", &" + self.counter_name + "_aggr"
         else:
             s += ", NULL"
         s += ");\n\n"
@@ -480,11 +478,11 @@ def saveInititializationFile(baseFileName, baseItem):
     
 if __name__ == "__main__":
     baseFileName, extension = os.path.splitext(sys.argv[1])
-    cfg_data = loadCfgData(sys.argv[1])
-    if cfg_data is None:
-        sys.exit()
-    id_data = loadIdData(baseFileName)
-    baseItem = makeBaseItem(cfg_data, id_data)
+    cfg_text = loadCfgData(sys.argv[1])
+    if cfg_text is None:
+        sys.exit()        
+    id_text = loadIdData(baseFileName)
+    baseItem = makeBaseItem(cfg_text, id_text)
     if baseItem is None:
         sys.exit()
     baseItem.verify()
