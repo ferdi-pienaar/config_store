@@ -335,7 +335,6 @@ class OwnedAggregate(Aggregate):
         Aggregate.__init__(self, d, id_gen, old_id, container_name)
         self.counter_name = ""
         if 'counter' in self.d:
-            print "Counter in", self.full_name, self.d['counter']
             self.counter_name += container_name + "_" + self.d['counter']['item']['name']
             
     def verify(self):
