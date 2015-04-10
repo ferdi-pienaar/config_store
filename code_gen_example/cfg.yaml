@@ -76,7 +76,7 @@ item: &home
             -   count: 1
                 type: contained
                 item:
-                    name: lname
+                    name: name
                     persistent: true
                     set: cm_set_str
                     setdef: cm_setdef_null

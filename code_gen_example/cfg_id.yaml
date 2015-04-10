@@ -9,7 +9,7 @@ components:
     name: addr
   - components:
     - id: 0
-      name: lname
+      name: name
     id: 1
     name: location
   id: 4

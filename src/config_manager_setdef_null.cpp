@@ -9,8 +9,9 @@
 
 using namespace std;
 
-// pItem - pointer to memory to set to default.
-// len - number of bytes the item consists of
+// Write 0 to the item
+// @param pItem - pointer to memory to set to default.
+// @param len - number of bytes the item consists of
 //
 void cm_setdef_null(uint8_t *pItem, cm_item_len_t len)
 {

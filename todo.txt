@@ -85,3 +85,12 @@ easy...
   insert entries, in lists where the order matters, e.g. encodes priority.
 - Default values don't need to be saved.  Is that worth doing?  Risky?  What if
   defaults change?
+- The code generator requires the counter for an owned item to exist in the same container
+  as the owned item. (And it is always printed, using the default print method).
+  Changing this would not be easy, since the generator assumes all items are part of
+  one hierarchy.
+- The code generator can't detect that a structure can be re-used if the same elements
+  are repeated in different places. Is this worth doing? Should we change the format
+  if cfg.yaml to support this? If cfg.yaml is too complex, we might as well just
+  code the C++ directly!
+  
