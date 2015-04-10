@@ -17,6 +17,7 @@ import yaml
 import sys
 import datetime
 import os
+import collections
 
 indent = "    "
 
@@ -60,7 +61,7 @@ class Id_generator():
             
     def __make_id_dict(self, id_dlist):
         "From more complex data struct passed to constructor, generate a name:ID dictionary"
-        self.allocated_id = {}
+        self.allocated_id = collections.OrderedDict()
         if id_dlist is not None:
             for id in id_dlist:
                 # Each element in ids is a dictionary with keys 'name' and 'id'
@@ -416,10 +417,10 @@ def loadIdData(baseFileName):
     return data
 
     
-def makeBaseItem(yaml_text, id_text):
+def makeBaseItem(yaml_cfg_text, id_text):
     "From the config file and the ID file, create objects to generate C++ code and a new ID file."
     try:
-        cfg = yaml.load(yaml_text)
+        cfg = yaml.load(yaml_cfg_text)
     except:
         print "config file can't be loaded as YAML"
         return
@@ -441,16 +442,23 @@ def makeBaseItem(yaml_text, id_text):
     return makeItem(base_item_config, Id_generator(None), id_dict, base_item_config['name'])
 
 
-def saveIdData(baseFileName):
-    "Save IDs to the ID file, newly allocated ones and ones in the previous ID file."
+def saveIdData(baseFileName, old_id_text):
+    "Save IDs to the ID file, including newly allocated ones and ones in the previous ID file."
+    id_data = getIdData()
+    # Compare the data, ignore the comments that are also part of the file text
+    old_id_data = yaml.load(old_id_text)
+    if id_data == old_id_data:
+        # Don't overwrite file with same data, 'make' considers it a changed dependency
+        return
     fname = baseFileName + "_id.yaml"
     f = open(fname, "w")
     f.write(getIdHeader(sys.argv[0]))
-    f.write(yaml.dump(getIdData(), default_flow_style=False))
+    f.write(yaml.dump(id_data, default_flow_style=False))
+    f.close()
     
     
 def getIdData():
-    "Get current ID data, newly allocated ones and ones in the previous ID file, in ID file format."
+    "Get current ID data, including newly allocated ones and ones in the previous ID file, in ID file format."
     # Special case: the top-level item is the only one that doesn't get its ID from a generator object
     id_dict = {}
     id_dict['name'] = baseItem.d['name']
@@ -487,4 +495,4 @@ if __name__ == "__main__":
     baseItem.verify()
     saveDefinitionFile(baseFileName, baseItem)
     saveInititializationFile(baseFileName, baseItem)
-    saveIdData(baseFileName)
+    saveIdData(baseFileName, id_text)

@@ -4,6 +4,25 @@
 # It may be modified, typically to remove an item whose ID may be re-allocated because it
 # is no longer used anywhere.
 components:
+- id: 0
+  name: ipaddr
+- id: 1
+  name: port
+- id: 2
+  name: userCnt
+- components:
+  - id: 0
+    name: name
+  - id: 1
+    name: id
+  - id: 2
+    name: temp
+  - id: 3
+    name: elapsed
+  - id: 45
+    name: boso
+  id: 3
+  name: user
 - components:
   - id: 0
     name: addr
@@ -14,24 +33,5 @@ components:
     name: location
   id: 4
   name: home
-- id: 2
-  name: userCnt
-- id: 0
-  name: ipaddr
-- id: 1
-  name: port
-- components:
-  - id: 3
-    name: elapsed
-  - id: 45
-    name: boso
-  - id: 0
-    name: name
-  - id: 2
-    name: temp
-  - id: 1
-    name: id
-  id: 3
-  name: user
 id: 47792
 name: device
