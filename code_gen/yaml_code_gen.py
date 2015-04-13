@@ -446,10 +446,11 @@ def saveIdData(baseFileName, old_id_text):
     "Save IDs to the ID file, including newly allocated ones and ones in the previous ID file."
     id_data = getIdData()
     # Compare the data, ignore the comments that are also part of the file text
-    old_id_data = yaml.load(old_id_text)
-    if id_data == old_id_data:
-        # Don't overwrite file with same data, 'make' considers it a changed dependency
-        return
+    if old_id_text is not None:
+        old_id_data = yaml.load(old_id_text)
+        if id_data == old_id_data:
+            # Don't overwrite file with same data, 'make' considers it a changed dependency
+            return
     fname = baseFileName + "_id.yaml"
     f = open(fname, "w")
     f.write(getIdHeader(sys.argv[0]))
