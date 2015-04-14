@@ -113,6 +113,10 @@ const char * config_manager::getPromptString() const
 // Save data in RAM to persistent storage
 void config_manager::save()
 {
+    if (!base_desc->isPersistent())
+    {
+        return;
+    }
     store->initForWrite();
     base_desc->save(ramBase);
 }
@@ -419,15 +423,10 @@ const cm_aggregate * cm_composite_descriptor::getAggr(cm_item_id_t id) const
 }
 
 
-/// Save item to persistent storage, if its metadata says it's a persistent item
+/// Save item to persistent storage
 //
 void cm_composite_descriptor::save(const uint8_t *pItem) const
 {
-    if (!pData->c.persistent)
-    {
-        return;
-    }
-
     config_manager::getInstance()->store->startWriteComposite(pData);
 
     for (unsigned i = 0; i < getAggrCount(); i++)
@@ -623,10 +622,6 @@ void cm_simple_descriptor::setDefault(uint8_t * pItem) const
 /// Save item to persistent storage
 void cm_simple_descriptor::save(const uint8_t *pItem) const
 {
-    if (!pData->c.persistent)
-    {
-        return;
-    }
     config_manager::getInstance()->store->writeSimple(pData, pItem);
 }
 
@@ -692,7 +687,7 @@ void cm_aggregate::print(const uint8_t * pItem, std::string prefix, bool include
         // The item is not persistent, i.e. state, so exclude it because not required
         return;
     }
-    
+
     char indexbuf[6] = {0}; // xxx big enough to avoid truncation in all cases?
 
     for (unsigned i = 0; i < getCount(pItem); i++)
@@ -761,9 +756,13 @@ bool cm_aggregate::getComponentItem(command_stack * cmd,
 }
 
 
-// Save to persistent storage all elements in the array
+// Save to persistent storage all elements in the array, if its metadata says it's a persistent item
 void cm_aggregate::save(const uint8_t *pItem) const
 {
+    if (!pData->pDesc->isPersistent())
+    {
+        return;
+    }
     for (unsigned i = 0; i < getCount(pItem); i++)
     {
         pData->pDesc->save(getItemAtIndex(pItem, i));
