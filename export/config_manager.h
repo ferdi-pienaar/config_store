@@ -88,7 +88,7 @@ public:
     virtual void save(const uint8_t * pItem) const = 0;
     virtual t_cm_result load(uint8_t * pItem, unsigned * pComplete) const = 0;
     virtual cm_item_len_t getLen() const = 0;
-    virtual void print(const uint8_t * pItem, std::string prefix) const = 0;
+    virtual void print(const uint8_t * pItem, std::string prefix, bool include_state) const = 0;
     virtual void setDefault(uint8_t * pItem) const = 0;
     virtual void help(const uint8_t * pItem) const = 0;
     virtual bool isPersistent() const = 0;
@@ -132,7 +132,7 @@ public:
     virtual bool handleDel(command_stack * cmd, uint8_t * pItem) const = 0;
     virtual void setCount(uint8_t * pParentItem, unsigned int) const = 0;
     void setDefault(uint8_t * pItem) const;
-    void print(const uint8_t * pItem, std::string prefix) const;
+    void print(const uint8_t * pItem, std::string prefix, bool include_state) const;
     virtual uint8_t * add(uint8_t * pParentItem) const = 0;
     virtual void del(uint8_t * pParentItem, unsigned int itemIdx) const = 0;
     bool getComponentItem(command_stack * cmd,
@@ -220,7 +220,7 @@ public:
     virtual cm_item_id_t getId() const {return pData->c.id;}
     virtual cm_item_len_t getLen() const {return pData->c.len;}
     bool handleCmd(command_stack * cmd, uint8_t * pItem) const;
-    void print(const uint8_t * pItem, std::string prefix) const;
+    void print(const uint8_t * pItem, std::string prefix, bool include_state) const;
     void setDefault(uint8_t * pItem) const;
     virtual void help(const uint8_t * pItem) const;
     void save(const uint8_t * pItem) const;
@@ -258,7 +258,7 @@ public:
     const char * getName() const {return pData->c.name;}
     virtual cm_item_id_t getId() const {return pData->c.id;}
     virtual cm_item_len_t getLen() const {return pData->c.len;}
-    void print(const uint8_t * pItem, std::string prefix) const;
+    void print(const uint8_t * pItem, std::string prefix, bool include_state) const;
     bool set(uint8_t * pItem, std::string val) const;
     void setDefault(uint8_t * pItem) const;
     void help(const uint8_t * pItem) const {std::cout << "len " << getLen() << std::endl;}
@@ -321,6 +321,7 @@ public:
         CM_ADD,
         CM_DEL,
         CM_PRT,
+        CM_PRT_CFG,
         CM_SET,
         CM_SETDEF,
         CM_LOAD,

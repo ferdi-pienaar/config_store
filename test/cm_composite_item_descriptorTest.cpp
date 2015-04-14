@@ -104,7 +104,7 @@ TEST(cm_composite_descriptor_contained, print)
     mem.m1 = 3;
     mem.m2 = 5;
 
-    c1.print((uint8_t *)&mem, prefix);
+    c1.print((uint8_t *)&mem, prefix, false);
     STRCMP_EQUAL(expected, cm_printf_spy_get());
 }
 
@@ -168,7 +168,7 @@ TEST(cm_composite_descriptor_owned, printNull)
     const char * expected =
         "count = 00000000\n";
 
-    c2.print((uint8_t *)&mem, prefix);
+    c2.print((uint8_t *)&mem, prefix, false);
     STRCMP_EQUAL(expected, cm_printf_spy_get());
 }
 
@@ -187,7 +187,7 @@ TEST(cm_composite_descriptor_owned, printData)
     mem.cnt = NUM_OWNED;
     mem.owned = owned;
     
-    c2.print((uint8_t *)&mem, prefix);
+    c2.print((uint8_t *)&mem, prefix, false);
     STRCMP_EQUAL(expected, cm_printf_spy_get());
 }
 

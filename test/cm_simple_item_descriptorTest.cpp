@@ -55,7 +55,7 @@ TEST(cm_simple_descriptor, print)
     cm_simple_metadata d_d = {{"d01", 1 , sizeof(mem), true}, NULL, NULL, NULL};
 
     cm_simple_descriptor d(&d_d);
-    d.print((uint8_t *)&mem, prefix);
+    d.print((uint8_t *)&mem, prefix, false);
     STRCMP_EQUAL("= 07000000\n", cm_printf_spy_get());
 }
 

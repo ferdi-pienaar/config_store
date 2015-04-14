@@ -194,7 +194,7 @@ cm_composite_descriptor::cm_composite_descriptor(const cm_composite_metadata * p
 
 //
 // @param cmd - stack of strings containing name elements
-// @parampItem - pointer to RAM at which item is located
+// @param pItem - pointer to RAM where item is located
 //
 // @return true if command was handled
 //
@@ -222,7 +222,11 @@ bool cm_composite_descriptor::handleCmd(command_stack * cmd,
             return handleDel(&cmd->pop(), pItem);
 
         case command_stack::CM_PRT:
-            print(pItem, "");
+            print(pItem, "", true);
+            return true;
+
+        case command_stack::CM_PRT_CFG:
+            print(pItem, "", false);
             return true;
 
         case command_stack::CM_SETDEF:
@@ -253,7 +257,7 @@ bool cm_composite_descriptor::handleIdWord(command_stack * cmd, uint8_t * pItem)
     if (pAggr == NULL)
     {
         // Unhandled word(s): not a command, and also doesn't identify a component
-        cm_printf("'%s' not in composite item '%s'\n", cmd->getTop(), getName());
+        cm_printf("'%s' not in composite '%s'.\n", cmd->getTop(), getName());
         return false;
     }
 
@@ -307,7 +311,7 @@ bool cm_composite_descriptor::handleAdd(command_stack * cmd, uint8_t * pItem) co
     const cm_aggregate * pAggr = getAggr(cmd->getTop());
     if (pAggr == NULL)
     {
-        cm_printf("No item '%s' in '%s'.\n", cmd->getTop(), getName());
+        cm_printf("'%s' not in composite '%s'.\n", cmd->getTop(), getName());
         return false;
     }
     return pAggr->handleAdd(pItem);
@@ -331,7 +335,7 @@ bool cm_composite_descriptor::handleDel(command_stack * cmd, uint8_t * pItem) co
 
     if (pAggr == NULL)
     {
-        cm_printf("No item '%s' in '%s'.\n", cmd->getTop(), getName());
+        cm_printf("'%s' not in composite '%s'.\n", cmd->getTop(), getName());
         return false;
     }
     return pAggr->handleDel(cmd, pItem);
@@ -340,13 +344,19 @@ bool cm_composite_descriptor::handleDel(command_stack * cmd, uint8_t * pItem) co
 
 // Delegate print command to components
 //
-void cm_composite_descriptor::print(const uint8_t * pItem, string prefix) const
+void cm_composite_descriptor::print(const uint8_t * pItem, string prefix, bool include_state) const
 {
-    DBG_PRT("print composite %s len %d\n", getName(), getLen());
+    DBG_PRT("print composite %s len %d include_state=%d\n", getName(), getLen(), include_state);
+
+    if (!include_state && !pData->c.persistent)
+    {
+        // The item is not persistent, i.e. state, so exclude it because not required
+        return;
+    }
 
     for (unsigned i = 0; i < pData->aggrCount; i++)
     {
-        getAggrAtIndex(i)->print(pItem, prefix);
+        getAggrAtIndex(i)->print(pItem, prefix, include_state);
     }
 }
 
@@ -527,15 +537,15 @@ cm_simple_descriptor::cm_simple_descriptor(const cm_simple_metadata * pMeta):
 // An item does not print its own name, since
 // it may be preceded by an index, which is known
 // to the item's composite but not to the item.
-void cm_simple_descriptor::print(const uint8_t * pItem, string prefix) const
+void cm_simple_descriptor::print(const uint8_t * pItem, string prefix, bool include_state) const
 {
-    cm_printf("%s= ", prefix.c_str());
+    DBG_PRT("print simple %s len %d at %p include_state=%d\n", getName(), getLen(), pItem, include_state);
 
-    DBG_PRT("print simple %s len %d at %p\n", getName(), getLen(), pItem);
+    cm_printf("%s= ", prefix.c_str());
 
     if (pData->pPrt == NULL)
     {
-        // No function installed so default print function: hex chars
+        // No function installed so use default print function: hex chars
         cm_prt_hexstr(stdout, pItem, getLen());
     }
     else
@@ -548,7 +558,7 @@ void cm_simple_descriptor::print(const uint8_t * pItem, string prefix) const
 
 //
 // cmd - array of strings containing name elements
-// pItem - pointer to RAM at which item is located
+// pItem - pointer to RAM where item is located
 //
 bool cm_simple_descriptor::handleCmd(command_stack * cmd, uint8_t * pItem) const
 {
@@ -557,7 +567,11 @@ bool cm_simple_descriptor::handleCmd(command_stack * cmd, uint8_t * pItem) const
     switch (cmd->getTopOp())
     {
         case command_stack::CM_PRT:
-            print(pItem, "");
+            print(pItem, "", true);
+            return true;
+
+        case command_stack::CM_PRT_CFG:
+            print(pItem, "", false);
             return true;
 
         case command_stack::CM_SET:
@@ -576,7 +590,7 @@ bool cm_simple_descriptor::handleCmd(command_stack * cmd, uint8_t * pItem) const
             return true; // true?
 
         default:
-            cm_printf("'%s' not handled by simple item '%s'\n", cmd->getTop(), getName());
+            cm_printf("'%s' not in simple '%s'.\n", cmd->getTop(), getName());
     }
     return false;
 }
@@ -671,8 +685,14 @@ void cm_aggregate::setDefault(uint8_t * pItem) const
 
 // Print, appending index to prefix (if necessary) and delegating to items
 // @param prefix string to be pre-pended to the value, representing its context
-void cm_aggregate::print(const uint8_t * pItem, std::string prefix) const
+void cm_aggregate::print(const uint8_t * pItem, std::string prefix, bool include_state) const
 {
+    if (!include_state && !pData->pDesc->isPersistent())
+    {
+        // The item is not persistent, i.e. state, so exclude it because not required
+        return;
+    }
+    
     char indexbuf[6] = {0}; // xxx big enough to avoid truncation in all cases?
 
     for (unsigned i = 0; i < getCount(pItem); i++)
@@ -683,7 +703,8 @@ void cm_aggregate::print(const uint8_t * pItem, std::string prefix) const
             snprintf(indexbuf, sizeof(indexbuf), " %d", i);
         }
         pData->pDesc->print(getItemAtIndex(pItem, i),
-                            prefix + pData->pDesc->getName() + indexbuf + " ");
+                            prefix + pData->pDesc->getName() + indexbuf + " ",
+                            include_state);
     }
 }
 
@@ -727,7 +748,7 @@ bool cm_aggregate::getComponentItem(command_stack * cmd,
         // We may add a new item, depending on index and aggregate type
         if ((*ppItem = addImplicit(itemIdx, pParentItem)) == NULL)
         {
-            cm_printf("Index %u out of range\n", itemIdx);
+            cm_printf("Index %u out of range.\n", itemIdx);
             return false;
         }
         added = true;
@@ -811,7 +832,7 @@ unsigned cm_contained_aggregate::getCount(const uint8_t * pParentItem) const
 // Handle command 'add' on command line
 bool cm_contained_aggregate::handleAdd(uint8_t * pItem) const
 {
-    cm_printf("Add not supported for contained %s.\n", pData->pDesc->getName());
+    cm_printf("'add' not supported for contained '%s'.\n", pData->pDesc->getName());
     return false;
 }
 
@@ -819,7 +840,7 @@ bool cm_contained_aggregate::handleAdd(uint8_t * pItem) const
 // Handle command 'del' on command line
 bool cm_contained_aggregate::handleDel(command_stack * cmd, uint8_t * pItem) const
 {
-    cm_printf("Del not supported for contained %s.\n", pData->pDesc->getName());
+    cm_printf("'del' not supported for contained '%s'.\n", pData->pDesc->getName());
     return false;
 }
 
@@ -1139,6 +1160,7 @@ command_stack::eCmOp command_stack::getTopOp() const
     if (strcmp(getTop(), "add") == 0)     return CM_ADD;
     if (strcmp(getTop(), "del") == 0)     return CM_DEL;
     if (strcmp(getTop(), "prt") == 0)     return CM_PRT;
+    if (strcmp(getTop(), "prtc") == 0)    return CM_PRT_CFG;
     if (strcmp(getTop(), "=") == 0)       return CM_SET;
     if (strcmp(getTop(), "setdef") == 0)  return CM_SETDEF;
     if (strcmp(getTop(), "load") == 0)    return CM_LOAD;
