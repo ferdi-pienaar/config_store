@@ -511,7 +511,6 @@ t_cm_result cm_composite_descriptor::loadComponent(uint8_t * pParentItem,
     DBG_PRT("loadComponent: id %d idx %d\n", id, idx);
 
     const cm_aggregate * pAggr = getAggr(id);
-
     if (pAggr == NULL)
     {
         return config_manager::getInstance()->store->skipItem(pComplete);
@@ -706,7 +705,7 @@ void cm_aggregate::print(const uint8_t * pItem, std::string prefix, bool include
 
 // From remaining command-line words, find component item of this aggregate.
 // If the item does not exist, it is created in certain cases.
-// The first step is to look for an index.
+// First, look in the command words for an integer representing an index.
 //
 // @param cmd - command string stack
 // @param pParentItem: (in) the owning item
@@ -740,7 +739,7 @@ bool cm_aggregate::getComponentItem(command_stack * cmd,
 
     if (itemIdx >= getCount(pParentItem))
     {
-        // We may add a new item, depending on index and aggregate type
+        // We may add a new RAM item, depending on index and aggregate type
         if ((*ppItem = addImplicit(itemIdx, pParentItem)) == NULL)
         {
             cm_printf("Index %u out of range.\n", itemIdx);
@@ -1036,7 +1035,7 @@ bool cm_owned_aggregate::handleDel(command_stack * cmd, uint8_t * pItem) const
 }
 
 
-// Add OWNED item.
+// Add OWNED item in RAM.
 // @pre Counter is in range
 // This allocates memory for the new item, sets it to default values,
 // and increments the corresponding counter.
@@ -1109,8 +1108,12 @@ void cm_owned_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
 }
 
 
-// Implicit add succeeds if the index is one larger than the current
-// largest item index, and in-range
+// Implicit add a RAM item, i.e. add an item because it is referenced by
+// a command that is not an explicit 'add'. This allows the client to re-create
+// configuration by "playing back" the output from command "prt".
+// @return a pointer to the new item, if the index is one larger than the current
+// largest item index, and in-range; else NULL.
+//
 uint8_t * cm_owned_aggregate::addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const
 {
     DBG_PRT("addImplicit %s: idx %d cnt %d\n",

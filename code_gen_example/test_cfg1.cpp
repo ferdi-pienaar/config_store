@@ -13,20 +13,21 @@ using namespace std;
 
 #define WORD_DELIMITERS " \n"
 
-
 // Periodically, update some stats that can be displayed by cfg_man.
+// NB: there's a race condition here! By the time we modify config
+// it may not exist anymore.
 void * stats_thread(void * arg)
 {
+    t_device * pCfg = get_config(); // get a pointer to the RAM where the config lives
+
     for (;;)
     {
         sleep(5);
-        t_device * pCfg = get_config();
-        static unsigned short userIdx = 0;
 
         if (pCfg->userCnt > 0)
         {
+            static unsigned short userIdx = 0;
             userIdx = (userIdx >= pCfg->userCnt - 1) ? 0 : userIdx + 1;
-
             pCfg->user[userIdx].elapsed++;
         }
     }
@@ -43,28 +44,26 @@ int main()
     int rc = pthread_create(&thread, NULL, stats_thread, NULL);
     assert(0 == rc);
     
+    // Read commands from stdin and give them to the config manager
     while (true)
     {
-        char   cmd[120];
-        char * param[20];
-        int    wordCnt = 0;
-
         printf("%s> ", cm->getPromptString());
-
+        
+        char cmd[120];
         if (fgets(cmd, sizeof(cmd), stdin) == NULL)
         {
             continue;
         }
-
+        
+        // Break commands into a list of words, as expected by config manager
+        char * param[20];
         if ((param[0] = strtok(cmd, WORD_DELIMITERS)) != NULL)
         {
-            wordCnt = 1;
-
+            unsigned wordCnt = 1;
             while (NULL != (param[wordCnt] = strtok(NULL, WORD_DELIMITERS)))
             {
                 wordCnt++;
             }
-
             cm->handleCmd(wordCnt, param);
         }
     }

@@ -73,7 +73,7 @@ private:
 class command_stack;
 
 ////////////////////////////////////////////////////////////////////////////////
-/// Descriptor of configurable item (either simple or compound).
+/// Descriptor of configurable item (either simple or composite).
 // xxx methods are private (not for user), but config_manager is friend?
 class cm_descriptor
 {
@@ -268,7 +268,6 @@ public:
 
 private:
     const cm_simple_metadata * const pData;
-
 };
 
 
@@ -293,9 +292,7 @@ public:
     void resetCtxt();
     void updateCtxt() {currCtxt = candidateCtxt;}    
     cm_context   candidateCtxt; // context built while handling current command
-
     cm_store * store;
-
 
 private:
     config_manager();

@@ -31,7 +31,7 @@ bool cm_yaml_store::initForRead()
     cout << "cm_yaml_store::resetRead()" << endl;
 
     yaml->reset();
-    return nvram.initRead();
+    return nvram.initForRead();
 }
 
 
@@ -40,7 +40,7 @@ bool cm_yaml_store::initForWrite()
     cout << "cm_yaml_store::resetWrite()" << endl;
 
     yaml->reset();
-    return nvram.initWrite();
+    return nvram.initForWrite();
 }
 
 

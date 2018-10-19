@@ -4,7 +4,6 @@
 import yaml_code_gen
 import yaml
 import unittest
-from pprint import pprint
 
 class Test_Id_generator(unittest.TestCase):
     def test_get_id(self):

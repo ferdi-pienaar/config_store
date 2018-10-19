@@ -41,9 +41,9 @@ item: &user
         item:
             name: temp
             persistent: true
-            set: cm_set_int
+            set: set_temp           
             setdef: setdef_temp
-            print: cm_prt_int
+            print: prt_temp
             type: short
     -   count: 1
         type: contained

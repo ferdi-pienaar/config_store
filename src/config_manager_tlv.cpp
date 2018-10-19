@@ -77,7 +77,7 @@ void Tlv::startWriteComposite(cm_item_id_t t)
 }
 
 
-// Close writing of composite by writing L of TLV
+// Close writing of composite by writing header (T and L) of TLV.
 // xxx return boolean to indicate if we've reached the bottom of the stack?
 void Tlv::endWriteComposite()
 {

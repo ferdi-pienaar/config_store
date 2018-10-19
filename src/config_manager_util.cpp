@@ -37,9 +37,13 @@ void cm_prt_int(FILE * f, const uint8_t *pItem, cm_item_len_t len)
     case sizeof(int32_t):
         cm_printf("%d", *((int32_t *)pItem));
         break;
+        
+    case sizeof(int64_t):
+        cm_printf("%ld", *((int64_t *)pItem));
+        break;
 
     default:
-        assert(0);
+        assert("Unexpected input integer len."==0);
     }
 }
 
@@ -104,9 +108,20 @@ bool cm_set_int(uint8_t *pItem, cm_item_len_t len, string val)
         memcpy(pItem, &lv, sizeof(lv));
         return true;
     }
+    
+    case sizeof(int64_t):
+    {
+        if ((v > INT64_MAX) || (v < INT64_MIN))
+        {
+            return false;
+        }
+        int64_t lv = (int64_t)v;
+        memcpy(pItem, &lv, sizeof(lv));
+        return true;
+    }
 
     default:
-        assert(0);
+        assert("Unexpected input integer len."==0);
         return false;
     }
 }

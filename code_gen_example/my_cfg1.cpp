@@ -15,6 +15,7 @@
 // with this application's configuration
 void init_config()
 {
+    // Give the manager the metadata instantiated in the metadata initialization .cpp file
     config_manager::getInstance()->init(&device);
 }
 
