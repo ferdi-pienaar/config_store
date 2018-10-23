@@ -162,11 +162,22 @@ public:
     cm_contained_aggregate(const cm_aggregate_data * d): cm_aggregate(d){}
 
     virtual unsigned getCount(const uint8_t * pParentItem) const;
-    void setCount(uint8_t * pParentItem, unsigned int) const {assert(false);} // not modifiable    
+    void setCount(uint8_t * pParentItem, unsigned int) const {
+        (void)pParentItem;
+        assert(false); // not modifiable
+    }
     bool handleAdd(uint8_t * pItem) const;
     bool handleDel(command_stack * cmd, uint8_t * pItem) const;
-    uint8_t * add(uint8_t * pParentItem) const {assert(false); return NULL; }
-    void del(uint8_t * pParentItem, unsigned int itemIdx) const {assert(false);}    
+    uint8_t * add(uint8_t * pParentItem) const {
+        (void)pParentItem;
+        assert(false);
+        return NULL;
+    }
+    void del(uint8_t * pParentItem, unsigned int itemIdx) const {
+        (void)pParentItem;
+        (void)itemIdx;
+        assert(false);
+    }    
     uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const;    
     uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const;    
     void help(const uint8_t * pItem) const;
@@ -174,7 +185,9 @@ public:
 private:
     uint8_t * getFirstItem(const uint8_t * pParentItem) const;
     // For contained items, the aggregate doesn't own the item memory, so frees nothing
-    void freeItems(uint8_t * pParentItem) const {}
+    void freeItems(uint8_t * pParentItem) const {
+        (void)pParentItem;
+    }
 };
 
 
@@ -261,7 +274,10 @@ public:
     void print(const uint8_t * pItem, std::string prefix, bool include_state) const;
     bool set(uint8_t * pItem, std::string val) const;
     void setDefault(uint8_t * pItem) const;
-    void help(const uint8_t * pItem) const {std::cout << "len " << getLen() << std::endl;}
+    void help(const uint8_t * pItem) const {
+        (void)pItem;
+        std::cout << "len " << getLen() << std::endl;
+    }
     virtual void save(const uint8_t * pItem) const;
     t_cm_result load(uint8_t * pItem, unsigned * pComplete) const;
     bool isPersistent() const { return pData->c.persistent; }

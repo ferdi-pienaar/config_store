@@ -25,7 +25,7 @@ VPATH = ../src # so make can find the sources and library
 # Flags passed to the preprocessor.
 # Set Google Test's header directory as a system directory, such that
 # the compiler doesn't generate warnings in Google Test headers.
-CPPFLAGS += -isystem $(GTEST_DIR)/include -I $(USER_DIR) -I $(STUB_DIR)
+CPPFLAGS += -isystem $(GTEST_DIR)/include -I $(USER_DIR) -I $(STUB_DIR) -I ../export
 
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g -Wall -Wextra -pthread
@@ -34,8 +34,8 @@ CXXFLAGS += -g -Wall -Wextra -pthread
 # created to the list.
 TESTS = cm_test
 
-TEST_OBJS = cm_tlvTest.o
-MOCK_OBJS = $(STUB_DIR)/nvram_spy.o
+TEST_OBJS = cm_tlvTest.o cm_simple_item_descriptorTest.o
+MOCK_OBJS = $(STUB_DIR)/nvram_spy.o $(STUB_DIR)/config_manager_printf_spy.o 
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
