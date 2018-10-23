@@ -3,7 +3,7 @@
 // xxx valid for little-endian systems only
 //
 
-#include "CppUTest/TestHarness.h"
+#include "gtest/gtest.h"
 #include "config_manager_tlv.h"  // Unit under test
 #include <string.h> // strncmp
 #include "nvram_spy.h"
@@ -13,19 +13,19 @@ using namespace std;
 
 static uint8_t clientRam[1024];
 
-
-TEST_GROUP(tlv)
-{
+namespace {
+class TlvTest : public testing::Test {
+protected:
     Nvram nvram;
     Tlv * tlv;
 
-    void setup()
+    virtual void SetUp()
     {
         tlv = new Tlv(&nvram);
         nvram_spy_init();
     }
     
-    void teardown()
+    virtual void TearDown()
     {
         //clean up steps are executed after each TEST
         delete tlv;
@@ -34,7 +34,7 @@ TEST_GROUP(tlv)
 
 
 //
-TEST(tlv, writeSimple)
+TEST_F(TlvTest, writeSimple)
 {
     cm_item_id_t id = 55;
 
@@ -44,12 +44,12 @@ TEST(tlv, writeSimple)
 
     tlv->writeSimple(id, sizeof(mem), mem);
 
-    CHECK(nvram_spy_match(expected, sizeof(expected)));
+    EXPECT_TRUE(nvram_spy_match(expected, sizeof(expected)));
 }
 
 
 // 
-TEST(tlv, writeComposite)
+TEST_F(TlvTest, writeComposite)
 {
     cm_item_id_t cId = 55;
     cm_item_id_t sId = 44;
@@ -66,12 +66,12 @@ TEST(tlv, writeComposite)
 
     //cout << memcmp(expected, nvMem, sizeof(expected));
 
-    CHECK(nvram_spy_match(expected, sizeof(expected)));
+    EXPECT_TRUE(nvram_spy_match(expected, sizeof(expected)));
 }
 
 
 // 
-TEST(tlv, writeNestedComposite)
+TEST_F(TlvTest, writeNestedComposite)
 {
     cm_item_id_t id = 0xab; // All items are at different levels, so they can share an ID
 
@@ -85,12 +85,12 @@ TEST(tlv, writeNestedComposite)
     tlv->endWriteComposite();
     tlv->endWriteComposite();
 
-    CHECK(nvram_spy_match(expected, sizeof(expected)));
+    EXPECT_TRUE(nvram_spy_match(expected, sizeof(expected)));
 }
 
 
 // 
-TEST(tlv, writeNestedCompositeAndSimple)
+TEST_F(TlvTest, writeNestedCompositeAndSimple)
 {
     uint8_t s1[] = {1,2,3,4,5,6};
     uint8_t s2[] = {10,11};
@@ -104,12 +104,12 @@ TEST(tlv, writeNestedCompositeAndSimple)
     tlv->writeSimple(0xbc, sizeof(s2), s2);
     tlv->endWriteComposite();
 
-    CHECK(nvram_spy_match(expected, sizeof(expected)));
+    EXPECT_TRUE(nvram_spy_match(expected, sizeof(expected)));
 }
 
 
 // 
-TEST(tlv, loadSimple)
+TEST_F(TlvTest, loadSimple)
 {
     //                   T        L    V
     uint8_t    nvSet[] = {0xab,0, 2,0, 55,0};
@@ -123,17 +123,17 @@ TEST(tlv, loadSimple)
 
     cm_item_id_t id;
     tlv->getType(&id);
-    LONGS_EQUAL(0xab, id);
+    EXPECT_EQ(0xab, id);
 
     unsigned complete;
     tlv->loadSimple(clientRam, &length, &complete);
 
-    CHECK(memcmp(expected, clientRam, sizeof(expected)) == 0);
+    EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
 
 // 
-TEST(tlv, loadComposite)
+TEST_F(TlvTest, loadComposite)
 {
     //                    T       L     T    L    V     T    L    V
     uint8_t    nvSet[] = {0xab,0, 12,0, 4,0, 2,0, 55,0, 4,0, 2,0, 66,0};
@@ -147,32 +147,32 @@ TEST(tlv, loadComposite)
     nvram_spy_set(nvSet, sizeof(nvSet));
 
     tlv->getType(&id);
-    LONGS_EQUAL(0xab, id);
+    EXPECT_EQ(0xab, id);
 
     tlv->loadComposite();
 
     tlv->getType(&id);
-    LONGS_EQUAL(4, id);
+    EXPECT_EQ(4, id);
 
     length = 2;
     tlv->loadSimple(clientRam, &length, &complete);
-    LONGS_EQUAL(2, length);
-    LONGS_EQUAL(0, complete);
+    EXPECT_EQ(2, length);
+    EXPECT_EQ(0, complete);
 
     tlv->getType(&id);
-    LONGS_EQUAL(4, id);
+    EXPECT_EQ(4, id);
 
     length = 2;
     tlv->loadSimple(clientRam + length, &length, &complete);
-    LONGS_EQUAL(1, complete); 
+    EXPECT_EQ(1, complete); 
 
-    CHECK(memcmp(expected, clientRam, sizeof(expected)) == 0);
+    EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
 
 // 
 // xxx incomplete
-TEST(tlv, loadNestedComposite)
+TEST_F(TlvTest, loadNestedComposite)
 {
     //                    T       L     T    L    V    T    L        V
     uint8_t    nvSet[] = {0xab,0, 14,0, 0xab,0, 10,0,  0xab,0, 6,0,  1,2,3,4,5,6};
@@ -187,27 +187,27 @@ TEST(tlv, loadNestedComposite)
     nvram_spy_set(nvSet, sizeof(nvSet));
 
     tlv->getType(&id);
-    LONGS_EQUAL(0xab, id);
+    EXPECT_EQ(0xab, id);
 
     tlv->loadComposite();
 
     tlv->getType(&id);
-    LONGS_EQUAL(0xab, id);
+    EXPECT_EQ(0xab, id);
 
     tlv->loadComposite();
 
     tlv->getType(&id);
-    LONGS_EQUAL(0xab, id);
+    EXPECT_EQ(0xab, id);
 
     tlv->loadSimple(clientRam, &length, &complete);
-    LONGS_EQUAL(2, complete); // this completes 2 containers
+    EXPECT_EQ(2, complete); // this completes 2 containers
 
-    CHECK(memcmp(expected, clientRam, sizeof(expected)) == 0);
+    EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
 
 // 
-TEST(tlv, loadNestedCompositeAndSimple)
+TEST_F(TlvTest, loadNestedCompositeAndSimple)
 {
     //                 T       L     T       L      T       L     V            T       L    V
     uint8_t nvSet[] = {0xab,0, 20,0, 0xab,0, 10,0,  0xab,0, 6,0,  1,2,3,4,5,6, 0xbc,0, 2,0, 10,11};
@@ -219,34 +219,34 @@ TEST(tlv, loadNestedCompositeAndSimple)
     nvram_spy_set(nvSet, sizeof(nvSet));
     
     tlv->getType(&id);
-    LONGS_EQUAL(0xab, id);
+    EXPECT_EQ(0xab, id);
 
     tlv->loadComposite();
 
     tlv->getType(&id);
-    LONGS_EQUAL(0xab, id);
+    EXPECT_EQ(0xab, id);
 
     tlv->loadComposite();
 
     tlv->getType(&id);
-    LONGS_EQUAL(0xab, id);
+    EXPECT_EQ(0xab, id);
 
     length = 6;
     tlv->loadSimple(clientRam, &length, &complete);
-    LONGS_EQUAL(1, complete); // complete inner container
+    EXPECT_EQ(1, complete); // complete inner container
 
     tlv->getType(&id);
-    LONGS_EQUAL(0xbc, id);
+    EXPECT_EQ(0xbc, id);
 
     length = 2;
     tlv->loadSimple(clientRam + 6, &length, &complete);
-    LONGS_EQUAL(1, complete); // complete top-level container
+    EXPECT_EQ(1, complete); // complete top-level container
 
-    CHECK(memcmp(expected, clientRam, sizeof(expected)) == 0);
+    EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
 // 
-TEST(tlv, loadNestedCompositeOf2Simples)
+TEST_F(TlvTest, loadNestedCompositeOf2Simples)
 {
     //                 T       L     T       L      T       L     V            T       L    V
     uint8_t nvSet[] = {0xab,0, 20,0, 0xab,0, 16,0,  0xab,0, 6,0,  1,2,3,4,5,6, 0xbc,0, 2,0, 10,11};
@@ -258,34 +258,34 @@ TEST(tlv, loadNestedCompositeOf2Simples)
     nvram_spy_set(nvSet, sizeof(nvSet));
     
     tlv->getType(&id);
-    LONGS_EQUAL(0xab, id);
+    EXPECT_EQ(0xab, id);
 
     tlv->loadComposite();
 
     tlv->getType(&id);
-    LONGS_EQUAL(0xab, id);
+    EXPECT_EQ(0xab, id);
 
     tlv->loadComposite();
 
     tlv->getType(&id);
-    LONGS_EQUAL(0xab, id);
+    EXPECT_EQ(0xab, id);
 
     length = 6;
     tlv->loadSimple(clientRam, &length, &complete);
-    LONGS_EQUAL(0, complete); // not the end of its container
+    EXPECT_EQ(0, complete); // not the end of its container
 
     tlv->getType(&id);
-    LONGS_EQUAL(0xbc, id);
+    EXPECT_EQ(0xbc, id);
 
     length = 2;
     tlv->loadSimple(clientRam + 6, &length, &complete);
-    LONGS_EQUAL(2, complete); // complete both containers
+    EXPECT_EQ(2, complete); // complete both containers
 
-    CHECK(memcmp(expected, clientRam, sizeof(expected)) == 0);
+    EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
 
-TEST(tlv, loadTruncatedSimple)
+TEST_F(TlvTest, loadTruncatedSimple)
 {
     //                 T       L     V ...
     uint8_t nvSet[] = {0xab,0, 4,0,  1};
@@ -296,11 +296,11 @@ TEST(tlv, loadTruncatedSimple)
     nvram_spy_set(nvSet, sizeof(nvSet));
     
     tlv->getType(&id);
-    LONGS_EQUAL(0xab, id);
+    EXPECT_EQ(0xab, id);
 
     length = 4;
     t_cm_result res = tlv->loadSimple(clientRam, &length, &complete);
-    LONGS_EQUAL(CM_READ_FAIL, res);
+    EXPECT_EQ(CM_READ_FAIL, res);
 }
-
+} // namespace
 
