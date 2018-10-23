@@ -32,7 +32,7 @@ CXXFLAGS += -g -Wall -Wextra -pthread
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS = cm_test
+TESTS = testTag
 
 TEST_OBJS = cm_tlvTest.o \
  cm_simple_item_descriptorTest.o \
@@ -51,7 +51,13 @@ GTEST_HEADERS = $(GTEST_DIR)/include/gtest/*.h \
 all : $(TESTS)
 
 clean :
-	rm -f $(TESTS) gtest.a gtest_main.a *.o
+	rm -f $(TESTS) gtest.a gtest_main.a *.o $(STUB_DIR)/*.o
+    
+    
+# Execute test iff executable is untested (or new) -- the tag file timestamps last test execution.
+testTag: cm_test
+	./cm_test
+	touch testTag
 
 # Builds gtest.a and gtest_main.a.
 
