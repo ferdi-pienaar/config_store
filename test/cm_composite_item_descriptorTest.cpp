@@ -4,8 +4,7 @@
 // We also read/write the items themselves.
 //
 
-
-#include "CppUTest/TestHarness.h"
+#include "gtest/gtest.h"
 #include "config_manager.h"       // Unit under test
 #include "config_manager_util.h"  // Extensions to unit under test (generic "set" functions)
 #include "config_manager_printf_spy.h"
@@ -17,6 +16,7 @@
 
 using namespace std;
 
+namespace {
 
 ////////////////////////////////////////////////////////////////////////////////
 // xxx TBD: Write this test set, OWNED with a non-printing counter.
@@ -28,27 +28,12 @@ using namespace std;
 // the owned element, but AFTER it.
 
 
-TEST_GROUP(cm_composite_descriptor)
-{
-    //Define data accessible to test group members here.
-    void setup()
-    {
-        //initialization steps are executed before each TEST
-    }
-    
-    void teardown()
-    {
-        //clean up steps are executed after each TEST
-    }
-};
-
-
 TEST(cm_composite_descriptor, getLen)
 {
     cm_composite_metadata d_d  = {{"c1", 1, 55, true}, NULL, 0};
     cm_composite_descriptor d(&d_d);
 
-    LONGS_EQUAL(55, d.getLen());
+    EXPECT_EQ(55, d.getLen());
 }
 
 
@@ -76,25 +61,25 @@ const cm_aggregate * const aggrList1[] = {&ca1, &ca2};
 const cm_composite_metadata c1_d = {{"c1", 1, sizeof(struct m), true}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
 const cm_composite_descriptor c1(&c1_d);
 
-
-TEST_GROUP(cm_composite_descriptor_contained)
+class CompositeContained : public testing::Test 
 {
+protected:
     struct m mem;
     
-    void setup()
+    virtual void SetUp()
     {
         memset(&mem, 0, sizeof(mem));
         cm_printf_spy_init();
     }
     
-    void teardown()
+    virtual void TearDown()
     {
         //clean up steps are executed after each TEST
     }
 };
 
 
-TEST(cm_composite_descriptor_contained, print)
+TEST_F(CompositeContained, print)
 {
     string prefix = "";
     const char * expected =
@@ -105,7 +90,7 @@ TEST(cm_composite_descriptor_contained, print)
     mem.m2 = 5;
 
     c1.print((uint8_t *)&mem, prefix, false);
-    STRCMP_EQUAL(expected, cm_printf_spy_get());
+    EXPECT_STREQ(expected, cm_printf_spy_get());
 }
 
 
@@ -114,6 +99,9 @@ static unsigned setdef_spy_calls = 0;
 // test set 2 user-defined functions: a spy
 void setdef_spy(uint8_t *pItem, cm_item_len_t len)
 {
+    (void)pItem;
+    (void)len;
+
     setdef_spy_calls++;
 }
 
@@ -142,19 +130,19 @@ const cm_aggregate * const aggrList2[] = {&ca3, &oa4};
 const cm_composite_metadata c2_d = {{"c2", 1, sizeof(struct m2), true}, aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0])};
 const cm_composite_descriptor c2(&c2_d);
 
-
-TEST_GROUP(cm_composite_descriptor_owned)
+class CompositeOwned : public testing::Test 
 {
+protected:
     struct m2 mem;
     
-    void setup()
+    virtual void SetUp()
     {
         memset(&mem, 0, sizeof(mem));
         setdef_spy_calls = 0;
         cm_printf_spy_init();
     }
     
-    void teardown()
+    virtual void TearDown()
     {
         //clean up steps are executed after each TEST
     }
@@ -162,19 +150,19 @@ TEST_GROUP(cm_composite_descriptor_owned)
 
 
 // Owned component in metadata, but not allocated
-TEST(cm_composite_descriptor_owned, printNull)
+TEST_F(CompositeOwned, printNull)
 {
     string prefix = "";
     const char * expected =
         "count = 00000000\n";
 
     c2.print((uint8_t *)&mem, prefix, false);
-    STRCMP_EQUAL(expected, cm_printf_spy_get());
+    EXPECT_STREQ(expected, cm_printf_spy_get());
 }
 
 
 // Owned component in metadata, correctly allocated
-TEST(cm_composite_descriptor_owned, printData)
+TEST_F(CompositeOwned, printData)
 {
     const unsigned NUM_OWNED = 2;
 
@@ -188,11 +176,11 @@ TEST(cm_composite_descriptor_owned, printData)
     mem.owned = owned;
     
     c2.print((uint8_t *)&mem, prefix, false);
-    STRCMP_EQUAL(expected, cm_printf_spy_get());
+    EXPECT_STREQ(expected, cm_printf_spy_get());
 }
 
 
-TEST(cm_composite_descriptor_owned, addFirst)
+TEST_F(CompositeOwned, addFirst)
 {
     char * commandWord[] = {(char *)"add", (char *)"owned"};
     command_stack cmd(2, commandWord);
@@ -200,15 +188,15 @@ TEST(cm_composite_descriptor_owned, addFirst)
     c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Counter is incremented and ptr to owned item is no longer NULL
-    LONGS_EQUAL(1, mem.cnt);
-    CHECK(mem.owned != NULL);
+    EXPECT_EQ(1, mem.cnt);
+    EXPECT_TRUE(mem.owned != NULL);
 
     // Item initialized to "default default"
-    LONGS_EQUAL(0, mem.owned[0]);
+    EXPECT_EQ(0, mem.owned[0]);
 }
 
 
-TEST(cm_composite_descriptor_owned, addAnother)
+TEST_F(CompositeOwned, addAnother)
 {
     char * commandWord[] = {(char *)"add", (char *)"owned"};
     command_stack cmd1(2, commandWord);
@@ -218,16 +206,16 @@ TEST(cm_composite_descriptor_owned, addAnother)
     c2.handleCmd(&cmd2, (uint8_t *)&mem);
 
     // Counter is incremented and ptr to owned item is no longer NULL
-    LONGS_EQUAL(2, mem.cnt);
-    CHECK(mem.owned != NULL);
+    EXPECT_EQ(2, mem.cnt);
+    EXPECT_TRUE(mem.owned != NULL);
 
     // Items initialized to "default default"
-    LONGS_EQUAL(0, mem.owned[0]);
-    LONGS_EQUAL(0, mem.owned[1]);
+    EXPECT_EQ(0, mem.owned[0]);
+    EXPECT_EQ(0, mem.owned[1]);
 }
 
 
-TEST(cm_composite_descriptor_owned, delNull)
+TEST_F(CompositeOwned, delNull)
 {
     char * commandWord[] = {(char *)"del", (char *)"owned", (char *)"1"};
     command_stack cmd(3, commandWord);
@@ -235,12 +223,12 @@ TEST(cm_composite_descriptor_owned, delNull)
     c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // The command does nothing since there's nothing to delete; verify count remains unchanged
-    LONGS_EQUAL(0, mem.cnt);
+    EXPECT_EQ(0, mem.cnt);
 }
 
 
 // Delete the 2nd of two owned items; the first is unchanged
-TEST(cm_composite_descriptor_owned, delEnd)
+TEST_F(CompositeOwned, delEnd)
 {
     char * commandWord[] = {(char *)"del", (char *)"owned", (char *)"1"};
     command_stack cmd(3, commandWord);
@@ -254,14 +242,14 @@ TEST(cm_composite_descriptor_owned, delEnd)
     c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Counter is decremented
-    LONGS_EQUAL(NUM_OWNED - 1, mem.cnt);
+    EXPECT_EQ(NUM_OWNED - 1, mem.cnt);
     // But the 0th item is unaffected by the deletion of the 1th item
-    LONGS_EQUAL(7, mem.owned[0]);
+    EXPECT_EQ(7, mem.owned[0]);
 }
 
 
 // Delete the 1st of two owned items; the 2nd moves down
-TEST(cm_composite_descriptor_owned, delFirst)
+TEST_F(CompositeOwned, delFirst)
 {
     char * commandWord[] = {(char *)"del", (char *)"owned", (char *)"0"};
     command_stack cmd(3, commandWord);
@@ -276,14 +264,14 @@ TEST(cm_composite_descriptor_owned, delFirst)
     c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Counter is decremented
-    LONGS_EQUAL(NUM_OWNED - 1, mem.cnt);
+    EXPECT_EQ(NUM_OWNED - 1, mem.cnt);
 
     // And the 1th item has become the 0th item
-    LONGS_EQUAL(8, mem.owned[0]);
+    EXPECT_EQ(8, mem.owned[0]);
 }
 
 
-TEST(cm_composite_descriptor_owned, delSingle)
+TEST_F(CompositeOwned, delSingle)
 {
     char * commandWord[] = {(char *)"del", (char *)"owned", (char *)"0"};
     command_stack cmd(3, commandWord);
@@ -296,15 +284,15 @@ TEST(cm_composite_descriptor_owned, delSingle)
     c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Counter is decremented to 0
-    LONGS_EQUAL(0, mem.cnt);
+    EXPECT_EQ(0, mem.cnt);
 
     // And the pointer to owned is set to NULL after owned memory freed
-    POINTERS_EQUAL(NULL, mem.owned);
+    EXPECT_EQ(NULL, mem.owned);
 }
 
 
 // Allocate memory as side-effect of set command
-TEST(cm_composite_descriptor_owned, implicitAdd)
+TEST_F(CompositeOwned, implicitAdd)
 {
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"=", (char *)"42"};
     command_stack cmd(4, commandWord);
@@ -312,14 +300,14 @@ TEST(cm_composite_descriptor_owned, implicitAdd)
     c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Counter is incremented and ptr to owned item is no longer NULL
-    LONGS_EQUAL(1, mem.cnt);
-    CHECK(mem.owned != NULL);
-    LONGS_EQUAL(42, mem.owned[0]);
+    EXPECT_EQ(1, mem.cnt);
+    EXPECT_TRUE(mem.owned != NULL);
+    EXPECT_EQ(42, mem.owned[0]);
 }
  
 
 // Do not (permanently) allocate memory as side-effect of executing invalid command
-TEST(cm_composite_descriptor_owned, implicitAddFail)
+TEST_F(CompositeOwned, implicitAddFail)
 {
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"blabla"};
     command_stack cmd(3, commandWord);
@@ -327,13 +315,13 @@ TEST(cm_composite_descriptor_owned, implicitAddFail)
     c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Counter is not incremented and ptr to owned item is NULL
-    LONGS_EQUAL(0, mem.cnt);
-    POINTERS_EQUAL(NULL, mem.owned);
+    EXPECT_EQ(0, mem.cnt);
+    EXPECT_EQ(NULL, mem.owned);
 }
 
 
 // Setting to default frees items
-TEST(cm_composite_descriptor_owned, setdef)
+TEST_F(CompositeOwned, setdef)
 {
     const unsigned NUM_OWNED = 2;
 
@@ -344,9 +332,9 @@ TEST(cm_composite_descriptor_owned, setdef)
     
     c2.setDefault((uint8_t *)&mem);
 
-    LONGS_EQUAL(0, mem.cnt);
-    POINTERS_EQUAL(NULL, mem.owned);
-    LONGS_EQUAL(NUM_OWNED, setdef_spy_calls); // verify setdef of components is called
+    EXPECT_EQ(0, mem.cnt);
+    EXPECT_EQ(NULL, mem.owned);
+    EXPECT_EQ(NUM_OWNED, setdef_spy_calls); // verify setdef of components is called
 }
 
 
@@ -371,17 +359,17 @@ const cm_aggregate * const aggrList4[] = {&oa7};
 const cm_composite_metadata c4_d = {{"c4", 1, sizeof(struct m4), true}, aggrList4, sizeof(aggrList4)/sizeof(aggrList4[0])};
 const cm_composite_descriptor c4(&c4_d);
 
-
-TEST_GROUP(ownedWithoutCounter)
+class OwnedWithoutCounter : public testing::Test 
 {
+protected:
     struct m4 mem;
     
-    void setup()
+    virtual void SetUp()
     {
         memset(&mem, 0, sizeof(mem));
     }
     
-    void teardown()
+    virtual void TearDown()
     {
         //clean up steps are executed after each TEST
     }
@@ -389,7 +377,7 @@ TEST_GROUP(ownedWithoutCounter)
 
 
 // Add the sole, uncounted OWNed item
-TEST(ownedWithoutCounter, addOnly)
+TEST_F(OwnedWithoutCounter, addOnly)
 {
     char * commandWord[] = {(char *)"add", (char *)"owned"};
     command_stack cmd(2, commandWord);
@@ -397,15 +385,15 @@ TEST(ownedWithoutCounter, addOnly)
     c4.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Pointer updated
-    CHECK(mem.owned != NULL);
+    EXPECT_TRUE(mem.owned != NULL);
 
     // Item initialized to "default default"
-    LONGS_EQUAL(0, *(mem.owned));
+    EXPECT_EQ(0, *(mem.owned));
 }
 
 
 // Delete the sole, uncounted OWNed item
-TEST(ownedWithoutCounter, delOnly)
+TEST_F(OwnedWithoutCounter, delOnly)
 {
     char * commandWord[] = {(char *)"del", (char *)"owned"};
     command_stack cmd(2, commandWord);
@@ -416,6 +404,6 @@ TEST(ownedWithoutCounter, delOnly)
     c4.handleCmd(&cmd, (uint8_t *)&mem);
 
     // And the pointer to owned is set to NULL after owned memory freed
-    POINTERS_EQUAL(NULL, mem.owned);
+    EXPECT_EQ(NULL, mem.owned);
 }
-
+} // namespace

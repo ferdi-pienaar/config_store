@@ -24,8 +24,17 @@ void setint11(uint8_t *pItem, cm_item_len_t len)
 }
 
 namespace {
+    
+class CmSimpleDescriptor : public testing::Test 
+{
+protected:   
+    void SetUp()
+    {
+        cm_printf_spy_init();
+    }
+};
 
-TEST(CmSimpleDescriptor, getLen)
+TEST_F(CmSimpleDescriptor, getLen)
 {
     cm_simple_metadata d_d = {{"d01", 1 , 55, true}, NULL, NULL, NULL};
 
@@ -34,7 +43,7 @@ TEST(CmSimpleDescriptor, getLen)
 }
 
 
-TEST(CmSimpleDescriptor, print)
+TEST_F(CmSimpleDescriptor, print)
 {
     string prefix = "";
     unsigned mem = 7;
@@ -46,7 +55,7 @@ TEST(CmSimpleDescriptor, print)
 }
 
 
-TEST(CmSimpleDescriptor, set)
+TEST_F(CmSimpleDescriptor, set)
 {
     int mem = 0;
     cm_simple_metadata d_d = {{"d01", 1 , sizeof(mem), true}, cm_set_int, NULL, NULL};
@@ -59,7 +68,7 @@ TEST(CmSimpleDescriptor, set)
 
 
 // Check setdef() calls the function installed in metadata
-TEST(CmSimpleDescriptor, setdefFunc)
+TEST_F(CmSimpleDescriptor, setdefFunc)
 {
     int mem = 8;
     cm_simple_metadata d_d = {{"d01", 1 , sizeof(mem), true}, NULL, setint11, NULL};
@@ -72,7 +81,7 @@ TEST(CmSimpleDescriptor, setdefFunc)
 
 
 // Check setdef() does nothing if there's no setdef function installed in metadata
-TEST(CmSimpleDescriptor, setdef)
+TEST_F(CmSimpleDescriptor, setdef)
 {
     int mem = 8;
     cm_simple_metadata d_d = {{"d01", 1 , sizeof(mem), true}, NULL, NULL, NULL};

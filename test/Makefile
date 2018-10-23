@@ -34,7 +34,7 @@ CXXFLAGS += -g -Wall -Wextra -pthread
 # created to the list.
 TESTS = cm_test
 
-TEST_OBJS = cm_tlvTest.o cm_simple_item_descriptorTest.o
+TEST_OBJS = cm_tlvTest.o cm_simple_item_descriptorTest.o cm_composite_item_descriptorTest.o
 MOCK_OBJS = $(STUB_DIR)/nvram_spy.o $(STUB_DIR)/config_manager_printf_spy.o 
 
 # All Google Test headers.  Usually you shouldn't change this
