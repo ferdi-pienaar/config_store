@@ -7,7 +7,7 @@
 // xxx how many of these tests belong in cm_tlvTest.cpp?
 // 
 
-#include "CppUTest/TestHarness.h"
+#include "gtest/gtest.h"
 #include "config_manager.h"       // Unit under test
 #include "config_manager_util.h"  // Extensions to unit under test (generic "set" functions)
 #include "config_manager_setdef_null.h" // generic setdef function
@@ -17,6 +17,8 @@
 #include <string.h> // memcmp, strncmp, etc
 
 using namespace std;
+
+namespace {
 
 ////////////////////////////////////////////////////////////////////////////////
 // test set 1, CONTAINED
@@ -54,26 +56,23 @@ const cm_composite_descriptor c1(&c1_d);
 
 #define GET_C1_CONFIG ((struct m *)config_manager::getInstance()->getConfig())
 
-TEST_GROUP(contained)
+class Contained : public testing::Test 
 {
+protected:
     config_manager * cm;
 
     //Define data accessible to test group members here.
-    void setup()
+    virtual void SetUp()
     {
         cm = config_manager::getInstance();
         nvram_spy_init();
     }
-    
-    void teardown()
-    {
-        //clean up steps are executed after each TEST
-    }
+
 };
 
 
 // Verify data saved to TLV, with default data in RAM as input to the test.
-TEST(contained, save)
+TEST_F(Contained, save)
 {
     uint8_t expectedTlv [20] =
     /* The following assumes little-endian integers */
@@ -85,12 +84,12 @@ TEST(contained, save)
     char * commandWord[] = {(char *)"save"};
     cm->handleCmd(1, commandWord);
 
-    CHECK(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
+    EXPECT_TRUE(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
 }
 
 
 // Verify what's loaded into memory, given TLV file that's read on startup.
-TEST(contained, load)
+TEST_F(Contained, load)
 {
     uint8_t tlv[20] =
     /* The following assumes little-endian integers */
@@ -103,14 +102,14 @@ TEST(contained, load)
 
     cm->init(&c1);
 
-    LONGS_EQUAL(8, GET_C1_CONFIG->m1);
-    LONGS_EQUAL(9, GET_C1_CONFIG->m2);
+    EXPECT_EQ(8, GET_C1_CONFIG->m1);
+    EXPECT_EQ(9, GET_C1_CONFIG->m2);
 }
 
 
 // Verify what's loaded into memory, given TLV file with L of 2nd simple
 // component that doesn't match the item descriptor.
-TEST(contained, loadChangedSimpleLen)
+TEST_F(Contained, loadChangedSimpleLen)
 {
     uint8_t tlv[20] =
     /* The following assumes little-endian integers */
@@ -123,8 +122,8 @@ TEST(contained, loadChangedSimpleLen)
 
     cm->init(&c1);
 
-    LONGS_EQUAL(0, GET_C1_CONFIG->m1);
-    LONGS_EQUAL(7, GET_C1_CONFIG->m2); // Default; not read from the file, because TLV's L is bad
+    EXPECT_EQ(0, GET_C1_CONFIG->m1);
+    EXPECT_EQ(7, GET_C1_CONFIG->m2); // Default; not read from the file, because TLV's L is bad
 }
 
 
@@ -132,7 +131,7 @@ TEST(contained, loadChangedSimpleLen)
 // an unknown Type value.
 // Unknown type in file: the descriptor has no T=9, so it's ignored by cfg_man when found in file,
 // but the item following it is loaded.
-TEST(contained, loadUnknown)
+TEST_F(Contained, loadUnknown)
 {
     uint8_t tlv[28] =
     /* The following assumes little-endian integers */
@@ -153,14 +152,14 @@ TEST(contained, loadUnknown)
     cm->handleCmd(1, commandWord);
 
     // See what CM made of the file it loaded
-    CHECK(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
+    EXPECT_TRUE(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
 }
 
 
 // Verify what's saved to TLV, given a TLV file that's read on startup that's
 // missing an element of a structure.
 // The element that's not in the TLV is saved to TLV, populated with default value.
-TEST(contained, loadMissing)
+TEST_F(Contained, loadMissing)
 {
     uint8_t tlv[12] =
     /* The following assumes little-endian integers */
@@ -181,13 +180,13 @@ TEST(contained, loadMissing)
     cm->handleCmd(1, commandWord);
 
     // See what CM made of the file it loaded
-    CHECK(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
+    EXPECT_TRUE(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
 }
 
 
 // Load file with last item missing from CONTAINED composite
 // Load fails, so defaults are set.
-TEST(contained, loadTruncated)
+TEST_F(Contained, loadTruncated)
 {
     uint8_t tlv[] =
     /* The following assumes little-endian integers */
@@ -200,14 +199,14 @@ TEST(contained, loadTruncated)
 
     cm->init(&c1);
 
-    LONGS_EQUAL(0, GET_C1_CONFIG->m1);
-    LONGS_EQUAL(7, GET_C1_CONFIG->m2);
+    EXPECT_EQ(0, GET_C1_CONFIG->m1);
+    EXPECT_EQ(7, GET_C1_CONFIG->m2);
 }
 
 
 // Load file with partial last item in CONTAINED composite
 // Load fails, so defaults are set.
-TEST(contained, loadTruncated1)
+TEST_F(Contained, loadTruncated1)
 {
     uint8_t tlv[] =
     /* The following assumes little-endian integers */
@@ -220,14 +219,14 @@ TEST(contained, loadTruncated1)
 
     cm->init(&c1);
 
-    LONGS_EQUAL(0, GET_C1_CONFIG->m1);
-    LONGS_EQUAL(7, GET_C1_CONFIG->m2);
+    EXPECT_EQ(0, GET_C1_CONFIG->m1);
+    EXPECT_EQ(7, GET_C1_CONFIG->m2);
 }
 
 
 // Load file with partial last item in CONTAINED composite
 // Load fails, so defaults are set.
-TEST(contained, loadTruncated2)
+TEST_F(Contained, loadTruncated2)
 {
     uint8_t tlv[] =
     /* The following assumes little-endian integers */
@@ -240,15 +239,15 @@ TEST(contained, loadTruncated2)
 
     cm->init(&c1);
 
-    LONGS_EQUAL(0, GET_C1_CONFIG->m1);
-    LONGS_EQUAL(7, GET_C1_CONFIG->m2);
+    EXPECT_EQ(0, GET_C1_CONFIG->m1);
+    EXPECT_EQ(7, GET_C1_CONFIG->m2);
 }
 
 
 // Load file with incoherent CONTAINED composite (sum of the sizes
 // of components is larger than the size of the composite).
 // Load fails, so defaults are set.
-TEST(contained, loadIncoherent)
+TEST_F(Contained, loadIncoherent)
 {
     uint8_t tlv[20] =
     /* The following assumes little-endian integers */
@@ -261,15 +260,15 @@ TEST(contained, loadIncoherent)
 
     cm->init(&c1);
 
-    LONGS_EQUAL(0, GET_C1_CONFIG->m1);
-    LONGS_EQUAL(7, GET_C1_CONFIG->m2);
+    EXPECT_EQ(0, GET_C1_CONFIG->m1);
+    EXPECT_EQ(7, GET_C1_CONFIG->m2);
 }
 
 
 // Load file with incoherent CONTAINED composite (sum of the sizes
 // of components is larger than the size of the composite).
 // Load fails, so defaults are set.
-TEST(contained, loadIncoherent1)
+TEST_F(Contained, loadIncoherent1)
 {
     uint8_t tlv[20] =
     /* The following assumes little-endian integers */
@@ -282,8 +281,8 @@ TEST(contained, loadIncoherent1)
 
     cm->init(&c1);
 
-    LONGS_EQUAL(0, GET_C1_CONFIG->m1);
-    LONGS_EQUAL(7, GET_C1_CONFIG->m2);
+    EXPECT_EQ(0, GET_C1_CONFIG->m1);
+    EXPECT_EQ(7, GET_C1_CONFIG->m2);
 }
 
 
@@ -303,7 +302,7 @@ const cm_simple_descriptor s3(&s3_d);
 const cm_aggregate_data ca3_d = {&s3, 1, offsetof(struct m2, cnt)};
 const cm_contained_aggregate ca3(&ca3_d);
 
-const cm_simple_metadata s4_d = {{"owned", 4, sizeof(int *), true}, cm_set_int, NULL, NULL};
+const cm_simple_metadata s4_d = {{"owned", 4, sizeof(int), true}, cm_set_int, NULL, NULL};
 const cm_simple_descriptor s4(&s4_d);
 const cm_aggregate_data ca4_d = {&s4, MAX_NUMBER_OWNED, offsetof(struct m2, owned)};
 const cm_owned_aggregate oa4(&ca4_d, &ca3);
@@ -314,26 +313,21 @@ const cm_composite_descriptor c2(&c2_d);
 
 #define GET_C2_CONFIG ((struct m2 *)config_manager::getInstance()->getConfig())
 
-TEST_GROUP(owned)
+class Owned : public testing::Test 
 {
+protected:
     config_manager * cm;
 
     //Define data accessible to test group members here.
-    void setup()
+    virtual void SetUp()
     {
         cm = config_manager::getInstance();
         nvram_spy_init();
     }
-    
-    void teardown()
-    {
-        //clean up steps are executed after each TEST
-    }
 };
 
-
 // Verify what's loaded into memory, given TLV file that's read on startup.
-TEST(owned, load)
+TEST_F(Owned, load)
 {
     uint8_t tlv[20] =
     /*T    L     T    L    V        T    L    V      */
@@ -345,16 +339,17 @@ TEST(owned, load)
 
     cm->init(&c2);
 
-    LONGS_EQUAL(2, GET_C2_CONFIG->cnt);
-    LONGS_EQUAL(7, GET_C2_CONFIG->owned[0]);
-    LONGS_EQUAL(8, GET_C2_CONFIG->owned[1]);
+    EXPECT_EQ(2, GET_C2_CONFIG->cnt);
+    ASSERT_TRUE(GET_C2_CONFIG->owned != NULL);
+    EXPECT_EQ(7, GET_C2_CONFIG->owned[0]);
+    EXPECT_EQ(8, GET_C2_CONFIG->owned[1]);
 }
 
 
 // Verify what's saved to TLV, given a TLV file that's read on startup that
 // has more than the max number of an OWNED component.
 //
-TEST(owned, loadTooMany)
+TEST_F(Owned, loadTooMany)
 {
     uint8_t tlv[28] =
     /*T    L     T    L    V        T    L    V        T    L    V       */
@@ -370,13 +365,13 @@ TEST(owned, loadTooMany)
 
     cm->init(&c2);
 
-    LONGS_EQUAL(2, GET_C2_CONFIG->cnt);
+    EXPECT_EQ(2, GET_C2_CONFIG->cnt);
 
     char * commandWord[] = {(char *)"save"};
     cm->handleCmd(1, commandWord);
 
     // See what CM made of the file it loaded
-    CHECK(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
+    EXPECT_TRUE(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
 }
 
 
@@ -384,7 +379,7 @@ TEST(owned, loadTooMany)
 // contains the ID of a non-persistent item (the counter).  It should
 // be ignored, like an unknown ID is.
 //
-TEST(owned, loadNonPersistent)
+TEST_F(Owned, loadNonPersistent)
 {
     uint8_t tlv[20] =
     /*T    L     T    L    V        T    L    V      */
@@ -396,14 +391,15 @@ TEST(owned, loadNonPersistent)
 
     cm->init(&c2);
 
-    LONGS_EQUAL(1, GET_C2_CONFIG->cnt);
-    LONGS_EQUAL(5, GET_C2_CONFIG->owned[0]);
+    EXPECT_EQ(1, GET_C2_CONFIG->cnt);
+    ASSERT_TRUE(GET_C2_CONFIG->owned != NULL);
+    EXPECT_EQ(5, GET_C2_CONFIG->owned[0]);
 }
 
 
 // Verify data saved to TLV, with default data in RAM as input to the test.
 // xxx verify that nothing is saved.  Perhaps SUT shouldn't even create a file in this case?
-TEST(owned, save)
+TEST_F(Owned, save)
 {
     uint8_t expectedTlv [0] =
     /* The following assumes little-endian integers */
@@ -415,12 +411,12 @@ TEST(owned, save)
     char * commandWord[] = {(char *)"save"};
     cm->handleCmd(1, commandWord);
 
-    CHECK(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
+    EXPECT_TRUE(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
 }
 
 
 // From default RAM start, do implicit add and check what's saved to TLV
-TEST(owned, implicitAdd)
+TEST_F(Owned, implicitAdd)
 {
     uint8_t expectedTlv [12] =
     /* The following assumes little-endian integers */
@@ -429,23 +425,23 @@ TEST(owned, implicitAdd)
 
     cm->init(&c2);
 
-    LONGS_EQUAL(0, GET_C2_CONFIG->cnt);
-    POINTERS_EQUAL(NULL, GET_C2_CONFIG->owned);   
+    EXPECT_EQ(0, GET_C2_CONFIG->cnt);
+    EXPECT_EQ(NULL, GET_C2_CONFIG->owned);   
 
     char * commandWord[] = {(char *)"owned", (char *)"0"}; // reference owned item 0, causing implicit add
     cm->handleCmd(2, commandWord);
 
-    LONGS_EQUAL(1, GET_C2_CONFIG->cnt);
+    EXPECT_EQ(1, GET_C2_CONFIG->cnt);
 
     char * commandWord2[] = {(char *)"save"};
     cm->handleCmd(1, commandWord2);
 
-    CHECK(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
+    EXPECT_TRUE(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
 }
 
 
 // From default RAM start, do implicit add and set and check what's saved to TLV
-TEST(owned, implicitAddnSet)
+TEST_F(Owned, implicitAddnSet)
 {
     uint8_t expectedTlv [12] =
     /* The following assumes little-endian integers */
@@ -454,24 +450,25 @@ TEST(owned, implicitAddnSet)
 
     cm->init(&c2);
 
-    LONGS_EQUAL(0, GET_C2_CONFIG->cnt);
-    POINTERS_EQUAL(NULL, GET_C2_CONFIG->owned);   
+    EXPECT_EQ(0, GET_C2_CONFIG->cnt);
+    EXPECT_EQ(NULL, GET_C2_CONFIG->owned);   
 
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"=", (char *)"7"}; // set item 0, causing implicit add
     cm->handleCmd(4, commandWord);
 
-    LONGS_EQUAL(1, GET_C2_CONFIG->cnt);
-    LONGS_EQUAL(7, GET_C2_CONFIG->owned[0]);   
+    EXPECT_EQ(1, GET_C2_CONFIG->cnt);
+    ASSERT_TRUE(GET_C2_CONFIG->owned != NULL);
+    EXPECT_EQ(7, GET_C2_CONFIG->owned[0]);   
 
     char * commandWord2[] = {(char *)"save"};
     cm->handleCmd(1, commandWord2);
 
-    CHECK(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
+    EXPECT_TRUE(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
 }
 
 
 // From default RAM start, do explicit add and check what's saved to TLV
-TEST(owned, explicitAdd)
+TEST_F(Owned, explicitAdd)
 {
     uint8_t expectedTlv [12] =
     /* The following assumes little-endian integers */
@@ -481,19 +478,19 @@ TEST(owned, explicitAdd)
 
     cm->init(&c2);
 
-    LONGS_EQUAL(0, GET_C2_CONFIG->cnt);
-    POINTERS_EQUAL(NULL, GET_C2_CONFIG->owned);
+    EXPECT_EQ(0, GET_C2_CONFIG->cnt);
+    EXPECT_EQ(NULL, GET_C2_CONFIG->owned);
 
     char * commandWord[] = {(char *)"add", (char *)"owned"};
     cm->handleCmd(2, commandWord);
 
-    LONGS_EQUAL(1, GET_C2_CONFIG->cnt);
-    CHECK(GET_C2_CONFIG->owned != NULL);
+    EXPECT_EQ(1, GET_C2_CONFIG->cnt);
+    EXPECT_TRUE(GET_C2_CONFIG->owned != NULL);
 
     char * commandWord2[] = {(char *)"save"};
     cm->handleCmd(1, commandWord2);
 
-    CHECK(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
+    EXPECT_TRUE(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
 }
 
 
@@ -501,7 +498,7 @@ TEST(owned, explicitAdd)
 // and a delete operation.
 // xxx this should save empty file -- better way to test this than memcmp?
 // Or replace with a test where something remains after deletion?
-TEST(owned, del)
+TEST_F(Owned, del)
 {
     uint8_t tlv[12] =
     /* The following assumes little-endian integers */
@@ -518,20 +515,21 @@ TEST(owned, del)
 
     cm->init(&c2);
 
-    LONGS_EQUAL(1, GET_C2_CONFIG->cnt);
-    LONGS_EQUAL(5, GET_C2_CONFIG->owned[0]);
+    EXPECT_EQ(1, GET_C2_CONFIG->cnt);
+    ASSERT_TRUE(GET_C2_CONFIG->owned != NULL);
+    EXPECT_EQ(5, GET_C2_CONFIG->owned[0]);
 
     char * commandWord[] = {(char *)"del", (char *)"owned"};
     cm->handleCmd(2, commandWord);
 
-    LONGS_EQUAL(0, GET_C2_CONFIG->cnt);
-    POINTERS_EQUAL(NULL, GET_C2_CONFIG->owned);
+    EXPECT_EQ(0, GET_C2_CONFIG->cnt);
+    EXPECT_EQ(NULL, GET_C2_CONFIG->owned);
 
     char * commandWord2[] = {(char *)"save"};
     cm->handleCmd(1, commandWord2);
 
     // See what CM made of the file it loaded
-    CHECK(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
+    EXPECT_TRUE(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
 }
 
 
@@ -556,26 +554,22 @@ const cm_composite_descriptor c3(&c3_d);
 
 #define GET_C3_CONFIG ((struct m3 *)config_manager::getInstance()->getConfig())
 
-TEST_GROUP(containedArray)
+class ContainedArray : public testing::Test 
 {
+protected:
     config_manager * cm;
 
     //Define data accessible to test group members here.
-    void setup()
+    virtual void SetUp()
     {
         cm = config_manager::getInstance();
         nvram_spy_init();
-    }
-    
-    void teardown()
-    {
-        //clean up steps are executed after each TEST
     }
 };
 
 
 // Verify what's loaded into memory, given TLV file that's read on startup.
-TEST(containedArray, load)
+TEST_F(ContainedArray, load)
 {
     uint8_t tlv[16] =
     /*T    L     T    L    V    T    L    V */
@@ -584,15 +578,15 @@ TEST(containedArray, load)
     /* Create config file to be loaded */
     nvram_spy_set(tlv, sizeof(tlv));
     cm->init(&c3);
-    LONGS_EQUAL(7, GET_C3_CONFIG->m1[0]);
-    LONGS_EQUAL(8, GET_C3_CONFIG->m1[1]);
+    EXPECT_EQ(7, GET_C3_CONFIG->m1[0]);
+    EXPECT_EQ(8, GET_C3_CONFIG->m1[1]);
 }
 
 
 // Verify what's saved to TLV, given a TLV file that's read on startup that
 // has more than the max number of a CONTAINED component.
 //
-TEST(containedArray, loadTooMany)
+TEST_F(ContainedArray, loadTooMany)
 {
     uint8_t tlv[22] =
     /*T    L     T    L    V    T    L    V    T    L    V       */
@@ -611,7 +605,7 @@ TEST(containedArray, loadTooMany)
     cm->handleCmd(1, commandWord);
 
     // See what CM made of the file it loaded
-    CHECK(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
+    EXPECT_TRUE(nvram_spy_match(expectedTlv, sizeof(expectedTlv)));
 }
 
 
@@ -643,26 +637,22 @@ const cm_composite_descriptor c4(&c4_d);
 
 #define GET_C4_CONFIG ((struct m6 *)config_manager::getInstance()->getConfig())
 
-TEST_GROUP(containedArrays)
+class ContainedArrays : public testing::Test 
 {
+protected:
     config_manager * cm;
 
     //Define data accessible to test group members here.
-    void setup()
+    virtual void SetUp()
     {
         cm = config_manager::getInstance();
         nvram_spy_init();
-    }
-    
-    void teardown()
-    {
-        //clean up steps are executed after each TEST
     }
 };
 
 
 // Verify what's loaded into memory, given TLV file that's read on startup.
-TEST(containedArrays, load)
+TEST_F(ContainedArrays, load)
 {    
     uint8_t tlv[28] =
     /* The following assumes little-endian integers */
@@ -673,8 +663,9 @@ TEST(containedArrays, load)
 
     cm->init(&c4);
 
-    LONGS_EQUAL(4, GET_C4_CONFIG->m1[0]);
-    LONGS_EQUAL(5, GET_C4_CONFIG->m1[1]);
-    LONGS_EQUAL(6, GET_C4_CONFIG->m2[0]);
-    LONGS_EQUAL(7, GET_C4_CONFIG->m2[1]);
+    EXPECT_EQ(4, GET_C4_CONFIG->m1[0]);
+    EXPECT_EQ(5, GET_C4_CONFIG->m1[1]);
+    EXPECT_EQ(6, GET_C4_CONFIG->m2[0]);
+    EXPECT_EQ(7, GET_C4_CONFIG->m2[1]);
 }
+} // namespace
