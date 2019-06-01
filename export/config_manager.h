@@ -86,7 +86,7 @@ public:
     virtual const char * getName() const = 0;
     virtual cm_item_id_t getId() const = 0;
     virtual void save(const uint8_t * pItem) const = 0;
-    virtual t_cm_result load(uint8_t * pItem, unsigned * pComplete) const = 0;
+    virtual t_cm_result load(uint8_t * pItem) const = 0;
     virtual cm_item_len_t getLen() const = 0;
     virtual void print(const uint8_t * pItem, std::string prefix, bool include_state) const = 0;
     virtual void setDefault(uint8_t * pItem) const = 0;
@@ -141,7 +141,7 @@ public:
                           bool & added) const;
     virtual uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const = 0;
     void save(const uint8_t *pItem) const;    
-    t_cm_result load(uint8_t * pParentItem, unsigned & idx, unsigned * pComplete) const;
+    t_cm_result load(uint8_t * pParentItem) const;
     virtual void help(const uint8_t * pItem) const = 0;
     virtual uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const = 0;
 
@@ -237,12 +237,7 @@ public:
     void setDefault(uint8_t * pItem) const;
     virtual void help(const uint8_t * pItem) const;
     void save(const uint8_t * pItem) const;
-    t_cm_result load(uint8_t * pItem, unsigned * pComplete) const;
-    t_cm_result loadComponent(uint8_t * pParentItem,
-                              bool & first,
-                              unsigned int & idx,
-                              cm_item_id_t & componentId,
-                              unsigned * pComplete) const;
+    t_cm_result load(uint8_t * pItem) const;
     bool isPersistent() const { return pData->c.persistent; }
 
 private:
@@ -279,7 +274,7 @@ public:
         std::cout << "len " << getLen() << std::endl;
     }
     virtual void save(const uint8_t * pItem) const;
-    t_cm_result load(uint8_t * pItem, unsigned * pComplete) const;
+    t_cm_result load(uint8_t * pItem) const;
     bool isPersistent() const { return pData->c.persistent; }
 
 private:

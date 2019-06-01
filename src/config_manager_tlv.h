@@ -17,10 +17,9 @@ public:
     void writeSimple(cm_item_id_t t, cm_item_len_t length, const uint8_t * v);
     void startWriteComposite(cm_item_id_t t);
     void endWriteComposite();
-    t_cm_result getType(cm_item_id_t * t);
-    t_cm_result loadSimple(uint8_t * pRam, cm_item_len_t * length, unsigned * complete);
-    t_cm_result loadComposite();
-    t_cm_result skipItem(unsigned * complete);
+    t_cm_result loadSimple(cm_item_id_t t, cm_item_len_t * length, uint8_t * pRam);
+    t_cm_result startLoadComposite(cm_item_id_t t);
+    t_cm_result endLoadComposite();
 
 private:
     // Context used in writing
@@ -37,14 +36,13 @@ private:
         cm_item_len_t readBytes;    // number of composite bytes read from MVRAM
     };
 
-
+    t_cm_result findType(cm_item_id_t t);
+    t_cm_result matchType(cm_item_id_t t);
     void addLengthToComposite(unsigned length);
-    t_cm_result updateContainer(cm_item_len_t length, unsigned * complete);
     Nvram *  nvram;
     int stackIndex;  // write stack index; -1 means the current item is top-level, not part of a composite
     compositeWriteContext writeStack[stackDepth];
     compositeLoadContext  loadStack[stackDepth];
-
 };
 
 #endif // CFG_MAN_TLV_H

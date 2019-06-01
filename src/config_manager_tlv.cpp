@@ -1,4 +1,4 @@
-/// 
+///
 // Type-Length-Value format config data, for storage in non-volatile media, e.g. a file.
 // This is defined as a separate class hierarchy, since it's an optional feature:
 // not all managed objects are saved in NVRAM.
@@ -82,7 +82,7 @@ void Tlv::startWriteComposite(cm_item_id_t t)
 void Tlv::endWriteComposite()
 {
     assert(stackIndex >= 0); // we must be inside a composite to end one
-    
+
     unsigned int endOffset = nvram->getOffset(); // current offset, at end of composite
     Tlv::compositeWriteContext * context = &(writeStack[stackIndex]);
 
@@ -118,28 +118,22 @@ void Tlv::endWriteComposite()
 }
 
 
-// Load T from NVRAM and return it
-t_cm_result Tlv::getType(cm_item_id_t * id)
-{
-    if (!nvram->read((uint8_t *)id, sizeof(cm_item_id_t)))
-    {
-        return CM_READ_FAIL;
-    }
-    return CM_SUCCESS;
-}
-
-
-// Client has identified T returned by getType() as simple:
-// Load the simple item into the provided memory
+// Load a simple item into the provided memory.
+// @param t: type to load.
+// @param pLength in/out, in: available memory, out: amount of data written to pRam
 // @param pRam
-// @param length in/out, in: available memory, out: amount of data written to pRam
-// @param complete, out: number of containers completed
 //
 // @note: if the length is unexpected, we could skip just that item, but it's
 //        simpler to just return an error, presumably forcing the client to abandon
 //        the load process completely.
-t_cm_result Tlv::loadSimple(uint8_t * pRam, cm_item_len_t * pLength, unsigned * complete)
+t_cm_result Tlv::loadSimple(cm_item_id_t t, cm_item_len_t * pLength, uint8_t * pRam)
 {
+    t_cm_result ret = findType(t);
+    if (ret != CM_SUCCESS)
+    {
+        return ret;
+    }
+
     cm_item_len_t length;
     nvram->read((uint8_t *)&length, sizeof(cm_item_len_t));
 
@@ -150,7 +144,7 @@ t_cm_result Tlv::loadSimple(uint8_t * pRam, cm_item_len_t * pLength, unsigned * 
     }
 
     DBG_PRT("loadSimple: %d at %p\n", length, pRam);
-    
+
     if (!nvram->read(pRam, length))
     {
         // This error aborts the loading process, and there's no need to updateContainer
@@ -158,15 +152,18 @@ t_cm_result Tlv::loadSimple(uint8_t * pRam, cm_item_len_t * pLength, unsigned * 
     }
     // Data has been loaded into client RAM
     *pLength = length;
-    *complete = 0;
-    return updateContainer(length, complete);
+    return CM_SUCCESS;
 }
 
-
-// Client has identified T returned by getType() as composite:
-// start loading the composite.
-t_cm_result Tlv::loadComposite()
+// Start loading the composite identified by t.
+t_cm_result Tlv::startLoadComposite(cm_item_id_t t)
 {
+    t_cm_result ret = findType(t);
+    if (ret != CM_SUCCESS)
+    {
+        return ret;
+    }
+
     cm_item_len_t length;
     nvram->read((uint8_t *)&length, sizeof(cm_item_len_t));
 
@@ -183,21 +180,96 @@ t_cm_result Tlv::loadComposite()
 }
 
 
-// Skip item: should be called after getType() only
 //
-// @param complete, out: number of containers completed
-//
-t_cm_result Tlv::skipItem(unsigned * complete)
+t_cm_result Tlv::endLoadComposite()
 {
-    cm_item_len_t length;
-    nvram->read((uint8_t *)&length, sizeof(cm_item_len_t));
-
-    // Skip over the V of TLV
-    nvram->adjustOffset(length);
-    *complete = 0;
-    return updateContainer(length, complete);
+    if (stackIndex < 0)
+    {
+        // We're not in a composite.
+        return CM_INCOHERENT_DATA;
+    }
+    stackIndex--;
+    return CM_SUCCESS;
 }
 
+
+// Look in current context for the requested type.
+// This function does not return a location, because, in case of success,
+// it sets NVRAM position to the location after T.
+// The search strategy is:
+// Read the next byte for T: do we need something more advanced to
+//  support out-of-order load? xxx
+// If T is not found, return NVRAM and context readoffset to start,
+// so next attempt starts from same position.
+t_cm_result Tlv::findType(cm_item_id_t t)
+{
+    t_cm_result ret = CM_NOT_FOUND;
+    // Save start location of search so we can restore it if search fails.
+    int start_offset = nvram->getOffset();
+    
+    if (stackIndex == -1)
+    {
+        // We're not within a composite.
+        ret = matchType(t);
+        if (ret == CM_NOT_FOUND)
+        {
+            nvram->setOffset(start_offset);
+        }
+        return ret;
+    }
+
+    // We're in a compound within whose context we search for a matching T.
+    compositeLoadContext * context = &(loadStack[stackIndex]);
+    cm_item_len_t start_readBytes = context->readBytes;
+    while (context->readBytes + sizeof(cm_item_id_t) + sizeof(cm_item_len_t) < context->length)
+    {
+        ret = matchType(t);
+        if (ret == CM_READ_FAIL)
+        {
+            return CM_READ_FAIL;
+        }
+        if (ret == CM_SUCCESS)
+        {
+            goto done;
+        }
+        // T did not match, so keep searching.
+        cm_item_len_t len;
+        if (!nvram->read((uint8_t *)&len, sizeof(len)))
+        {
+            return CM_READ_FAIL;
+        }
+        // Move to next element.
+        nvram->adjustOffset(len);
+        context->readBytes += sizeof(cm_item_id_t) + sizeof(len) + len;
+    }
+done:
+    // Either search failed without read errors, or success.
+    if (ret != CM_SUCCESS)
+    {
+        nvram->setOffset(start_offset);
+        context->readBytes = start_readBytes;
+    }
+    return ret;
+}
+
+// See if value form NVRAM matches t.
+// This advances NVRAM read loc to start of L.
+t_cm_result Tlv::matchType(cm_item_id_t t)
+{
+    cm_item_id_t found_t;
+
+    // Read T from next location in NVRAM.
+    if (!nvram->read((uint8_t *)&found_t, sizeof(found_t)))
+    {
+        return CM_READ_FAIL;
+    }
+    
+    if (found_t == t)
+    {
+        return CM_SUCCESS;
+    }
+    return CM_NOT_FOUND;
+}
 
 // Add component's contribution to the length of the composite it is contained in.
 // @param L field of component, excluding length of its T + L, which is added by this method
@@ -209,41 +281,3 @@ void Tlv::addLengthToComposite(unsigned length)
         writeStack[stackIndex].length += length + sizeof(cm_item_id_t) + sizeof(cm_item_len_t);
     }
 }
-
-
-// After loading an item, check if the composite container it is in has been completely loaded, and,
-// if so, update the parameter "complete", used to indicate to client how many
-// composites have been loaded.
-// This function may call itself recursively.
-// @param length - input, length (L in its TLV) of the item that has finished loading.
-// @param complete - input/output, the number of composites which have been completely loaded.
-t_cm_result Tlv::updateContainer(cm_item_len_t length, unsigned * complete)
-{
-    if (stackIndex == -1)
-    {
-        // Already at bottom of stack: nothing to pop, so stop recursing
-        return CM_SUCCESS;
-    }
-    
-    Tlv::compositeLoadContext * context = &(loadStack[stackIndex]);
-
-    context->readBytes += length + sizeof(cm_item_id_t) + sizeof(cm_item_len_t);
-    
-    if (context->readBytes < context->length)
-    {
-        // Composite is incomplete: we don't check further containers
-        return CM_SUCCESS;
-    }
-
-    if (context->readBytes > context->length)
-    {
-        // Composite is incoherent: length of component > the remaining length of composite
-        return CM_INCOHERENT_DATA;
-    }
-                
-    // readBytes == length => component completes its container
-    (*complete)++;
-    stackIndex--; // Maybe next-level container is also complete...
-    return updateContainer(context->length, complete); // update contribution of container to its container
-}
-

@@ -43,6 +43,7 @@ config_manager * config_manager::getInstance()
 // having an init method gives us more flexibility in delaying certain
 // actions until later; this allows us to create the CM early in the
 // init cycle, but delay malloc and NVRAM reads until later.
+// xxx there are things duplicated here and in load()
 void config_manager::init(const cm_descriptor * desc)
 {
     base_desc = desc;
@@ -56,9 +57,8 @@ void config_manager::init(const cm_descriptor * desc)
     // independent (since the constructor won't run at the beginning of each test).
     resetCtxt();
 
-    // Set counters to 0 and pointers to NULL on fresh memory before setDefault
+    // Set counters to 0 and pointers to NULL on fresh memory before setDefault during load.
     memset(ramBase, 0, base_desc->getLen());
-    base_desc->setDefault(ramBase);
     load();
 }
 
@@ -130,8 +130,7 @@ void config_manager::load()
 
     // Before loading, thus allocating new memory, call setDefault to free owned memory
     base_desc->setDefault(ramBase);
-    unsigned int complete;
-    t_cm_result res = base_desc->load(ramBase, &complete);
+    t_cm_result res = base_desc->load(ramBase);
 
     if (res != CM_SUCCESS)
     {
@@ -139,12 +138,12 @@ void config_manager::load()
         base_desc->setDefault(ramBase);
         return;
     }
-    assert(complete == 0); // We've exited the top-level composite, so nothing can be left
     resetCtxt();
 }
 
 
 // Return true if expected base ID is loaded from the store
+// xxx I think I don't need this anymore, except for initForRead.
 bool config_manager::loadBaseId()
 {
     if (!base_desc->isPersistent())
@@ -158,20 +157,7 @@ bool config_manager::loadBaseId()
         cm_printf("No config file.\n");
         return false;
     }
-
-    cm_item_id_t id;
-    if (store->getType(&id) != CM_SUCCESS)
-    {
-        cm_printf("Can't load store.\n");
-        return false;
-    }
-
-    if (id != base_desc->getId())
-    {
-        cm_printf("Can't load id %#x, expected %#x.\n", id, base_desc->getId());
-        return false;
-    }
-    cm_printf("Load id %#x.\n", id);
+    cm_printf("Load id %#x.\n", base_desc->getId());
     return true;
 }
 
@@ -439,85 +425,21 @@ void cm_composite_descriptor::save(const uint8_t *pItem) const
 
 // Load item from persistent storage
 //
-// @pre the item's type has been read from persistent store
+// @param pItem (input) - pointer to the RAM memory where loaded values will be saved.
 //
-// @param pComplete (output) - the number of outstanding composite completions, i.e.
-//         the number of times we should return from invocations of this method.
+// @note A failure loading any component terminates the entire load xxx implement this!
 //
-// @note A failure loading any component terminates the entire load
-//
-t_cm_result cm_composite_descriptor::load(uint8_t * pItem, unsigned * pComplete) const
+t_cm_result cm_composite_descriptor::load(uint8_t * pItem) const
 {
-    config_manager::getInstance()->store->loadComposite();
-    bool first = true; // Are we handling the first component item?
+    config_manager::getInstance()->store->startLoadComposite(&(pData->c));
 
-    do
+    for (unsigned i = 0; i < getAggrCount(); i++)
     {
-        // These variables persist from one call to the next at a given level
-        // of recursion, so they can't be local or static in the called function.
-        cm_item_id_t componentId;  // ID read from persistent store
-        unsigned int componentIdx; // index of a component item within its aggregate array
-        t_cm_result res = loadComponent(pItem, first, componentIdx, componentId, pComplete);
-
-        if (res != CM_SUCCESS)
-        {
-            return res;
-        }
+        getAggrAtIndex(i)->load(pItem);
     }
-    while (*pComplete == 0);   // load components while this composite is incomplete
-
-    // This composite is complete, so decrement the number of outstanding completions.
-    (*pComplete)--;
+    config_manager::getInstance()->store->endLoadComposite();
     return CM_SUCCESS;
 }
-
-
-// Load a component of this composite from persistent store
-//
-// @param pParentItem
-// @param first (in/out) - true on first input, subsequently set to
-//          false by this function and remains that way
-// @param idx (in/out) - unused on input if first==true, subsequently set
-//           and used by this function
-// @param id (in/out) -  unused on input if first==true, subsequently it is
-//           the value set by this function the last time it ran
-// @param pComplete (out) - value returned by store, indicating if
-//           the load of composite item(s) is complete
-//
-// @return CM_SUCCESS if item successfully loaded from store (it may have
-//           been saved into RAM or dumped)
-//         else an indication of why store load failed
-t_cm_result cm_composite_descriptor::loadComponent(uint8_t * pParentItem,
-        bool & first,
-        unsigned int & idx,
-        cm_item_id_t & id,
-        unsigned * pComplete) const
-{
-    cm_item_id_t prevId = id; // the previous ID read from the store
-    t_cm_result  res;
-
-    if ((res = config_manager::getInstance()->store->getType(&id)) != CM_SUCCESS)
-    {
-        return res;
-    }
-
-    if (first || (prevId != id))
-    {
-        // First read of this component ID, i.e. first item in an aggregate array
-        idx = 0;
-        first = false;
-    }
-
-    DBG_PRT("loadComponent: id %d idx %d\n", id, idx);
-
-    const cm_aggregate * pAggr = getAggr(id);
-    if (pAggr == NULL)
-    {
-        return config_manager::getInstance()->store->skipItem(pComplete);
-    }
-    return pAggr->load(pParentItem, idx, pComplete);
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -625,11 +547,10 @@ void cm_simple_descriptor::save(const uint8_t *pItem) const
 }
 
 
-// @param pComplete (output) - the number of outstanding composite completions, i.e.
-//        the number of times we should return from cm_composite_descriptor::load
-t_cm_result cm_simple_descriptor::load(uint8_t * pItem, unsigned * pComplete) const
+// @param pItem 
+t_cm_result cm_simple_descriptor::load(uint8_t * pItem) const
 {
-    return config_manager::getInstance()->store->loadSimple(pItem, pData, pComplete);
+    return config_manager::getInstance()->store->loadSimple(pItem, &(pData->c));
 }
 
 
@@ -772,34 +693,34 @@ void cm_aggregate::save(const uint8_t *pItem) const
 // Load an item from persistent storage into RAM, which may be allocated (if owned)
 // or just retrieved (if contained, thus already allocated)
 //
-// @param pParentItem
-// @param idx (in/out) - offset in array, incremented by this function if item is written to RAM
-// @param pComplete (out) - value returned by store, indicating if
-//           the load of composite item(s) is complete
+// @param pParentItem - base RAM address where loaded items are stored.
 //
 // @return CM_SUCCESS if item successfully loaded from store (it may have
 //           been saved into RAM or dumped)
 //         else an indication of why store load failed
-t_cm_result cm_aggregate::load(uint8_t * pParentItem, unsigned & idx, unsigned * pComplete) const
+t_cm_result cm_aggregate::load(uint8_t * pParentItem) const
 {
     if (!pData->pDesc->isPersistent())
     {
-        return config_manager::getInstance()->store->skipItem(pComplete);
+        return CM_SUCCESS;
     }
-
-    uint8_t * pItem = getComponentItem(idx, pParentItem);
-    if (pItem == NULL)
+    
+    for (unsigned idx = 0; idx < pData->maxCount; idx++)
     {
-        // Memory couldn't be allocated for the item, or out-of-range idx
-        return config_manager::getInstance()->store->skipItem(pComplete);
+        uint8_t * pItem = getComponentItem(idx, pParentItem);
+        if (pItem == NULL)
+        {
+            // Memory couldn't be allocated for the item, or out-of-range idx
+            return CM_SUCCESS; //xxxx success??
+        }
+    
+        t_cm_result res = pData->pDesc->load(pItem);
+        if (res != CM_SUCCESS)
+        {
+            return res;
+        }
     }
-
-    t_cm_result res = pData->pDesc->load(pItem, pComplete);
-    if (res == CM_SUCCESS)
-    {
-        idx++;
-    }
-    return res;
+    return CM_SUCCESS;
 }
 
 

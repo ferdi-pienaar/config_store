@@ -122,7 +122,7 @@ TEST_F(Contained, loadChangedSimpleLen)
 
     cm->init(&c1);
 
-    EXPECT_EQ(0, GET_C1_CONFIG->m1);
+    EXPECT_EQ(8, GET_C1_CONFIG->m1);
     EXPECT_EQ(7, GET_C1_CONFIG->m2); // Default; not read from the file, because TLV's L is bad
 }
 
@@ -158,17 +158,18 @@ TEST_F(Contained, loadUnknown)
 
 // Verify what's saved to TLV, given a TLV file that's read on startup that's
 // missing an element of a structure.
-// The element that's not in the TLV is saved to TLV, populated with default value.
+// The element m1 that's not in the TLV is saved to TLV, populated with default value.
+// The element m2 that is in TLV is restored to TLV.
 TEST_F(Contained, loadMissing)
 {
     uint8_t tlv[12] =
     /* The following assumes little-endian integers */
-    /*T    L     T    L    V    */
-    { 1,0, 8,0, 2,0, 4,0, 0,0,0,0};
+    /*T    L    T    L    V    */
+    { 1,0, 8,0, 2,0, 4,0, 6,7,8,9};
     uint8_t expectedTlv[20] =
     /* The following assumes little-endian integers */
     /*T    L     T    L    V        T    L    V    */
-    { 1,0, 16,0, 1,0, 4,0, 0,0,0,0, 2,0, 4,0, 0,0,0,0};
+    { 1,0, 16,0, 1,0, 4,0, 0,0,0,0, 2,0, 4,0, 6,7,8,9};
 
 
     /* Create config file to be loaded */
@@ -196,7 +197,7 @@ TEST_F(Contained, loadTruncated)
 
     /* Create config file to be loaded */
     nvram_spy_set(tlv, sizeof(tlv));
-
+    
     cm->init(&c1);
 
     EXPECT_EQ(0, GET_C1_CONFIG->m1);
@@ -398,13 +399,13 @@ TEST_F(Owned, loadNonPersistent)
 
 
 // Verify data saved to TLV, with default data in RAM as input to the test.
-// xxx verify that nothing is saved.  Perhaps SUT shouldn't even create a file in this case?
+// The contained component is saved, but not the owned, which does not exist.
 TEST_F(Owned, save)
 {
-    uint8_t expectedTlv [0] =
+    uint8_t expectedTlv [] =
     /* The following assumes little-endian integers */
-    /*T    L     T    L    V        T    L    V    */
-    {};
+    /*T    L     T    L    V     */
+    {1,0,  8,0,  3,0, 4,0, 0,0,0,0};
 
     cm->init(&c2);
 

@@ -61,15 +61,7 @@ void cm_yaml_store::endWriteComposite()
     yaml->endWriteComposite();
 }
 
-
-t_cm_result cm_yaml_store::getType(cm_item_id_t * t)
-{    
-    cout << "cm_yaml_store::getType()" << endl;
-    return yaml->getType(t);
-}
-
-
-t_cm_result cm_yaml_store::loadSimple(uint8_t * pRam, const cm_simple_metadata * data, unsigned * complete)
+t_cm_result cm_yaml_store::loadSimple(uint8_t * pRam, const cm_common_metadata * data)
 {    
     cout << "cm_yaml_store::loadSimple()" << endl;
     cm_item_len_t len = data->c.len;
@@ -77,19 +69,17 @@ t_cm_result cm_yaml_store::loadSimple(uint8_t * pRam, const cm_simple_metadata *
 
 }
 
-
-t_cm_result cm_yaml_store::loadComposite()
+// xxx incomplete
+t_cm_result cm_yaml_store::startLoadComposite(const cm_common_metadata * data)
 {    
-    cout << "cm_yaml_store::loadComposite()" << endl;
+    cout << "cm_yaml_store::startLoadComposite()" << endl;
 
-    return yaml->loadComposite();
+    //return yaml->startLoadComposite();
+    return CM_SUCCESS;
 }
 
-
-t_cm_result cm_yaml_store::skipItem(unsigned * complete)
-{
-    cout << "cm_yaml_store::skipItem()" << endl;
-
-    return yaml->skipItem(complete);
+t_cm_result cm_yaml_store::endLoadComposite()
+{    
+    cout << "cm_yaml_store::endLoadComposite()" << endl;
+    return CM_SUCCESS;
 }
-

@@ -19,6 +19,7 @@ typedef enum
     CM_SUCCESS,
     CM_READ_FAIL,
     CM_INCOHERENT_DATA,
+    CM_NOT_FOUND
 } t_cm_result;
 
 
