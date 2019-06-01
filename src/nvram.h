@@ -9,7 +9,7 @@
 
 #include <stdint.h> // uint8_t, etc
 #include <stdio.h> // FILE
- 
+
 
 class Nvram
 {

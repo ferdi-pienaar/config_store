@@ -11,12 +11,12 @@ static int offset; // offset in buffer at which next cm_printf will write
 
 int cm_printf(const char * format, ...)
 {
-	va_list args;
-	va_start (args, format);
-	int bytes = vsprintf(buf + offset, format, args);
-	va_end (args);
-	offset += bytes;
-	return bytes;
+    va_list args;
+    va_start (args, format);
+    int bytes = vsprintf(buf + offset, format, args);
+    va_end (args);
+    offset += bytes;
+    return bytes;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

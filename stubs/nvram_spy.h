@@ -1,4 +1,4 @@
-// The spy interface includes the basic interface, and additional methods. 
+// The spy interface includes the basic interface, and additional methods.
 #ifndef NVRAM_SPY_H
 #define NVRAM_SPY_H
 

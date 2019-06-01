@@ -11,7 +11,7 @@ static uint8_t nvMem[memSize];
 static unsigned bytesWritten = 0; // max number of bytes written, i.e. the file size
 
 bool Nvram::initForWrite()
-{        
+{
     offset = 0;
     bytesWritten = 0;
     return true;

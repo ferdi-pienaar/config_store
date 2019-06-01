@@ -61,17 +61,17 @@ const cm_aggregate * const aggrList1[] = {&ca1, &ca2};
 const cm_composite_metadata c1_d = {{"c1", 1, sizeof(struct m), true}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
 const cm_composite_descriptor c1(&c1_d);
 
-class CompositeContained : public testing::Test 
+class CompositeContained : public testing::Test
 {
 protected:
     struct m mem;
-    
+
     virtual void SetUp()
     {
         memset(&mem, 0, sizeof(mem));
         cm_printf_spy_init();
     }
-    
+
     virtual void TearDown()
     {
         //clean up steps are executed after each TEST
@@ -130,18 +130,18 @@ const cm_aggregate * const aggrList2[] = {&ca3, &oa4};
 const cm_composite_metadata c2_d = {{"c2", 1, sizeof(struct m2), true}, aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0])};
 const cm_composite_descriptor c2(&c2_d);
 
-class CompositeOwned : public testing::Test 
+class CompositeOwned : public testing::Test
 {
 protected:
     struct m2 mem;
-    
+
     virtual void SetUp()
     {
         memset(&mem, 0, sizeof(mem));
         setdef_spy_calls = 0;
         cm_printf_spy_init();
     }
-    
+
     virtual void TearDown()
     {
         //clean up steps are executed after each TEST
@@ -174,7 +174,7 @@ TEST_F(CompositeOwned, printData)
     int owned[NUM_OWNED] = {7, 8};
     mem.cnt = NUM_OWNED;
     mem.owned = owned;
-    
+
     c2.print((uint8_t *)&mem, prefix, false);
     EXPECT_STREQ(expected, cm_printf_spy_get());
 }
@@ -296,7 +296,7 @@ TEST_F(CompositeOwned, implicitAdd)
 {
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"=", (char *)"42"};
     command_stack cmd(4, commandWord);
-    
+
     c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Counter is incremented and ptr to owned item is no longer NULL
@@ -304,14 +304,14 @@ TEST_F(CompositeOwned, implicitAdd)
     EXPECT_TRUE(mem.owned != NULL);
     EXPECT_EQ(42, mem.owned[0]);
 }
- 
+
 
 // Do not (permanently) allocate memory as side-effect of executing invalid command
 TEST_F(CompositeOwned, implicitAddFail)
 {
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"blabla"};
     command_stack cmd(3, commandWord);
-    
+
     c2.handleCmd(&cmd, (uint8_t *)&mem);
 
     // Counter is not incremented and ptr to owned item is NULL
@@ -329,7 +329,7 @@ TEST_F(CompositeOwned, setdef)
     mem.owned = (int *)malloc(NUM_OWNED * sizeof(int));
     mem.owned[0] = 7;
     mem.cnt = NUM_OWNED;
-    
+
     c2.setDefault((uint8_t *)&mem);
 
     EXPECT_EQ(0, mem.cnt);
@@ -359,16 +359,16 @@ const cm_aggregate * const aggrList4[] = {&oa7};
 const cm_composite_metadata c4_d = {{"c4", 1, sizeof(struct m4), true}, aggrList4, sizeof(aggrList4)/sizeof(aggrList4[0])};
 const cm_composite_descriptor c4(&c4_d);
 
-class OwnedWithoutCounter : public testing::Test 
+class OwnedWithoutCounter : public testing::Test
 {
 protected:
     struct m4 mem;
-    
+
     virtual void SetUp()
     {
         memset(&mem, 0, sizeof(mem));
     }
-    
+
     virtual void TearDown()
     {
         //clean up steps are executed after each TEST
@@ -397,7 +397,7 @@ TEST_F(OwnedWithoutCounter, delOnly)
 {
     char * commandWord[] = {(char *)"del", (char *)"owned"};
     command_stack cmd(2, commandWord);
-    
+
     // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
     mem.owned = (int *)malloc(MAX_NUMBER_OWNED_SET4 * sizeof(int));
 

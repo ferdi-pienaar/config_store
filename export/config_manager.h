@@ -48,9 +48,15 @@ public:
         pItem = item;
     }
 
-    std::string getString() const { return str; }
-    const cm_descriptor * getDesc() const { return pDesc; }
-    uint8_t * getItem() const { return pItem; }
+    std::string getString() const {
+        return str;
+    }
+    const cm_descriptor * getDesc() const {
+        return pDesc;
+    }
+    uint8_t * getItem() const {
+        return pItem;
+    }
 
 private:
     std::string           str;
@@ -80,7 +86,7 @@ class cm_descriptor
 
 public:
     cm_descriptor() {}
-    virtual ~cm_descriptor(){}
+    virtual ~cm_descriptor() {}
 
     virtual bool handleCmd(command_stack * cmd, uint8_t * pItem) const = 0;
     virtual const char * getName() const = 0;
@@ -113,17 +119,19 @@ public:
 // class has to be exposed to the client programmer.
 // Perhaps all members should be private, with cm_composite_descriptor
 // as friend, since it has to read (but not write) them.
-// 
+//
 //
 class cm_aggregate
 {
 public: // Should be private; currently public so we can call methods on pData->pDesc
     const cm_aggregate_data * const pData;
-    
-public:   
-    cm_aggregate(const cm_aggregate_data * d): pData(d){};
-    virtual ~cm_aggregate(){}
-    bool needIndex(const uint8_t * pParentItem) const {return getCount(pParentItem) > 1;}
+
+public:
+    cm_aggregate(const cm_aggregate_data * d): pData(d) {};
+    virtual ~cm_aggregate() {}
+    bool needIndex(const uint8_t * pParentItem) const {
+        return getCount(pParentItem) > 1;
+    }
     bool getIndex(command_stack * cmd, unsigned int & itemIndex) const;
     uint8_t * getItemAtIndex(const uint8_t * pParentItem, unsigned idx) const;
     /// returns number of items currently in the aggregate
@@ -140,7 +148,7 @@ public:
                           uint8_t ** ppItem,
                           bool & added) const;
     virtual uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const = 0;
-    void save(const uint8_t *pItem) const;    
+    void save(const uint8_t *pItem) const;
     t_cm_result load(uint8_t * pParentItem) const;
     virtual void help(const uint8_t * pItem) const = 0;
     virtual uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const = 0;
@@ -159,7 +167,7 @@ private:
 class cm_contained_aggregate : public cm_aggregate
 {
 public:
-    cm_contained_aggregate(const cm_aggregate_data * d): cm_aggregate(d){}
+    cm_contained_aggregate(const cm_aggregate_data * d): cm_aggregate(d) {}
 
     virtual unsigned getCount(const uint8_t * pParentItem) const;
     void setCount(uint8_t * pParentItem, unsigned int) const {
@@ -177,9 +185,9 @@ public:
         (void)pParentItem;
         (void)itemIdx;
         assert(false);
-    }    
-    uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const;    
-    uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const;    
+    }
+    uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const;
+    uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const;
     void help(const uint8_t * pItem) const;
 
 private:
@@ -200,7 +208,7 @@ class cm_owned_aggregate : public cm_aggregate
 public:
     cm_owned_aggregate(const cm_aggregate_data * d,
                        const cm_contained_aggregate * cntAggr):
-                       cm_aggregate(d), pCounterAggr(cntAggr){}
+        cm_aggregate(d), pCounterAggr(cntAggr) {}
 
     virtual unsigned getCount(const uint8_t * pParentItem) const;
     bool handleAdd(uint8_t * pItem) const;
@@ -215,7 +223,7 @@ public:
 private:
     uint8_t * getFirstItem(const uint8_t * pParentItem) const;
     void freeItems(uint8_t * pParentItem) const;
-    
+
     const cm_contained_aggregate * const pCounterAggr; // the counter for this owned component
 };
 
@@ -225,27 +233,39 @@ private:
 /// aggregates.
 // xxx methods (apart from constructor) are private (not for user), but config_manager is friend?
 class cm_composite_descriptor : public cm_descriptor
-{ 
-public:    
+{
+public:
     cm_composite_descriptor(const cm_composite_metadata * pMeta);
-    ~cm_composite_descriptor(){};
-    const char * getName() const {return pData->c.name;}
-    virtual cm_item_id_t getId() const {return pData->c.id;}
-    virtual cm_item_len_t getLen() const {return pData->c.len;}
+    ~cm_composite_descriptor() {};
+    const char * getName() const {
+        return pData->c.name;
+    }
+    virtual cm_item_id_t getId() const {
+        return pData->c.id;
+    }
+    virtual cm_item_len_t getLen() const {
+        return pData->c.len;
+    }
     bool handleCmd(command_stack * cmd, uint8_t * pItem) const;
     void print(const uint8_t * pItem, std::string prefix, bool include_state) const;
     void setDefault(uint8_t * pItem) const;
     virtual void help(const uint8_t * pItem) const;
     void save(const uint8_t * pItem) const;
     t_cm_result load(uint8_t * pItem) const;
-    bool isPersistent() const { return pData->c.persistent; }
+    bool isPersistent() const {
+        return pData->c.persistent;
+    }
 
 private:
     bool handleAdd(command_stack * cmd, uint8_t * pItem) const;
     bool handleDel(command_stack * cmd, uint8_t * pItem) const;
     bool handleIdWord(command_stack * cmd, uint8_t * pItem) const;
-    virtual unsigned short getAggrCount() const {return pData->aggrCount;}
-    virtual const cm_aggregate * getAggrAtIndex(unsigned int i) const {return pData->aggrList[i];}
+    virtual unsigned short getAggrCount() const {
+        return pData->aggrCount;
+    }
+    virtual const cm_aggregate * getAggrAtIndex(unsigned int i) const {
+        return pData->aggrList[i];
+    }
     const cm_aggregate * getAggr(const char * name) const;
     const cm_aggregate * getAggr(cm_item_id_t id) const;
 
@@ -263,9 +283,15 @@ public:
     cm_simple_descriptor(const cm_simple_metadata * pMeta);
     virtual ~cm_simple_descriptor() {}
     bool handleCmd(command_stack * cmd, uint8_t * pItem) const;
-    const char * getName() const {return pData->c.name;}
-    virtual cm_item_id_t getId() const {return pData->c.id;}
-    virtual cm_item_len_t getLen() const {return pData->c.len;}
+    const char * getName() const {
+        return pData->c.name;
+    }
+    virtual cm_item_id_t getId() const {
+        return pData->c.id;
+    }
+    virtual cm_item_len_t getLen() const {
+        return pData->c.len;
+    }
     void print(const uint8_t * pItem, std::string prefix, bool include_state) const;
     bool set(uint8_t * pItem, std::string val) const;
     void setDefault(uint8_t * pItem) const;
@@ -275,7 +301,9 @@ public:
     }
     virtual void save(const uint8_t * pItem) const;
     t_cm_result load(uint8_t * pItem) const;
-    bool isPersistent() const { return pData->c.persistent; }
+    bool isPersistent() const {
+        return pData->c.persistent;
+    }
 
 private:
     const cm_simple_metadata * const pData;
@@ -291,17 +319,21 @@ private:
 // This class is the application programme's sole point of access to
 // the configurable items.
 class config_manager
-{  
+{
 public:
     void handleCmd(int argc, char *argv[]);
     void init(const cm_descriptor * pDesc);
     const char * getPromptString() const; ///< get context-dependent prompt string h file
-    void * getConfig(){return (void *)ramBase;}
+    void * getConfig() {
+        return (void *)ramBase;
+    }
     static config_manager * getInstance();
 
     // xxx should only be accessible to friend classes
     void resetCtxt();
-    void updateCtxt() {currCtxt = candidateCtxt;}    
+    void updateCtxt() {
+        currCtxt = candidateCtxt;
+    }
     cm_context   candidateCtxt; // context built while handling current command
     cm_store * store;
 
@@ -312,7 +344,7 @@ private:
     bool loadBaseId();
 
     static config_manager * instance;
-    const cm_descriptor * base_desc;    
+    const cm_descriptor * base_desc;
     uint8_t *    ramBase;
     cm_context   currCtxt;      // current context
 };
@@ -338,7 +370,7 @@ public:
         CM_RESET_CTXT, // return context to top level
         CM_OP_NONE
     };
-    
+
     command_stack(int argc, char ** argv) : count(argc), wordPtr(argv) {}
 
     // Pop top word.
@@ -362,7 +394,7 @@ public:
 
     eCmOp getTopOp() const;
     bool getIndex(unsigned int & itemIdx);
-    
+
 private:
     int     count;
     char ** wordPtr;

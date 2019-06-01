@@ -13,7 +13,7 @@ typedef uint16_t cm_item_len_t;
 // Identifier ID, unique within its context, used to identify it in NVRFAM
 typedef uint16_t cm_item_id_t;
 
-// 
+//
 typedef enum
 {
     CM_SUCCESS,

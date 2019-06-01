@@ -1,4 +1,4 @@
-// The spy interface includes the basic interface, and additional methods. 
+// The spy interface includes the basic interface, and additional methods.
 #ifndef CM_PRINTF_SPY_H
 #define CM_PRINTF_SPY_H
 

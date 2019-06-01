@@ -206,7 +206,7 @@ t_cm_result Tlv::findType(cm_item_id_t t)
     t_cm_result ret = CM_NOT_FOUND;
     // Save start location of search so we can restore it if search fails.
     int start_offset = nvram->getOffset();
-    
+
     if (stackIndex == -1)
     {
         // We're not within a composite.
@@ -263,7 +263,7 @@ t_cm_result Tlv::matchType(cm_item_id_t t)
     {
         return CM_READ_FAIL;
     }
-    
+
     if (found_t == t)
     {
         return CM_SUCCESS;

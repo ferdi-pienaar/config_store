@@ -5,7 +5,7 @@
 //    for non-volatile storage
 //
 // xxx how many of these tests belong in cm_tlvTest.cpp?
-// 
+//
 
 #include "gtest/gtest.h"
 #include "config_manager.h"       // Unit under test
@@ -56,7 +56,7 @@ const cm_composite_descriptor c1(&c1_d);
 
 #define GET_C1_CONFIG ((struct m *)config_manager::getInstance()->getConfig())
 
-class Contained : public testing::Test 
+class Contained : public testing::Test
 {
 protected:
     config_manager * cm;
@@ -75,8 +75,8 @@ protected:
 TEST_F(Contained, save)
 {
     uint8_t expectedTlv [20] =
-    /* The following assumes little-endian integers */
-    /*T    L     T    L    V        T    L    V    */
+        /* The following assumes little-endian integers */
+        /*T    L     T    L    V        T    L    V    */
     { 1,0, 16,0, 1,0, 4,0, 0,0,0,0, 2,0, 4,0, 7,0,0,0};
 
     cm->init(&c1);
@@ -92,8 +92,8 @@ TEST_F(Contained, save)
 TEST_F(Contained, load)
 {
     uint8_t tlv[20] =
-    /* The following assumes little-endian integers */
-    /*T    L     T    L    V        T    L    V    */
+        /* The following assumes little-endian integers */
+        /*T    L     T    L    V        T    L    V    */
     { 1,0, 16,0, 1,0, 4,0, 8,0,0,0, 2,0, 4,0, 9,0,0,0};
 
 
@@ -112,8 +112,8 @@ TEST_F(Contained, load)
 TEST_F(Contained, loadChangedSimpleLen)
 {
     uint8_t tlv[20] =
-    /* The following assumes little-endian integers */
-    /*T    L     T    L    V        T    L    V    */
+        /* The following assumes little-endian integers */
+        /*T    L     T    L    V        T    L    V    */
     { 1,0, 14,0, 1,0, 4,0, 8,0,0,0, 2,0, 2,0, 9,0};
 
 
@@ -134,12 +134,12 @@ TEST_F(Contained, loadChangedSimpleLen)
 TEST_F(Contained, loadUnknown)
 {
     uint8_t tlv[28] =
-    /* The following assumes little-endian integers */
-    /*T    L     T    L    V        T    L    V        T    L    V    */
+        /* The following assumes little-endian integers */
+        /*T    L     T    L    V        T    L    V        T    L    V    */
     { 1,0, 24,0, 1,0, 4,0, 0,0,0,0, 9,0, 4,0, 0,0,0,0, 2,0, 4,0, 0,0,0,0};
     uint8_t expectedTlv[20] =
-    /* The following assumes little-endian integers */
-    /*T    L     T    L    V        T    L    V    */
+        /* The following assumes little-endian integers */
+        /*T    L     T    L    V        T    L    V    */
     { 1,0, 16,0, 1,0, 4,0, 0,0,0,0, 2,0, 4,0, 0,0,0,0};
 
 
@@ -163,12 +163,12 @@ TEST_F(Contained, loadUnknown)
 TEST_F(Contained, loadMissing)
 {
     uint8_t tlv[12] =
-    /* The following assumes little-endian integers */
-    /*T    L    T    L    V    */
+        /* The following assumes little-endian integers */
+        /*T    L    T    L    V    */
     { 1,0, 8,0, 2,0, 4,0, 6,7,8,9};
     uint8_t expectedTlv[20] =
-    /* The following assumes little-endian integers */
-    /*T    L     T    L    V        T    L    V    */
+        /* The following assumes little-endian integers */
+        /*T    L     T    L    V        T    L    V    */
     { 1,0, 16,0, 1,0, 4,0, 0,0,0,0, 2,0, 4,0, 6,7,8,9};
 
 
@@ -190,14 +190,14 @@ TEST_F(Contained, loadMissing)
 TEST_F(Contained, loadTruncated)
 {
     uint8_t tlv[] =
-    /* The following assumes little-endian integers */
-    /*T    L     T    L    V       ...    */
+        /* The following assumes little-endian integers */
+        /*T    L     T    L    V       ...    */
     { 1,0, 16,0, 1,0, 4,0, 8,0,0,0 /*... */};
 
 
     /* Create config file to be loaded */
     nvram_spy_set(tlv, sizeof(tlv));
-    
+
     cm->init(&c1);
 
     EXPECT_EQ(0, GET_C1_CONFIG->m1);
@@ -210,8 +210,8 @@ TEST_F(Contained, loadTruncated)
 TEST_F(Contained, loadTruncated1)
 {
     uint8_t tlv[] =
-    /* The following assumes little-endian integers */
-    /*T    L     T    L    V        T ...    */
+        /* The following assumes little-endian integers */
+        /*T    L     T    L    V        T ...    */
     { 1,0, 16,0, 1,0, 4,0, 8,0,0,0, 2,0};
 
 
@@ -230,8 +230,8 @@ TEST_F(Contained, loadTruncated1)
 TEST_F(Contained, loadTruncated2)
 {
     uint8_t tlv[] =
-    /* The following assumes little-endian integers */
-    /*T    L     T    L    V        T    L    V (last byte missing) */
+        /* The following assumes little-endian integers */
+        /*T    L     T    L    V        T    L    V (last byte missing) */
     { 1,0, 16,0, 1,0, 4,0, 8,0,0,0, 2,0, 4,0, 9,0,0};
 
 
@@ -251,8 +251,8 @@ TEST_F(Contained, loadTruncated2)
 TEST_F(Contained, loadIncoherent)
 {
     uint8_t tlv[20] =
-    /* The following assumes little-endian integers */
-    /*T    L     T    L    V        T    L    V    */
+        /* The following assumes little-endian integers */
+        /*T    L     T    L    V        T    L    V    */
     { 1,0, 14,0, 1,0, 4,0, 8,0,0,0, 2,0, 4,0, 9,0,0,0};
 
 
@@ -272,8 +272,8 @@ TEST_F(Contained, loadIncoherent)
 TEST_F(Contained, loadIncoherent1)
 {
     uint8_t tlv[20] =
-    /* The following assumes little-endian integers */
-    /*T    L     T    L    V        T    L    V    */
+        /* The following assumes little-endian integers */
+        /*T    L     T    L    V        T    L    V    */
     { 1,0, 17,0, 1,0, 4,0, 8,0,0,0, 2,0, 4,0, 9,0,0,0};
 
 
@@ -314,7 +314,7 @@ const cm_composite_descriptor c2(&c2_d);
 
 #define GET_C2_CONFIG ((struct m2 *)config_manager::getInstance()->getConfig())
 
-class Owned : public testing::Test 
+class Owned : public testing::Test
 {
 protected:
     config_manager * cm;
@@ -331,7 +331,7 @@ protected:
 TEST_F(Owned, load)
 {
     uint8_t tlv[20] =
-    /*T    L     T    L    V        T    L    V      */
+        /*T    L     T    L    V        T    L    V      */
     { 1,0, 16,0, 4,0, 4,0, 7,0,0,0, 4,0, 4,0, 8,0,0,0};
 
 
@@ -353,11 +353,11 @@ TEST_F(Owned, load)
 TEST_F(Owned, loadTooMany)
 {
     uint8_t tlv[28] =
-    /*T    L     T    L    V        T    L    V        T    L    V       */
+        /*T    L     T    L    V        T    L    V        T    L    V       */
     { 1,0, 24,0, 4,0, 4,0, 7,0,0,0, 4,0, 4,0, 8,0,0,0, 4,0, 4,0, 9,0,0,0};
     uint8_t expectedTlv[20] =
-    /* The following assumes little-endian integers */
-    /*T    L     T    L    V        T    L    V    */
+        /* The following assumes little-endian integers */
+        /*T    L     T    L    V        T    L    V    */
     { 1,0, 16,0, 4,0, 4,0, 7,0,0,0, 4,0, 4,0, 8,0,0,0};
 
 
@@ -383,7 +383,7 @@ TEST_F(Owned, loadTooMany)
 TEST_F(Owned, loadNonPersistent)
 {
     uint8_t tlv[20] =
-    /*T    L     T    L    V        T    L    V      */
+        /*T    L     T    L    V        T    L    V      */
     { 1,0, 16,0, 3,0, 4,0, 1,0,0,0, 4,0, 4,0, 5,0,0,0};
 
 
@@ -403,8 +403,8 @@ TEST_F(Owned, loadNonPersistent)
 TEST_F(Owned, save)
 {
     uint8_t expectedTlv [] =
-    /* The following assumes little-endian integers */
-    /*T    L     T    L    V     */
+        /* The following assumes little-endian integers */
+        /*T    L     T    L    V     */
     {1,0,  8,0,  3,0, 4,0, 0,0,0,0};
 
     cm->init(&c2);
@@ -420,14 +420,14 @@ TEST_F(Owned, save)
 TEST_F(Owned, implicitAdd)
 {
     uint8_t expectedTlv [12] =
-    /* The following assumes little-endian integers */
-    /*T    L    T    L    V    */
+        /* The following assumes little-endian integers */
+        /*T    L    T    L    V    */
     { 1,0, 8,0, 4,0, 4,0, 0,0,0,0};
 
     cm->init(&c2);
 
     EXPECT_EQ(0, GET_C2_CONFIG->cnt);
-    EXPECT_EQ(NULL, GET_C2_CONFIG->owned);   
+    EXPECT_EQ(NULL, GET_C2_CONFIG->owned);
 
     char * commandWord[] = {(char *)"owned", (char *)"0"}; // reference owned item 0, causing implicit add
     cm->handleCmd(2, commandWord);
@@ -445,21 +445,21 @@ TEST_F(Owned, implicitAdd)
 TEST_F(Owned, implicitAddnSet)
 {
     uint8_t expectedTlv [12] =
-    /* The following assumes little-endian integers */
-    /*T    L    T    L    V    */
+        /* The following assumes little-endian integers */
+        /*T    L    T    L    V    */
     { 1,0, 8,0, 4,0, 4,0, 7,0,0,0};
 
     cm->init(&c2);
 
     EXPECT_EQ(0, GET_C2_CONFIG->cnt);
-    EXPECT_EQ(NULL, GET_C2_CONFIG->owned);   
+    EXPECT_EQ(NULL, GET_C2_CONFIG->owned);
 
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"=", (char *)"7"}; // set item 0, causing implicit add
     cm->handleCmd(4, commandWord);
 
     EXPECT_EQ(1, GET_C2_CONFIG->cnt);
     ASSERT_TRUE(GET_C2_CONFIG->owned != NULL);
-    EXPECT_EQ(7, GET_C2_CONFIG->owned[0]);   
+    EXPECT_EQ(7, GET_C2_CONFIG->owned[0]);
 
     char * commandWord2[] = {(char *)"save"};
     cm->handleCmd(1, commandWord2);
@@ -472,8 +472,8 @@ TEST_F(Owned, implicitAddnSet)
 TEST_F(Owned, explicitAdd)
 {
     uint8_t expectedTlv [12] =
-    /* The following assumes little-endian integers */
-    /*T    L    T    L    V    */
+        /* The following assumes little-endian integers */
+        /*T    L    T    L    V    */
     { 1,0, 8,0, 4,0, 4,0, 0,0,0,0};
 
 
@@ -502,13 +502,13 @@ TEST_F(Owned, explicitAdd)
 TEST_F(Owned, del)
 {
     uint8_t tlv[12] =
-    /* The following assumes little-endian integers */
-    /*T    L    T    L    V    */
+        /* The following assumes little-endian integers */
+        /*T    L    T    L    V    */
     { 1,0, 8,0, 4,0, 4,0, 5,0,0,0};
     uint8_t expectedTlv [0] =
-    /* The following assumes little-endian integers */
-    /*T    L  */
-    {};
+        /* The following assumes little-endian integers */
+        /*T    L  */
+        {};
 
 
     /* Create config file to be loaded */
@@ -555,7 +555,7 @@ const cm_composite_descriptor c3(&c3_d);
 
 #define GET_C3_CONFIG ((struct m3 *)config_manager::getInstance()->getConfig())
 
-class ContainedArray : public testing::Test 
+class ContainedArray : public testing::Test
 {
 protected:
     config_manager * cm;
@@ -573,7 +573,7 @@ protected:
 TEST_F(ContainedArray, load)
 {
     uint8_t tlv[16] =
-    /*T    L     T    L    V    T    L    V */
+        /*T    L     T    L    V    T    L    V */
     { 1,0, 12,0, 1,0, 2,0, 7,0, 1,0, 2,0, 8,0};
 
     /* Create config file to be loaded */
@@ -590,11 +590,11 @@ TEST_F(ContainedArray, load)
 TEST_F(ContainedArray, loadTooMany)
 {
     uint8_t tlv[22] =
-    /*T    L     T    L    V    T    L    V    T    L    V       */
+        /*T    L     T    L    V    T    L    V    T    L    V       */
     { 1,0, 18,0, 1,0, 2,0, 7,0, 1,0, 2,0, 8,0, 1,0, 2,0, 9,0};
     uint8_t expectedTlv[16] =
-    /* The following assumes little-endian integers */
-    /*T    L     T    L    V    T    L    V    */
+        /* The following assumes little-endian integers */
+        /*T    L     T    L    V    T    L    V    */
     { 1,0, 12,0, 1,0, 2,0, 7,0, 1,0, 2,0, 8,0};
 
     /* Create config file to be loaded */
@@ -638,7 +638,7 @@ const cm_composite_descriptor c4(&c4_d);
 
 #define GET_C4_CONFIG ((struct m6 *)config_manager::getInstance()->getConfig())
 
-class ContainedArrays : public testing::Test 
+class ContainedArrays : public testing::Test
 {
 protected:
     config_manager * cm;
@@ -654,10 +654,10 @@ protected:
 
 // Verify what's loaded into memory, given TLV file that's read on startup.
 TEST_F(ContainedArrays, load)
-{    
+{
     uint8_t tlv[28] =
-    /* The following assumes little-endian integers */
-    /*T    L     T    L    V    T    L    V    T    L    V    T    L    V */
+        /* The following assumes little-endian integers */
+        /*T    L     T    L    V    T    L    V    T    L    V    T    L    V */
     { 1,0, 24,0, 1,0, 2,0, 4,0, 1,0, 2,0, 5,0, 2,0, 2,0, 6,0, 2,0, 2,0, 7,0};
 
     nvram_spy_set(tlv, sizeof(tlv));

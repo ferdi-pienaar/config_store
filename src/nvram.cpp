@@ -6,7 +6,7 @@
 #define CFG_FILE_NAME "cfg.bin"
 
 bool Nvram::initForWrite()
-{        
+{
     offset = 0;
 
     fp = fopen(CFG_FILE_NAME, "wb");  // open file for binary write
@@ -64,7 +64,7 @@ void Nvram::adjustOffset(int i)
 bool Nvram::write(const uint8_t * d, unsigned int len)
 {
     fwrite(d, 1, len, fp);
-    
+
     offset += len;
     return true;
 }
@@ -76,7 +76,7 @@ bool Nvram::read(uint8_t * d, unsigned int len)
     {
         return false;
     }
-    
+
     offset += len;
     return true;
 }

@@ -1,4 +1,4 @@
-/// 
+///
 // YAML format config data, for storage in non-volatile media, e.g. a file.
 // This is defined as a separate class hierarchy, since it's an optional feature:
 // not all managed objects are saved in NVRAM.
@@ -49,7 +49,7 @@ void Yaml::reset()
 
 
 void Yaml::writeSimple(const char * name, cm_item_id_t t, const uint8_t * v, cm_item_len_t length, YAML_PRT_FPTR prt)
-{    
+{
     write_indent();
     cout << name << ": ";
     prt(stdout, v, length);
@@ -112,7 +112,7 @@ t_cm_result Yaml::loadSimple(uint8_t * pRam, cm_item_len_t * pLength, unsigned *
     }
 
     DBG_PRT("loadSimple: %d at %p\n", length, pRam);
-    
+
     if (!nvram->read(pRam, length))
     {
         // This error aborts the loading process, and there's no need to updateContainer
@@ -179,11 +179,11 @@ t_cm_result Yaml::updateContainer(cm_item_len_t length, unsigned * complete)
         // Already at bottom of stack: nothing to pop
         return CM_SUCCESS;
     }
-    
+
     Yaml::compositeLoadContext * context = &(loadStack[stackIndex]);
 
     context->readBytes += length + sizeof(cm_item_id_t) + sizeof(cm_item_len_t);
-    
+
     if (context->readBytes < context->length)
     {
         // Composite is incomplete: we don't check further containers
@@ -195,7 +195,7 @@ t_cm_result Yaml::updateContainer(cm_item_len_t length, unsigned * complete)
         // Composite is incoherent: length of component > the remaining length of composite
         return CM_INCOHERENT_DATA;
     }
-                
+
     // readBytes == length => component completes its container
     (*complete)++;
     stackIndex--; // Maybe next-level container is also complete...

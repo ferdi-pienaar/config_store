@@ -73,17 +73,17 @@ void config_manager::handleCmd(int argc, char *argv[])
     // First treat the commands that are only applicable at the top level
     switch (cmd.getTopOp())
     {
-        case command_stack::CM_LOAD:
-            return load();
+    case command_stack::CM_LOAD:
+        return load();
 
-        case command_stack::CM_SAVE:
-            return save();
+    case command_stack::CM_SAVE:
+        return save();
 
-        case command_stack::CM_RESET_CTXT:
-            return resetCtxt();
+    case command_stack::CM_RESET_CTXT:
+        return resetCtxt();
 
-        default: // Other commands are passed to current context
-            break;
+    default: // Other commands are passed to current context
+        break;
     }
 
     // The candidate context starts as a copy of the current context
@@ -200,35 +200,35 @@ bool cm_composite_descriptor::handleCmd(command_stack * cmd,
 
     switch (cmd->getTopOp())
     {
-        case command_stack::CM_OP_NONE:
-            return handleIdWord(cmd, pItem);
+    case command_stack::CM_OP_NONE:
+        return handleIdWord(cmd, pItem);
 
-        case command_stack::CM_ADD:
-            // Remove the word 'add' and pass the remainder to the method
-            return handleAdd(&cmd->pop(), pItem);
+    case command_stack::CM_ADD:
+        // Remove the word 'add' and pass the remainder to the method
+        return handleAdd(&cmd->pop(), pItem);
 
-        case command_stack::CM_DEL:
-            // Remove the word 'del' and pass the remainder to the method
-            return handleDel(&cmd->pop(), pItem);
+    case command_stack::CM_DEL:
+        // Remove the word 'del' and pass the remainder to the method
+        return handleDel(&cmd->pop(), pItem);
 
-        case command_stack::CM_PRT:
-            print(pItem, "", true);
-            return true;
+    case command_stack::CM_PRT:
+        print(pItem, "", true);
+        return true;
 
-        case command_stack::CM_PRT_CFG:
-            print(pItem, "", false);
-            return true;
+    case command_stack::CM_PRT_CFG:
+        print(pItem, "", false);
+        return true;
 
-        case command_stack::CM_SETDEF:
-            setDefault(pItem);
-            return true;
+    case command_stack::CM_SETDEF:
+        setDefault(pItem);
+        return true;
 
-        case command_stack::CM_HELP:
-            help(pItem);
-            return true; // xxx true?
+    case command_stack::CM_HELP:
+        help(pItem);
+        return true; // xxx true?
 
-        default:
-            break;
+    default:
+        break;
     }
     cm_printf("Command '%s' not handled in composite item '%s'\n", cmd->getTop(), getName());
     return false;
@@ -486,31 +486,31 @@ bool cm_simple_descriptor::handleCmd(command_stack * cmd, uint8_t * pItem) const
 
     switch (cmd->getTopOp())
     {
-        case command_stack::CM_PRT:
-            print(pItem, "", true);
-            return true;
+    case command_stack::CM_PRT:
+        print(pItem, "", true);
+        return true;
 
-        case command_stack::CM_PRT_CFG:
-            print(pItem, "", false);
-            return true;
+    case command_stack::CM_PRT_CFG:
+        print(pItem, "", false);
+        return true;
 
-        case command_stack::CM_SET:
-            if (cmd->pop().getCount() == 1)
-            {
-                return set(pItem, cmd->getTop());
-            }
-            break;
+    case command_stack::CM_SET:
+        if (cmd->pop().getCount() == 1)
+        {
+            return set(pItem, cmd->getTop());
+        }
+        break;
 
-        case command_stack::CM_SETDEF:
-            setDefault(pItem);
-            return true;
+    case command_stack::CM_SETDEF:
+        setDefault(pItem);
+        return true;
 
-        case command_stack::CM_HELP:
-            help(pItem);
-            return true; // true?
+    case command_stack::CM_HELP:
+        help(pItem);
+        return true; // true?
 
-        default:
-            cm_printf("'%s' not in simple '%s'.\n", cmd->getTop(), getName());
+    default:
+        cm_printf("'%s' not in simple '%s'.\n", cmd->getTop(), getName());
     }
     return false;
 }
@@ -547,7 +547,7 @@ void cm_simple_descriptor::save(const uint8_t *pItem) const
 }
 
 
-// @param pItem 
+// @param pItem
 t_cm_result cm_simple_descriptor::load(uint8_t * pItem) const
 {
     return config_manager::getInstance()->store->loadSimple(pItem, &(pData->c));
@@ -704,7 +704,7 @@ t_cm_result cm_aggregate::load(uint8_t * pParentItem) const
     {
         return CM_SUCCESS;
     }
-    
+
     for (unsigned idx = 0; idx < pData->maxCount; idx++)
     {
         uint8_t * pItem = getComponentItem(idx, pParentItem);
@@ -713,7 +713,7 @@ t_cm_result cm_aggregate::load(uint8_t * pParentItem) const
             // Memory couldn't be allocated for the item, or out-of-range idx
             return CM_SUCCESS; //xxxx success??
         }
-    
+
         t_cm_result res = pData->pDesc->load(pItem);
         if (res != CM_SUCCESS)
         {
@@ -822,17 +822,17 @@ unsigned cm_owned_aggregate::getCount(const uint8_t * pParentItem) const
 
     switch (pCounterAggr->pData->pDesc->getLen())
     {
-        case sizeof(uint8_t):
-            return (unsigned)(*(pParentItem + pCounterAggr->pData->offset));
+    case sizeof(uint8_t):
+        return (unsigned)(*(pParentItem + pCounterAggr->pData->offset));
 
-        case sizeof(uint16_t):
-            return (unsigned)(*((uint16_t *)(pParentItem + pCounterAggr->pData->offset)));
+    case sizeof(uint16_t):
+        return (unsigned)(*((uint16_t *)(pParentItem + pCounterAggr->pData->offset)));
 
-        case sizeof(uint32_t):
-            return (unsigned)(*((uint32_t *)(pParentItem + pCounterAggr->pData->offset)));
+    case sizeof(uint32_t):
+        return (unsigned)(*((uint32_t *)(pParentItem + pCounterAggr->pData->offset)));
 
-        default:
-            assert(0);
+    default:
+        assert(0);
     }
 }
 
@@ -857,32 +857,32 @@ void cm_owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) con
 
     switch (pCounterAggr->pData->pDesc->getLen())
     {
-        case sizeof(uint8_t):
-        {
-            assert(count <= UINT8_MAX);
-            uint8_t cnt = count;
-            memcpy(pParentItem + pCounterAggr->pData->offset, &cnt, sizeof(cnt));
-            break;
-        }
+    case sizeof(uint8_t):
+    {
+        assert(count <= UINT8_MAX);
+        uint8_t cnt = count;
+        memcpy(pParentItem + pCounterAggr->pData->offset, &cnt, sizeof(cnt));
+        break;
+    }
 
-        case sizeof(uint16_t):
-        {
-            assert(count <= UINT16_MAX);
-            uint16_t cnt = count;
-            memcpy(pParentItem + pCounterAggr->pData->offset, &cnt, sizeof(cnt));
-            break;
-        }
+    case sizeof(uint16_t):
+    {
+        assert(count <= UINT16_MAX);
+        uint16_t cnt = count;
+        memcpy(pParentItem + pCounterAggr->pData->offset, &cnt, sizeof(cnt));
+        break;
+    }
 
-        case sizeof(uint32_t):
-        {
-            assert(count <= UINT32_MAX);
-            uint32_t cnt = count;
-            memcpy(pParentItem + pCounterAggr->pData->offset, &cnt, sizeof(cnt));
-            break;
-        }
+    case sizeof(uint32_t):
+    {
+        assert(count <= UINT32_MAX);
+        uint32_t cnt = count;
+        memcpy(pParentItem + pCounterAggr->pData->offset, &cnt, sizeof(cnt));
+        break;
+    }
 
-        default:
-            assert(0);
+    default:
+        assert(0);
     }
 }
 

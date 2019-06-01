@@ -22,7 +22,7 @@ typedef void (*CM_PRT_FPTR)(FILE * f, const uint8_t *pItem, cm_item_len_t len);
 
 struct cm_common_metadata
 {
-    const char * const  name;       ///< name by which item is addressed on CLI    
+    const char * const  name;       ///< name by which item is addressed on CLI
     const cm_item_id_t  id;         ///< ID (unique in the context of the component's composite) of item in NVRAM
     const cm_item_len_t len;        ///< Number of bytes occupied by an item in RAM
     const bool          persistent; ///< Saved to NVRAM?
@@ -56,7 +56,7 @@ struct cm_composite_metadata
 class cm_descriptor;
 
 struct cm_aggregate_data
-{    
+{
     const cm_descriptor * const pDesc;     ///< the component's descriptor
     const unsigned short        maxCount;  ///< Max number of instances of the item
     const unsigned int          offset;    ///< Offset [bytes] of items, or pointer to items, within the composite item

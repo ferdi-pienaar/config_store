@@ -186,7 +186,7 @@ TEST_F(TlvTest, findFailLoadComposite)
     nvram_spy_set(nvSet, sizeof(nvSet));
 
     tlv->startLoadComposite(0xab);
-    
+
     length = 2;
     t_cm_result ret = tlv->loadSimple(0xdeff, &length, clientRam);
     EXPECT_EQ(ret, CM_NOT_FOUND);

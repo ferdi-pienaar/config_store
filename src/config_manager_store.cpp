@@ -1,4 +1,4 @@
-/// 
+///
 //
 
 #include "config_manager_store.h"
