@@ -431,14 +431,16 @@ void cm_composite_descriptor::save(const uint8_t *pItem) const
 //
 t_cm_result cm_composite_descriptor::load(uint8_t * pItem) const
 {
-    config_manager::getInstance()->store->startLoadComposite(&(pData->c));
+    t_cm_result ret = config_manager::getInstance()->store->startLoadComposite(&(pData->c));
 
-    for (unsigned i = 0; i < getAggrCount(); i++)
+    if (ret == CM_SUCCESS)
     {
-        getAggrAtIndex(i)->load(pItem);
+        for (unsigned i = 0; i < getAggrCount(); i++)
+        {
+            getAggrAtIndex(i)->load(pItem);
+        }
     }
-    config_manager::getInstance()->store->endLoadComposite();
-    return CM_SUCCESS;
+    return config_manager::getInstance()->store->endLoadComposite();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

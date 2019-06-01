@@ -399,13 +399,12 @@ TEST_F(Owned, loadNonPersistent)
 
 
 // Verify data saved to TLV, with default data in RAM as input to the test.
-// The contained component is saved, but not the owned, which does not exist.
+// The contained component is not saved because it is not persistent,
+// and there is no owned component by default, so nothing is saved.
+// Perhaps SUT shouldn't even create a file in this case.
 TEST_F(Owned, save)
 {
-    uint8_t expectedTlv [] =
-        /* The following assumes little-endian integers */
-        /*T    L     T    L    V     */
-    {1,0,  8,0,  3,0, 4,0, 0,0,0,0};
+    uint8_t expectedTlv [] = {};
 
     cm->init(&c2);
 

@@ -130,6 +130,15 @@ TEST_F(TlvTest, invalidEndComposite)
     EXPECT_EQ(CM_INCOHERENT_DATA, tlv->endLoadComposite());
 }
 
+// Client tries to load a composite when NVRAM is empty.
+// Nothing should be written to clientRam.
+TEST_F(TlvTest, loadEmptyComposite)
+{
+    nvram_spy_set(NULL, 0);
+
+    EXPECT_EQ(CM_READ_FAIL, tlv->startLoadComposite(0));
+}
+
 //
 TEST_F(TlvTest, loadComposite)
 {
