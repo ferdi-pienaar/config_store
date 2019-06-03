@@ -74,14 +74,11 @@ t_cm_result cm_tlv_store::endLoadSimple(uint8_t * pRam, const cm_common_metadata
 
 t_cm_result cm_tlv_store::startLoadComposite(const cm_common_metadata * data)
 {
-    cout << "cm_tlv_store::startLoadComposite()" << endl;
-
     return tlv->startLoadComposite(data->id);
 }
 
 t_cm_result cm_tlv_store::endLoadComposite()
 {
-    cout << "cm_tlv_store::endLoadComposite()" << endl;
     return tlv->endLoadComposite();
 }
 

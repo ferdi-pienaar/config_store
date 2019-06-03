@@ -144,13 +144,14 @@ t_cm_result Tlv::endLoadSimple(cm_item_len_t * pLength, uint8_t * pRam)
         return CM_INCOHERENT_DATA;
     }
 
-    DBG_PRT("loadSimple: %d at %p\n", length, pRam);
+    // DBG_PRT("%s: %d at %p\n", __PRETTY_FUNCTION__, length, pRam);
 
     if (!nvram->read(pRam, length))
     {
-        // This error aborts the loading process, and there's no need to updateContainer
+        // This error aborts the loading process, and there's no need to updateContainer xxx obsolete comment.
         return CM_READ_FAIL;
     }
+    
     // Data has been loaded into client RAM
     *pLength = length;
     return CM_SUCCESS;
@@ -168,27 +169,25 @@ t_cm_result Tlv::startLoadComposite(cm_item_id_t t)
     cm_item_len_t length;
     nvram->read((uint8_t *)&length, sizeof(cm_item_len_t));
 
-    if (stackIndex >= 0)
-    {
-        // xxx is container complete?
-        // No, let's assume or assert that a container must contain something.
-    }
-
     stackIndex++;
     loadStack[stackIndex].length = length;
-    loadStack[stackIndex].readBytes = 0;
+    loadStack[stackIndex].valueOffset = nvram->getOffset();
     return CM_SUCCESS;
 }
 
 
 //
+// @note we don't check for coherence, i.e. that the sum of the lengths
+//  of the components add up to the length in the composite header.
 t_cm_result Tlv::endLoadComposite()
 {
     if (stackIndex < 0)
     {
-        // We're not in a composite.
+        // We're not in a composite. xxx error should be INVALID_CALL, the client called End without a corresponding Start.
         return CM_INCOHERENT_DATA;
     }
+    // Move to next item in NVRAM (in case we didn't just read the last component of this composite).
+    nvram->setOffset(loadStack[stackIndex].valueOffset + loadStack[stackIndex].length);
     stackIndex--;
     return CM_SUCCESS;
 }
@@ -206,7 +205,10 @@ t_cm_result Tlv::findType(cm_item_id_t t)
 {
     t_cm_result ret = CM_NOT_FOUND;
     // Save start location of search so we can restore it if search fails.
-    int start_offset = nvram->getOffset();
+    unsigned int start_offset = nvram->getOffset();
+    
+    DBG_PRT("%s: type=%hx start_offset=%d stackIndex=%d\n",
+            __PRETTY_FUNCTION__, t, start_offset, stackIndex);
 
     if (stackIndex == -1)
     {
@@ -221,13 +223,15 @@ t_cm_result Tlv::findType(cm_item_id_t t)
 
     // We're in a compound within whose context we search for a matching T.
     compositeLoadContext * context = &(loadStack[stackIndex]);
-    cm_item_len_t start_readBytes = context->readBytes;
-    while (context->readBytes + sizeof(cm_item_id_t) + sizeof(cm_item_len_t) < context->length)
+    while (nvram->getOffset() - context->valueOffset + sizeof(cm_item_id_t) + sizeof(cm_item_len_t) < context->length)
     {
         ret = matchType(t);
         if (ret == CM_READ_FAIL)
         {
-            return CM_READ_FAIL;
+            // Typical reason for read failure is we reached EOF.
+            // xxx Should we remove that as a possibility by choosing the while loop above correctly??
+            // xxx Then READ_FAIL would mean HW failure?
+            goto done;
         }
         if (ret == CM_SUCCESS)
         {
@@ -237,24 +241,28 @@ t_cm_result Tlv::findType(cm_item_id_t t)
         cm_item_len_t len;
         if (!nvram->read((uint8_t *)&len, sizeof(len)))
         {
-            return CM_READ_FAIL;
+            ret = CM_READ_FAIL;
+            goto done;
         }
         // Move to next element.
         nvram->adjustOffset(len);
-        context->readBytes += sizeof(cm_item_id_t) + sizeof(len) + len;
     }
 done:
+    DBG_PRT("%s DONE: type=%hx start_offset=%d stackIndex=%d\n",
+            __PRETTY_FUNCTION__, t, start_offset, stackIndex);
     // Either search failed without read errors, or success.
     if (ret != CM_SUCCESS)
     {
+        DBG_PRT("%s: type=%hx not found so restore NVRAM offset=%u\n",
+                __PRETTY_FUNCTION__, t, start_offset);
         nvram->setOffset(start_offset);
-        context->readBytes = start_readBytes;
     }
     return ret;
 }
 
 // See if value form NVRAM matches t.
 // This advances NVRAM read loc to start of L.
+// @pre xxx enough bytes should remain in NVRAM that we can read T.
 t_cm_result Tlv::matchType(cm_item_id_t t)
 {
     cm_item_id_t found_t;
@@ -262,6 +270,8 @@ t_cm_result Tlv::matchType(cm_item_id_t t)
     // Read T from next location in NVRAM.
     if (!nvram->read((uint8_t *)&found_t, sizeof(found_t)))
     {
+        DBG_PRT("%s: type=%hx read fail NVRAM offset=%lu\n",
+            __PRETTY_FUNCTION__, t, nvram->getOffset() - sizeof(found_t));
         return CM_READ_FAIL;
     }
 
@@ -269,6 +279,8 @@ t_cm_result Tlv::matchType(cm_item_id_t t)
     {
         return CM_SUCCESS;
     }
+    DBG_PRT("%s: type=%hx does not match %hx found at NVRAM offset=%lu\n",
+            __PRETTY_FUNCTION__, t, found_t, nvram->getOffset() - sizeof(found_t));
     return CM_NOT_FOUND;
 }
 

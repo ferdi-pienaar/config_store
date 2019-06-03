@@ -415,6 +415,7 @@ const cm_aggregate * cm_composite_descriptor::getAggr(cm_item_id_t id) const
 //
 void cm_composite_descriptor::save(const uint8_t *pItem) const
 {
+    DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id);
     config_manager::getInstance()->store->startWriteComposite(pData);
 
     for (unsigned i = 0; i < getAggrCount(); i++)
@@ -430,7 +431,9 @@ void cm_composite_descriptor::save(const uint8_t *pItem) const
 //
 t_cm_result cm_composite_descriptor::startLoad() const
 {
-    return config_manager::getInstance()->store->startLoadComposite(&(pData->c));
+    t_cm_result ret = config_manager::getInstance()->store->startLoadComposite(&(pData->c));
+    DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id, ret);
+    return ret;
 }
 
 // Load item from persistent storage.
@@ -449,6 +452,7 @@ t_cm_result cm_composite_descriptor::endLoad(uint8_t * pItem) const
         // xxx We should not abort if an error is returned, it just means
         // one of our components has no instances in store??
     }
+    DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id);
     return config_manager::getInstance()->store->endLoadComposite();
 }
 
@@ -554,6 +558,7 @@ void cm_simple_descriptor::setDefault(uint8_t * pItem) const
 /// Save item to persistent storage
 void cm_simple_descriptor::save(const uint8_t *pItem) const
 {
+    DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id);
     config_manager::getInstance()->store->writeSimple(pData, pItem);
 }
 
@@ -561,13 +566,17 @@ void cm_simple_descriptor::save(const uint8_t *pItem) const
 // @param pItem
 t_cm_result cm_simple_descriptor::startLoad() const
 {
-    return config_manager::getInstance()->store->startLoadSimple(&(pData->c));
+    t_cm_result ret = config_manager::getInstance()->store->startLoadSimple(&(pData->c));
+    DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id, ret);
+    return ret;
 }
 
 // @param pItem
 t_cm_result cm_simple_descriptor::endLoad(uint8_t * pItem) const
 {
-    return config_manager::getInstance()->store->endLoadSimple(pItem, &(pData->c));
+    t_cm_result ret = config_manager::getInstance()->store->endLoadSimple(pItem, &(pData->c));
+    DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id, ret);
+    return ret;
 }
 
 
@@ -707,8 +716,8 @@ void cm_aggregate::save(const uint8_t *pItem) const
 }
 
 
-// Load an item from persistent storage into RAM, which may be allocated (if owned)
-// or just retrieved (if contained, thus already allocated)
+// Load an item (or array) from persistent storage into RAM, which may be
+// allocated (if owned) or retrieved (if contained, thus already allocated).
 //
 // @param pParentItem - base RAM address where loaded items are stored.
 //
@@ -876,8 +885,8 @@ void cm_owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) con
         return;
     }
 
-    DBG_PRT("setCount %s: %d, %d bytes at %p\n",
-            pData->pDesc->getName(), count,
+    DBG_PRT("%s: %s count=%d, %d bytes at %p\n",
+            __PRETTY_FUNCTION__, pData->pDesc->getName(), count,
             pCounterAggr->pData->pDesc->getLen(), pParentItem + pCounterAggr->pData->offset);
 
     assert(count <= pData->maxCount);
@@ -996,11 +1005,10 @@ uint8_t * cm_owned_aggregate::add(uint8_t * pParentItem) const
 
     assert(cnt < pData->maxCount);
 
-    DBG_PRT("add: %d * %d at %p + %d (%p), currently %p\n",
-            cnt+1, pData->pDesc->getLen(), pParentItem, pData->offset, ppItems, *ppItems);
+    DBG_PRT("%s: %d * %d at %p + %d (%p), currently %p\n",
+            __PRETTY_FUNCTION__, cnt+1, pData->pDesc->getLen(), pParentItem, pData->offset, ppItems, *ppItems);
 
     uint8_t * pNewMem = (uint8_t *)realloc(*ppItems, (cnt + 1) * pData->pDesc->getLen());
-
     if (pNewMem == NULL)
     {
         cm_printf("No %u for %s\n", pData->pDesc->getLen(), pData->pDesc->getName());
@@ -1017,7 +1025,7 @@ uint8_t * cm_owned_aggregate::add(uint8_t * pParentItem) const
     memset(pNewItem, 0, pData->pDesc->getLen());
     pData->pDesc->setDefault(pNewItem);
 
-    DBG_PRT("add at %p\n", pNewMem);
+    DBG_PRT("%s: pNewMem=%p\n", __PRETTY_FUNCTION__, pNewMem);
 
     setCount(pParentItem, cnt + 1);
     return pNewItem;
@@ -1064,8 +1072,8 @@ void cm_owned_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
 //
 uint8_t * cm_owned_aggregate::addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const
 {
-    DBG_PRT("addImplicit %s: idx %d cnt %d\n",
-            pData->pDesc->getName(), itemIdx, getCount(pParentItem));
+    DBG_PRT("%s: %s idx=%d cnt=%d\n",
+            __PRETTY_FUNCTION__, pData->pDesc->getName(), itemIdx, getCount(pParentItem));
 
     if ((itemIdx == getCount(pParentItem)) && (itemIdx < pData->maxCount))
     {

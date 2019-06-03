@@ -33,8 +33,8 @@ private:
 
     struct compositeLoadContext
     {
+        cm_item_len_t valueOffset;  // offset of location of composite's V (i.e. first component), relative to base of NVRAM
         cm_item_len_t length;       // length [bytes] in composite, read from NVRAM
-        cm_item_len_t readBytes;    // number of composite bytes read from MVRAM
     };
 
     t_cm_result findType(cm_item_id_t t);

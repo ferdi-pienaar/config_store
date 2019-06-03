@@ -126,7 +126,7 @@ TEST_F(TlvTest, loadSimple)
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
-TEST_F(TlvTest, invalidEndComposite)
+TEST_F(TlvTest, invalidEndLoadComposite)
 {
     EXPECT_EQ(CM_INCOHERENT_DATA, tlv->endLoadComposite());
 }
@@ -245,6 +245,7 @@ TEST_F(TlvTest, loadNestedComposite)
 //
 TEST_F(TlvTest, loadNestedCompositeAndSimple)
 {
+    // The outer composite includes all, the inner contains the first simple only.
     //                 T       L     T       L      T       L     V            T       L    V
     uint8_t nvSet[] = {0xab,0, 20,0, 0xab,0, 10,0,  0xab,0, 6,0,  1,2,3,4,5,6, 0xbc,0, 2,0, 10,11};
     uint8_t expected[] = {1,2,3,4,5,6,10,11};
@@ -253,18 +254,43 @@ TEST_F(TlvTest, loadNestedCompositeAndSimple)
     nvram_spy_set(nvSet, sizeof(nvSet));
 
     tlv->startLoadComposite(0xab);
-
     tlv->startLoadComposite(0xab);
-
     length = 6;
     tlv->startLoadSimple(0xab);
     tlv->endLoadSimple(&length, clientRam);
-
+    EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
+    
     length = 2;
     tlv->startLoadSimple(0xbc);
     tlv->endLoadSimple(&length, clientRam + 6);
     EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
+
+    EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
+}
+
+// After an inner composite that's partly loaded, client can load the component that follows.
+TEST_F(TlvTest, loadCompositeWithUnwantedComponentAndSimple)
+{
+    // The outer composite includes all, the inner contains the first simple, which is not loaded by client.
+    //                 T       L     T       L      T       L     V            T       L    V
+    uint8_t nvSet[] = {0xab,0, 20,0, 0xab,0, 10,0,  0xab,0, 6,0,  1,2,3,4,5,6, 0xbc,0, 2,0, 10,11};
+    uint8_t expected[] = {10,11};
+    cm_item_len_t length;
+
+    nvram_spy_set(nvSet, sizeof(nvSet));
+
+    tlv->startLoadComposite(0xab);
+    tlv->startLoadComposite(0xab);
+    length = 6;
+    EXPECT_EQ(CM_NOT_FOUND, tlv->startLoadSimple(0xd00d));
+    // not found, so client doesn't call endLoadSimple.
     EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
+    
+    length = 2;
+    tlv->startLoadSimple(0xbc);
+    tlv->endLoadSimple(&length, clientRam);
+    EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
+
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
