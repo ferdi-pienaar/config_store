@@ -130,7 +130,9 @@ void config_manager::load()
 
     // Before loading, thus allocating new memory, call setDefault to free owned memory
     base_desc->setDefault(ramBase);
-    t_cm_result res = base_desc->load(ramBase);
+    t_cm_result res = base_desc->startLoad();
+    // xxx this is where we should check if base ID is in store -- are we doing it elsewhere??
+    res = base_desc->endLoad(ramBase);
 
     if (res != CM_SUCCESS)
     {
@@ -423,22 +425,29 @@ void cm_composite_descriptor::save(const uint8_t *pItem) const
 }
 
 
-// Load item from persistent storage
+// Prepare to load item from persistent storage -- check if it exists in store.
+//
+//
+t_cm_result cm_composite_descriptor::startLoad() const
+{
+    return config_manager::getInstance()->store->startLoadComposite(&(pData->c));
+}
+
+// Load item from persistent storage.
+// For a composite item, this means loading the components, then closing.
 //
 // @param pItem (input) - pointer to the RAM memory where loaded values will be saved.
 //
-// @note A failure loading any component terminates the entire load xxx implement this!
+// @pre -- this items startLoad was successful, i.e. an unread instance of this
+//         remains in the store.
 //
-t_cm_result cm_composite_descriptor::load(uint8_t * pItem) const
+t_cm_result cm_composite_descriptor::endLoad(uint8_t * pItem) const
 {
-    t_cm_result ret = config_manager::getInstance()->store->startLoadComposite(&(pData->c));
-
-    if (ret == CM_SUCCESS)
+    for (unsigned i = 0; i < getAggrCount(); i++)
     {
-        for (unsigned i = 0; i < getAggrCount(); i++)
-        {
-            getAggrAtIndex(i)->load(pItem);
-        }
+        getAggrAtIndex(i)->load(pItem);
+        // xxx We should not abort if an error is returned, it just means
+        // one of our components has no instances in store??
     }
     return config_manager::getInstance()->store->endLoadComposite();
 }
@@ -550,9 +559,15 @@ void cm_simple_descriptor::save(const uint8_t *pItem) const
 
 
 // @param pItem
-t_cm_result cm_simple_descriptor::load(uint8_t * pItem) const
+t_cm_result cm_simple_descriptor::startLoad() const
 {
-    return config_manager::getInstance()->store->loadSimple(pItem, &(pData->c));
+    return config_manager::getInstance()->store->startLoadSimple(&(pData->c));
+}
+
+// @param pItem
+t_cm_result cm_simple_descriptor::endLoad(uint8_t * pItem) const
+{
+    return config_manager::getInstance()->store->endLoadSimple(pItem, &(pData->c));
 }
 
 
@@ -709,14 +724,24 @@ t_cm_result cm_aggregate::load(uint8_t * pParentItem) const
 
     for (unsigned idx = 0; idx < pData->maxCount; idx++)
     {
+        // This fails if there isn't an item in the store to load.
+        t_cm_result res = pData->pDesc->startLoad();
+        if (res != CM_SUCCESS)
+        {
+            return res;
+        }
+        
+        // There is an item in the store, so get RAM for it --
+        // in case of an owned aggregate, this allocates memory.
         uint8_t * pItem = getComponentItem(idx, pParentItem);
         if (pItem == NULL)
         {
-            // Memory couldn't be allocated for the item, or out-of-range idx
+            // Memory couldn't be allocated for the item.
             return CM_SUCCESS; //xxxx success??
         }
-
-        t_cm_result res = pData->pDesc->load(pItem);
+        
+        // We have memory to load the item into, so complete the load.
+        res = pData->pDesc->endLoad(pItem);
         if (res != CM_SUCCESS)
         {
             return res;

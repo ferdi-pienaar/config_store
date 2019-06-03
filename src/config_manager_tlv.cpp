@@ -117,23 +117,24 @@ void Tlv::endWriteComposite()
     }
 }
 
+// Load a simple item into the provided memory.
+//
+// @param t: type to load.
+t_cm_result Tlv::startLoadSimple(cm_item_id_t t)
+{
+    return findType(t);
+}
 
 // Load a simple item into the provided memory.
-// @param t: type to load.
+//
 // @param pLength in/out, in: available memory, out: amount of data written to pRam
 // @param pRam
 //
 // @note: if the length is unexpected, we could skip just that item, but it's
 //        simpler to just return an error, presumably forcing the client to abandon
 //        the load process completely.
-t_cm_result Tlv::loadSimple(cm_item_id_t t, cm_item_len_t * pLength, uint8_t * pRam)
+t_cm_result Tlv::endLoadSimple(cm_item_len_t * pLength, uint8_t * pRam)
 {
-    t_cm_result ret = findType(t);
-    if (ret != CM_SUCCESS)
-    {
-        return ret;
-    }
-
     cm_item_len_t length;
     nvram->read((uint8_t *)&length, sizeof(cm_item_len_t));
 

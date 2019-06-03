@@ -23,7 +23,8 @@ public:
     void writeSimple(const cm_simple_metadata * data, const uint8_t * v);
     void startWriteComposite(const cm_composite_metadata * data);
     void endWriteComposite();
-    t_cm_result loadSimple(uint8_t * pRam, const cm_common_metadata * data);
+    t_cm_result startLoadSimple(const cm_common_metadata * data);
+    t_cm_result endLoadSimple(uint8_t * pRam, const cm_common_metadata * data);
     t_cm_result startLoadComposite(const cm_common_metadata * data);
     t_cm_result endLoadComposite();
 

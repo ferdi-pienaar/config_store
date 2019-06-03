@@ -92,7 +92,8 @@ public:
     virtual const char * getName() const = 0;
     virtual cm_item_id_t getId() const = 0;
     virtual void save(const uint8_t * pItem) const = 0;
-    virtual t_cm_result load(uint8_t * pItem) const = 0;
+    virtual t_cm_result startLoad() const = 0;
+    virtual t_cm_result endLoad(uint8_t * pItem) const = 0;
     virtual cm_item_len_t getLen() const = 0;
     virtual void print(const uint8_t * pItem, std::string prefix, bool include_state) const = 0;
     virtual void setDefault(uint8_t * pItem) const = 0;
@@ -251,7 +252,8 @@ public:
     void setDefault(uint8_t * pItem) const;
     virtual void help(const uint8_t * pItem) const;
     void save(const uint8_t * pItem) const;
-    t_cm_result load(uint8_t * pItem) const;
+    t_cm_result startLoad() const;
+    t_cm_result endLoad(uint8_t * pItem) const;
     bool isPersistent() const {
         return pData->c.persistent;
     }
@@ -300,7 +302,8 @@ public:
         std::cout << "len " << getLen() << std::endl;
     }
     virtual void save(const uint8_t * pItem) const;
-    t_cm_result load(uint8_t * pItem) const;
+    t_cm_result startLoad() const;
+    t_cm_result endLoad(uint8_t * pItem) const;
     bool isPersistent() const {
         return pData->c.persistent;
     }

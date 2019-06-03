@@ -61,12 +61,18 @@ void cm_yaml_store::endWriteComposite()
     yaml->endWriteComposite();
 }
 
-t_cm_result cm_yaml_store::loadSimple(uint8_t * pRam, const cm_common_metadata * data)
+t_cm_result cm_yaml_store::startLoadSimple(const cm_common_metadata * data)
 {
     cout << "cm_yaml_store::loadSimple()" << endl;
     cm_item_len_t len = data->c.len;
     return yaml->loadSimple(pRam, &len, complete);
+}
 
+t_cm_result cm_yaml_store::endLoadSimple(uint8_t * pRam, const cm_common_metadata * data)
+{
+    cout << "cm_yaml_store::loadSimple()" << endl;
+    cm_item_len_t len = data->c.len;
+    return yaml->loadSimple(pRam, &len, complete);
 }
 
 // xxx incomplete

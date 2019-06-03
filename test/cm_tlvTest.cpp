@@ -120,7 +120,8 @@ TEST_F(TlvTest, loadSimple)
 
     nvram_spy_set(nvSet, sizeof(nvSet));
 
-    tlv->loadSimple(0xab, &length, clientRam);
+    tlv->startLoadSimple(0xab);
+    tlv->endLoadSimple(&length, clientRam);
 
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
@@ -152,11 +153,13 @@ TEST_F(TlvTest, loadComposite)
 
     tlv->startLoadComposite(0xab);
 
+    tlv->startLoadSimple(4);
     length = 2;
-    tlv->loadSimple(4, &length, clientRam);
+    tlv->endLoadSimple(&length, clientRam);
     EXPECT_EQ(2, length);
 
-    tlv->loadSimple(4, &length, clientRam + length);
+    tlv->startLoadSimple(4);
+    tlv->endLoadSimple(&length, clientRam + length);
     EXPECT_EQ(2, length);
     EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
@@ -176,7 +179,8 @@ TEST_F(TlvTest, partialLoadComposite)
     tlv->startLoadComposite(0xab);
 
     length = 2;
-    tlv->loadSimple(0xDD, &length, clientRam);
+    tlv->startLoadSimple(0xDD);
+    tlv->endLoadSimple(&length, clientRam);
     EXPECT_EQ(2, length);
     EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
@@ -197,14 +201,16 @@ TEST_F(TlvTest, findFailLoadComposite)
     tlv->startLoadComposite(0xab);
 
     length = 2;
-    t_cm_result ret = tlv->loadSimple(0xdeff, &length, clientRam);
+    t_cm_result ret = tlv->startLoadSimple(0xdeff);
     EXPECT_EQ(ret, CM_NOT_FOUND);
 
     length = 2;
-    tlv->loadSimple(4, &length, clientRam);
+    tlv->startLoadSimple(4);
+    tlv->endLoadSimple(&length, clientRam);
     EXPECT_EQ(2, length);
 
-    tlv->loadSimple(4, &length, clientRam + length);
+    tlv->startLoadSimple(4);
+    tlv->endLoadSimple(&length, clientRam + length);
     EXPECT_EQ(2, length);
     EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
@@ -228,7 +234,8 @@ TEST_F(TlvTest, loadNestedComposite)
 
     tlv->startLoadComposite(0xab);
 
-    tlv->loadSimple(0xab, &length, clientRam);
+    tlv->startLoadSimple(0xab);
+    tlv->endLoadSimple(&length, clientRam);
     EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
     EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
@@ -250,10 +257,12 @@ TEST_F(TlvTest, loadNestedCompositeAndSimple)
     tlv->startLoadComposite(0xab);
 
     length = 6;
-    tlv->loadSimple(0xab, &length, clientRam);
+    tlv->startLoadSimple(0xab);
+    tlv->endLoadSimple(&length, clientRam);
 
     length = 2;
-    tlv->loadSimple(0xbc, &length, clientRam + 6);
+    tlv->startLoadSimple(0xbc);
+    tlv->endLoadSimple(&length, clientRam + 6);
     EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
     EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
@@ -274,10 +283,12 @@ TEST_F(TlvTest, loadNestedCompositeOf2Simples)
     tlv->startLoadComposite(0xab);
 
     length = 6;
-    tlv->loadSimple(0xab, &length, clientRam);
+    tlv->startLoadSimple(0xab);
+    tlv->endLoadSimple(&length, clientRam);
 
     length = 2;
-    tlv->loadSimple(0xbc, &length, clientRam + 6);
+    tlv->startLoadSimple(0xbc);
+    tlv->endLoadSimple(&length, clientRam + 6);
     EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
     EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
@@ -295,11 +306,13 @@ TEST_F(TlvTest, load2Composites)
 
     tlv->startLoadComposite(0xab);
     length = 2;
-    tlv->loadSimple(0x31, &length, clientRam);
+    tlv->startLoadSimple(0x31);
+    tlv->endLoadSimple(&length, clientRam);
     EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
 
     tlv->startLoadComposite(0xda);
-    tlv->loadSimple(0xbc, &length, clientRam + length);
+    tlv->startLoadSimple(0xbc);
+    tlv->endLoadSimple(&length, clientRam + length);
     EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
@@ -314,7 +327,8 @@ TEST_F(TlvTest, loadTruncatedSimple)
     nvram_spy_set(nvSet, sizeof(nvSet));
 
     length = 4;
-    t_cm_result res = tlv->loadSimple(0xab, &length, clientRam);
+    tlv->startLoadSimple(0xab);
+    t_cm_result res = tlv->endLoadSimple(&length, clientRam);
     EXPECT_EQ(CM_READ_FAIL, res);
 }
 } // namespace

@@ -17,7 +17,8 @@ public:
     void writeSimple(cm_item_id_t t, cm_item_len_t length, const uint8_t * v);
     void startWriteComposite(cm_item_id_t t);
     void endWriteComposite();
-    t_cm_result loadSimple(cm_item_id_t t, cm_item_len_t * length, uint8_t * pRam);
+    t_cm_result startLoadSimple(cm_item_id_t t);
+    t_cm_result endLoadSimple(cm_item_len_t * length, uint8_t * pRam);
     t_cm_result startLoadComposite(cm_item_id_t t);
     t_cm_result endLoadComposite();
 

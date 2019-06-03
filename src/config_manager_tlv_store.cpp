@@ -54,10 +54,15 @@ void cm_tlv_store::endWriteComposite()
     tlv->endWriteComposite();
 }
 
-t_cm_result cm_tlv_store::loadSimple(uint8_t * pRam, const cm_common_metadata * data)
+t_cm_result cm_tlv_store::startLoadSimple(const cm_common_metadata * data)
+{
+    return tlv->startLoadSimple(data->id);
+}
+
+t_cm_result cm_tlv_store::endLoadSimple(uint8_t * pRam, const cm_common_metadata * data)
 {
     cm_item_len_t len = data->len;
-    t_cm_result ret = tlv->loadSimple(data->id, &len, pRam);
+    t_cm_result ret = tlv->endLoadSimple(&len, pRam);
 
     // Sanity check: the length loaded is the length that was requested.
     // In theory we might support truncation by the persistent storage module, but given that
