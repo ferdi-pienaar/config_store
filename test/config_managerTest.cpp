@@ -112,17 +112,16 @@ TEST_F(Contained, load)
 TEST_F(Contained, loadChangedSimpleLen)
 {
     uint8_t tlv[20] =
-        /* The following assumes little-endian integers */
-        /*T    L     T    L    V        T    L    V    */
     { 1,0, 14,0, 1,0, 4,0, 8,0,0,0, 2,0, 2,0, 9,0};
-
+    //T    L     T    L    V        T    L    V
+    // Assumes little-endian integers
 
     /* Create config file to be loaded */
     nvram_spy_set(tlv, sizeof(tlv));
 
     cm->init(&c1);
 
-    EXPECT_EQ(8, GET_C1_CONFIG->m1);
+    EXPECT_EQ(0, GET_C1_CONFIG->m1); // Default
     EXPECT_EQ(7, GET_C1_CONFIG->m2); // Default; not read from the file, because TLV's L is bad
 }
 
@@ -210,10 +209,9 @@ TEST_F(Contained, loadTruncated)
 TEST_F(Contained, loadTruncated1)
 {
     uint8_t tlv[] =
-        /* The following assumes little-endian integers */
-        /*T    L     T    L    V        T ...    */
     { 1,0, 16,0, 1,0, 4,0, 8,0,0,0, 2,0};
-
+    //T    L     T    L    V        T ...
+    // ssumes little-endian integers
 
     /* Create config file to be loaded */
     nvram_spy_set(tlv, sizeof(tlv));
@@ -251,10 +249,9 @@ TEST_F(Contained, loadTruncated2)
 TEST_F(Contained, loadIncoherent)
 {
     uint8_t tlv[20] =
-        /* The following assumes little-endian integers */
-        /*T    L     T    L    V        T    L    V    */
     { 1,0, 14,0, 1,0, 4,0, 8,0,0,0, 2,0, 4,0, 9,0,0,0};
-
+    //T    L     T    L    V        T    L    V
+    // Assumes little-endian integers
 
     /* Create config file to be loaded */
     nvram_spy_set(tlv, sizeof(tlv));
@@ -272,10 +269,9 @@ TEST_F(Contained, loadIncoherent)
 TEST_F(Contained, loadIncoherent1)
 {
     uint8_t tlv[20] =
-        /* The following assumes little-endian integers */
-        /*T    L     T    L    V        T    L    V    */
     { 1,0, 17,0, 1,0, 4,0, 8,0,0,0, 2,0, 4,0, 9,0,0,0};
-
+    //T    L     T    L    V        T    L    V
+    // Assumes little-endian integers
 
     /* Create config file to be loaded */
     nvram_spy_set(tlv, sizeof(tlv));

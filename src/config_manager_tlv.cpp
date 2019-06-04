@@ -73,7 +73,7 @@ void Tlv::startWriteComposite(cm_item_id_t t)
     context->headerOffset = nvram->getOffset();
 
     // reserve space for T + L, to be written by endWriteComposite()
-    nvram->adjustOffset(sizeof(cm_item_id_t) + sizeof(cm_item_len_t));
+    nvram->adjustOffset(HDR_LENGTH);
 }
 
 
@@ -92,8 +92,8 @@ void Tlv::endWriteComposite()
     if (context->length == 0)
     {
         // Empty composite: write nothing, and set offset to beginning of composite
-        assert(endOffset >= sizeof(cm_item_id_t) + sizeof(cm_item_len_t));
-        endOffset -= sizeof(cm_item_id_t) + sizeof(cm_item_len_t);
+        assert(endOffset >= HDR_LENGTH);
+        endOffset -= HDR_LENGTH;
     }
     else
     {
@@ -196,14 +196,9 @@ t_cm_result Tlv::endLoadComposite()
 // Look in current context for the requested type.
 // This function does not return a location, because, in case of success,
 // it sets NVRAM position to the location after T.
-// The search strategy is:
-// Read the next byte for T: do we need something more advanced to
-//  support out-of-order load? xxx
-// If T is not found, return NVRAM and context readoffset to start,
-// so next attempt starts from same position.
 t_cm_result Tlv::findType(cm_item_id_t t)
 {
-    t_cm_result ret = CM_NOT_FOUND;
+    t_cm_result ret;
     // Save start location of search so we can restore it if search fails.
     unsigned int start_offset = nvram->getOffset();
     
@@ -214,44 +209,14 @@ t_cm_result Tlv::findType(cm_item_id_t t)
     {
         // We're not within a composite.
         ret = matchType(t);
-        if (ret == CM_NOT_FOUND)
-        {
-            nvram->setOffset(start_offset);
-        }
-        return ret;
     }
-
-    // We're in a compound within whose context we search for a matching T.
-    compositeLoadContext * context = &(loadStack[stackIndex]);
-    while (nvram->getOffset() - context->valueOffset + sizeof(cm_item_id_t) + sizeof(cm_item_len_t) < context->length)
+    else
     {
-        ret = matchType(t);
-        if (ret == CM_READ_FAIL)
-        {
-            // Typical reason for read failure is we reached EOF.
-            // xxx Should we remove that as a possibility by choosing the while loop above correctly??
-            // xxx Then READ_FAIL would mean HW failure?
-            goto done;
-        }
-        if (ret == CM_SUCCESS)
-        {
-            goto done;
-        }
-        // T did not match, so keep searching.
-        cm_item_len_t len;
-        if (!nvram->read((uint8_t *)&len, sizeof(len)))
-        {
-            ret = CM_READ_FAIL;
-            goto done;
-        }
-        // Move to next element.
-        nvram->adjustOffset(len);
+        ret = findTypeInComposite(t);
     }
-done:
     DBG_PRT("%s DONE: type=%hx start_offset=%d stackIndex=%d\n",
             __PRETTY_FUNCTION__, t, start_offset, stackIndex);
-    // Either search failed without read errors, or success.
-    if (ret != CM_SUCCESS)
+    if (ret == CM_NOT_FOUND)
     {
         DBG_PRT("%s: type=%hx not found so restore NVRAM offset=%u\n",
                 __PRETTY_FUNCTION__, t, start_offset);
@@ -259,6 +224,43 @@ done:
     }
     return ret;
 }
+
+// Search for type t in the context of a composite.
+// Search forward from current NVRAM offset.
+//
+// @pre we're in a compound
+//
+// The search strategy is: search forward, to end of the composite.
+// If T is not found, return NVRAM offset to its value at start of the call,
+// so next attempt starts from same position as this one did.
+// xxx Do we need something more advanced to support out-of-order load?
+// Yes, we could search from current position as above, but if that
+// failed, return to start of the composite.
+t_cm_result Tlv::findTypeInComposite(cm_item_id_t t)
+{
+    assert(stackIndex >= 0);
+   
+    compositeLoadContext * context = &(loadStack[stackIndex]);
+    while (nvram->getOffset() - context->valueOffset + HDR_LENGTH < context->length)
+    {
+        t_cm_result ret = matchType(t);
+        if (ret != CM_NOT_FOUND)
+        {
+            // Found, or a NVRAM error, i.e. trying to read beyond end of NVRAM file.
+            return ret;
+        }
+        // T did not match, so keep searching.
+        cm_item_len_t len;
+        if (!nvram->read((uint8_t *)&len, sizeof(len)))
+        {
+            return CM_READ_FAIL;
+        }
+        // Move to next element.
+        nvram->adjustOffset(len);
+    }
+    return CM_NOT_FOUND;    
+}
+
 
 // See if value form NVRAM matches t.
 // This advances NVRAM read loc to start of L.
@@ -291,6 +293,6 @@ void Tlv::addLengthToComposite(unsigned length)
     if (stackIndex >= 0)
     {
         // Current item is member of a composite, so add component's contribution to its length
-        writeStack[stackIndex].length += length + sizeof(cm_item_id_t) + sizeof(cm_item_len_t);
+        writeStack[stackIndex].length += length + HDR_LENGTH;
     }
 }

@@ -448,9 +448,14 @@ t_cm_result cm_composite_descriptor::endLoad(uint8_t * pItem) const
 {
     for (unsigned i = 0; i < getAggrCount(); i++)
     {
-        getAggrAtIndex(i)->load(pItem);
-        // xxx We should not abort if an error is returned, it just means
-        // one of our components has no instances in store??
+        t_cm_result ret = getAggrAtIndex(i)->load(pItem);
+        if (!((ret == CM_SUCCESS) || (ret == CM_NOT_FOUND)))
+        {
+            // An unexpected error, such as unexpected end of store
+            // or INCOHERENT (L of simple item in store did not match
+            // the amount we tried to read).
+            return ret;
+        }
     }
     DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id);
     return config_manager::getInstance()->store->endLoadComposite();

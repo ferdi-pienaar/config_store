@@ -23,6 +23,7 @@ public:
     t_cm_result endLoadComposite();
 
 private:
+    static const unsigned HDR_LENGTH = sizeof(cm_item_id_t) + sizeof(cm_item_len_t);
     // Context used in writing
     struct compositeWriteContext
     {
@@ -38,10 +39,11 @@ private:
     };
 
     t_cm_result findType(cm_item_id_t t);
+    t_cm_result findTypeInComposite(cm_item_id_t t);
     t_cm_result matchType(cm_item_id_t t);
     void addLengthToComposite(unsigned length);
     Nvram *  nvram;
-    int stackIndex;  // write stack index; -1 means the current item is top-level, not part of a composite
+    int stackIndex;  // write/load stack index; -1 means the current item is top-level, not part of a composite
     compositeWriteContext writeStack[stackDepth];
     compositeLoadContext  loadStack[stackDepth];
 };
