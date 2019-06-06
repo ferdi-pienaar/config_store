@@ -20,13 +20,15 @@ public:
     ~Yaml();
 
     void reset();
-    void writeSimple(const char * name, cm_item_id_t t, const uint8_t * v, cm_item_len_t length, YAML_PRT_FPTR prt);
-    void startWriteComposite(const char * name, cm_item_id_t t);
+    void writeSimple(const char * name, cm_item_len_t length, const uint8_t * v, YAML_PRT_FPTR prt);
+    void startWriteComposite(const char * name);
     void endWriteComposite();
-    t_cm_result getType(cm_item_id_t * t);
-    t_cm_result loadSimple(uint8_t * pRam, cm_item_len_t * length, unsigned * complete);
-    t_cm_result loadComposite();
-    t_cm_result skipItem(unsigned * complete);
+    void startWriteList(const char * name);
+    void endWriteList();
+    t_cm_result startLoadSimple(const char * name);
+    t_cm_result endLoadSimple(cm_item_len_t * length, uint8_t * pRam);
+    t_cm_result startLoadComposite(const char * name);
+    t_cm_result endLoadComposite();
 
 private:
     // Context used in writing

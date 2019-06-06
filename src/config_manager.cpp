@@ -431,7 +431,7 @@ void cm_composite_descriptor::save(const uint8_t *pItem) const
 //
 t_cm_result cm_composite_descriptor::startLoad() const
 {
-    t_cm_result ret = config_manager::getInstance()->store->startLoadComposite(&(pData->c));
+    t_cm_result ret = config_manager::getInstance()->store->startLoadComposite(pData);
     DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id, ret);
     return ret;
 }
@@ -571,7 +571,7 @@ void cm_simple_descriptor::save(const uint8_t *pItem) const
 // @param pItem
 t_cm_result cm_simple_descriptor::startLoad() const
 {
-    t_cm_result ret = config_manager::getInstance()->store->startLoadSimple(&(pData->c));
+    t_cm_result ret = config_manager::getInstance()->store->startLoadSimple(pData)
     DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id, ret);
     return ret;
 }
@@ -579,7 +579,7 @@ t_cm_result cm_simple_descriptor::startLoad() const
 // @param pItem
 t_cm_result cm_simple_descriptor::endLoad(uint8_t * pItem) const
 {
-    t_cm_result ret = config_manager::getInstance()->store->endLoadSimple(pItem, &(pData->c));
+    t_cm_result ret = config_manager::getInstance()->store->endLoadSimple(pItem, pData);
     DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id, ret);
     return ret;
 }

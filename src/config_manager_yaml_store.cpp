@@ -46,13 +46,13 @@ bool cm_yaml_store::initForWrite()
 
 void cm_yaml_store::writeSimple(const cm_simple_metadata * data, const uint8_t * v)
 {
-    yaml->writeSimple(data->c.name, data->c.id, v, data->c.len, data->pPrt);
+    yaml->writeSimple(data->c.name, data->c.len, v, data->pPrt);
 }
 
 
 void cm_yaml_store::startWriteComposite(const cm_composite_metadata * data)
 {
-    yaml->startWriteComposite(data->c.name, data->c.id);
+    yaml->startWriteComposite(data->c.name);
 }
 
 
@@ -61,31 +61,29 @@ void cm_yaml_store::endWriteComposite()
     yaml->endWriteComposite();
 }
 
-t_cm_result cm_yaml_store::startLoadSimple(const cm_common_metadata * data)
+t_cm_result cm_yaml_store::startLoadSimple(const cm_simple_metadata * data)
 {
-    cout << "cm_yaml_store::loadSimple()" << endl;
-    cm_item_len_t len = data->c.len;
-    return yaml->loadSimple(pRam, &len, complete);
+    cout << __PRETTY_FUNCTION__ << endl;
+    return yaml->startLoadSimple(data->c.name);
 }
 
-t_cm_result cm_yaml_store::endLoadSimple(uint8_t * pRam, const cm_common_metadata * data)
+t_cm_result cm_yaml_store::endLoadSimple(uint8_t * pRam, const cm_simple_metadata * data)
 {
-    cout << "cm_yaml_store::loadSimple()" << endl;
+    cout << __PRETTY_FUNCTION__ << endl;
     cm_item_len_t len = data->c.len;
-    return yaml->loadSimple(pRam, &len, complete);
+    return yaml->endLoadSimple(&len, pRam);
 }
 
 // xxx incomplete
-t_cm_result cm_yaml_store::startLoadComposite(const cm_common_metadata * data)
+t_cm_result cm_yaml_store::startLoadComposite(const cm_composite_metadata * data)
 {
     cout << "cm_yaml_store::startLoadComposite()" << endl;
 
-    //return yaml->startLoadComposite();
-    return CM_SUCCESS;
+    return yaml->startLoadComposite(data->c.name);
 }
 
 t_cm_result cm_yaml_store::endLoadComposite()
 {
     cout << "cm_yaml_store::endLoadComposite()" << endl;
-    return CM_SUCCESS;
+    return yaml->endLoadComposite();
 }

@@ -15,11 +15,15 @@
 //   - a call to endWriteComposite for each call to startWriteComposite
 //
 // The expected sequence of client calls in loading:
-// - getType, then
-// - loadComposite or loadSimple, depending on client's interpretation of the type
-//   returned by getType
-// The client monitors the "complete" field returned by loadSimple and skipItem
-// to determine if one or more of the composite loads in progress are complete.
+// 1. Load Simple:
+//  1.1 startLoadSimple
+//  1.2 endLoadSimple if startLoadSimple was OK.
+// OR
+// 2. Load Composite:
+//  2.1 startLoadComposite, then the next steps follow iff that returns OK.
+//  2.2 Load components, either Simple or themselves Composite
+//  2.3 endLoadComposite.
+//  
 //
 
 #include <stdint.h> // uint8_t, etc
@@ -151,7 +155,7 @@ t_cm_result Tlv::endLoadSimple(cm_item_len_t * pLength, uint8_t * pRam)
         // This error aborts the loading process, and there's no need to updateContainer xxx obsolete comment.
         return CM_READ_FAIL;
     }
-    
+
     // Data has been loaded into client RAM
     *pLength = length;
     return CM_SUCCESS;
@@ -194,28 +198,32 @@ t_cm_result Tlv::endLoadComposite()
 
 
 // Look in current context for the requested type.
-// This function does not return a location, because, in case of success,
-// it sets NVRAM position to the location after T.
+//
+// In case of success, it sets NVRAM offset to the location after T.
+// If T is not found, it returns NVRAM offset to its value at start of the call,
+// so next attempt starts from same position as this one did.
+// xxx Do we need something more advanced to support out-of-order load?
+// Yes, we could search from current position as above, but if that
+// failed, return to start of the composite and search again.
 t_cm_result Tlv::findType(cm_item_id_t t)
 {
     t_cm_result ret;
     // Save start location of search so we can restore it if search fails.
     unsigned int start_offset = nvram->getOffset();
-    
+
     DBG_PRT("%s: type=%hx start_offset=%d stackIndex=%d\n",
             __PRETTY_FUNCTION__, t, start_offset, stackIndex);
 
     if (stackIndex == -1)
     {
-        // We're not within a composite.
+        // We're not within a composite, so no search is needed.
         ret = matchType(t);
     }
     else
     {
         ret = findTypeInComposite(t);
     }
-    DBG_PRT("%s DONE: type=%hx start_offset=%d stackIndex=%d\n",
-            __PRETTY_FUNCTION__, t, start_offset, stackIndex);
+
     if (ret == CM_NOT_FOUND)
     {
         DBG_PRT("%s: type=%hx not found so restore NVRAM offset=%u\n",
@@ -231,22 +239,18 @@ t_cm_result Tlv::findType(cm_item_id_t t)
 // @pre we're in a compound
 //
 // The search strategy is: search forward, to end of the composite.
-// If T is not found, return NVRAM offset to its value at start of the call,
-// so next attempt starts from same position as this one did.
-// xxx Do we need something more advanced to support out-of-order load?
-// Yes, we could search from current position as above, but if that
-// failed, return to start of the composite.
 t_cm_result Tlv::findTypeInComposite(cm_item_id_t t)
 {
     assert(stackIndex >= 0);
-   
+
     compositeLoadContext * context = &(loadStack[stackIndex]);
     while (nvram->getOffset() - context->valueOffset + HDR_LENGTH < context->length)
     {
+        // Enough space for a HDR (T + L) remains in current composite.
         t_cm_result ret = matchType(t);
         if (ret != CM_NOT_FOUND)
         {
-            // Found, or a NVRAM error, i.e. trying to read beyond end of NVRAM file.
+            // Found, or NVRAM error (trying to read beyond end of NVRAM file).
             return ret;
         }
         // T did not match, so keep searching.
@@ -258,7 +262,8 @@ t_cm_result Tlv::findTypeInComposite(cm_item_id_t t)
         // Move to next element.
         nvram->adjustOffset(len);
     }
-    return CM_NOT_FOUND;    
+    // We got to end of current composite without finding t.
+    return CM_NOT_FOUND;
 }
 
 
@@ -273,7 +278,7 @@ t_cm_result Tlv::matchType(cm_item_id_t t)
     if (!nvram->read((uint8_t *)&found_t, sizeof(found_t)))
     {
         DBG_PRT("%s: type=%hx read fail NVRAM offset=%lu\n",
-            __PRETTY_FUNCTION__, t, nvram->getOffset() - sizeof(found_t));
+                __PRETTY_FUNCTION__, t, nvram->getOffset() - sizeof(found_t));
         return CM_READ_FAIL;
     }
 

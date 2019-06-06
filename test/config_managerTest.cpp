@@ -497,14 +497,11 @@ TEST_F(Owned, explicitAdd)
 TEST_F(Owned, del)
 {
     uint8_t tlv[12] =
-        /* The following assumes little-endian integers */
-        /*T    L    T    L    V    */
     { 1,0, 8,0, 4,0, 4,0, 5,0,0,0};
-    uint8_t expectedTlv [0] =
-        /* The following assumes little-endian integers */
-        /*T    L  */
-        {};
+    //T    L    T    L    V
+    // Assumes little-endian integers
 
+    uint8_t expectedTlv[] = {};
 
     /* Create config file to be loaded */
     nvram_spy_set(tlv, sizeof(tlv));

@@ -21,9 +21,9 @@ public:
     virtual void writeSimple(const cm_simple_metadata * data, const uint8_t * v) = 0;
     virtual void startWriteComposite(const cm_composite_metadata * data) = 0;
     virtual void endWriteComposite() = 0;
-    virtual t_cm_result startLoadSimple(const cm_common_metadata * data) = 0;
-    virtual t_cm_result endLoadSimple(uint8_t * pRam, const cm_common_metadata * data) = 0;
-    virtual t_cm_result startLoadComposite(const cm_common_metadata * data) = 0;
+    virtual t_cm_result startLoadSimple(const cm_simple_metadata * data) = 0;
+    virtual t_cm_result endLoadSimple(uint8_t * pRam, const cm_simple_metadata * data) = 0;
+    virtual t_cm_result startLoadComposite(const cm_composite_metadata * data) = 0;
     virtual t_cm_result endLoadComposite() = 0;
     static cm_store * getStore();
 

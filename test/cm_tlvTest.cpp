@@ -165,6 +165,32 @@ TEST_F(TlvTest, loadComposite)
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
+// xxx disabled because feature not implemented yet.
+TEST_F(TlvTest, DISABLED_loadCompositeOutOfOrder)
+{
+    //                    T       L     T    L    V     T    L    V
+    uint8_t    nvSet[] = {0xab,0, 12,0, 8,0, 2,0, 55,0, 9,0, 2,0, 66,0};
+    uint8_t    expected[] = {66,0, 55,0};
+    cm_item_len_t length;
+
+    // xxx set client RAM to bitpattern and verify only the expected section is modified
+    nvram_spy_set(nvSet, sizeof(nvSet));
+
+    tlv->startLoadComposite(0xab);
+
+    // Load T=9 first, which is 2nd in NVRAM, then load T=8, which is 1st in NVRAM.
+    tlv->startLoadSimple(9);
+    length = 2;
+    tlv->endLoadSimple(&length, clientRam);
+    EXPECT_EQ(2, length);
+
+    tlv->startLoadSimple(8);
+    tlv->endLoadSimple(&length, clientRam + length);
+    EXPECT_EQ(2, length);
+    EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
+    EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
+}
+
 // Load only the 2nd component in a composite.
 TEST_F(TlvTest, partialLoadComposite)
 {

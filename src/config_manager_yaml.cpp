@@ -48,7 +48,7 @@ void Yaml::reset()
 }
 
 
-void Yaml::writeSimple(const char * name, cm_item_id_t t, const uint8_t * v, cm_item_len_t length, YAML_PRT_FPTR prt)
+void Yaml::writeSimple(const char * name, cm_item_len_t length, const uint8_t * v, YAML_PRT_FPTR prt)
 {
     write_indent();
     cout << name << ": ";
@@ -60,7 +60,7 @@ void Yaml::writeSimple(const char * name, cm_item_id_t t, const uint8_t * v, cm_
 
 // Don't actually write anything yet, since it may turn out that this
 // composite is empty.
-void Yaml::startWriteComposite(const char * name, cm_item_id_t t)
+void Yaml::startWriteComposite(const char * name)
 {
     write_indent();
     cout << name << ": " << endl;
@@ -78,129 +78,36 @@ void Yaml::endWriteComposite()
     cout << "end" << endl;
 }
 
-
-// Load T from NVRAM and return it
-t_cm_result Yaml::getType(cm_item_id_t * id)
+t_cm_result Yaml::startLoadSimple(const char * name)
 {
-    if (!nvram->read((uint8_t *)id, sizeof(cm_item_id_t)))
-    {
-        return CM_READ_FAIL;
-    }
     return CM_SUCCESS;
 }
 
-
-// Client has identified T returned by getType() as simple:
-// Load the simple item into the provided memory
-// @param pRam
-// @param length in/out, in: available memory, out: amount of data written to pRam
-// @param containerComplete, out: number of containers complete
-//
-// @note: if the length is unexpected, we could skip just that item, but it's
-//        simpler to just return an error, presumably forcing the client to abandon
-//        the load process completely.
-t_cm_result Yaml::loadSimple(uint8_t * pRam, cm_item_len_t * pLength, unsigned * complete)
+t_cm_result Yaml::endLoadSimple(cm_item_len_t * length, uint8_t * pRam)
 {
-    t_cm_result ret = CM_SUCCESS;
-    cm_item_len_t length;
-    nvram->read((uint8_t *)&length, sizeof(cm_item_len_t));
 
-    if (*pLength != length)
-    {
-        *pLength = 0; // No data loaded into client RAM
-        return CM_INCOHERENT_DATA;
-    }
-
-    DBG_PRT("loadSimple: %d at %p\n", length, pRam);
-
-    if (!nvram->read(pRam, length))
-    {
-        // This error aborts the loading process, and there's no need to updateContainer
-        return CM_READ_FAIL;
-    }
-    // Data has been loaded into client RAM
-    *pLength = length;
-
-    *complete = 0;
-    t_cm_result ret2 = updateContainer(length, complete);
-    if (ret2 != CM_SUCCESS)
-    {
-        return ret2;
-    }
-    return ret;
-}
-
-
-// Client has identified T returned by getType() as composite:
-// start loading the composite.
-t_cm_result Yaml::loadComposite()
-{
-    cm_item_len_t length;
-    nvram->read((uint8_t *)&length, sizeof(cm_item_len_t));
-
-    if (stackIndex >= 0)
-    {
-        // xxx is container complete?
-        // No, let's assume or assert that a container must contain something.
-    }
-
-    stackIndex++;
-    loadStack[stackIndex].length = length;
-    loadStack[stackIndex].readBytes = 0;
     return CM_SUCCESS;
 }
 
-
-// Skip item: should be called after getType() only
-t_cm_result Yaml::skipItem(unsigned * complete)
+t_cm_result Yaml::startLoadComposite(const char * name)
 {
-    cm_item_len_t length;
-    nvram->read((uint8_t *)&length, sizeof(cm_item_len_t));
-
-    // Skip over the V of TLV
-    nvram->adjustOffset(length);
-
-    return updateContainer(length, complete);
+    return CM_SUCCESS;
 }
 
-
-
-
-// After loading an item, check if the composite container it is in has been completely loaded, and,
-// if so, update the parameter "complete", used to indicate to client how many
-// composites have been loaded.
-// This function may call itself recursively.
-// @param length - input, length (L in its TLV) of the item that has finished loading.
-// @param complete - input/output, the number of composites which have been completely loaded.
-t_cm_result Yaml::updateContainer(cm_item_len_t length, unsigned * complete)
+t_cm_result Yaml::endLoadComposite()
 {
-    if (stackIndex == -1)
-    {
-        // Already at bottom of stack: nothing to pop
-        return CM_SUCCESS;
-    }
 
-    Yaml::compositeLoadContext * context = &(loadStack[stackIndex]);
-
-    context->readBytes += length + sizeof(cm_item_id_t) + sizeof(cm_item_len_t);
-
-    if (context->readBytes < context->length)
-    {
-        // Composite is incomplete: we don't check further containers
-        return CM_SUCCESS;
-    }
-
-    if (context->readBytes > context->length)
-    {
-        // Composite is incoherent: length of component > the remaining length of composite
-        return CM_INCOHERENT_DATA;
-    }
-
-    // readBytes == length => component completes its container
-    (*complete)++;
-    stackIndex--; // Maybe next-level container is also complete...
-    updateContainer(context->length, complete); // update contribution of container to its container
     return CM_SUCCESS;
+}
+
+void Yaml::startWriteList(const char * name)
+{
+
+}
+
+void Yaml::endWriteList()
+{
+
 }
 
 void Yaml::write_indent()
