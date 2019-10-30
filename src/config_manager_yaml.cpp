@@ -80,10 +80,21 @@ void Yaml::endWriteComposite()
 
 t_cm_result Yaml::startLoadSimple(const char * name)
 {
+    unsigned int readLen = strlen(name) + 2; // add space for quotes.
+    char readName[129];
+    if (!nvram->read((uint8_t *)readName, readLen))
+    {
+        return CM_READ_FAIL;
+    }
+    if (strncmp(readName, name, readLen) != 0)
+    {
+        return CM_NOT_FOUND;
+    }
     return CM_SUCCESS;
+
 }
 
-t_cm_result Yaml::endLoadSimple(cm_item_len_t * length, uint8_t * pRam)
+t_cm_result Yaml::endLoadSimple(cm_item_len_t * length, uint8_t * pRam, YAML_SET_FPTR set)
 {
 
     return CM_SUCCESS;

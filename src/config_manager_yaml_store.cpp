@@ -71,7 +71,7 @@ t_cm_result cm_yaml_store::endLoadSimple(uint8_t * pRam, const cm_simple_metadat
 {
     cout << __PRETTY_FUNCTION__ << endl;
     cm_item_len_t len = data->c.len;
-    return yaml->endLoadSimple(&len, pRam);
+    return yaml->endLoadSimple(&len, pRam, data->pSet);
 }
 
 // xxx incomplete

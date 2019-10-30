@@ -26,7 +26,7 @@ public:
     void startWriteList(const char * name);
     void endWriteList();
     t_cm_result startLoadSimple(const char * name);
-    t_cm_result endLoadSimple(cm_item_len_t * length, uint8_t * pRam);
+    t_cm_result endLoadSimple(cm_item_len_t * length, uint8_t * pRam, YAML_SET_FPTR set);
     t_cm_result startLoadComposite(const char * name);
     t_cm_result endLoadComposite();
 
