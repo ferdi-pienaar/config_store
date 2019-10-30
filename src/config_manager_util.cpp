@@ -8,9 +8,9 @@
 #include <assert.h>
 #include <limits.h>
 #include <stdint.h> // uint8_t, etc
-#include <string.h> // memcpy
 #include <stdlib.h> // strto...
-
+#include <sstream>
+#include<iomanip> // setw
 
 using namespace std;
 
@@ -22,29 +22,31 @@ using namespace std;
 // system (little-endian or big-endian), we just typecast it
 // it correctly and print.
 //
-void cm_prt_int(FILE * f, const uint8_t *pItem, cm_item_len_t len)
+string cm_prt_int(const uint8_t *pItem, cm_item_len_t len)
 {
+    stringstream ss;
     switch (len)
     {
     case sizeof(int8_t):
-        cm_printf("%d", *((int8_t *)pItem));
+        ss << *((int8_t *)pItem);
         break;
 
     case sizeof(int16_t):
-        cm_printf("%d", *((int16_t *)pItem));
+        ss << *((int16_t *)pItem);
         break;
 
     case sizeof(int32_t):
-        cm_printf("%d", *((int32_t *)pItem));
+        ss << *((int32_t *)pItem);
         break;
 
     case sizeof(int64_t):
-        cm_printf("%ld", *((int64_t *)pItem));
+        ss << *((int64_t *)pItem);
         break;
 
     default:
         assert("Unexpected input integer len."==0);
     }
+    return ss.str();
 }
 
 
@@ -131,9 +133,11 @@ bool cm_set_int(uint8_t *pItem, cm_item_len_t len, string val)
 // pItem - pointer to memory containing a NULL-terminated string
 // len - number of bytes the string consists of
 //
-void cm_prt_str(FILE * f, const uint8_t *pItem, cm_item_len_t len)
+string cm_prt_str(const uint8_t *pItem, cm_item_len_t len)
 {
-    cm_printf("%s", (char *)pItem);
+    stringstream ss;
+    ss << (char *)pItem;
+    return ss.str();
 }
 
 
@@ -153,12 +157,15 @@ bool cm_set_str(uint8_t *pItem, cm_item_len_t len, string val)
 // pItem - pointer to memory
 // len - number of bytes
 //
-void cm_prt_hexstr(FILE * f, const uint8_t *pItem, cm_item_len_t len)
+string cm_prt_hexstr(const uint8_t *pItem, cm_item_len_t len)
 {
+    stringstream ss;
+
     for (cm_item_len_t i = 0; i < len; i++)
     {
-        cm_printf("%02x", pItem[i]);
+        ss << setfill('0') << setw(2) << hex << (int)pItem[i];
     }
+    return ss.str();
 }
 
 

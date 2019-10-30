@@ -10,6 +10,8 @@
 #include "config_manager.h"
 #include "my_cfg_fn1.h"
 #include "config_manager_printf.h"
+#include <sstream>
+
 using namespace std;
 
 // convert temperature to internal integer representation
@@ -36,11 +38,14 @@ void setdef_temp(uint8_t *pItem, cm_item_len_t len)
 
 //
 // Use short to represent temperatures
-void prt_temp(FILE * f, const uint8_t *pItem, cm_item_len_t len)
+string prt_temp(const uint8_t *pItem, cm_item_len_t len)
 {
     // Sanity check
     assert(len == sizeof(short));
-    cm_printf("%+.3f", internal2t(*((short *)pItem)));
+
+    stringstream ss;
+    ss << internal2t(*((short *)pItem));
+    return ss.str();
 }
 
 
@@ -59,7 +64,7 @@ bool set_temp(uint8_t *pItem, cm_item_len_t len, string val)
         cm_printf("Not a valid temperature: %s.\n", c_string);
         return false;
     }
-    
+
     long int internal_representation = d2internal(t);
     if (internal_representation > SHRT_MAX)
     {
@@ -67,7 +72,7 @@ bool set_temp(uint8_t *pItem, cm_item_len_t len, string val)
         internal_representation = SHRT_MAX;
     }
     else if (internal_representation < SHRT_MIN)
-    {        
+    {
         cm_printf("Limiting %f to min %.3f.\n", t, internal2t(SHRT_MIN));
         internal_representation = SHRT_MIN;
     }

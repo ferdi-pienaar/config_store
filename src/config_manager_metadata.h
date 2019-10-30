@@ -15,10 +15,12 @@
 
 
 // Function pointers -- types registered by user when descriptor is created
+// Convert string into item of len bytes.
 typedef bool (*CM_SET_FPTR)(uint8_t *pItem, cm_item_len_t len, std::string val);
+// Set item of len bytes to a default value defined in the function.
 typedef void (*CM_SETDEF_FPTR)(uint8_t *pItem, cm_item_len_t len);
-typedef void (*CM_PRT_FPTR)(FILE * f, const uint8_t *pItem, cm_item_len_t len);
-
+// Convert item of len bytes into a string.
+typedef std::string (*CM_PRT_FPTR)(const uint8_t *pItem, cm_item_len_t len);
 
 struct cm_common_metadata
 {

@@ -486,11 +486,11 @@ void cm_simple_descriptor::print(const uint8_t * pItem, string prefix, bool incl
     if (pData->pPrt == NULL)
     {
         // No function installed so use default print function: hex chars
-        cm_prt_hexstr(stdout, pItem, getLen());
+        cm_printf("%s", cm_prt_hexstr(pItem, getLen()).c_str());
     }
     else
     {
-        pData->pPrt(stdout, pItem, getLen());
+        cm_printf("%s", pData->pPrt(pItem, getLen()).c_str());
     }
     cm_printf("\n");
 }
