@@ -10,7 +10,7 @@
 #include <stdint.h> // uint8_t, etc
 #include <stdlib.h> // strto...
 #include <sstream>
-#include<iomanip> // setw
+#include <iomanip> // setw
 
 using namespace std;
 
