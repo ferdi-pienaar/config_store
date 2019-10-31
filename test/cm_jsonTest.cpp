@@ -51,7 +51,7 @@ TEST_F(JsonTest, writeComposite)
 {
     uint32_t s1 = 67305985; // 0x04030201
     uint32_t s2 = 16843009; // 0x01010101
-    string expected = "\"compo\": {\n \"inside\": 67305985,\n \"next\": 16843009\n}\n";
+    string expected = "\n\"compo\": {\n \"inside\": 67305985,\n \"next\": 16843009\n}";
 
     json->startWriteComposite("compo");
     json->writeSimple("inside", sizeof(s1), (uint8_t *)&s1, cm_prt_int);

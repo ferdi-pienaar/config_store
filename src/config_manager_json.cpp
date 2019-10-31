@@ -49,11 +49,7 @@ void Json::reset()
 
 void Json::writeSimple(const char * name, cm_item_len_t length, const uint8_t * v, JSON_PRT_FPTR prt)
 {
-    if (!firstMember)
-    {
-        nvram->write((const uint8_t *)",", 1);
-    }
-    nvram->write((const uint8_t *)"\n", 1);
+    closePreviousLine();
     nvram->write((const uint8_t *)indent.c_str(), indent.size());
     writeName(name);
     string val_str = prt(v, length);
@@ -66,6 +62,7 @@ void Json::writeSimple(const char * name, cm_item_len_t length, const uint8_t * 
 // composite is empty.
 void Json::startWriteComposite(const char * name)
 {
+    closePreviousLine();
     nvram->write((const uint8_t *)indent.c_str(), indent.size());
     writeName(name);
     nvram->write((const uint8_t *)"{", 1);
@@ -78,9 +75,9 @@ void Json::startWriteComposite(const char * name)
 // xxx return boolean to indicate if we've reached the bottom of the stack?
 void Json::endWriteComposite()
 {
+    indent.resize(indent.size() - 1);
     nvram->write((const uint8_t *)indent.c_str(), indent.size());
     nvram->write((const uint8_t *)"\n}", 2);
-    indent.resize(indent.size() - 1);
 }
 
 t_cm_result Json::startLoadSimple(const char * name)
@@ -126,9 +123,20 @@ void Json::endWriteList()
 
 }
 
+void Json::closePreviousLine()
+{
+    if (!firstMember)
+    {
+        nvram->write((const uint8_t *)",", 1);
+    }
+    nvram->write((const uint8_t *)"\n", 1);
+}
+
 void Json::writeName(const char * name)
-{    
+{
     nvram->write((const uint8_t *)"\"", 1);
     nvram->write((const uint8_t *)name, strlen(name));
     nvram->write((const uint8_t *)"\": ", 3);
 }
+
+

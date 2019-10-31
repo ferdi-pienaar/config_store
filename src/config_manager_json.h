@@ -32,7 +32,7 @@ public:
 
 private:
     void writeName(const char * name);
-        
+    void closePreviousLine();
     Nvram *  nvram;
     std::string indent;
     bool firstMember;
