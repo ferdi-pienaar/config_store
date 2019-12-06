@@ -18,36 +18,22 @@ using namespace std;
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-config_manager::config_manager(): base_desc(NULL), ramBase(NULL)
+config_manager::config_manager(const cm_descriptor * desc): base_desc(desc)
 {
+    ramBase = (uint8_t *)malloc(base_desc->getLen());
+    DBG_PRT("init: ramBase, %d at %p\n", base_desc->getLen(), ramBase);
+    assert(ramBase != NULL);
+    memset(ramBase, 0, base_desc->getLen());
+    base_desc->setDefault(ramBase);
+    resetCtxt();
     store = cm_store::getStore();
 }
 
-
-// Initialize config manager: allocate and populate item memory in RAM.
-// xxx We could presumably do these things in the constructor, but
-// having an init method gives us more flexibility in delaying certain
-// actions until later; this allows us to create the CM early in the
-// init cycle, but delay malloc and NVRAM reads until later.
-// xxx there are things duplicated here and in load()
-void config_manager::init(const cm_descriptor * desc)
+config_manager::~config_manager()
 {
-    base_desc = desc;
-    ramBase = (uint8_t *)malloc(base_desc->getLen());
-
-    DBG_PRT("init: ramBase, %d at %p\n", base_desc->getLen(), ramBase);
-
-    assert(ramBase != NULL);
-
-    // This could be done in the constructor, but I do it here to make unit tests
-    // independent (since the constructor won't run at the beginning of each test).
-    resetCtxt();
-
-    // Set counters to 0 and pointers to NULL on fresh memory before setDefault during load.
-    memset(ramBase, 0, base_desc->getLen());
-    load();
+    free(ramBase);
+    delete store; // xxx is this clean, is delete the obvious pair to getStore (in config_manager constructor)?
 }
-
 
 /// Execute command words entered by client on CLI cpp file
 /// @param argc number of command words
@@ -117,14 +103,15 @@ void config_manager::save()
 // Resets context, since a reload re-allocates memory and makes current context invalid
 void config_manager::load()
 {
-    if (!loadBaseId()) return;
+    store->initForRead();
 
     // Before loading, thus allocating new memory, call setDefault to free owned memory
     base_desc->setDefault(ramBase);
     t_cm_result res = base_desc->startLoad(store);
-    // xxx this is where we should check if base ID is in store -- are we doing it elsewhere??
-    res = base_desc->endLoad(ramBase, store);
-
+    if (res == CM_SUCCESS)
+    {
+        res = base_desc->endLoad(ramBase, store);
+    }
     if (res != CM_SUCCESS)
     {
         cm_printf("Load failed: defaults restored.\n");
@@ -133,27 +120,6 @@ void config_manager::load()
     }
     resetCtxt();
 }
-
-
-// Return true if expected base ID is loaded from the store
-// xxx I think I don't need this anymore, except for initForRead.
-bool config_manager::loadBaseId()
-{
-    if (!base_desc->isPersistent())
-    {
-        cm_printf("No persistent items.\n");
-        return false;
-    }
-
-    if (!store->initForRead())
-    {
-        cm_printf("No config file.\n");
-        return false;
-    }
-    cm_printf("Load id %#x.\n", base_desc->getId());
-    return true;
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 //

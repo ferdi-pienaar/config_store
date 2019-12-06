@@ -38,17 +38,16 @@ void * stats_thread(void * arg)
 int main()
 {
     // Initialize the config manager with the base descriptor it is to manage.
-    config_manager * cm = new config_manager;
-    cm->init(get_base_descriptor());
+    config_manager cm(get_base_descriptor());
 
     pthread_t thread;
-    int rc = pthread_create(&thread, NULL, stats_thread, cm);
+    int rc = pthread_create(&thread, NULL, stats_thread, &cm);
     assert(0 == rc);
     
     // Read commands from stdin and give them to the config manager
     while (true)
     {
-        printf("%s> ", cm->getPromptString());
+        printf("%s> ", cm.getPromptString());
         
         char cmd[120];
         if (fgets(cmd, sizeof(cmd), stdin) == NULL)
@@ -65,7 +64,7 @@ int main()
             {
                 wordCnt++;
             }
-            cm->handleCmd(wordCnt, param);
+            cm.handleCmd(wordCnt, param);
         }
     }
 }

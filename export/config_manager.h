@@ -354,9 +354,9 @@ private:
 class config_manager
 {
 public:
-    config_manager();
+    config_manager(const cm_descriptor * pDesc);
+    ~config_manager();
     void handleCmd(int argc, char *argv[]);
-    void init(const cm_descriptor * pDesc);
     const char * getPromptString() const; ///< get context-dependent prompt string h file
     void * getConfig() {
         return (void *)ramBase;
@@ -365,7 +365,6 @@ public:
 private:
     void save();
     void load();
-    bool loadBaseId();
     void resetCtxt();
     void updateCtxt() {
         currCtxt = candidateCtxt;

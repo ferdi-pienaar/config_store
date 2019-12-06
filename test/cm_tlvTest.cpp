@@ -285,7 +285,7 @@ TEST_F(TlvTest, loadNestedCompositeAndSimple)
     tlv->startLoadSimple(0xab);
     tlv->endLoadSimple(&length, clientRam);
     EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
-    
+
     length = 2;
     tlv->startLoadSimple(0xbc);
     tlv->endLoadSimple(&length, clientRam + 6);
@@ -311,7 +311,7 @@ TEST_F(TlvTest, loadCompositeWithUnwantedComponentAndSimple)
     EXPECT_EQ(CM_NOT_FOUND, tlv->startLoadSimple(0xd00d));
     // not found, so client doesn't call endLoadSimple.
     EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
-    
+
     length = 2;
     tlv->startLoadSimple(0xbc);
     tlv->endLoadSimple(&length, clientRam);
