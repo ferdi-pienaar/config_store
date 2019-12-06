@@ -146,6 +146,9 @@ protected:
     {
         //clean up steps are executed after each TEST
     }
+
+    cm_context candidateCtxt;
+    bool setCtxt;
 };
 
 
@@ -185,7 +188,7 @@ TEST_F(CompositeOwned, addFirst)
     char * commandWord[] = {(char *)"add", (char *)"owned"};
     command_stack cmd(2, commandWord);
 
-    c2.handleCmd(&cmd, (uint8_t *)&mem);
+    c2.handleCmd(&cmd, (uint8_t *)&mem, &candidateCtxt, setCtxt);
 
     // Counter is incremented and ptr to owned item is no longer NULL
     EXPECT_EQ(1, mem.cnt);
@@ -202,8 +205,8 @@ TEST_F(CompositeOwned, addAnother)
     command_stack cmd1(2, commandWord);
     command_stack cmd2(2, commandWord);
 
-    c2.handleCmd(&cmd1, (uint8_t *)&mem);
-    c2.handleCmd(&cmd2, (uint8_t *)&mem);
+    c2.handleCmd(&cmd1, (uint8_t *)&mem, &candidateCtxt, setCtxt);
+    c2.handleCmd(&cmd2, (uint8_t *)&mem, &candidateCtxt, setCtxt);
 
     // Counter is incremented and ptr to owned item is no longer NULL
     EXPECT_EQ(2, mem.cnt);
@@ -220,7 +223,7 @@ TEST_F(CompositeOwned, delNull)
     char * commandWord[] = {(char *)"del", (char *)"owned", (char *)"1"};
     command_stack cmd(3, commandWord);
 
-    c2.handleCmd(&cmd, (uint8_t *)&mem);
+    c2.handleCmd(&cmd, (uint8_t *)&mem, &candidateCtxt, setCtxt);
 
     // The command does nothing since there's nothing to delete; verify count remains unchanged
     EXPECT_EQ(0, mem.cnt);
@@ -239,7 +242,7 @@ TEST_F(CompositeOwned, delEnd)
     mem.owned[0] = 7;
     mem.cnt = NUM_OWNED;
 
-    c2.handleCmd(&cmd, (uint8_t *)&mem);
+    c2.handleCmd(&cmd, (uint8_t *)&mem, &candidateCtxt, setCtxt);
 
     // Counter is decremented
     EXPECT_EQ(NUM_OWNED - 1, mem.cnt);
@@ -261,7 +264,7 @@ TEST_F(CompositeOwned, delFirst)
     mem.owned[1] = 8;
     mem.cnt = NUM_OWNED;
 
-    c2.handleCmd(&cmd, (uint8_t *)&mem);
+    c2.handleCmd(&cmd, (uint8_t *)&mem, &candidateCtxt, setCtxt);
 
     // Counter is decremented
     EXPECT_EQ(NUM_OWNED - 1, mem.cnt);
@@ -281,7 +284,7 @@ TEST_F(CompositeOwned, delSingle)
     mem.owned = (int *)malloc(NUM_OWNED * sizeof(int));
     mem.cnt = NUM_OWNED;
 
-    c2.handleCmd(&cmd, (uint8_t *)&mem);
+    c2.handleCmd(&cmd, (uint8_t *)&mem, &candidateCtxt, setCtxt);
 
     // Counter is decremented to 0
     EXPECT_EQ(0, mem.cnt);
@@ -297,7 +300,7 @@ TEST_F(CompositeOwned, implicitAdd)
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"=", (char *)"42"};
     command_stack cmd(4, commandWord);
 
-    c2.handleCmd(&cmd, (uint8_t *)&mem);
+    c2.handleCmd(&cmd, (uint8_t *)&mem, &candidateCtxt, setCtxt);
 
     // Counter is incremented and ptr to owned item is no longer NULL
     EXPECT_EQ(1, mem.cnt);
@@ -312,7 +315,7 @@ TEST_F(CompositeOwned, implicitAddFail)
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"blabla"};
     command_stack cmd(3, commandWord);
 
-    c2.handleCmd(&cmd, (uint8_t *)&mem);
+    c2.handleCmd(&cmd, (uint8_t *)&mem, &candidateCtxt, setCtxt);
 
     // Counter is not incremented and ptr to owned item is NULL
     EXPECT_EQ(0, mem.cnt);
@@ -373,6 +376,8 @@ protected:
     {
         //clean up steps are executed after each TEST
     }
+    cm_context candidateCtxt;
+    bool setCtxt;
 };
 
 
@@ -382,7 +387,7 @@ TEST_F(OwnedWithoutCounter, addOnly)
     char * commandWord[] = {(char *)"add", (char *)"owned"};
     command_stack cmd(2, commandWord);
 
-    c4.handleCmd(&cmd, (uint8_t *)&mem);
+    c4.handleCmd(&cmd, (uint8_t *)&mem, &candidateCtxt, setCtxt);
 
     // Pointer updated
     EXPECT_TRUE(mem.owned != NULL);
@@ -401,7 +406,7 @@ TEST_F(OwnedWithoutCounter, delOnly)
     // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
     mem.owned = (int *)malloc(MAX_NUMBER_OWNED_SET4 * sizeof(int));
 
-    c4.handleCmd(&cmd, (uint8_t *)&mem);
+    c4.handleCmd(&cmd, (uint8_t *)&mem, &candidateCtxt, setCtxt);
 
     // And the pointer to owned is set to NULL after owned memory freed
     EXPECT_EQ(NULL, mem.owned);

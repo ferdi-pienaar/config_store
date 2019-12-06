@@ -54,7 +54,7 @@ const cm_aggregate * const aggrList1[] = {&ca1, &ca2};
 const cm_composite_metadata c1_d = {{"c1", 1, sizeof(struct m), true}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
 const cm_composite_descriptor c1(&c1_d);
 
-#define GET_C1_CONFIG ((struct m *)config_manager::getInstance()->getConfig())
+#define GET_C1_CONFIG ((struct m *)cm->getConfig())
 
 class Contained : public testing::Test
 {
@@ -64,10 +64,14 @@ protected:
     //Define data accessible to test group members here.
     virtual void SetUp()
     {
-        cm = config_manager::getInstance();
+        cm = new config_manager;
         nvram_spy_init();
     }
 
+    virtual void TearDown()
+    {
+        delete cm;
+    }
 };
 
 
@@ -308,7 +312,7 @@ const cm_aggregate * const aggrList2[] = {&ca3, &oa4};
 const cm_composite_metadata c2_d = {{"c2", 1, sizeof(struct m2), true}, aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0])};
 const cm_composite_descriptor c2(&c2_d);
 
-#define GET_C2_CONFIG ((struct m2 *)config_manager::getInstance()->getConfig())
+#define GET_C2_CONFIG ((struct m2 *)cm->getConfig())
 
 class Owned : public testing::Test
 {
@@ -318,8 +322,13 @@ protected:
     //Define data accessible to test group members here.
     virtual void SetUp()
     {
-        cm = config_manager::getInstance();
+        cm = new config_manager;
         nvram_spy_init();
+    }
+
+    virtual void TearDown()
+    {
+        delete cm;
     }
 };
 
@@ -545,7 +554,7 @@ const cm_aggregate * const aggrList3[] = {&ca5};
 const cm_composite_metadata c3_d = {{"c3", 1, sizeof(struct m3), true}, aggrList3, sizeof(aggrList3)/sizeof(aggrList3[0])};
 const cm_composite_descriptor c3(&c3_d);
 
-#define GET_C3_CONFIG ((struct m3 *)config_manager::getInstance()->getConfig())
+#define GET_C3_CONFIG ((struct m3 *)cm->getConfig())
 
 class ContainedArray : public testing::Test
 {
@@ -555,8 +564,13 @@ protected:
     //Define data accessible to test group members here.
     virtual void SetUp()
     {
-        cm = config_manager::getInstance();
+        cm = new config_manager;
         nvram_spy_init();
+    }
+
+    virtual void TearDown()
+    {
+        delete cm;
     }
 };
 
@@ -628,7 +642,7 @@ const cm_aggregate * const aggrList4[] = {&ca6, &ca7};
 const cm_composite_metadata c4_d = {{"c4", 1, sizeof(struct m6), true}, aggrList4, sizeof(aggrList4)/sizeof(aggrList4[0])};
 const cm_composite_descriptor c4(&c4_d);
 
-#define GET_C4_CONFIG ((struct m6 *)config_manager::getInstance()->getConfig())
+#define GET_C4_CONFIG ((struct m6 *)cm->getConfig())
 
 class ContainedArrays : public testing::Test
 {
@@ -638,8 +652,13 @@ protected:
     //Define data accessible to test group members here.
     virtual void SetUp()
     {
-        cm = config_manager::getInstance();
+        cm = new config_manager;
         nvram_spy_init();
+    }
+
+    virtual void TearDown()
+    {
+        delete cm;
     }
 };
 

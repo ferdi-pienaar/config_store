@@ -18,11 +18,11 @@ using namespace std;
 void * stats_thread(void * arg)
 {
     config_manager * cm = (config_manager *)arg;
+    tDevice * pCfg = (tDevice *)cm->getConfig();
 
     for (;;)
     {
         sleep(5);
-        tDevice * pCfg = (tDevice *)cm->getConfig();
         static unsigned userIdx = 0;
 
         if (pCfg->userCount > 0)

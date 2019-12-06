@@ -1,15 +1,13 @@
 // Unit test using open-source unit test framework
 //
-// xxx valid for little-endian systems only
 //
 
 #include "gtest/gtest.h"
 #include "config_manager_json.h"  // Unit under test
 #include "config_manager_util.h" // load and save functions re-used
-#include <string.h> // strncmp
 #include "nvram_spy.h"
-
 #include <iostream>
+
 using namespace std;
 
 static uint8_t clientRam[1024];
@@ -33,8 +31,6 @@ protected:
     }
 };
 
-
-//
 TEST_F(JsonTest, writeSimple)
 {
     uint32_t mem = 67305985; // 0x04030201
@@ -45,8 +41,6 @@ TEST_F(JsonTest, writeSimple)
     EXPECT_TRUE(nvram_spy_match((uint8_t *)expected.c_str(), expected.length()));
 }
 
-
-//
 TEST_F(JsonTest, writeComposite)
 {
     uint32_t s1 = 67305985; // 0x04030201
@@ -57,6 +51,35 @@ TEST_F(JsonTest, writeComposite)
     json->writeSimple("inside", sizeof(s1), (uint8_t *)&s1, cm_prt_int);
     json->writeSimple("next", sizeof(s2), (uint8_t *)&s2, cm_prt_int);
     json->endWriteComposite();
+
+    EXPECT_TRUE(nvram_spy_match((uint8_t *)expected.c_str(), expected.length()));
+}
+
+TEST_F(JsonTest, writeEmbeddedComposite)
+{
+    uint32_t s1 = 67305985; // 0x04030201
+    string expected = "\n\"compo\": {\n \"compo2\": {\n  \"inside\": 67305985\n }\n}";
+
+    json->startWriteComposite("compo");
+    json->startWriteComposite("compo2");
+    json->writeSimple("inside", sizeof(s1), (uint8_t *)&s1, cm_prt_int);
+    json->endWriteComposite();
+    json->endWriteComposite();
+
+    EXPECT_TRUE(nvram_spy_match((uint8_t *)expected.c_str(), expected.length()));
+}
+
+
+TEST_F(JsonTest, writeArray)
+{
+    uint32_t s1 = 67305985; // 0x04030201
+    uint32_t s2 = 16843009; // 0x01010101
+    string expected = "\n\"values\": [\n 67305985,\n 16843009\n]";
+
+    json->startWriteArray("values");
+    json->writeSimple("inside", sizeof(s1), (uint8_t *)&s1, cm_prt_int);
+    json->writeSimple("next", sizeof(s2), (uint8_t *)&s2, cm_prt_int);
+    json->endWriteArray();
 
     EXPECT_TRUE(nvram_spy_match((uint8_t *)expected.c_str(), expected.length()));
 }

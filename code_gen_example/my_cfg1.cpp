@@ -11,18 +11,7 @@
 // Include the auto-generated configurable item initialization code
 #include "cfg.cpp"
 
-// Call this function from application code to initialize the config manager
-// with this application's configuration
-void init_config()
+const cm_descriptor * get_base_descriptor()
 {
-    // Give the manager the metadata instantiated in the metadata initialization .cpp file
-    config_manager::getInstance()->init(&device);
+    return &device;
 }
-
-
-// Get access to configurable items.
-t_device * get_config()
-{
-    return (t_device *)config_manager::getInstance()->getConfig();
-}
-

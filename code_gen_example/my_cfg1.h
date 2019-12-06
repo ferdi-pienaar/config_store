@@ -6,8 +6,7 @@
 // Include the auto-generated data structures for configurable items
 #include "cfg.h"
 
-void init_config();
-t_device * get_config();
+const cm_descriptor * get_base_descriptor();
 
 #endif // MY_CFG1_H
 

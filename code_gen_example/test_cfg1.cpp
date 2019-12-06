@@ -18,7 +18,8 @@ using namespace std;
 // it may not exist anymore.
 void * stats_thread(void * arg)
 {
-    t_device * pCfg = get_config(); // get a pointer to the RAM where the config lives
+    config_manager * cm = (config_manager *)arg;
+    t_device * pCfg = (t_device *)cm->getConfig();
 
     for (;;)
     {
@@ -37,11 +38,11 @@ void * stats_thread(void * arg)
 int main()
 {
     // Initialize the config manager with the base descriptor it is to manage.
-    config_manager * cm = config_manager::getInstance();
-    init_config();
+    config_manager * cm = new config_manager;
+    cm->init(get_base_descriptor());
 
     pthread_t thread;
-    int rc = pthread_create(&thread, NULL, stats_thread, NULL);
+    int rc = pthread_create(&thread, NULL, stats_thread, cm);
     assert(0 == rc);
     
     // Read commands from stdin and give them to the config manager
