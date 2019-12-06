@@ -362,18 +362,7 @@ const cm_composite_metadata device_d =
 
 const cm_composite_descriptor deviceDesc(&device_d);
 
-
-// Call this function from application code to initialize the config manager
-// with this application's configuration
-void init_config()
+const cm_descriptor * get_base_descriptor()
 {
-    config_manager::getInstance()->init(&deviceDesc);
+    return &deviceDesc;
 }
-
-
-// Get access to configurable items.
-tDevice * get_config()
-{
-    return (tDevice *)config_manager::getInstance()->getConfig();
-}
-

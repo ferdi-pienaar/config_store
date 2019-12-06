@@ -59,8 +59,7 @@ typedef struct
     
 } tDevice;
 
-void init_config();
-tDevice * get_config();
+const cm_descriptor * get_base_descriptor();
 
 #endif // MY_CFG_H
 

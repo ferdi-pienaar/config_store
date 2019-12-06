@@ -9,6 +9,40 @@
 #include "config_manager_store.h"
 #include "config_manager_metadata.h"
 
+/*
+ *
+ *                 +----------------+
+ *                 |  descriptor    |
+ *                 |----------------|
+ *                 | name           | 1
+ *                 | id             |<----------------------------------+
+ *                 | len            |                                   |
+ *                 | persistent     |                                   |
+ *                 +----------------+                                   |
+ *                          ^                                           |
+ *                         / \                                          |
+ *                        -----                                         |
+ *                          |                                           |
+ *             +------------+---------+                                 |
+ *             |                      |                                 |
+ * +-------------------+  +----------------------+ 1  * +-----------+ 1 |
+ * | simple descriptor |  | composite descriptor +<>----+ aggregate |<>-+
+ * |-------------------|  |----------------------|      |-----------|
+ *                                                      | maxCount  |
+ *                                                      | offset    |
+ *                                                      +-----------+
+ *                                                            ^
+ *                                                           / \
+ *                                                          -----
+ *                                                            |
+ *                                                +-----------+---------+
+ *                                                |                     |
+ *                                    +---------------------+  +-----------------+
+ *                                    | contained aggregate |  | owned aggregate |
+ *                                    |---------------------|  |-----------------|
+ *
+ */
+
 
 // xxx throughout I've provisionally avoided the use of references; revise this.
 
@@ -88,12 +122,12 @@ public:
     cm_descriptor() {}
     virtual ~cm_descriptor() {}
 
-    virtual bool handleCmd(command_stack * cmd, uint8_t * pItem) const = 0;
+    virtual bool handleCmd(command_stack * cmd, uint8_t * pItem, cm_context * candidate, bool & setCtxt) const = 0;
     virtual const char * getName() const = 0;
     virtual cm_item_id_t getId() const = 0;
-    virtual void save(const uint8_t * pItem) const = 0;
-    virtual t_cm_result startLoad() const = 0;
-    virtual t_cm_result endLoad(uint8_t * pItem) const = 0;
+    virtual void save(const uint8_t * pItem, cm_store * store) const = 0;
+    virtual t_cm_result startLoad(cm_store * store) const = 0;
+    virtual t_cm_result endLoad(uint8_t * pItem, cm_store * store) const = 0;
     virtual cm_item_len_t getLen() const = 0;
     virtual void print(const uint8_t * pItem, std::string prefix, bool include_state) const = 0;
     virtual void setDefault(uint8_t * pItem) const = 0;
@@ -147,10 +181,11 @@ public:
     bool getComponentItem(command_stack * cmd,
                           uint8_t * pParentItem,
                           uint8_t ** ppItem,
-                          bool & added) const;
+                          bool & added,
+                          cm_context * candidateCtxt) const;
     virtual uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const = 0;
-    void save(const uint8_t *pItem) const;
-    t_cm_result load(uint8_t * pParentItem) const;
+    void save(const uint8_t *pItem, cm_store * store) const;
+    t_cm_result load(uint8_t * pParentItem, cm_store * store) const;
     virtual void help(const uint8_t * pItem) const = 0;
     virtual uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const = 0;
 
@@ -247,13 +282,13 @@ public:
     virtual cm_item_len_t getLen() const {
         return pData->c.len;
     }
-    bool handleCmd(command_stack * cmd, uint8_t * pItem) const;
+    bool handleCmd(command_stack * cmd, uint8_t * pItem, cm_context * candidate, bool & setCtxt) const;
     void print(const uint8_t * pItem, std::string prefix, bool include_state) const;
     void setDefault(uint8_t * pItem) const;
     virtual void help(const uint8_t * pItem) const;
-    void save(const uint8_t * pItem) const;
-    t_cm_result startLoad() const;
-    t_cm_result endLoad(uint8_t * pItem) const;
+    void save(const uint8_t * pItem, cm_store * store) const;
+    t_cm_result startLoad(cm_store * store) const;
+    t_cm_result endLoad(uint8_t * pItem, cm_store * store) const;
     bool isPersistent() const {
         return pData->c.persistent;
     }
@@ -261,7 +296,7 @@ public:
 private:
     bool handleAdd(command_stack * cmd, uint8_t * pItem) const;
     bool handleDel(command_stack * cmd, uint8_t * pItem) const;
-    bool handleIdWord(command_stack * cmd, uint8_t * pItem) const;
+    bool handleIdWord(command_stack * cmd, uint8_t * pItem, cm_context * candidate, bool & setCtxt) const;
     virtual unsigned short getAggrCount() const {
         return pData->aggrCount;
     }
@@ -284,7 +319,7 @@ class cm_simple_descriptor : public cm_descriptor
 public:
     cm_simple_descriptor(const cm_simple_metadata * pMeta);
     virtual ~cm_simple_descriptor() {}
-    bool handleCmd(command_stack * cmd, uint8_t * pItem) const;
+    bool handleCmd(command_stack * cmd, uint8_t * pItem, cm_context * candidate, bool & setCtxt) const;
     const char * getName() const {
         return pData->c.name;
     }
@@ -301,9 +336,9 @@ public:
         (void)pItem;
         std::cout << "len " << getLen() << std::endl;
     }
-    virtual void save(const uint8_t * pItem) const;
-    t_cm_result startLoad() const;
-    t_cm_result endLoad(uint8_t * pItem) const;
+    virtual void save(const uint8_t * pItem, cm_store * store) const;
+    t_cm_result startLoad(cm_store * store) const;
+    t_cm_result endLoad(uint8_t * pItem, cm_store * store) const;
     bool isPersistent() const {
         return pData->c.persistent;
     }
@@ -314,42 +349,33 @@ private:
 
 
 /// Configuration manager, managing all configurable items in the system.
-// This is a singleton because it avoids the following practical problem:
-// in config_manager.cpp, how do the other classes access this one to
-// modify the current context, pCtxt.  We could give each instance a
-// pointer to this object, but it seems like overkill since there SHOULD
-// only be one of them.
 // This class is the application programme's sole point of access to
 // the configurable items.
 class config_manager
 {
 public:
+    config_manager();
     void handleCmd(int argc, char *argv[]);
     void init(const cm_descriptor * pDesc);
     const char * getPromptString() const; ///< get context-dependent prompt string h file
     void * getConfig() {
         return (void *)ramBase;
     }
-    static config_manager * getInstance();
 
-    // xxx should only be accessible to friend classes
+private:
+    void save();
+    void load();
+    bool loadBaseId();
     void resetCtxt();
     void updateCtxt() {
         currCtxt = candidateCtxt;
     }
-    cm_context   candidateCtxt; // context built while handling current command
-    cm_store * store;
 
-private:
-    config_manager();
-    void save();
-    void load();
-    bool loadBaseId();
-
-    static config_manager * instance;
     const cm_descriptor * base_desc;
     uint8_t *    ramBase;
     cm_context   currCtxt;      // current context
+    cm_context   candidateCtxt; // context built while handling current command
+    cm_store * store;
 };
 
 

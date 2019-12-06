@@ -17,10 +17,12 @@ using namespace std;
 // Periodically, update some stats that can be displayed by cfg_man.
 void * stats_thread(void * arg)
 {
+    config_manager * cm = (config_manager *)arg;
+
     for (;;)
     {
         sleep(5);
-        tDevice * pCfg = get_config();
+        tDevice * pCfg = (tDevice *)cm->getConfig();
         static unsigned userIdx = 0;
 
         if (pCfg->userCount > 0)
@@ -33,14 +35,16 @@ void * stats_thread(void * arg)
     return NULL;
 }
 
+
+
 int main()
 {
     // Initialize the config manager with the base descriptor it is to manage.
-    config_manager * cm = config_manager::getInstance();
-    init_config();
+    config_manager * cm = new config_manager;
+    cm->init(get_base_descriptor());
 
     pthread_t thread;
-    int rc = pthread_create(&thread, NULL, stats_thread, NULL);
+    int rc = pthread_create(&thread, NULL, stats_thread, cm);
     assert(0 == rc);
     
     while (true)

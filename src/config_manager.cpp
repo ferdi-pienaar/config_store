@@ -12,9 +12,6 @@
 #include <sstream>
 using namespace std;
 
-config_manager * config_manager::instance = NULL;
-
-
 ////////////////////////////////////////////////////////////////////////////////
 //
 // config_manager
@@ -24,17 +21,6 @@ config_manager * config_manager::instance = NULL;
 config_manager::config_manager(): base_desc(NULL), ramBase(NULL)
 {
     store = cm_store::getStore();
-}
-
-
-// Singleton's single access point
-config_manager * config_manager::getInstance()
-{
-    if (instance == NULL)
-    {
-        instance = new config_manager();
-    }
-    return instance;
 }
 
 
@@ -69,6 +55,7 @@ void config_manager::init(const cm_descriptor * desc)
 void config_manager::handleCmd(int argc, char *argv[])
 {
     command_stack cmd(argc, argv);
+    bool setCtxt = false;
 
     // First treat the commands that are only applicable at the top level
     switch (cmd.getTopOp())
@@ -90,7 +77,11 @@ void config_manager::handleCmd(int argc, char *argv[])
     candidateCtxt = currCtxt;
 
     // Pass command that doesn't apply to CM as a whole, to current context for handling
-    currCtxt.getDesc()->handleCmd(&cmd, currCtxt.getItem());
+    currCtxt.getDesc()->handleCmd(&cmd, currCtxt.getItem(), &candidateCtxt, setCtxt);
+    if (setCtxt)
+    {
+        updateCtxt();
+    }
 }
 
 
@@ -118,7 +109,7 @@ void config_manager::save()
         return;
     }
     store->initForWrite();
-    base_desc->save(ramBase);
+    base_desc->save(ramBase, store);
 }
 
 
@@ -130,9 +121,9 @@ void config_manager::load()
 
     // Before loading, thus allocating new memory, call setDefault to free owned memory
     base_desc->setDefault(ramBase);
-    t_cm_result res = base_desc->startLoad();
+    t_cm_result res = base_desc->startLoad(store);
     // xxx this is where we should check if base ID is in store -- are we doing it elsewhere??
-    res = base_desc->endLoad(ramBase);
+    res = base_desc->endLoad(ramBase, store);
 
     if (res != CM_SUCCESS)
     {
@@ -194,7 +185,9 @@ cm_composite_descriptor::cm_composite_descriptor(const cm_composite_metadata * p
 //     go-to-node command, not just an invalid command.
 //
 bool cm_composite_descriptor::handleCmd(command_stack * cmd,
-                                        uint8_t * pItem) const
+                                        uint8_t * pItem,
+                                        cm_context * candidateContext,
+                                        bool & setCtxt) const
 {
     DBG_PRT("composite::handleCmd: %s\n", cmd->getTop());
 
@@ -203,7 +196,7 @@ bool cm_composite_descriptor::handleCmd(command_stack * cmd,
     switch (cmd->getTopOp())
     {
     case command_stack::CM_OP_NONE:
-        return handleIdWord(cmd, pItem);
+        return handleIdWord(cmd, pItem, candidateContext, setCtxt);
 
     case command_stack::CM_ADD:
         // Remove the word 'add' and pass the remainder to the method
@@ -242,7 +235,7 @@ bool cm_composite_descriptor::handleCmd(command_stack * cmd,
 //
 // @return true if a word was from cmd was parsed
 //
-bool cm_composite_descriptor::handleIdWord(command_stack * cmd, uint8_t * pItem) const
+bool cm_composite_descriptor::handleIdWord(command_stack * cmd, uint8_t * pItem, cm_context * candidateCtxt, bool & setCtxt) const
 {
     const cm_aggregate * pAggr = getAggr(cmd->getTop()); // Component that is identified by cmd
 
@@ -253,12 +246,12 @@ bool cm_composite_descriptor::handleIdWord(command_stack * cmd, uint8_t * pItem)
         return false;
     }
 
-    config_manager::getInstance()->candidateCtxt.add(pAggr->pData->pDesc->getName());
+    candidateCtxt->add(pAggr->pData->pDesc->getName());
 
     bool      added;           // Did getComponentItem create a new item?
     uint8_t * pComponentItem;  // pointer to component RAM
 
-    if (!pAggr->getComponentItem(&cmd->pop(), pItem, &pComponentItem, added))
+    if (!pAggr->getComponentItem(&cmd->pop(), pItem, &pComponentItem, added, candidateCtxt))
     {
         // Index problems are reported by the called fn
         return false;
@@ -268,12 +261,12 @@ bool cm_composite_descriptor::handleIdWord(command_stack * cmd, uint8_t * pItem)
     if (cmd->getCount() == 0)
     {
         // We have a component, but there are no more words in the command
-        config_manager::getInstance()->updateCtxt();
+        setCtxt = true;
         return true;
     }
 
     // Pass the remainder of the command to the found component
-    if (!pAggr->pData->pDesc->handleCmd(cmd, pComponentItem))
+    if (!pAggr->pData->pDesc->handleCmd(cmd, pComponentItem, candidateCtxt, setCtxt))
     {
         // Component says the command is invalid
         if (added)
@@ -413,25 +406,25 @@ const cm_aggregate * cm_composite_descriptor::getAggr(cm_item_id_t id) const
 
 /// Save item to persistent storage
 //
-void cm_composite_descriptor::save(const uint8_t *pItem) const
+void cm_composite_descriptor::save(const uint8_t *pItem, cm_store * store) const
 {
     DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id);
-    config_manager::getInstance()->store->startWriteComposite(pData);
+    store->startWriteComposite(pData);
 
     for (unsigned i = 0; i < getAggrCount(); i++)
     {
-        getAggrAtIndex(i)->save(pItem);
+        getAggrAtIndex(i)->save(pItem, store);
     }
-    config_manager::getInstance()->store->endWriteComposite();
+    store->endWriteComposite();
 }
 
 
 // Prepare to load item from persistent storage -- check if it exists in store.
 //
 //
-t_cm_result cm_composite_descriptor::startLoad() const
+t_cm_result cm_composite_descriptor::startLoad(cm_store * store) const
 {
-    t_cm_result ret = config_manager::getInstance()->store->startLoadComposite(pData);
+    t_cm_result ret = store->startLoadComposite(pData);
     DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id, ret);
     return ret;
 }
@@ -444,11 +437,11 @@ t_cm_result cm_composite_descriptor::startLoad() const
 // @pre -- this items startLoad was successful, i.e. an unread instance of this
 //         remains in the store.
 //
-t_cm_result cm_composite_descriptor::endLoad(uint8_t * pItem) const
+t_cm_result cm_composite_descriptor::endLoad(uint8_t * pItem, cm_store * store) const
 {
     for (unsigned i = 0; i < getAggrCount(); i++)
     {
-        t_cm_result ret = getAggrAtIndex(i)->load(pItem);
+        t_cm_result ret = getAggrAtIndex(i)->load(pItem, store);
         if (!((ret == CM_SUCCESS) || (ret == CM_NOT_FOUND)))
         {
             // An unexpected error, such as unexpected end of store
@@ -458,7 +451,7 @@ t_cm_result cm_composite_descriptor::endLoad(uint8_t * pItem) const
         }
     }
     DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id);
-    return config_manager::getInstance()->store->endLoadComposite();
+    return store->endLoadComposite();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -500,7 +493,7 @@ void cm_simple_descriptor::print(const uint8_t * pItem, string prefix, bool incl
 // cmd - array of strings containing name elements
 // pItem - pointer to RAM where item is located
 //
-bool cm_simple_descriptor::handleCmd(command_stack * cmd, uint8_t * pItem) const
+bool cm_simple_descriptor::handleCmd(command_stack * cmd, uint8_t * pItem, cm_context *candidateCtxt, bool & setCtxt) const
 {
     DBG_PRT("simple cmd at %p\n", pItem);
 
@@ -561,25 +554,25 @@ void cm_simple_descriptor::setDefault(uint8_t * pItem) const
 
 
 /// Save item to persistent storage
-void cm_simple_descriptor::save(const uint8_t *pItem) const
+void cm_simple_descriptor::save(const uint8_t *pItem, cm_store * store) const
 {
     DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id);
-    config_manager::getInstance()->store->writeSimple(pData, pItem);
+    store->writeSimple(pData, pItem);
 }
 
 
 // @param pItem
-t_cm_result cm_simple_descriptor::startLoad() const
+t_cm_result cm_simple_descriptor::startLoad(cm_store * store) const
 {
-    t_cm_result ret = config_manager::getInstance()->store->startLoadSimple(pData)
+    t_cm_result ret = store->startLoadSimple(pData)
     DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id, ret);
     return ret;
 }
 
 // @param pItem
-t_cm_result cm_simple_descriptor::endLoad(uint8_t * pItem) const
+t_cm_result cm_simple_descriptor::endLoad(uint8_t * pItem, cm_store * store) const
 {
-    t_cm_result ret = config_manager::getInstance()->store->endLoadSimple(pItem, pData);
+    t_cm_result ret = store->endLoadSimple(pItem, pData);
     DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id, ret);
     return ret;
 }
@@ -669,7 +662,7 @@ void cm_aggregate::print(const uint8_t * pItem, std::string prefix, bool include
 bool cm_aggregate::getComponentItem(command_stack * cmd,
                                     uint8_t * pParentItem,
                                     uint8_t ** ppItem,
-                                    bool & added) const
+                                    bool & added, cm_context * candidateCtxt) const
 {
     added = false; // By default, didn't add a new component
     unsigned int itemIdx = 0; // If no index is needed, we'll use offset 0
@@ -683,7 +676,7 @@ bool cm_aggregate::getComponentItem(command_stack * cmd,
             return false;
         }
         // Index is available: add it to the context string
-        config_manager::getInstance()->candidateCtxt.add(itemIdx);
+        candidateCtxt->add(itemIdx);
     }
 
     DBG_PRT("getComponentItem %p offset %d idx %d cnt %d len %d\n",
@@ -701,14 +694,14 @@ bool cm_aggregate::getComponentItem(command_stack * cmd,
     }
 
     *ppItem = getItemAtIndex(pParentItem, itemIdx);
-    config_manager::getInstance()->candidateCtxt.setDesc(pData->pDesc);
-    config_manager::getInstance()->candidateCtxt.setItem(*ppItem);
+    candidateCtxt->setDesc(pData->pDesc);
+    candidateCtxt->setItem(*ppItem);
     return true;
 }
 
 
 // Save to persistent storage all elements in the array, if its metadata says it's a persistent item
-void cm_aggregate::save(const uint8_t *pItem) const
+void cm_aggregate::save(const uint8_t *pItem, cm_store * store) const
 {
     if (!pData->pDesc->isPersistent())
     {
@@ -716,7 +709,7 @@ void cm_aggregate::save(const uint8_t *pItem) const
     }
     for (unsigned i = 0; i < getCount(pItem); i++)
     {
-        pData->pDesc->save(getItemAtIndex(pItem, i));
+        pData->pDesc->save(getItemAtIndex(pItem, i), store);
     }
 }
 
@@ -729,7 +722,7 @@ void cm_aggregate::save(const uint8_t *pItem) const
 // @return CM_SUCCESS if item successfully loaded from store (it may have
 //           been saved into RAM or dumped)
 //         else an indication of why store load failed
-t_cm_result cm_aggregate::load(uint8_t * pParentItem) const
+t_cm_result cm_aggregate::load(uint8_t * pParentItem, cm_store * store) const
 {
     if (!pData->pDesc->isPersistent())
     {
@@ -739,7 +732,7 @@ t_cm_result cm_aggregate::load(uint8_t * pParentItem) const
     for (unsigned idx = 0; idx < pData->maxCount; idx++)
     {
         // This fails if there isn't an item in the store to load.
-        t_cm_result res = pData->pDesc->startLoad();
+        t_cm_result res = pData->pDesc->startLoad(store);
         if (res != CM_SUCCESS)
         {
             return res;
@@ -755,7 +748,7 @@ t_cm_result cm_aggregate::load(uint8_t * pParentItem) const
         }
         
         // We have memory to load the item into, so complete the load.
-        res = pData->pDesc->endLoad(pItem);
+        res = pData->pDesc->endLoad(pItem, store);
         if (res != CM_SUCCESS)
         {
             return res;
