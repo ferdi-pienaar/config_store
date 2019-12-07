@@ -1,5 +1,5 @@
 // Unit test using open-source unit test framework
-// These tests use the cm_composite_descriptor's public interface
+// These tests use the Composite_descriptor's public interface
 // to test it, and a spy to verify what the CUT prints to its console.
 // We also read/write the items themselves.
 //
@@ -15,6 +15,7 @@
 
 
 using namespace std;
+using namespace cfg_mgr;
 
 namespace {
 
@@ -28,10 +29,10 @@ namespace {
 // the owned element, but AFTER it.
 
 
-TEST(cm_composite_descriptor, getLen)
+TEST(Composite_descriptor, getLen)
 {
-    cm_composite_metadata d_d  = {{"c1", 1, 55, true}, NULL, 0};
-    cm_composite_descriptor d(&d_d);
+    Composite_metadata d_d  = {{"c1", 1, 55, true}, NULL, 0};
+    Composite_descriptor d(&d_d);
 
     EXPECT_EQ(55, d.getLen());
 }
@@ -47,19 +48,19 @@ struct m
 };
 
 // test set 1 metadata
-const cm_simple_metadata s1_d = {{"name1", 1, sizeof(int), true}, NULL, NULL, NULL};
-const cm_simple_descriptor s1(&s1_d);
-const cm_aggregate_data ca1_d = {&s1, 1, offsetof(struct m, m1)};
-const cm_contained_aggregate ca1(&ca1_d);
+const Simple_metadata s1_d = {{"name1", 1, sizeof(int), true}, NULL, NULL, NULL};
+const Simple_descriptor s1(&s1_d);
+const Aggregate_data ca1_d = {&s1, 1, offsetof(struct m, m1)};
+const Contained_aggregate ca1(&ca1_d);
 
-const cm_simple_metadata s2_d = {{"name2", 2, sizeof(int), true}, NULL, NULL, NULL};
-const cm_simple_descriptor s2(&s2_d);
-const cm_aggregate_data ca2_d = {&s2, 1, offsetof(struct m, m2)};
-const cm_contained_aggregate ca2(&ca2_d);
+const Simple_metadata s2_d = {{"name2", 2, sizeof(int), true}, NULL, NULL, NULL};
+const Simple_descriptor s2(&s2_d);
+const Aggregate_data ca2_d = {&s2, 1, offsetof(struct m, m2)};
+const Contained_aggregate ca2(&ca2_d);
 
-const cm_aggregate * const aggrList1[] = {&ca1, &ca2};
-const cm_composite_metadata c1_d = {{"c1", 1, sizeof(struct m), true}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
-const cm_composite_descriptor c1(&c1_d);
+const Aggregate * const aggrList1[] = {&ca1, &ca2};
+const Composite_metadata c1_d = {{"c1", 1, sizeof(struct m), true}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
+const Composite_descriptor c1(&c1_d);
 
 class CompositeContained : public testing::Test
 {
@@ -97,7 +98,7 @@ TEST_F(CompositeContained, print)
 static unsigned setdef_spy_calls = 0;
 
 // test set 2 user-defined functions: a spy
-void setdef_spy(uint8_t *pItem, cm_item_len_t len)
+void setdef_spy(uint8_t *pItem, item_len_t len)
 {
     (void)pItem;
     (void)len;
@@ -116,19 +117,19 @@ struct m2
 };
 
 // test set 2 metadata
-const cm_simple_metadata s3_d = {{"count", 1, sizeof(int), true}, NULL, NULL, NULL};
-const cm_simple_descriptor s3(&s3_d);
-const cm_aggregate_data ca3_d = {&s3, 1, offsetof(struct m2, cnt)};
-const cm_contained_aggregate ca3(&ca3_d);
+const Simple_metadata s3_d = {{"count", 1, sizeof(int), true}, NULL, NULL, NULL};
+const Simple_descriptor s3(&s3_d);
+const Aggregate_data ca3_d = {&s3, 1, offsetof(struct m2, cnt)};
+const Contained_aggregate ca3(&ca3_d);
 
-const cm_simple_metadata s4_d = {{"owned", 2, sizeof(int), true}, cm_set_int, setdef_spy, NULL};
-const cm_simple_descriptor s4(&s4_d);
-const cm_aggregate_data oa4_d = {&s4, MAX_NUMBER_OWNED_SET2, offsetof(struct m2, owned)};
-const cm_owned_aggregate oa4(&oa4_d, &ca3);
+const Simple_metadata s4_d = {{"owned", 2, sizeof(int), true}, cm_set_int, setdef_spy, NULL};
+const Simple_descriptor s4(&s4_d);
+const Aggregate_data oa4_d = {&s4, MAX_NUMBER_OWNED_SET2, offsetof(struct m2, owned)};
+const Owned_aggregate oa4(&oa4_d, &ca3);
 
-const cm_aggregate * const aggrList2[] = {&ca3, &oa4};
-const cm_composite_metadata c2_d = {{"c2", 1, sizeof(struct m2), true}, aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0])};
-const cm_composite_descriptor c2(&c2_d);
+const Aggregate * const aggrList2[] = {&ca3, &oa4};
+const Composite_metadata c2_d = {{"c2", 1, sizeof(struct m2), true}, aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0])};
+const Composite_descriptor c2(&c2_d);
 
 class CompositeOwned : public testing::Test
 {
@@ -147,7 +148,7 @@ protected:
         //clean up steps are executed after each TEST
     }
 
-    cm_context candidateCtxt;
+    Cmd_context candidateCtxt;
     bool setCtxt;
 };
 
@@ -186,7 +187,7 @@ TEST_F(CompositeOwned, printData)
 TEST_F(CompositeOwned, addFirst)
 {
     char * commandWord[] = {(char *)"add", (char *)"owned"};
-    command_stack cmd(2, commandWord);
+    Command_stack cmd(2, commandWord);
 
     c2.handleCmd(&cmd, (uint8_t *)&mem, &candidateCtxt, setCtxt);
 
@@ -202,8 +203,8 @@ TEST_F(CompositeOwned, addFirst)
 TEST_F(CompositeOwned, addAnother)
 {
     char * commandWord[] = {(char *)"add", (char *)"owned"};
-    command_stack cmd1(2, commandWord);
-    command_stack cmd2(2, commandWord);
+    Command_stack cmd1(2, commandWord);
+    Command_stack cmd2(2, commandWord);
 
     c2.handleCmd(&cmd1, (uint8_t *)&mem, &candidateCtxt, setCtxt);
     c2.handleCmd(&cmd2, (uint8_t *)&mem, &candidateCtxt, setCtxt);
@@ -221,7 +222,7 @@ TEST_F(CompositeOwned, addAnother)
 TEST_F(CompositeOwned, delNull)
 {
     char * commandWord[] = {(char *)"del", (char *)"owned", (char *)"1"};
-    command_stack cmd(3, commandWord);
+    Command_stack cmd(3, commandWord);
 
     c2.handleCmd(&cmd, (uint8_t *)&mem, &candidateCtxt, setCtxt);
 
@@ -234,7 +235,7 @@ TEST_F(CompositeOwned, delNull)
 TEST_F(CompositeOwned, delEnd)
 {
     char * commandWord[] = {(char *)"del", (char *)"owned", (char *)"1"};
-    command_stack cmd(3, commandWord);
+    Command_stack cmd(3, commandWord);
     const unsigned NUM_OWNED = 2;
 
     // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
@@ -255,7 +256,7 @@ TEST_F(CompositeOwned, delEnd)
 TEST_F(CompositeOwned, delFirst)
 {
     char * commandWord[] = {(char *)"del", (char *)"owned", (char *)"0"};
-    command_stack cmd(3, commandWord);
+    Command_stack cmd(3, commandWord);
     const unsigned NUM_OWNED = 2;
 
     // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
@@ -277,7 +278,7 @@ TEST_F(CompositeOwned, delFirst)
 TEST_F(CompositeOwned, delSingle)
 {
     char * commandWord[] = {(char *)"del", (char *)"owned", (char *)"0"};
-    command_stack cmd(3, commandWord);
+    Command_stack cmd(3, commandWord);
     const unsigned NUM_OWNED = 1;
 
     // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
@@ -298,7 +299,7 @@ TEST_F(CompositeOwned, delSingle)
 TEST_F(CompositeOwned, implicitAdd)
 {
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"=", (char *)"42"};
-    command_stack cmd(4, commandWord);
+    Command_stack cmd(4, commandWord);
 
     c2.handleCmd(&cmd, (uint8_t *)&mem, &candidateCtxt, setCtxt);
 
@@ -313,7 +314,7 @@ TEST_F(CompositeOwned, implicitAdd)
 TEST_F(CompositeOwned, implicitAddFail)
 {
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"blabla"};
-    command_stack cmd(3, commandWord);
+    Command_stack cmd(3, commandWord);
 
     c2.handleCmd(&cmd, (uint8_t *)&mem, &candidateCtxt, setCtxt);
 
@@ -342,7 +343,7 @@ TEST_F(CompositeOwned, setdef)
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// test set 4, OWNED with no counter => cntr for cm_owned_aggregate() is NULL
+// test set 4, OWNED with no counter => cntr for Owned_aggregate() is NULL
 // (When the max number of owned items is 1, no counter is needed, since
 // the pointer to the owned data is either NULL or not.)
 // test set 4 data structure
@@ -353,14 +354,14 @@ struct m4
 };
 
 // test set 4 metadata
-const cm_simple_metadata s7_d = {{"owned", 1, sizeof(int), true}, NULL, NULL, NULL};
-const cm_simple_descriptor s7(&s7_d);
-const cm_aggregate_data oa7_d = {&s7, MAX_NUMBER_OWNED_SET4, offsetof(struct m4, owned)};
-const cm_owned_aggregate oa7(&oa7_d, NULL); // NULL => no counter
+const Simple_metadata s7_d = {{"owned", 1, sizeof(int), true}, NULL, NULL, NULL};
+const Simple_descriptor s7(&s7_d);
+const Aggregate_data oa7_d = {&s7, MAX_NUMBER_OWNED_SET4, offsetof(struct m4, owned)};
+const Owned_aggregate oa7(&oa7_d, NULL); // NULL => no counter
 
-const cm_aggregate * const aggrList4[] = {&oa7};
-const cm_composite_metadata c4_d = {{"c4", 1, sizeof(struct m4), true}, aggrList4, sizeof(aggrList4)/sizeof(aggrList4[0])};
-const cm_composite_descriptor c4(&c4_d);
+const Aggregate * const aggrList4[] = {&oa7};
+const Composite_metadata c4_d = {{"c4", 1, sizeof(struct m4), true}, aggrList4, sizeof(aggrList4)/sizeof(aggrList4[0])};
+const Composite_descriptor c4(&c4_d);
 
 class OwnedWithoutCounter : public testing::Test
 {
@@ -376,7 +377,7 @@ protected:
     {
         //clean up steps are executed after each TEST
     }
-    cm_context candidateCtxt;
+    Cmd_context candidateCtxt;
     bool setCtxt;
 };
 
@@ -385,7 +386,7 @@ protected:
 TEST_F(OwnedWithoutCounter, addOnly)
 {
     char * commandWord[] = {(char *)"add", (char *)"owned"};
-    command_stack cmd(2, commandWord);
+    Command_stack cmd(2, commandWord);
 
     c4.handleCmd(&cmd, (uint8_t *)&mem, &candidateCtxt, setCtxt);
 
@@ -401,7 +402,7 @@ TEST_F(OwnedWithoutCounter, addOnly)
 TEST_F(OwnedWithoutCounter, delOnly)
 {
     char * commandWord[] = {(char *)"del", (char *)"owned"};
-    command_stack cmd(2, commandWord);
+    Command_stack cmd(2, commandWord);
 
     // We have to malloc, not use automatic variables, since the del operation calls free() for owned memory
     mem.owned = (int *)malloc(MAX_NUMBER_OWNED_SET4 * sizeof(int));

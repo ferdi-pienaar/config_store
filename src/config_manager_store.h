@@ -5,32 +5,33 @@
 #include "config_manager_metadata.h"
 #include "nvram.h"
 
-
+namespace cfg_mgr
+{
 // Abstract interface to classes that give access to persistent storage.
 // It's a Strategy pattern's (abstract) strategy class, with two ConcreteStrategies.
 // The static method getStore returns an instance of a concrete sub-class.
 // (_Head First Design Patterns_ calls this a "static factory" -- it's the equivalent
 // of putting a static createPizza() method in that book's abstract Pizza class.)
 // See also my notes for "Refactoring: Improving the Design of Existing Code".
-class cm_store
+class Store
 {
 public:
-    virtual ~cm_store() {}
+    virtual ~Store() {}
     virtual bool initForRead() = 0;
     virtual bool initForWrite() = 0;
-    virtual void writeSimple(const cm_simple_metadata * data, const uint8_t * v) = 0;
-    virtual void startWriteComposite(const cm_composite_metadata * data) = 0;
+    virtual void writeSimple(const Simple_metadata * data, const uint8_t * v) = 0;
+    virtual void startWriteComposite(const Composite_metadata * data) = 0;
     virtual void endWriteComposite() = 0;
-    virtual t_cm_result startLoadSimple(const cm_simple_metadata * data) = 0;
-    virtual t_cm_result endLoadSimple(uint8_t * pRam, const cm_simple_metadata * data) = 0;
-    virtual t_cm_result startLoadComposite(const cm_composite_metadata * data) = 0;
-    virtual t_cm_result endLoadComposite() = 0;
-    static cm_store * getStore();
+    virtual result_t startLoadSimple(const Simple_metadata * data) = 0;
+    virtual result_t endLoadSimple(uint8_t * pRam, const Simple_metadata * data) = 0;
+    virtual result_t startLoadComposite(const Composite_metadata * data) = 0;
+    virtual result_t endLoadComposite() = 0;
+    static Store * getStore();
 
 protected:
     Nvram  nvram;
 
 };
-
+}
 #endif // CFG_MAN_STORE_H
 

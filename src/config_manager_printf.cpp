@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include "config_manager_printf.h"
 
+namespace cfg_mgr
+{
+
 int cm_printf(const char * format, ...)
 {
     va_list args;
@@ -14,3 +17,4 @@ int cm_printf(const char * format, ...)
     return ret;
 }
 
+}

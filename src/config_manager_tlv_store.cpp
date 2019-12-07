@@ -10,59 +10,62 @@
 
 using namespace std;
 
-cm_tlv_store::cm_tlv_store()
+namespace cfg_mgr
+{
+
+Tlv_store::Tlv_store()
 {
     tlv = new Tlv(&nvram);
 
 }
 
 
-cm_tlv_store::~cm_tlv_store()
+Tlv_store::~Tlv_store()
 {
     delete tlv;
 }
 
 
-bool cm_tlv_store::initForRead()
+bool Tlv_store::initForRead()
 {
     tlv->reset();
     return nvram.initForRead();
 }
 
 
-bool cm_tlv_store::initForWrite()
+bool Tlv_store::initForWrite()
 {
     tlv->reset();
     return nvram.initForWrite();
 }
 
 
-void cm_tlv_store::writeSimple(const cm_simple_metadata * data, const uint8_t * v)
+void Tlv_store::writeSimple(const Simple_metadata * data, const uint8_t * v)
 {
     tlv->writeSimple(data->c.id, data->c.len, v);
 }
 
 
-void cm_tlv_store::startWriteComposite(const cm_composite_metadata * data)
+void Tlv_store::startWriteComposite(const Composite_metadata * data)
 {
     tlv->startWriteComposite(data->c.id);
 }
 
 
-void cm_tlv_store::endWriteComposite()
+void Tlv_store::endWriteComposite()
 {
     tlv->endWriteComposite();
 }
 
-t_cm_result cm_tlv_store::startLoadSimple(const cm_simple_metadata * data)
+result_t Tlv_store::startLoadSimple(const Simple_metadata * data)
 {
     return tlv->startLoadSimple(data->c.id);
 }
 
-t_cm_result cm_tlv_store::endLoadSimple(uint8_t * pRam, const cm_simple_metadata * data)
+result_t Tlv_store::endLoadSimple(uint8_t * pRam, const Simple_metadata * data)
 {
-    cm_item_len_t len = data->c.len;
-    t_cm_result ret = tlv->endLoadSimple(&len, pRam);
+    item_len_t len = data->c.len;
+    result_t ret = tlv->endLoadSimple(&len, pRam);
 
     // Sanity check: the length loaded is the length that was requested.
     // In theory we might support truncation by the persistent storage module, but given that
@@ -72,13 +75,13 @@ t_cm_result cm_tlv_store::endLoadSimple(uint8_t * pRam, const cm_simple_metadata
     return ret;
 }
 
-t_cm_result cm_tlv_store::startLoadComposite(const cm_composite_metadata * data)
+result_t Tlv_store::startLoadComposite(const Composite_metadata * data)
 {
     return tlv->startLoadComposite(data->c.id);
 }
 
-t_cm_result cm_tlv_store::endLoadComposite()
+result_t Tlv_store::endLoadComposite()
 {
     return tlv->endLoadComposite();
 }
-
+}

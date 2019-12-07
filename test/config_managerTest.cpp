@@ -1,7 +1,7 @@
 // Unit test using open-source unit test framework
 // These tests the config manager as a whole, using the following interfaces:
-// 1. Input: character strings passed to config_manager::handleCmd
-// 2. Input/output: the binary file containing TLV data used by config_manager
+// 1. Input: character strings passed to Config_manager::handleCmd
+// 2. Input/output: the binary file containing TLV data used by Config_manager
 //    for non-volatile storage
 //
 // xxx how many of these tests belong in cm_tlvTest.cpp?
@@ -17,6 +17,7 @@
 #include <string.h> // memcmp, strncmp, etc
 
 using namespace std;
+using namespace cfg_mgr;
 
 namespace {
 
@@ -30,7 +31,7 @@ struct m
 };
 
 // test set 1 user-defined functions
-void setdef_t1(uint8_t *pItem, cm_item_len_t len)
+void setdef_t1(uint8_t *pItem, item_len_t len)
 {
     // Sanity check
     assert(len == sizeof(int));
@@ -40,31 +41,31 @@ void setdef_t1(uint8_t *pItem, cm_item_len_t len)
 
 
 // test set 1 metadata
-const cm_simple_metadata s1_d = {{"name1", 1, sizeof(int), true}, NULL, cm_setdef_null, NULL};
-const cm_simple_descriptor s1(&s1_d);
-const cm_aggregate_data ca1_d = {&s1, 1, offsetof(struct m, m1)};
-const cm_contained_aggregate ca1(&ca1_d);
+const Simple_metadata s1_d = {{"name1", 1, sizeof(int), true}, NULL, cm_setdef_null, NULL};
+const Simple_descriptor s1(&s1_d);
+const Aggregate_data ca1_d = {&s1, 1, offsetof(struct m, m1)};
+const Contained_aggregate ca1(&ca1_d);
 
-const cm_simple_metadata s2_d = {{"name2", 2, sizeof(int), true}, NULL, setdef_t1, NULL};
-const cm_simple_descriptor s2(&s2_d);
-const cm_aggregate_data ca2_d = {&s2, 1, offsetof(struct m, m2)};
-const cm_contained_aggregate ca2(&ca2_d);
+const Simple_metadata s2_d = {{"name2", 2, sizeof(int), true}, NULL, setdef_t1, NULL};
+const Simple_descriptor s2(&s2_d);
+const Aggregate_data ca2_d = {&s2, 1, offsetof(struct m, m2)};
+const Contained_aggregate ca2(&ca2_d);
 
-const cm_aggregate * const aggrList1[] = {&ca1, &ca2};
-const cm_composite_metadata c1_d = {{"c1", 1, sizeof(struct m), true}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
-const cm_composite_descriptor c1(&c1_d);
+const Aggregate * const aggrList1[] = {&ca1, &ca2};
+const Composite_metadata c1_d = {{"c1", 1, sizeof(struct m), true}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
+const Composite_descriptor c1(&c1_d);
 
 #define GET_C1_CONFIG ((struct m *)cm->getConfig())
 
 class Contained : public testing::Test
 {
 protected:
-    config_manager * cm;
+    Config_manager * cm;
 
     //Define data accessible to test group members here.
     virtual void SetUp()
     {
-        cm = new config_manager(&c1);
+        cm = new Config_manager(&c1);
         nvram_spy_init();
     }
 
@@ -130,7 +131,7 @@ TEST_F(Contained, loadChangedSimpleLen)
 
 // Verify what's loaded into memory, given a TLV file that's read on startup that contains
 // an unknown Type value.
-// Unknown type in file: the descriptor has no T=9, so it's ignored by cfg_man when found in file,
+// Unknown type in file: the descriptor has no T=9, so it's ignored by cfg_mgr when found in file,
 // but the item following it is loaded.
 TEST_F(Contained, loadUnknown)
 {
@@ -280,31 +281,31 @@ struct m2
 };
 
 // test set 2 metadata
-const cm_simple_metadata s3_d = {{"count", 3, sizeof(unsigned), false}, NULL, NULL, NULL};
-const cm_simple_descriptor s3(&s3_d);
-const cm_aggregate_data ca3_d = {&s3, 1, offsetof(struct m2, cnt)};
-const cm_contained_aggregate ca3(&ca3_d);
+const Simple_metadata s3_d = {{"count", 3, sizeof(unsigned), false}, NULL, NULL, NULL};
+const Simple_descriptor s3(&s3_d);
+const Aggregate_data ca3_d = {&s3, 1, offsetof(struct m2, cnt)};
+const Contained_aggregate ca3(&ca3_d);
 
-const cm_simple_metadata s4_d = {{"owned", 4, sizeof(int), true}, cm_set_int, NULL, NULL};
-const cm_simple_descriptor s4(&s4_d);
-const cm_aggregate_data ca4_d = {&s4, MAX_NUMBER_OWNED, offsetof(struct m2, owned)};
-const cm_owned_aggregate oa4(&ca4_d, &ca3);
+const Simple_metadata s4_d = {{"owned", 4, sizeof(int), true}, cm_set_int, NULL, NULL};
+const Simple_descriptor s4(&s4_d);
+const Aggregate_data ca4_d = {&s4, MAX_NUMBER_OWNED, offsetof(struct m2, owned)};
+const Owned_aggregate oa4(&ca4_d, &ca3);
 
-const cm_aggregate * const aggrList2[] = {&ca3, &oa4};
-const cm_composite_metadata c2_d = {{"c2", 1, sizeof(struct m2), true}, aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0])};
-const cm_composite_descriptor c2(&c2_d);
+const Aggregate * const aggrList2[] = {&ca3, &oa4};
+const Composite_metadata c2_d = {{"c2", 1, sizeof(struct m2), true}, aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0])};
+const Composite_descriptor c2(&c2_d);
 
 #define GET_C2_CONFIG ((struct m2 *)cm->getConfig())
 
 class Owned : public testing::Test
 {
 protected:
-    config_manager * cm;
+    Config_manager * cm;
 
     //Define data accessible to test group members here.
     virtual void SetUp()
     {
-        cm = new config_manager(&c2);
+        cm = new Config_manager(&c2);
         nvram_spy_init();
     }
 
@@ -346,7 +347,7 @@ TEST_F(Owned, loadTooMany)
 
     /* Create config file to be loaded */
     nvram_spy_set(tlv, sizeof(tlv));
-    
+
     char * commandWord[] = {(char *)"load"};
     cm->handleCmd(1, commandWord);
     EXPECT_EQ(2, GET_C2_CONFIG->cnt);
@@ -508,26 +509,26 @@ struct m3
 };
 
 // test set 3 metadata
-const cm_simple_metadata s5_d = {{"name1", 1, sizeof(short int), true}, NULL, NULL, NULL};
-const cm_simple_descriptor s5(&s5_d);
-const cm_aggregate_data ca5_d = {&s5, T3_ARRAY_SIZE, offsetof(struct m3, m1)};
-const cm_contained_aggregate ca5(&ca5_d);
+const Simple_metadata s5_d = {{"name1", 1, sizeof(short int), true}, NULL, NULL, NULL};
+const Simple_descriptor s5(&s5_d);
+const Aggregate_data ca5_d = {&s5, T3_ARRAY_SIZE, offsetof(struct m3, m1)};
+const Contained_aggregate ca5(&ca5_d);
 
-const cm_aggregate * const aggrList3[] = {&ca5};
-const cm_composite_metadata c3_d = {{"c3", 1, sizeof(struct m3), true}, aggrList3, sizeof(aggrList3)/sizeof(aggrList3[0])};
-const cm_composite_descriptor c3(&c3_d);
+const Aggregate * const aggrList3[] = {&ca5};
+const Composite_metadata c3_d = {{"c3", 1, sizeof(struct m3), true}, aggrList3, sizeof(aggrList3)/sizeof(aggrList3[0])};
+const Composite_descriptor c3(&c3_d);
 
 #define GET_C3_CONFIG ((struct m3 *)cm->getConfig())
 
 class ContainedArray : public testing::Test
 {
 protected:
-    config_manager * cm;
+    Config_manager * cm;
 
     //Define data accessible to test group members here.
     virtual void SetUp()
     {
-        cm = new config_manager(&c3);
+        cm = new Config_manager(&c3);
         nvram_spy_init();
     }
 
@@ -592,31 +593,31 @@ struct m6
 };
 
 // test set 4 metadata
-const cm_simple_metadata s6_d = {{"name1", 1, sizeof(short int), true}, NULL, NULL, NULL};
-const cm_simple_descriptor s6(&s6_d);
-const cm_aggregate_data ca6_d = {&s6, T6_ARRAY_SIZE, offsetof(struct m6, m1)};
-const cm_contained_aggregate ca6(&ca6_d);
+const Simple_metadata s6_d = {{"name1", 1, sizeof(short int), true}, NULL, NULL, NULL};
+const Simple_descriptor s6(&s6_d);
+const Aggregate_data ca6_d = {&s6, T6_ARRAY_SIZE, offsetof(struct m6, m1)};
+const Contained_aggregate ca6(&ca6_d);
 
-const cm_simple_metadata s7_d = {{"name2", 2, sizeof(short int), true}, NULL, NULL, NULL};
-const cm_simple_descriptor s7(&s7_d);
-const cm_aggregate_data ca7_d = {&s7, T7_ARRAY_SIZE, offsetof(struct m6, m2)};
-const cm_contained_aggregate ca7(&ca7_d);
+const Simple_metadata s7_d = {{"name2", 2, sizeof(short int), true}, NULL, NULL, NULL};
+const Simple_descriptor s7(&s7_d);
+const Aggregate_data ca7_d = {&s7, T7_ARRAY_SIZE, offsetof(struct m6, m2)};
+const Contained_aggregate ca7(&ca7_d);
 
-const cm_aggregate * const aggrList4[] = {&ca6, &ca7};
-const cm_composite_metadata c4_d = {{"c4", 1, sizeof(struct m6), true}, aggrList4, sizeof(aggrList4)/sizeof(aggrList4[0])};
-const cm_composite_descriptor c4(&c4_d);
+const Aggregate * const aggrList4[] = {&ca6, &ca7};
+const Composite_metadata c4_d = {{"c4", 1, sizeof(struct m6), true}, aggrList4, sizeof(aggrList4)/sizeof(aggrList4[0])};
+const Composite_descriptor c4(&c4_d);
 
 #define GET_C4_CONFIG ((struct m6 *)cm->getConfig())
 
 class ContainedArrays : public testing::Test
 {
 protected:
-    config_manager * cm;
+    Config_manager * cm;
 
     //Define data accessible to test group members here.
     virtual void SetUp()
     {
-        cm = new config_manager(&c4);
+        cm = new Config_manager(&c4);
         nvram_spy_init();
     }
 

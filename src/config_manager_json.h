@@ -6,10 +6,13 @@
 #include "nvram.h"
 #include "config_manager_types.h"
 
+namespace cfg_mgr
+{
+
 // Function pointer to convert a string into data in RAM.
-typedef bool (*JSON_SET_FPTR)(uint8_t *pItem, cm_item_len_t len, std::string val);
+typedef bool (*JSON_SET_FPTR)(uint8_t *pItem, item_len_t len, std::string val);
 // Function pointer to convert data in RAM into a string
-typedef std::string (*JSON_PRT_FPTR)(const uint8_t *pItem, cm_item_len_t len);
+typedef std::string (*JSON_PRT_FPTR)(const uint8_t *pItem, item_len_t len);
 
 class Json
 {
@@ -20,23 +23,29 @@ public:
     ~Json();
 
     void reset();
-    void writeSimple(const char * name, cm_item_len_t length, const uint8_t * v, JSON_PRT_FPTR prt);
+    void writeSimple(const char * name, item_len_t length, const uint8_t * v, JSON_PRT_FPTR prt);
     void startWriteComposite(const char * name);
     void endWriteComposite();
-    void startWriteList(const char * name);
-    void endWriteList();
-    t_cm_result startLoadSimple(const char * name);
-    t_cm_result endLoadSimple(cm_item_len_t * length, uint8_t * pRam, JSON_SET_FPTR set);
-    t_cm_result startLoadComposite(const char * name);
-    t_cm_result endLoadComposite();
+    void startWriteArray(const char * name);
+    void endWriteArray();
+    result_t startLoadSimple(const char * name);
+    result_t endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_FPTR set);
+    result_t startLoadComposite(const char * name);
+    result_t endLoadComposite();
 
 private:
     void writeName(const char * name);
-    void closePreviousLine();
+    void closePredecessorLine();
     Nvram *  nvram;
     std::string indent;
-    bool firstMember;
+    struct WriteContext
+    {
+        WriteContext(): isFirstMember(true), isInArray(false) {}
+        bool isFirstMember; // Are we writing the first member of a list or composite?
+        bool isInArray; // Are we writing a list? xxx I think we'll need multiple copies -- we could be in an array inside an array.
+    };
+    WriteContext writeContext;
 };
-
+}
 #endif // CFG_MAN_JSON_H
 

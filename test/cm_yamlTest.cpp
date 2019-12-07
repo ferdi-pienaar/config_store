@@ -11,6 +11,7 @@
 
 #include <iostream>
 using namespace std;
+using namespace cfg_mgr;
 
 static uint8_t clientRam[1024];
 
@@ -51,7 +52,7 @@ TEST_F(YamlTest, DISABLED_writeComposite)
 {
     uint8_t s1[] = {1,2,3,4};
     uint8_t s2[] = {11,22,33,44};
-   uint8_t expected[] = {55,0, 16,0, 44,0, 4,0,  1,2,3,4,  44,0,  4,0,  11,22,33,44};
+    uint8_t expected[] = {55,0, 16,0, 44,0, 4,0,  1,2,3,4,  44,0,  4,0,  11,22,33,44};
 
     yaml->startWriteComposite("compo");
     yaml->writeSimple("inside", sizeof(s1), s1, NULL);
@@ -68,7 +69,7 @@ TEST_F(YamlTest, DISABLED_loadSimple)
 {
     uint8_t    nvSet[] = {"\"simp\": 55\n"};
     uint8_t    expected[] = {55,0};
-    cm_item_len_t length = sizeof(expected);
+    item_len_t length = sizeof(expected);
 
     // xxx set client RAM to bitpattern and verify only the expected section is modified
 

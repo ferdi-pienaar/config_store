@@ -15,11 +15,14 @@
 //   - a call to endWriteComposite for each call to startWriteComposite
 //
 // The expected sequence of client calls in loading:
-// - getType, then
-// - loadComposite or loadSimple, depending on client's interpretation of the type
-//   returned by getType
-// The client monitors the "complete" field returned by loadSimple to determine if
-// one or more of the composite loads in progress are complete.
+// 1. Load Simple:
+//  1.1 startLoadSimple
+//  1.2 endLoadSimple if startLoadSimple was OK.
+// OR
+// 2. Load Composite:
+//  2.1 startLoadComposite, then the next steps follow iff that returns OK.
+//  2.2 Load components, either Simple or themselves Composite
+//  2.3 endLoadComposite.
 //
 
 #include <stdint.h> // uint8_t, etc
@@ -32,7 +35,10 @@
 
 using namespace std;
 
-Json::Json(Nvram * pNvram): nvram(pNvram), firstMember(true)
+namespace cfg_mgr
+{
+
+Json::Json(Nvram * pNvram): nvram(pNvram)
 {
 }
 
@@ -47,40 +53,67 @@ void Json::reset()
 }
 
 
-void Json::writeSimple(const char * name, cm_item_len_t length, const uint8_t * v, JSON_PRT_FPTR prt)
+void Json::writeSimple(const char * name, item_len_t length, const uint8_t * v, JSON_PRT_FPTR prt)
 {
-    closePreviousLine();
+    closePredecessorLine();
     nvram->write((const uint8_t *)indent.c_str(), indent.size());
     writeName(name);
     string val_str = prt(v, length);
     nvram->write((const uint8_t *)val_str.c_str(), val_str.size());
-    firstMember = false;
+    writeContext.isFirstMember = false;
 }
 
 
-// Don't actually write anything yet, since it may turn out that this
-// composite is empty.
+//
 void Json::startWriteComposite(const char * name)
 {
-    closePreviousLine();
+    closePredecessorLine();
     nvram->write((const uint8_t *)indent.c_str(), indent.size());
     writeName(name);
     nvram->write((const uint8_t *)"{", 1);
+
     indent += " ";
-    firstMember = true;
+    writeContext.isFirstMember = true;
 }
 
 
-// Close writing of composite by writing L of TLV
-// xxx return boolean to indicate if we've reached the bottom of the stack?
+// Close writing of composite.
 void Json::endWriteComposite()
 {
     indent.resize(indent.size() - 1);
+
+    nvram->write((const uint8_t *)"\n", 1);
     nvram->write((const uint8_t *)indent.c_str(), indent.size());
-    nvram->write((const uint8_t *)"\n}", 2);
+    nvram->write((const uint8_t *)"}", 1);
 }
 
-t_cm_result Json::startLoadSimple(const char * name)
+
+//
+void Json::startWriteArray(const char * name)
+{
+    closePredecessorLine();
+    nvram->write((const uint8_t *)indent.c_str(), indent.size());
+    writeName(name);
+    nvram->write((const uint8_t *)"[", 1);
+
+    indent += " ";
+    writeContext.isFirstMember = true;
+    writeContext.isInArray = true;
+}
+
+//
+void Json::endWriteArray()
+{
+    indent.resize(indent.size() - 1);
+
+    nvram->write((const uint8_t *)"\n", 1);
+    nvram->write((const uint8_t *)indent.c_str(), indent.size());
+    nvram->write((const uint8_t *)"]", 1);
+
+    writeContext.isInArray = false;
+}
+
+result_t Json::startLoadSimple(const char * name)
 {
     unsigned int readLen = strlen(name) + 2; // add space for quotes.
     char readName[129];
@@ -96,47 +129,46 @@ t_cm_result Json::startLoadSimple(const char * name)
 
 }
 
-t_cm_result Json::endLoadSimple(cm_item_len_t * length, uint8_t * pRam, JSON_SET_FPTR set)
+result_t Json::endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_FPTR set)
 {
 
     return CM_SUCCESS;
 }
 
-t_cm_result Json::startLoadComposite(const char * name)
+result_t Json::startLoadComposite(const char * name)
 {
     return CM_SUCCESS;
 }
 
-t_cm_result Json::endLoadComposite()
+result_t Json::endLoadComposite()
 {
 
     return CM_SUCCESS;
 }
 
-void Json::startWriteList(const char * name)
+
+// Called when starting an object: close the previous one with a comma if necessary.
+void Json::closePredecessorLine()
 {
-
-}
-
-void Json::endWriteList()
-{
-
-}
-
-void Json::closePreviousLine()
-{
-    if (!firstMember)
+    if (!writeContext.isFirstMember)
     {
         nvram->write((const uint8_t *)",", 1);
     }
     nvram->write((const uint8_t *)"\n", 1);
 }
 
+// If necessary, write name in quotes, followed by ": ".
 void Json::writeName(const char * name)
 {
+    if (writeContext.isInArray)
+    {
+        // In an array, the name has already been written as
+        // the array's name.
+        return;
+    }
     nvram->write((const uint8_t *)"\"", 1);
     nvram->write((const uint8_t *)name, strlen(name));
     nvram->write((const uint8_t *)"\": ", 3);
 }
 
-
+}

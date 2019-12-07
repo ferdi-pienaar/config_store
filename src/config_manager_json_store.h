@@ -7,6 +7,8 @@
 #include "config_manager_yaml.h"
 #include "nvram.h"
 
+namespace cfg_mgr
+{
 
 // Access to YAML persistent storage via the abstract interface represented by cm_store:
 // it's a ConcreteStrategy of the Strategy cm_store.
@@ -23,15 +25,16 @@ public:
     void writeSimple(const cm_simple_metadata * data, const uint8_t * v);
     void startWriteComposite(const cm_composite_metadata * data);
     void endWriteComposite();
-    t_cm_result startLoadSimple(const cm_simple_metadata * data);
-    t_cm_result endLoadSimple(uint8_t * pRam, const cm_simple_metadata * data);
-    t_cm_result startLoadComposite(const cm_composite_metadata * data);
-    t_cm_result endLoadComposite();
+    result_t startLoadSimple(const cm_simple_metadata * data);
+    result_t endLoadSimple(uint8_t * pRam, const cm_simple_metadata * data);
+    result_t startLoadComposite(const cm_composite_metadata * data);
+    result_t endLoadComposite();
 
 private:
     Yaml * yaml;
 
 };
 
+}
 #endif // CFG_MAN_YAML_STORE_H
 

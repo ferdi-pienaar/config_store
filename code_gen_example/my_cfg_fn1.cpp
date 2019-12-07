@@ -13,6 +13,7 @@
 #include <sstream>
 
 using namespace std;
+using namespace cfg_mgr;
 
 // convert temperature to internal integer representation
 static long int d2internal(double t)
@@ -28,7 +29,7 @@ static float internal2t(short int i)
 }
 
 // Use short to represent temperatures
-void setdef_temp(uint8_t *pItem, cm_item_len_t len)
+void setdef_temp(uint8_t *pItem, item_len_t len)
 {
     // Sanity check
     assert(len == sizeof(short));
@@ -38,7 +39,7 @@ void setdef_temp(uint8_t *pItem, cm_item_len_t len)
 
 //
 // Use short to represent temperatures
-string prt_temp(const uint8_t *pItem, cm_item_len_t len)
+string prt_temp(const uint8_t *pItem, item_len_t len)
 {
     // Sanity check
     assert(len == sizeof(short));
@@ -53,7 +54,7 @@ string prt_temp(const uint8_t *pItem, cm_item_len_t len)
 // Use short to represent temperatures.
 // Using a double as an intermediate step makes it easier,
 // but maybe has some corner cases?
-bool set_temp(uint8_t *pItem, cm_item_len_t len, string val)
+bool set_temp(uint8_t *pItem, item_len_t len, string val)
 {
     const char * c_string = val.c_str();
     char * pEnd; // pointer to char after chars accepted by strtod

@@ -1,15 +1,15 @@
 // Functions implemented by the application programmer, to extend
-// the features provided by the config_manager.
+// the features provided by the Config_manager.
 //
 
 #include <iostream>
 #include "config_manager.h"
 #include "my_cfg_fn.h"
 using namespace std;
-
+using namespace cfg_mgr;
 
 //
-void setdef_temp(uint8_t *pItem, cm_item_len_t len)
+void setdef_temp(uint8_t *pItem, item_len_t len)
 {
     // Sanity check
     assert(len == sizeof(short));

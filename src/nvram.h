@@ -10,6 +10,8 @@
 #include <stdint.h> // uint8_t, etc
 #include <stdio.h> // FILE
 
+namespace cfg_mgr
+{
 
 class Nvram
 {
@@ -30,6 +32,6 @@ private:
     FILE * fp;
 
 };
-
+}
 #endif // NVRAM_H
 

@@ -12,13 +12,16 @@
 #include <sstream>
 using namespace std;
 
+namespace cfg_mgr
+{
+
 ////////////////////////////////////////////////////////////////////////////////
 //
-// config_manager
+// Config_manager
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-config_manager::config_manager(const cm_descriptor * desc): base_desc(desc)
+Config_manager::Config_manager(const Descriptor * desc): base_desc(desc)
 {
     ramBase = (uint8_t *)malloc(base_desc->getLen());
     DBG_PRT("init: ramBase, %d at %p\n", base_desc->getLen(), ramBase);
@@ -26,33 +29,33 @@ config_manager::config_manager(const cm_descriptor * desc): base_desc(desc)
     memset(ramBase, 0, base_desc->getLen());
     base_desc->setDefault(ramBase);
     resetCtxt();
-    store = cm_store::getStore();
+    store = Store::getStore();
 }
 
-config_manager::~config_manager()
+Config_manager::~Config_manager()
 {
     free(ramBase);
-    delete store; // xxx is this clean, is delete the obvious pair to getStore (in config_manager constructor)?
+    delete store; // xxx is this clean, is delete the obvious pair to getStore (in Config_manager constructor)?
 }
 
 /// Execute command words entered by client on CLI cpp file
 /// @param argc number of command words
 /// @param argv command word array
-void config_manager::handleCmd(int argc, char *argv[])
+void Config_manager::handleCmd(int argc, char *argv[])
 {
-    command_stack cmd(argc, argv);
-    bool setCtxt = false;
+    Command_stack cmd(argc, argv);
+    bool updateCtxt = false;
 
     // First treat the commands that are only applicable at the top level
     switch (cmd.getTopOp())
     {
-    case command_stack::CM_LOAD:
+    case Command_stack::CM_LOAD:
         return load();
 
-    case command_stack::CM_SAVE:
+    case Command_stack::CM_SAVE:
         return save();
 
-    case command_stack::CM_RESET_CTXT:
+    case Command_stack::CM_RESET_CTXT:
         return resetCtxt();
 
     default: // Other commands are passed to current context
@@ -63,32 +66,32 @@ void config_manager::handleCmd(int argc, char *argv[])
     candidateCtxt = currCtxt;
 
     // Pass command that doesn't apply to CM as a whole, to current context for handling
-    currCtxt.getDesc()->handleCmd(&cmd, currCtxt.getItem(), &candidateCtxt, setCtxt);
-    if (setCtxt)
+    currCtxt.getDesc()->handleCmd(&cmd, currCtxt.getItem(), &candidateCtxt, updateCtxt);
+    if (updateCtxt)
     {
-        updateCtxt();
+        currCtxt = candidateCtxt;
     }
 }
 
 
 // Set context back to base
-void config_manager::resetCtxt()
+void Config_manager::resetCtxt()
 {
     DBG_PRT("resetCtxt\n");
-    cm_context temp("", base_desc, ramBase); // temp context with base properties
+    Cmd_context temp("", base_desc, ramBase); // temp context with base properties
     currCtxt = temp;
 }
 
 
 // Get a prompt string to display to user, representing the current context
-const char * config_manager::getPromptString() const
+const char * Config_manager::getPromptString() const
 {
     return currCtxt.getString().c_str();
 }
 
 
 // Save data in RAM to persistent storage
-void config_manager::save()
+void Config_manager::save()
 {
     if (!base_desc->isPersistent())
     {
@@ -101,13 +104,13 @@ void config_manager::save()
 
 // Load data in persistent storage, to configurable items in RAM.
 // Resets context, since a reload re-allocates memory and makes current context invalid
-void config_manager::load()
+void Config_manager::load()
 {
     store->initForRead();
 
     // Before loading, thus allocating new memory, call setDefault to free owned memory
     base_desc->setDefault(ramBase);
-    t_cm_result res = base_desc->startLoad(store);
+    result_t res = base_desc->startLoad(store);
     if (res == CM_SUCCESS)
     {
         res = base_desc->endLoad(ramBase, store);
@@ -123,18 +126,11 @@ void config_manager::load()
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// cm_descriptor
+// Composite_descriptor
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// cm_composite_descriptor
-//
-////////////////////////////////////////////////////////////////////////////////
-
-cm_composite_descriptor::cm_composite_descriptor(const cm_composite_metadata * pMeta):
+Composite_descriptor::Composite_descriptor(const Composite_metadata * pMeta):
     pData(pMeta)
 {
     assert(pData != NULL);
@@ -144,16 +140,20 @@ cm_composite_descriptor::cm_composite_descriptor(const cm_composite_metadata * p
 //
 // @param cmd - stack of strings containing name elements
 // @param pItem - pointer to RAM where item is located
+// @param candidateContext - in/out, candidate new command=line
+//        context build up while interpreting cmd stack.
+// @param updateCtx - out, true if candidateContext should become
+//        the new context.
 //
 // @return true if command was handled
 //
 // xxx should free memory allocated as side-effect of a non-set or
 //     go-to-node command, not just an invalid command.
 //
-bool cm_composite_descriptor::handleCmd(command_stack * cmd,
-                                        uint8_t * pItem,
-                                        cm_context * candidateContext,
-                                        bool & setCtxt) const
+bool Composite_descriptor::handleCmd(Command_stack * cmd,
+                                     uint8_t * pItem,
+                                     Cmd_context * candidateContext,
+                                     bool & updateCtxt) const
 {
     DBG_PRT("composite::handleCmd: %s\n", cmd->getTop());
 
@@ -161,30 +161,30 @@ bool cm_composite_descriptor::handleCmd(command_stack * cmd,
 
     switch (cmd->getTopOp())
     {
-    case command_stack::CM_OP_NONE:
-        return handleIdWord(cmd, pItem, candidateContext, setCtxt);
+    case Command_stack::CM_OP_NONE:
+        return handleIdWord(cmd, pItem, candidateContext, updateCtxt);
 
-    case command_stack::CM_ADD:
+    case Command_stack::CM_ADD:
         // Remove the word 'add' and pass the remainder to the method
         return handleAdd(&cmd->pop(), pItem);
 
-    case command_stack::CM_DEL:
+    case Command_stack::CM_DEL:
         // Remove the word 'del' and pass the remainder to the method
         return handleDel(&cmd->pop(), pItem);
 
-    case command_stack::CM_PRT:
+    case Command_stack::CM_PRT:
         print(pItem, "", true);
         return true;
 
-    case command_stack::CM_PRT_CFG:
+    case Command_stack::CM_PRT_CFG:
         print(pItem, "", false);
         return true;
 
-    case command_stack::CM_SETDEF:
+    case Command_stack::CM_SETDEF:
         setDefault(pItem);
         return true;
 
-    case command_stack::CM_HELP:
+    case Command_stack::CM_HELP:
         help(pItem);
         return true; // xxx true?
 
@@ -199,12 +199,18 @@ bool cm_composite_descriptor::handleCmd(command_stack * cmd,
 // Handle word in command string that's not a reserved command word,
 // hence presumably it identifies a component
 //
+// @param candidateContext - in/out, candidate new command=line
+//        context build up while interpreting cmd stack.
+// @param updateCtx - out, true if candidateContext should become
+//        the new context.
 // @return true if a word was from cmd was parsed
 //
-bool cm_composite_descriptor::handleIdWord(command_stack * cmd, uint8_t * pItem, cm_context * candidateCtxt, bool & setCtxt) const
+bool Composite_descriptor::handleIdWord(Command_stack * cmd,
+                                        uint8_t * pItem,
+                                        Cmd_context * candidateCtxt,
+                                        bool & updateCtxt) const
 {
-    const cm_aggregate * pAggr = getAggr(cmd->getTop()); // Component that is identified by cmd
-
+    const Aggregate * pAggr = getAggr(cmd->getTop()); // Component that is identified by cmd
     if (pAggr == NULL)
     {
         // Unhandled word(s): not a command, and also doesn't identify a component
@@ -227,12 +233,12 @@ bool cm_composite_descriptor::handleIdWord(command_stack * cmd, uint8_t * pItem,
     if (cmd->getCount() == 0)
     {
         // We have a component, but there are no more words in the command
-        setCtxt = true;
+        updateCtxt = true;
         return true;
     }
 
     // Pass the remainder of the command to the found component
-    if (!pAggr->pData->pDesc->handleCmd(cmd, pComponentItem, candidateCtxt, setCtxt))
+    if (!pAggr->pData->pDesc->handleCmd(cmd, pComponentItem, candidateCtxt, updateCtxt))
     {
         // Component says the command is invalid
         if (added)
@@ -249,7 +255,7 @@ bool cm_composite_descriptor::handleIdWord(command_stack * cmd, uint8_t * pItem,
 // Try to add a component named by cmd to a composite.
 // After verifying the operation is applicable, the item is added.
 // @return true if the operation was successful, false if it failed.
-bool cm_composite_descriptor::handleAdd(command_stack * cmd, uint8_t * pItem) const
+bool Composite_descriptor::handleAdd(Command_stack * cmd, uint8_t * pItem) const
 {
     DBG_PRT("handleAdd %s\n", cmd->getTop());
 
@@ -259,7 +265,7 @@ bool cm_composite_descriptor::handleAdd(command_stack * cmd, uint8_t * pItem) co
         return false;
     }
 
-    const cm_aggregate * pAggr = getAggr(cmd->getTop());
+    const Aggregate * pAggr = getAggr(cmd->getTop());
     if (pAggr == NULL)
     {
         cm_printf("'%s' not in composite '%s'.\n", cmd->getTop(), getName());
@@ -271,7 +277,7 @@ bool cm_composite_descriptor::handleAdd(command_stack * cmd, uint8_t * pItem) co
 
 // Del an owned component named by cmd from a composite
 // @return true if the operation was successful, false if it failed.
-bool cm_composite_descriptor::handleDel(command_stack * cmd, uint8_t * pItem) const
+bool Composite_descriptor::handleDel(Command_stack * cmd, uint8_t * pItem) const
 {
     DBG_PRT("handleDel %s\n", cmd->getTop());
 
@@ -282,7 +288,7 @@ bool cm_composite_descriptor::handleDel(command_stack * cmd, uint8_t * pItem) co
         return false;
     }
 
-    const cm_aggregate * pAggr = getAggr(cmd->getTop());
+    const Aggregate * pAggr = getAggr(cmd->getTop());
 
     if (pAggr == NULL)
     {
@@ -295,7 +301,7 @@ bool cm_composite_descriptor::handleDel(command_stack * cmd, uint8_t * pItem) co
 
 // Delegate print command to components
 //
-void cm_composite_descriptor::print(const uint8_t * pItem, string prefix, bool include_state) const
+void Composite_descriptor::print(const uint8_t * pItem, string prefix, bool include_state) const
 {
     DBG_PRT("print composite %s len %d include_state=%d\n", getName(), getLen(), include_state);
 
@@ -321,7 +327,7 @@ void cm_composite_descriptor::print(const uint8_t * pItem, string prefix, bool i
 // For OWNED components, we free owned memory before setting
 // the corresponding counter to 0.
 //
-void cm_composite_descriptor::setDefault(uint8_t * pItem) const
+void Composite_descriptor::setDefault(uint8_t * pItem) const
 {
     // Set each component to default
     for (unsigned i = 0; i < pData->aggrCount; i++)
@@ -332,7 +338,7 @@ void cm_composite_descriptor::setDefault(uint8_t * pItem) const
 
 
 // Give help for each component.
-void cm_composite_descriptor::help(const uint8_t * pItem) const
+void Composite_descriptor::help(const uint8_t * pItem) const
 {
     for (unsigned i = 0; i < pData->aggrCount; i++)
     {
@@ -342,7 +348,7 @@ void cm_composite_descriptor::help(const uint8_t * pItem) const
 
 
 // Look for the aggregate whose component has a matching name
-const cm_aggregate * cm_composite_descriptor::getAggr(const char * name) const
+const Aggregate * Composite_descriptor::getAggr(const char * name) const
 {
     for (unsigned i = 0; i < pData->aggrCount; i++)
     {
@@ -357,7 +363,7 @@ const cm_aggregate * cm_composite_descriptor::getAggr(const char * name) const
 
 // Look for the aggregate whose component has a matching ID
 // @return aggregate, or NULL if ID does not identify an aggregate in this context
-const cm_aggregate * cm_composite_descriptor::getAggr(cm_item_id_t id) const
+const Aggregate * Composite_descriptor::getAggr(item_id_t id) const
 {
     for (unsigned i = 0; i < pData->aggrCount; i++)
     {
@@ -372,7 +378,7 @@ const cm_aggregate * cm_composite_descriptor::getAggr(cm_item_id_t id) const
 
 /// Save item to persistent storage
 //
-void cm_composite_descriptor::save(const uint8_t *pItem, cm_store * store) const
+void Composite_descriptor::save(const uint8_t *pItem, Store * store) const
 {
     DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id);
     store->startWriteComposite(pData);
@@ -388,9 +394,9 @@ void cm_composite_descriptor::save(const uint8_t *pItem, cm_store * store) const
 // Prepare to load item from persistent storage -- check if it exists in store.
 //
 //
-t_cm_result cm_composite_descriptor::startLoad(cm_store * store) const
+result_t Composite_descriptor::startLoad(Store * store) const
 {
-    t_cm_result ret = store->startLoadComposite(pData);
+    result_t ret = store->startLoadComposite(pData);
     DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id, ret);
     return ret;
 }
@@ -403,11 +409,11 @@ t_cm_result cm_composite_descriptor::startLoad(cm_store * store) const
 // @pre -- this items startLoad was successful, i.e. an unread instance of this
 //         remains in the store.
 //
-t_cm_result cm_composite_descriptor::endLoad(uint8_t * pItem, cm_store * store) const
+result_t Composite_descriptor::endLoad(uint8_t * pItem, Store * store) const
 {
     for (unsigned i = 0; i < getAggrCount(); i++)
     {
-        t_cm_result ret = getAggrAtIndex(i)->load(pItem, store);
+        result_t ret = getAggrAtIndex(i)->load(pItem, store);
         if (!((ret == CM_SUCCESS) || (ret == CM_NOT_FOUND)))
         {
             // An unexpected error, such as unexpected end of store
@@ -422,11 +428,11 @@ t_cm_result cm_composite_descriptor::endLoad(uint8_t * pItem, cm_store * store) 
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// cm_simple_descriptor
+// Simple_descriptor
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-cm_simple_descriptor::cm_simple_descriptor(const cm_simple_metadata * pMeta):
+Simple_descriptor::Simple_descriptor(const Simple_metadata * pMeta):
     pData(pMeta)
 {
     assert(pData != NULL);
@@ -436,7 +442,7 @@ cm_simple_descriptor::cm_simple_descriptor(const cm_simple_metadata * pMeta):
 // An item does not print its own name, since
 // it may be preceded by an index, which is known
 // to the item's composite but not to the item.
-void cm_simple_descriptor::print(const uint8_t * pItem, string prefix, bool include_state) const
+void Simple_descriptor::print(const uint8_t * pItem, string prefix, bool include_state) const
 {
     DBG_PRT("print simple %s len %d at %p include_state=%d\n", getName(), getLen(), pItem, include_state);
 
@@ -456,35 +462,42 @@ void cm_simple_descriptor::print(const uint8_t * pItem, string prefix, bool incl
 
 
 //
-// cmd - array of strings containing name elements
-// pItem - pointer to RAM where item is located
+// @param cmd - array of strings containing name elements
+// @param pItem - pointer to RAM where item is located
+// @param candidateContext - in/out, candidate new command=line
+//        context build up while interpreting cmd stack.
+// @param updateCtx - out, true if candidateContext should become
+//        the new context.
 //
-bool cm_simple_descriptor::handleCmd(command_stack * cmd, uint8_t * pItem, cm_context *candidateCtxt, bool & setCtxt) const
+bool Simple_descriptor::handleCmd(Command_stack * cmd,
+                                  uint8_t * pItem,
+                                  Cmd_context *candidateCtxt,
+                                  bool & updateCtxt) const
 {
     DBG_PRT("simple cmd at %p\n", pItem);
 
     switch (cmd->getTopOp())
     {
-    case command_stack::CM_PRT:
+    case Command_stack::CM_PRT:
         print(pItem, "", true);
         return true;
 
-    case command_stack::CM_PRT_CFG:
+    case Command_stack::CM_PRT_CFG:
         print(pItem, "", false);
         return true;
 
-    case command_stack::CM_SET:
+    case Command_stack::CM_SET:
         if (cmd->pop().getCount() == 1)
         {
             return set(pItem, cmd->getTop());
         }
         break;
 
-    case command_stack::CM_SETDEF:
+    case Command_stack::CM_SETDEF:
         setDefault(pItem);
         return true;
 
-    case command_stack::CM_HELP:
+    case Command_stack::CM_HELP:
         help(pItem);
         return true; // true?
 
@@ -496,7 +509,7 @@ bool cm_simple_descriptor::handleCmd(command_stack * cmd, uint8_t * pItem, cm_co
 
 
 // Set item to a value input as string on command line
-bool cm_simple_descriptor::set(uint8_t * pItem, string val) const
+bool Simple_descriptor::set(uint8_t * pItem, string val) const
 {
     DBG_PRT("set simple %s at %p to '%s'\n", getName(), pItem, val.c_str());
 
@@ -510,7 +523,7 @@ bool cm_simple_descriptor::set(uint8_t * pItem, string val) const
 
 
 // Set configurable item to its default value.
-void cm_simple_descriptor::setDefault(uint8_t * pItem) const
+void Simple_descriptor::setDefault(uint8_t * pItem) const
 {
     if (pData->pSetDefault != NULL)
     {
@@ -520,7 +533,7 @@ void cm_simple_descriptor::setDefault(uint8_t * pItem) const
 
 
 /// Save item to persistent storage
-void cm_simple_descriptor::save(const uint8_t *pItem, cm_store * store) const
+void Simple_descriptor::save(const uint8_t *pItem, Store * store) const
 {
     DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id);
     store->writeSimple(pData, pItem);
@@ -528,17 +541,17 @@ void cm_simple_descriptor::save(const uint8_t *pItem, cm_store * store) const
 
 
 // @param pItem
-t_cm_result cm_simple_descriptor::startLoad(cm_store * store) const
+result_t Simple_descriptor::startLoad(Store * store) const
 {
-    t_cm_result ret = store->startLoadSimple(pData)
-    DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id, ret);
+    result_t ret = store->startLoadSimple(pData)
+                   DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id, ret);
     return ret;
 }
 
 // @param pItem
-t_cm_result cm_simple_descriptor::endLoad(uint8_t * pItem, cm_store * store) const
+result_t Simple_descriptor::endLoad(uint8_t * pItem, Store * store) const
 {
-    t_cm_result ret = store->endLoadSimple(pItem, pData);
+    result_t ret = store->endLoadSimple(pItem, pData);
     DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id, ret);
     return ret;
 }
@@ -546,7 +559,7 @@ t_cm_result cm_simple_descriptor::endLoad(uint8_t * pItem, cm_store * store) con
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// cm_aggregate
+// Aggregate
 //
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -554,7 +567,7 @@ t_cm_result cm_simple_descriptor::endLoad(uint8_t * pItem, cm_store * store) con
 // @return false if unable to extract a valid (in-range) index,
 //         true if returning a valid (in-range) index.
 //
-bool cm_aggregate::getIndex(command_stack * cmd, unsigned int & itemIdx) const
+bool Aggregate::getIndex(Command_stack * cmd, unsigned int & itemIdx) const
 {
     if (cmd->getIndex(itemIdx)) return true;
     cm_printf("'%s' needs index.\n", pData->pDesc->getName());
@@ -563,7 +576,7 @@ bool cm_aggregate::getIndex(command_stack * cmd, unsigned int & itemIdx) const
 
 
 // Return pointer to item, given parent item and index
-uint8_t * cm_aggregate::getItemAtIndex(const uint8_t * pParentItem, unsigned idx) const
+uint8_t * Aggregate::getItemAtIndex(const uint8_t * pParentItem, unsigned idx) const
 {
     if (idx >= getCount(pParentItem))
     {
@@ -575,7 +588,7 @@ uint8_t * cm_aggregate::getItemAtIndex(const uint8_t * pParentItem, unsigned idx
 
 // Set items to default (and free the memory they occupied, if OWNed)
 // @param pItem - item this aggregate belongs to
-void cm_aggregate::setDefault(uint8_t * pItem) const
+void Aggregate::setDefault(uint8_t * pItem) const
 {
     // Set each item to default (thus freeing memory of OWNed sub-components)
     for (unsigned i = 0; i < getCount(pItem); i++)
@@ -590,7 +603,7 @@ void cm_aggregate::setDefault(uint8_t * pItem) const
 
 // Print, appending index to prefix (if necessary) and delegating to items
 // @param prefix string to be pre-pended to the value, representing its context
-void cm_aggregate::print(const uint8_t * pItem, std::string prefix, bool include_state) const
+void Aggregate::print(const uint8_t * pItem, std::string prefix, bool include_state) const
 {
     if (!include_state && !pData->pDesc->isPersistent())
     {
@@ -625,10 +638,11 @@ void cm_aggregate::print(const uint8_t * pItem, std::string prefix, bool include
 //
 // @return true if item is returned, false if no index, or index out of range
 //
-bool cm_aggregate::getComponentItem(command_stack * cmd,
-                                    uint8_t * pParentItem,
-                                    uint8_t ** ppItem,
-                                    bool & added, cm_context * candidateCtxt) const
+bool Aggregate::getComponentItem(Command_stack * cmd,
+                                 uint8_t * pParentItem,
+                                 uint8_t ** ppItem,
+                                 bool & added,
+                                 Cmd_context * candidateCtxt) const
 {
     added = false; // By default, didn't add a new component
     unsigned int itemIdx = 0; // If no index is needed, we'll use offset 0
@@ -667,7 +681,7 @@ bool cm_aggregate::getComponentItem(command_stack * cmd,
 
 
 // Save to persistent storage all elements in the array, if its metadata says it's a persistent item
-void cm_aggregate::save(const uint8_t *pItem, cm_store * store) const
+void Aggregate::save(const uint8_t *pItem, Store * store) const
 {
     if (!pData->pDesc->isPersistent())
     {
@@ -688,7 +702,7 @@ void cm_aggregate::save(const uint8_t *pItem, cm_store * store) const
 // @return CM_SUCCESS if item successfully loaded from store (it may have
 //           been saved into RAM or dumped)
 //         else an indication of why store load failed
-t_cm_result cm_aggregate::load(uint8_t * pParentItem, cm_store * store) const
+result_t Aggregate::load(uint8_t * pParentItem, Store * store) const
 {
     if (!pData->pDesc->isPersistent())
     {
@@ -698,12 +712,12 @@ t_cm_result cm_aggregate::load(uint8_t * pParentItem, cm_store * store) const
     for (unsigned idx = 0; idx < pData->maxCount; idx++)
     {
         // This fails if there isn't an item in the store to load.
-        t_cm_result res = pData->pDesc->startLoad(store);
+        result_t res = pData->pDesc->startLoad(store);
         if (res != CM_SUCCESS)
         {
             return res;
         }
-        
+
         // There is an item in the store, so get RAM for it --
         // in case of an owned aggregate, this allocates memory.
         uint8_t * pItem = getComponentItem(idx, pParentItem);
@@ -712,7 +726,7 @@ t_cm_result cm_aggregate::load(uint8_t * pParentItem, cm_store * store) const
             // Memory couldn't be allocated for the item.
             return CM_SUCCESS; //xxxx success??
         }
-        
+
         // We have memory to load the item into, so complete the load.
         res = pData->pDesc->endLoad(pItem, store);
         if (res != CM_SUCCESS)
@@ -726,7 +740,7 @@ t_cm_result cm_aggregate::load(uint8_t * pParentItem, cm_store * store) const
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// cm_contained_aggregate
+// Contained_aggregate
 //
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -734,7 +748,7 @@ t_cm_result cm_aggregate::load(uint8_t * pParentItem, cm_store * store) const
 // pParentItem: pointer to parent item; from this the aggregate obtains the
 //              address of the first item in the array that it links to the parent.
 //
-uint8_t * cm_contained_aggregate::getFirstItem(const uint8_t * pParentItem) const
+uint8_t * Contained_aggregate::getFirstItem(const uint8_t * pParentItem) const
 {
     return (uint8_t *)(pParentItem + pData->offset);
 }
@@ -742,14 +756,14 @@ uint8_t * cm_contained_aggregate::getFirstItem(const uint8_t * pParentItem) cons
 
 // Return the number of items in the component's array.
 // For a contained component, the count is fixed at maxCount.
-unsigned cm_contained_aggregate::getCount(const uint8_t * pParentItem) const
+unsigned Contained_aggregate::getCount(const uint8_t * pParentItem) const
 {
     return pData->maxCount;
 }
 
 
 // Handle command 'add' on command line
-bool cm_contained_aggregate::handleAdd(uint8_t * pItem) const
+bool Contained_aggregate::handleAdd(uint8_t * pItem) const
 {
     cm_printf("'add' not supported for contained '%s'.\n", pData->pDesc->getName());
     return false;
@@ -757,7 +771,7 @@ bool cm_contained_aggregate::handleAdd(uint8_t * pItem) const
 
 
 // Handle command 'del' on command line
-bool cm_contained_aggregate::handleDel(command_stack * cmd, uint8_t * pItem) const
+bool Contained_aggregate::handleDel(Command_stack * cmd, uint8_t * pItem) const
 {
     cm_printf("'del' not supported for contained '%s'.\n", pData->pDesc->getName());
     return false;
@@ -765,7 +779,7 @@ bool cm_contained_aggregate::handleDel(command_stack * cmd, uint8_t * pItem) con
 
 
 // Implicit add is not supported for contained components, because add isn't supported
-uint8_t * cm_contained_aggregate::addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const
+uint8_t * Contained_aggregate::addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const
 {
     return NULL;
 }
@@ -779,14 +793,14 @@ uint8_t * cm_contained_aggregate::addImplicit(unsigned int itemIdx, uint8_t * pP
 //
 // @return the wanted item, or NULL
 //
-uint8_t * cm_contained_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem) const
+uint8_t * Contained_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem) const
 {
     return getItemAtIndex(pParentItem, idx);
 }
 
 
 // Give name, count
-void cm_contained_aggregate::help(const uint8_t * pItem) const
+void Contained_aggregate::help(const uint8_t * pItem) const
 {
     cm_printf("%s [%u]\n", pData->pDesc->getName(), getCount(pItem));
 }
@@ -794,7 +808,7 @@ void cm_contained_aggregate::help(const uint8_t * pItem) const
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// cm_owned_aggregate
+// Owned_aggregate
 //
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -803,7 +817,7 @@ void cm_contained_aggregate::help(const uint8_t * pItem) const
 // pParentItem: pointer to parent item; from this the aggregate obtains the
 //              address of the first item in the array that it links to the parent.
 //
-uint8_t * cm_owned_aggregate::getFirstItem(const uint8_t * pParentItem) const
+uint8_t * Owned_aggregate::getFirstItem(const uint8_t * pParentItem) const
 {
     return *(uint8_t **)(pParentItem + pData->offset); // location is a pointer to the OWNED item
 }
@@ -812,7 +826,7 @@ uint8_t * cm_owned_aggregate::getFirstItem(const uint8_t * pParentItem) const
 // Return the number of items in the component's array
 // xxx giving a fixed size to counters would simplify this, but
 // would restrict the application developer.
-unsigned cm_owned_aggregate::getCount(const uint8_t * pParentItem) const
+unsigned Owned_aggregate::getCount(const uint8_t * pParentItem) const
 {
     if (pCounterAggr == NULL)
     {
@@ -840,7 +854,7 @@ unsigned cm_owned_aggregate::getCount(const uint8_t * pParentItem) const
 // Set value in RAM that records the number of items in the array of items
 // xxx giving a fixed size to counters would simplify this, but
 // would restrict the application developer.
-void cm_owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) const
+void Owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) const
 {
     if (pCounterAggr == NULL)
     {
@@ -890,7 +904,7 @@ void cm_owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) con
 // Free memory of items, if any.  This is called when setting the parent
 // item to default -- the default for OWNed components is that there are none.
 //
-void cm_owned_aggregate::freeItems(uint8_t * pParentItem) const
+void Owned_aggregate::freeItems(uint8_t * pParentItem) const
 {
     uint8_t ** ppItems = (uint8_t **)(pParentItem + pData->offset);
 
@@ -911,7 +925,7 @@ void cm_owned_aggregate::freeItems(uint8_t * pParentItem) const
 
 
 // Handle command 'add' on command line
-bool cm_owned_aggregate::handleAdd(uint8_t * pItem) const
+bool Owned_aggregate::handleAdd(uint8_t * pItem) const
 {
     if (getCount(pItem) >= pData->maxCount)
     {
@@ -928,7 +942,7 @@ bool cm_owned_aggregate::handleAdd(uint8_t * pItem) const
 
 
 // Handle command 'del' on command line
-bool cm_owned_aggregate::handleDel(command_stack * cmd, uint8_t * pItem) const
+bool Owned_aggregate::handleDel(Command_stack * cmd, uint8_t * pItem) const
 {
     unsigned int cnt = getCount(pItem); // number of items currently in array
 
@@ -961,7 +975,7 @@ bool cm_owned_aggregate::handleDel(command_stack * cmd, uint8_t * pItem) const
 // This allocates memory for the new item, sets it to default values,
 // and increments the corresponding counter.
 // @return pointer to new allocated memory, or NULL in case of failure
-uint8_t * cm_owned_aggregate::add(uint8_t * pParentItem) const
+uint8_t * Owned_aggregate::add(uint8_t * pParentItem) const
 {
     // Reallocate memory, and save pointer in the same location
     unsigned   cnt     = getCount(pParentItem);
@@ -999,10 +1013,10 @@ uint8_t * cm_owned_aggregate::add(uint8_t * pParentItem) const
 // Del OWNED item.
 // This re-allocates the necessary memory, updates the counter if necessary,
 // and sets the pointer to the memory to NULL if it's all been freed.
-void cm_owned_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
+void Owned_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
 {
     uint8_t ** ppItems = (uint8_t **)(pParentItem + pData->offset);
-    cm_item_len_t componentLen = pData->pDesc->getLen();
+    item_len_t componentLen = pData->pDesc->getLen();
     unsigned cnt = getCount(pParentItem);
 
     assert(*ppItems != NULL);
@@ -1034,7 +1048,7 @@ void cm_owned_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
 // @return a pointer to the new item, if the index is one larger than the current
 // largest item index, and in-range; else NULL.
 //
-uint8_t * cm_owned_aggregate::addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const
+uint8_t * Owned_aggregate::addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const
 {
     DBG_PRT("%s: %s idx=%d cnt=%d\n",
             __PRETTY_FUNCTION__, pData->pDesc->getName(), itemIdx, getCount(pParentItem));
@@ -1057,14 +1071,14 @@ uint8_t * cm_owned_aggregate::addImplicit(unsigned int itemIdx, uint8_t * pParen
 //
 // @return the wanted item, or NULL
 //
-uint8_t * cm_owned_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem) const
+uint8_t * Owned_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem) const
 {
     return addImplicit(idx, pParentItem);
 }
 
 
 // Give name, current count, and maxcount.
-void cm_owned_aggregate::help(const uint8_t * pItem) const
+void Owned_aggregate::help(const uint8_t * pItem) const
 {
     cm_printf("%s [%u/%u]\n", pData->pDesc->getName(), getCount(pItem), pData->maxCount);
 }
@@ -1072,12 +1086,12 @@ void cm_owned_aggregate::help(const uint8_t * pItem) const
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// command_stack
+// Command_stack
 //
 ////////////////////////////////////////////////////////////////////////////////
 
 // Return the operation represented by the word at the top of the command stack
-command_stack::eCmOp command_stack::getTopOp() const
+Command_stack::eCmOp Command_stack::getTopOp() const
 {
     if (strcmp(getTop(), "add") == 0)     return CM_ADD;
     if (strcmp(getTop(), "del") == 0)     return CM_DEL;
@@ -1093,8 +1107,8 @@ command_stack::eCmOp command_stack::getTopOp() const
 }
 
 
-// extract index from top word in command stack and pop it
-bool command_stack::getIndex(unsigned int & itemIdx)
+// Extract index from top word in command stack and pop it.
+bool Command_stack::getIndex(unsigned int & itemIdx)
 {
     if (count == 0) return false;
 
@@ -1112,19 +1126,19 @@ bool command_stack::getIndex(unsigned int & itemIdx)
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// cm_context
+// Cmd_context
 //
 ////////////////////////////////////////////////////////////////////////////////
 
 // Add a word to the context string
-void cm_context::add(string w)
+void Cmd_context::add(string w)
 {
     str += w + " ";
 }
 
 
 // Add an unsigned integer to the context string
-void cm_context::add(unsigned idx)
+void Cmd_context::add(unsigned idx)
 {
     char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
 
@@ -1132,3 +1146,4 @@ void cm_context::add(unsigned idx)
     str += indexbuf;
 }
 
+}

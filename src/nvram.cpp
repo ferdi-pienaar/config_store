@@ -5,6 +5,9 @@
 
 #define CFG_FILE_NAME "cfg.bin"
 
+namespace cfg_mgr
+{
+
 bool Nvram::initForWrite()
 {
     offset = 0;
@@ -81,4 +84,4 @@ bool Nvram::read(uint8_t * d, unsigned int len)
     return true;
 }
 
-
+}

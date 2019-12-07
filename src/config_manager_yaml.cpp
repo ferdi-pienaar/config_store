@@ -32,6 +32,9 @@
 
 using namespace std;
 
+namespace cfg_mgr
+{
+
 Yaml::Yaml(Nvram * pNvram): nvram(pNvram), stackIndex(0)
 {
 }
@@ -48,7 +51,7 @@ void Yaml::reset()
 }
 
 
-void Yaml::writeSimple(const char * name, cm_item_len_t length, const uint8_t * v, YAML_PRT_FPTR prt)
+void Yaml::writeSimple(const char * name, item_len_t length, const uint8_t * v, YAML_PRT_FPTR prt)
 {
     write_indent();
     cout << name << ": ";
@@ -78,7 +81,7 @@ void Yaml::endWriteComposite()
     cout << "end" << endl;
 }
 
-t_cm_result Yaml::startLoadSimple(const char * name)
+result_t Yaml::startLoadSimple(const char * name)
 {
     unsigned int readLen = strlen(name) + 2; // add space for quotes.
     char readName[129];
@@ -94,18 +97,18 @@ t_cm_result Yaml::startLoadSimple(const char * name)
 
 }
 
-t_cm_result Yaml::endLoadSimple(cm_item_len_t * length, uint8_t * pRam, YAML_SET_FPTR set)
+result_t Yaml::endLoadSimple(item_len_t * length, uint8_t * pRam, YAML_SET_FPTR set)
 {
 
     return CM_SUCCESS;
 }
 
-t_cm_result Yaml::startLoadComposite(const char * name)
+result_t Yaml::startLoadComposite(const char * name)
 {
     return CM_SUCCESS;
 }
 
-t_cm_result Yaml::endLoadComposite()
+result_t Yaml::endLoadComposite()
 {
 
     return CM_SUCCESS;
@@ -129,3 +132,4 @@ void Yaml::write_indent()
     }
 }
 
+}

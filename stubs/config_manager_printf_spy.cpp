@@ -9,7 +9,7 @@ static const unsigned int BUF_SIZE = 4096;
 static char buf[BUF_SIZE];
 static int offset; // offset in buffer at which next cm_printf will write
 
-int cm_printf(const char * format, ...)
+int cfg_mgr::cm_printf(const char * format, ...)
 {
     va_list args;
     va_start (args, format);

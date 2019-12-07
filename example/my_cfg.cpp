@@ -19,13 +19,14 @@
 #include "my_cfg.h"
 #include "config_manager_util.h"
 #include "config_manager_setdef_null.h"
-#include "my_cfg_fn.h" // User-written functions "plugged in" to config_manager
+#include "my_cfg_fn.h" // User-written functions "plugged in" to Config_manager
 
 // We can get the size of a member of a type without having to declare a variable of that type
 // Using it means that if we change the type of a simple CONTAINED item
 // in the .h file, we don't have to change it here, too.
 #define SIZEOF(s,m) ((size_t) sizeof(((s *)0)->m))
 
+using namespace cfg_mgr;
 
 // Start of composite item device
 enum
@@ -35,14 +36,14 @@ enum
     USERCOUNT = 2,
     USER = 3,
     HOME = 4,
-    
+
 };
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // ip_addr
 ////////////////////////////////////////////////////////////////////////////////
-cm_simple_metadata ip_address_d =
+Simple_metadata ip_address_d =
 {
     {
         "ipaddr",
@@ -55,18 +56,18 @@ cm_simple_metadata ip_address_d =
     cm_prt_int
 };
 
-const cm_simple_descriptor ip_address(&ip_address_d);
-const cm_aggregate_data ipaddressAggr_d = {&ip_address, 1, offsetof(tDevice, addr)};
-const cm_contained_aggregate ipaddressAggr(&ipaddressAggr_d);
+const Simple_descriptor ip_address(&ip_address_d);
+const Aggregate_data ipaddressAggr_d = {&ip_address, 1, offsetof(tDevice, addr)};
+const Contained_aggregate ipaddressAggr(&ipaddressAggr_d);
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // port
 ////////////////////////////////////////////////////////////////////////////////
-const cm_simple_metadata port_d =
+const Simple_metadata port_d =
 {
     {
-        "port", 
+        "port",
         CLIPORT,
         SIZEOF(tDevice, cliPort[0]), // the number of elements in the array are taken into account in the aggregate below
         true
@@ -76,18 +77,18 @@ const cm_simple_metadata port_d =
     cm_prt_int
 };
 
-const cm_simple_descriptor port(&port_d);
-const cm_aggregate_data portAggr_d = {&port, NUM_CLI_PORT, offsetof(tDevice, cliPort)};
-const cm_contained_aggregate portAggr(&portAggr_d);
+const Simple_descriptor port(&port_d);
+const Aggregate_data portAggr_d = {&port, NUM_CLI_PORT, offsetof(tDevice, cliPort)};
+const Contained_aggregate portAggr(&portAggr_d);
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // userCnt
 ////////////////////////////////////////////////////////////////////////////////
-const cm_simple_metadata userCnt_d =
+const Simple_metadata userCnt_d =
 {
     {
-        "usercnt", 
+        "usercnt",
         USERCOUNT,
         SIZEOF(tDevice, userCount),
         false // counter is not persistent
@@ -98,9 +99,9 @@ const cm_simple_metadata userCnt_d =
 };
 
 // A counter is volatile => last param = false
-const cm_simple_descriptor userCnt(&userCnt_d);
-const cm_aggregate_data userCntAggr_d = {&userCnt, 1, offsetof(tDevice, userCount)};
-const cm_contained_aggregate userCntAggr(&userCntAggr_d);
+const Simple_descriptor userCnt(&userCnt_d);
+const Aggregate_data userCntAggr_d = {&userCnt, 1, offsetof(tDevice, userCount)};
+const Contained_aggregate userCntAggr(&userCntAggr_d);
 
 
 // Start of composite item user
@@ -116,10 +117,10 @@ enum
 ////////////////////////////////////////////////////////////////////////////////
 // user_name
 ////////////////////////////////////////////////////////////////////////////////
-const cm_simple_metadata user_name_d =
+const Simple_metadata user_name_d =
 {
     {
-        "name", 
+        "name",
         USER_NAME,
         SIZEOF(tUser, name),
         true
@@ -129,18 +130,18 @@ const cm_simple_metadata user_name_d =
     cm_prt_str
 };
 
-const cm_simple_descriptor user_name(&user_name_d);
-const cm_aggregate_data userNameAggr_d = {&user_name, 1, offsetof(tUser, name)};
-const cm_contained_aggregate userNameAggr(&userNameAggr_d);
+const Simple_descriptor user_name(&user_name_d);
+const Aggregate_data userNameAggr_d = {&user_name, 1, offsetof(tUser, name)};
+const Contained_aggregate userNameAggr(&userNameAggr_d);
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // user_id
 ////////////////////////////////////////////////////////////////////////////////
-const cm_simple_metadata user_id_d =
+const Simple_metadata user_id_d =
 {
     {
-        "id", 
+        "id",
         USER_ID,
         SIZEOF(tUser, id),
         true
@@ -150,18 +151,18 @@ const cm_simple_metadata user_id_d =
     cm_prt_int /* xxx unsigned */
 };
 
-const cm_simple_descriptor user_id(&user_id_d);
-const cm_aggregate_data userIdAggr_d = {&user_id, 1, offsetof(tUser, id)};
-const cm_contained_aggregate userIdAggr(&userIdAggr_d);
+const Simple_descriptor user_id(&user_id_d);
+const Aggregate_data userIdAggr_d = {&user_id, 1, offsetof(tUser, id)};
+const Contained_aggregate userIdAggr(&userIdAggr_d);
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // user_temp
 ////////////////////////////////////////////////////////////////////////////////
-const cm_simple_metadata user_temp_d =
+const Simple_metadata user_temp_d =
 {
     {
-        "temp", 
+        "temp",
         USER_TEMP,
         SIZEOF(tUser, temperature),
         true
@@ -171,30 +172,30 @@ const cm_simple_metadata user_temp_d =
     cm_prt_int
 };
 
-const cm_simple_descriptor user_temp(&user_temp_d);
-const cm_aggregate_data userTempAggr_d = {&user_temp, 1, offsetof(tUser, temperature)};
-const cm_contained_aggregate userTempAggr(&userTempAggr_d);
+const Simple_descriptor user_temp(&user_temp_d);
+const Aggregate_data userTempAggr_d = {&user_temp, 1, offsetof(tUser, temperature)};
+const Contained_aggregate userTempAggr(&userTempAggr_d);
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // user_elapsed: statistic, hence non-persistent
 ////////////////////////////////////////////////////////////////////////////////
-const cm_simple_metadata user_elapsed_d =
+const Simple_metadata user_elapsed_d =
 {
     {
-        "elapsed", 
+        "elapsed",
         USER_ELAPSED,
         SIZEOF(tUser, elapsed),
         false
     },
-    NULL, // no set function, because statistics are set by application, not cfg_man
+    NULL, // no set function, because statistics are set by application, not cfg_mgr
     NULL, // setdef
     cm_prt_int
 };
 
-const cm_simple_descriptor user_elapsed(&user_elapsed_d);
-const cm_aggregate_data userElapsedAggr_d = {&user_elapsed, 1, offsetof(tUser, elapsed)};
-const cm_contained_aggregate userElapsedAggr(&userElapsedAggr_d);
+const Simple_descriptor user_elapsed(&user_elapsed_d);
+const Aggregate_data userElapsedAggr_d = {&user_elapsed, 1, offsetof(tUser, elapsed)};
+const Contained_aggregate userElapsedAggr(&userElapsedAggr_d);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -202,7 +203,7 @@ const cm_contained_aggregate userElapsedAggr(&userElapsedAggr_d);
 ////////////////////////////////////////////////////////////////////////////////
 
 /* List of aggregates in user */
-const cm_aggregate * const userAggrList[] = 
+const Aggregate * const userAggrList[] =
 {
     &userNameAggr,
     &userIdAggr,
@@ -210,10 +211,10 @@ const cm_aggregate * const userAggrList[] =
     &userElapsedAggr,
 };
 
-const cm_composite_metadata user_d =
+const Composite_metadata user_d =
 {
     {
-        "user", 
+        "user",
         USER,
         sizeof(tUser),
         true
@@ -222,9 +223,9 @@ const cm_composite_metadata user_d =
     sizeof(userAggrList)/sizeof(userAggrList[0])
 };
 
-const cm_composite_descriptor user(&user_d);
-const cm_aggregate_data userAggr_d = {&user, 3 /* xxx max number of users */, offsetof(tDevice, users)};
-const cm_owned_aggregate userAggr(&userAggr_d, &userCntAggr);
+const Composite_descriptor user(&user_d);
+const Aggregate_data userAggr_d = {&user, 3 /* xxx max number of users */, offsetof(tDevice, users)};
+const Owned_aggregate userAggr(&userAggr_d, &userCntAggr);
 
 // Start of composite item home
 enum
@@ -237,10 +238,10 @@ enum
 ////////////////////////////////////////////////////////////////////////////////
 // home_addr
 ////////////////////////////////////////////////////////////////////////////////
-const cm_simple_metadata home_addr_d =
+const Simple_metadata home_addr_d =
 {
     {
-        "addr", 
+        "addr",
         HOME_ADDR,
         sizeof(unsigned long), // xxx
         true
@@ -250,9 +251,9 @@ const cm_simple_metadata home_addr_d =
     cm_prt_int
 };
 
-const cm_simple_descriptor home_addr(&home_addr_d);
-const cm_aggregate_data homeAddrAggr_d = {&home_addr, 1, offsetof(tHome, pAddr)};
-const cm_owned_aggregate homeAddrAggr(&homeAddrAggr_d, NULL); // NULL => no counter
+const Simple_descriptor home_addr(&home_addr_d);
+const Aggregate_data homeAddrAggr_d = {&home_addr, 1, offsetof(tHome, pAddr)};
+const Owned_aggregate homeAddrAggr(&homeAddrAggr_d, NULL); // NULL => no counter
 
 // Start of composite item home location
 enum
@@ -264,37 +265,37 @@ enum
 ////////////////////////////////////////////////////////////////////////////////
 // home_loc_name
 ////////////////////////////////////////////////////////////////////////////////
-const cm_simple_metadata home_loc_name_d =
+const Simple_metadata home_loc_name_d =
 {
     {
-       "name", 
-       HOME_LOC_NAME,
-       MAX_LEN_LOCATION_NAME, // xxx
-       true
+        "name",
+        HOME_LOC_NAME,
+        MAX_LEN_LOCATION_NAME, // xxx
+        true
     },
     cm_set_str,
     cm_setdef_null,
     cm_prt_str
 };
 
-const cm_simple_descriptor home_loc_name(&home_loc_name_d);
-const cm_aggregate_data homeLocNameAggr_d = {&home_loc_name, 1, offsetof(tLocation, name)};
-const cm_contained_aggregate homeLocNameAggr(&homeLocNameAggr_d);
+const Simple_descriptor home_loc_name(&home_loc_name_d);
+const Aggregate_data homeLocNameAggr_d = {&home_loc_name, 1, offsetof(tLocation, name)};
+const Contained_aggregate homeLocNameAggr(&homeLocNameAggr_d);
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // home_loc
 ////////////////////////////////////////////////////////////////////////////////
 /* List of aggregates in home_loc */
-const cm_aggregate * const homeLocAggrList[] = 
+const Aggregate * const homeLocAggrList[] =
 {
     &homeLocNameAggr,
 };
 
-const cm_composite_metadata home_loc_d =
+const Composite_metadata home_loc_d =
 {
     {
-        "loc", 
+        "loc",
         HOME_LOC,
         sizeof(tLocation),
         true
@@ -303,25 +304,25 @@ const cm_composite_metadata home_loc_d =
     sizeof(homeLocAggrList)/sizeof(homeLocAggrList[0])
 };
 
-const cm_composite_descriptor home_loc(&home_loc_d);
-const cm_aggregate_data homeLocAggr_d = {&home_loc, 1, offsetof(tHome, pLoc)};
-const cm_owned_aggregate homeLocAggr(&homeLocAggr_d, NULL); // NULL because the owned item has no counter
+const Composite_descriptor home_loc(&home_loc_d);
+const Aggregate_data homeLocAggr_d = {&home_loc, 1, offsetof(tHome, pLoc)};
+const Owned_aggregate homeLocAggr(&homeLocAggr_d, NULL); // NULL because the owned item has no counter
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // home
 ////////////////////////////////////////////////////////////////////////////////
 /* List of aggregates in home */
-const cm_aggregate * const homeAggrList[] = 
+const Aggregate * const homeAggrList[] =
 {
     &homeAddrAggr,
     &homeLocAggr,
 };
 
-const cm_composite_metadata home_d =
+const Composite_metadata home_d =
 {
     {
-        "home", 
+        "home",
         HOME,
         sizeof(tHome),
         true
@@ -330,16 +331,16 @@ const cm_composite_metadata home_d =
     sizeof(homeAggrList)/sizeof(homeAggrList[0])
 };
 
-const cm_composite_descriptor home(&home_d);
-const cm_aggregate_data homeAggr_d = {&home, 1, offsetof(tDevice, home)};
-const cm_contained_aggregate homeAggr(&homeAggr_d);
+const Composite_descriptor home(&home_d);
+const Aggregate_data homeAggr_d = {&home, 1, offsetof(tDevice, home)};
+const Contained_aggregate homeAggr(&homeAggr_d);
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // device (top level)
 ////////////////////////////////////////////////////////////////////////////////
 /* List of aggregates in device */
-const cm_aggregate * const deviceAggrList[] = 
+const Aggregate * const deviceAggrList[] =
 {
     &ipaddressAggr,
     &portAggr,
@@ -348,7 +349,7 @@ const cm_aggregate * const deviceAggrList[] =
     &homeAggr,
 };
 
-const cm_composite_metadata device_d =
+const Composite_metadata device_d =
 {
     {
         "device",
@@ -360,9 +361,9 @@ const cm_composite_metadata device_d =
     sizeof(deviceAggrList)/sizeof(deviceAggrList[0])
 };
 
-const cm_composite_descriptor deviceDesc(&device_d);
+const Composite_descriptor deviceDesc(&device_d);
 
-const cm_descriptor * get_base_descriptor()
+const Descriptor * get_base_descriptor()
 {
     return &deviceDesc;
 }

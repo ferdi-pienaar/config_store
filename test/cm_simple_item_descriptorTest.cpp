@@ -1,5 +1,5 @@
 // Unit test using open-source unit test framework
-// These tests use the cm_simple_descriptor's public interface
+// These tests use the Simple_descriptor's public interface
 // to test it, and a spy to verify what the CUT prints to its console.
 // We also read/write the items themselves.
 //
@@ -12,10 +12,10 @@
 
 #include <string>
 using namespace std;
-
+using namespace cfg_mgr;
 
 // setdef function used in tests
-void setint11(uint8_t *pItem, cm_item_len_t len)
+void setint11(uint8_t *pItem, item_len_t len)
 {
     // Sanity check
     assert(len == sizeof(int));
@@ -36,9 +36,9 @@ protected:
 
 TEST_F(CmSimpleDescriptor, getLen)
 {
-    cm_simple_metadata d_d = {{"d01", 1, 55, true}, NULL, NULL, NULL};
+    Simple_metadata d_d = {{"d01", 1, 55, true}, NULL, NULL, NULL};
 
-    cm_simple_descriptor d(&d_d);
+    Simple_descriptor d(&d_d);
     EXPECT_EQ(55, d.getLen());
 }
 
@@ -47,9 +47,9 @@ TEST_F(CmSimpleDescriptor, print)
 {
     string prefix = "";
     unsigned mem = 7;
-    cm_simple_metadata d_d = {{"d01", 1, sizeof(mem), true}, NULL, NULL, NULL};
+    Simple_metadata d_d = {{"d01", 1, sizeof(mem), true}, NULL, NULL, NULL};
 
-    cm_simple_descriptor d(&d_d);
+    Simple_descriptor d(&d_d);
     d.print((uint8_t *)&mem, prefix, false);
     EXPECT_STREQ("= 07000000\n", cm_printf_spy_get());
 }
@@ -58,9 +58,9 @@ TEST_F(CmSimpleDescriptor, print)
 TEST_F(CmSimpleDescriptor, set)
 {
     int mem = 0;
-    cm_simple_metadata d_d = {{"d01", 1, sizeof(mem), true}, cm_set_int, NULL, NULL};
+    Simple_metadata d_d = {{"d01", 1, sizeof(mem), true}, cm_set_int, NULL, NULL};
 
-    cm_simple_descriptor d(&d_d);
+    Simple_descriptor d(&d_d);
 
     d.set((uint8_t *)&mem, "4");
     EXPECT_EQ(4, mem);
@@ -71,9 +71,9 @@ TEST_F(CmSimpleDescriptor, set)
 TEST_F(CmSimpleDescriptor, setdefFunc)
 {
     int mem = 8;
-    cm_simple_metadata d_d = {{"d01", 1, sizeof(mem), true}, NULL, setint11, NULL};
+    Simple_metadata d_d = {{"d01", 1, sizeof(mem), true}, NULL, setint11, NULL};
 
-    cm_simple_descriptor d(&d_d);
+    Simple_descriptor d(&d_d);
 
     d.setDefault((uint8_t *)&mem);
     EXPECT_EQ(11, mem);
@@ -84,9 +84,9 @@ TEST_F(CmSimpleDescriptor, setdefFunc)
 TEST_F(CmSimpleDescriptor, setdef)
 {
     int mem = 8;
-    cm_simple_metadata d_d = {{"d01", 1, sizeof(mem), true}, NULL, NULL, NULL};
+    Simple_metadata d_d = {{"d01", 1, sizeof(mem), true}, NULL, NULL, NULL};
 
-    cm_simple_descriptor d(&d_d);
+    Simple_descriptor d(&d_d);
 
     d.setDefault((uint8_t *)&mem);
     EXPECT_EQ(8, mem);

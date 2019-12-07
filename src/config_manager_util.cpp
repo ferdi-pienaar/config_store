@@ -14,6 +14,9 @@
 
 using namespace std;
 
+namespace cfg_mgr
+{
+
 // signed int
 // pItem - pointer to memory containing an integer.
 // len - number of bytes the integer consists of
@@ -22,7 +25,7 @@ using namespace std;
 // system (little-endian or big-endian), we just typecast it
 // it correctly and print.
 //
-string cm_prt_int(const uint8_t *pItem, cm_item_len_t len)
+string cm_prt_int(const uint8_t *pItem, item_len_t len)
 {
     stringstream ss;
     switch (len)
@@ -61,7 +64,7 @@ string cm_prt_int(const uint8_t *pItem, cm_item_len_t len)
 // Integers are kept in the order prescribed by the given
 // system (little-endian or big-endian).
 //
-bool cm_set_int(uint8_t *pItem, cm_item_len_t len, string val)
+bool cm_set_int(uint8_t *pItem, item_len_t len, string val)
 {
     char * pEnd; // pointer to char after chars accepted by strtol
 
@@ -133,7 +136,7 @@ bool cm_set_int(uint8_t *pItem, cm_item_len_t len, string val)
 // pItem - pointer to memory containing a NULL-terminated string
 // len - number of bytes the string consists of
 //
-string cm_prt_str(const uint8_t *pItem, cm_item_len_t len)
+string cm_prt_str(const uint8_t *pItem, item_len_t len)
 {
     stringstream ss;
     ss << (char *)pItem;
@@ -146,7 +149,7 @@ string cm_prt_str(const uint8_t *pItem, cm_item_len_t len)
 // len - number of bytes the string consists of
 // val - a string representing the new value
 //
-bool cm_set_str(uint8_t *pItem, cm_item_len_t len, string val)
+bool cm_set_str(uint8_t *pItem, item_len_t len, string val)
 {
     snprintf((char *)pItem, len, val.c_str());
     return true;
@@ -157,16 +160,16 @@ bool cm_set_str(uint8_t *pItem, cm_item_len_t len, string val)
 // pItem - pointer to memory
 // len - number of bytes
 //
-string cm_prt_hexstr(const uint8_t *pItem, cm_item_len_t len)
+string cm_prt_hexstr(const uint8_t *pItem, item_len_t len)
 {
     stringstream ss;
 
-    for (cm_item_len_t i = 0; i < len; i++)
+    for (item_len_t i = 0; i < len; i++)
     {
         ss << setfill('0') << setw(2) << hex << (int)pItem[i];
     }
     return ss.str();
 }
 
-
+}
 

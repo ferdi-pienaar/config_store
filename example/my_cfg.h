@@ -3,7 +3,7 @@
 
 // Data structures for managed items, living in RAM.
 // The user code does not define instance of these data types -- instead, memory
-// allocation is handled by config_manager.
+// allocation is handled by Config_manager.
 // The user application accesses this data in two ways:
 // 1. From ordinary application code:
 //    Read/write access via the getConfig() API to get a pointer that can be
@@ -13,8 +13,8 @@
 //    Write access is for variables that are readable from the point of view
 //    of the configuration interface.
 // 2. From the configuration interface:
-//    Read/write access via config_manager::handleCmd.
-// 
+//    Read/write access via Config_manager::handleCmd.
+//
 #include "config_manager.h"
 
 #define NUM_CLI_PORT      4
@@ -34,7 +34,7 @@ typedef struct
 typedef struct
 {
     char           name[MAX_LEN_LOCATION_NAME];
-    
+
 } tLocation;
 
 
@@ -44,7 +44,7 @@ typedef struct
 {
     unsigned long * pAddr;
     tLocation     * pLoc;
-    
+
 } tHome;
 
 
@@ -56,10 +56,10 @@ typedef struct
     unsigned int   userCount;
     tUser        * users;
     tHome          home;
-    
+
 } tDevice;
 
-const cm_descriptor * get_base_descriptor();
+const cfg_mgr::Descriptor * get_base_descriptor();
 
 #endif // MY_CFG_H
 

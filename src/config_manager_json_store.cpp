@@ -10,80 +10,85 @@
 
 using namespace std;
 
-cm_yaml_store::cm_yaml_store()
+namespace cfg_mgr
 {
-    cout << "cm_yaml_store::cm_yaml_store()" << endl;
+
+Yaml_store::Yaml_store()
+{
+    cout << "Yaml_store::Yaml_store()" << endl;
 
     yaml = new Yaml(&nvram);
 }
 
 
-cm_yaml_store::~cm_yaml_store()
+Yaml_store::~Yaml_store()
 {
-    cout << "cm_yaml_store::~cm_yaml_store()" << endl;
+    cout << "Yaml_store::~Yaml_store()" << endl;
 
     delete yaml;
 }
 
 
-bool cm_yaml_store::initForRead()
+bool Yaml_store::initForRead()
 {
-    cout << "cm_yaml_store::resetRead()" << endl;
+    cout << "Yaml_store::resetRead()" << endl;
 
     yaml->reset();
     return nvram.initForRead();
 }
 
 
-bool cm_yaml_store::initForWrite()
+bool Yaml_store::initForWrite()
 {
-    cout << "cm_yaml_store::resetWrite()" << endl;
+    cout << "Yaml_store::resetWrite()" << endl;
 
     yaml->reset();
     return nvram.initForWrite();
 }
 
 
-void cm_yaml_store::writeSimple(const cm_simple_metadata * data, const uint8_t * v)
+void Yaml_store::writeSimple(const Simple_metadata * data, const uint8_t * v)
 {
     yaml->writeSimple(data->c.name, data->c.len, v, data->pPrt);
 }
 
 
-void cm_yaml_store::startWriteComposite(const cm_composite_metadata * data)
+void Yaml_store::startWriteComposite(const Composite_metadata * data)
 {
     yaml->startWriteComposite(data->c.name);
 }
 
 
-void cm_yaml_store::endWriteComposite()
+void Yaml_store::endWriteComposite()
 {
     yaml->endWriteComposite();
 }
 
-t_cm_result cm_yaml_store::startLoadSimple(const cm_simple_metadata * data)
+result_t Yaml_store::startLoadSimple(const Simple_metadata * data)
 {
     cout << __PRETTY_FUNCTION__ << endl;
     return yaml->startLoadSimple(data->c.name);
 }
 
-t_cm_result cm_yaml_store::endLoadSimple(uint8_t * pRam, const cm_simple_metadata * data)
+result_t Yaml_store::endLoadSimple(uint8_t * pRam, const Simple_metadata * data)
 {
     cout << __PRETTY_FUNCTION__ << endl;
-    cm_item_len_t len = data->c.len;
+    item_len_t len = data->c.len;
     return yaml->endLoadSimple(&len, pRam, data->pSet);
 }
 
 // xxx incomplete
-t_cm_result cm_yaml_store::startLoadComposite(const cm_composite_metadata * data)
+result_t Yaml_store::startLoadComposite(const Composite_metadata * data)
 {
-    cout << "cm_yaml_store::startLoadComposite()" << endl;
+    cout << "Yaml_store::startLoadComposite()" << endl;
 
     return yaml->startLoadComposite(data->c.name);
 }
 
-t_cm_result cm_yaml_store::endLoadComposite()
+result_t Yaml_store::endLoadComposite()
 {
-    cout << "cm_yaml_store::endLoadComposite()" << endl;
+    cout << "Yaml_store::endLoadComposite()" << endl;
     return yaml->endLoadComposite();
+}
+
 }

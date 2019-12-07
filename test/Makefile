@@ -38,7 +38,6 @@ TEST_OBJS = cm_tlvTest.o \
  cm_simple_item_descriptorTest.o \
  cm_composite_item_descriptorTest.o \
  config_managerTest.o \
- cm_yamlTest.o \
  cm_jsonTest.o
 
 MOCK_OBJS = $(STUB_DIR)/nvram_spy.o $(STUB_DIR)/config_manager_printf_spy.o 

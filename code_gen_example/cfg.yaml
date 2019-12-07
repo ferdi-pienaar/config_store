@@ -23,18 +23,18 @@ item: &user
         item:
             name: name
             persistent: true
-            set: cm_set_str
-            setdef: cm_setdef_null
-            print: cm_prt_str
+            set: cfg_mgr::cm_set_str
+            setdef: cfg_mgr::cm_setdef_null
+            print: cfg_mgr::cm_prt_str
             type: cstring 16
     -   count: 1
         type: contained
         item:
             name: id
             persistent: true
-            set: cm_set_int
-            setdef: cm_setdef_null
-            print: cm_prt_int
+            set: cfg_mgr::cm_set_int
+            setdef: cfg_mgr::cm_setdef_null
+            print: cfg_mgr::cm_prt_int
             type: unsigned long
     -   count: 1
         type: contained
@@ -50,7 +50,7 @@ item: &user
         item:
             name: elapsed
             persistent: false
-            print: cm_prt_int
+            print: cfg_mgr::cm_prt_int
             type: unsigned
              
 # Component item defined here to avoid too much indenting                    
@@ -63,9 +63,9 @@ item: &home
         item:
             name: addr
             persistent: true
-            set: cm_set_int
-            setdef: cm_setdef_null
-            print: cm_prt_int
+            set: cfg_mgr::cm_set_int
+            setdef: cfg_mgr::cm_setdef_null
+            print: cfg_mgr::cm_prt_int
             type: unsigned
     -   count: 1
         type: owned
@@ -78,9 +78,9 @@ item: &home
                 item:
                     name: name
                     persistent: true
-                    set: cm_set_str
-                    setdef: cm_setdef_null
-                    print: cm_prt_str
+                    set: cfg_mgr::cm_set_str
+                    setdef: cfg_mgr::cm_setdef_null
+                    print: cfg_mgr::cm_prt_str
                     type: cstring 16
 
 # Parent item
@@ -93,18 +93,18 @@ item:
         item:
             name: ipaddr
             persistent: true
-            set: cm_set_int
-            setdef: cm_setdef_null
-            print: cm_prt_int
+            set: cfg_mgr::cm_set_int
+            setdef: cfg_mgr::cm_setdef_null
+            print: cfg_mgr::cm_prt_int
             type: unsigned long
     -   count: *nPorts
         type: contained
         item:
             name: port
             persistent: true
-            set: cm_set_int
-            setdef: cm_setdef_null
-            print: cm_prt_int
+            set: cfg_mgr::cm_set_int
+            setdef: cfg_mgr::cm_setdef_null
+            print: cfg_mgr::cm_prt_int
             type: unsigned short    
     -   &userCnt_aggr
         count: 1
@@ -112,7 +112,7 @@ item:
         item:
             name: userCnt
             persistent: false
-            print: cm_prt_int
+            print: cfg_mgr::cm_prt_int
             type: unsigned short
     -   count: *nUsers
         type: owned

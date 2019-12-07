@@ -7,17 +7,21 @@
 
 using namespace std;
 
+namespace cfg_mgr
+{
+
 enum CM_PERSISTENT_STORE_TYPE
 {
     TLV_STORE,
     YAML_STORE
 };
 
-cm_store * cm_store::getStore()
+Store * Store::getStore()
 {
     if (M_DEFINED_STORE_TYPE == TLV_STORE)
-        return new cm_tlv_store;
+        return new Tlv_store;
     else
-        return new cm_yaml_store;
+        return new Yaml_store;
 }
 
+}

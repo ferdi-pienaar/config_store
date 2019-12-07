@@ -4,6 +4,9 @@
 #ifndef CFG_MAN_PRINTF_H
 #define CFG_MAN_PRINTF_H
 #include <stdarg.h>
+namespace cfg_mgr
+{
 int cm_printf(const char * format, ...);
+}
 #endif
 

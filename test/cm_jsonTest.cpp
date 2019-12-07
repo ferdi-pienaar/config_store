@@ -9,6 +9,7 @@
 #include <iostream>
 
 using namespace std;
+using namespace cfg_mgr;
 
 static uint8_t clientRam[1024];
 
@@ -89,7 +90,7 @@ TEST_F(JsonTest, DISABLED_loadSimple)
 {
     uint8_t    nvSet[] = {"\"simp\": 55\n"};
     uint8_t    expected[] = {55,0};
-    cm_item_len_t length = sizeof(expected);
+    item_len_t length = sizeof(expected);
 
     // xxx set client RAM to bitpattern and verify only the expected section is modified
 

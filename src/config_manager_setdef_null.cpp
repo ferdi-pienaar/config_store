@@ -9,13 +9,17 @@
 
 using namespace std;
 
+namespace cfg_mgr
+{
+
 // Write 0 to the item
 // @param pItem - pointer to memory to set to default.
 // @param len - number of bytes the item consists of
 //
-void cm_setdef_null(uint8_t *pItem, cm_item_len_t len)
+void cm_setdef_null(uint8_t *pItem, item_len_t len)
 {
     assert(pItem != NULL);
     memset(pItem, 0, len);
 }
 
+}

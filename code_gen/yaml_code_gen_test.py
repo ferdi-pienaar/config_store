@@ -64,7 +64,7 @@ class Test_simple_gen(unittest.TestCase):
         ("name: alf\n"
         "id: 55\n")
         b = yaml_code_gen.makeBaseItem(self.cfg, id)
-        expected_init = ('const cm_simple_metadata alf_data =\n'
+        expected_init = ('const cfg_mgr::Simple_metadata alf_data =\n'
         '{\n'
         '    {\n'
         '        "alf",\n'
@@ -76,13 +76,13 @@ class Test_simple_gen(unittest.TestCase):
         '    NULL,\n'
         '    NULL,\n'
         '};\n'
-        'const cm_simple_descriptor alf(&alf_data);\n')
+        'const cfg_mgr::Simple_descriptor alf(&alf_data);\n')
         self.assertEqual(expected_init, b.get_init())
         
     def test_init_without_id(self):
         "Check C++ init code produced from a YAML config descriptor and YAML ID file"
         b = yaml_code_gen.makeBaseItem(self.cfg, None)
-        expected_init = ('const cm_simple_metadata alf_data =\n'
+        expected_init = ('const cfg_mgr::Simple_metadata alf_data =\n'
         '{\n'
         '    {\n'
         '        "alf",\n'
@@ -94,7 +94,7 @@ class Test_simple_gen(unittest.TestCase):
         '    NULL,\n'
         '    NULL,\n'
         '};\n'
-        'const cm_simple_descriptor alf(&alf_data);\n')
+        'const cfg_mgr::Simple_descriptor alf(&alf_data);\n')
         self.assertEqual(expected_init, b.get_init())        
         
 class Test_contained_array_gen(unittest.TestCase):

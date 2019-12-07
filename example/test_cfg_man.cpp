@@ -1,6 +1,6 @@
 /*
   Manual test framework that accepts inputs from stdin; CM produces output to stdout.
- 
+
  */
 #include <iostream>
 #include "config_manager.h"
@@ -10,14 +10,15 @@
 #include <unistd.h> // sleep
 
 using namespace std;
+using namespace cfg_mgr;
 
 #define WORD_DELIMITERS " \n"
 
 
-// Periodically, update some stats that can be displayed by cfg_man.
+// Periodically, update some stats that can be displayed by cfg_mgr.
 void * stats_thread(void * arg)
 {
-    config_manager * cm = (config_manager *)arg;
+    Config_manager * cm = (Config_manager *)arg;
     tDevice * pCfg = (tDevice *)cm->getConfig();
 
     for (;;)
@@ -39,12 +40,12 @@ void * stats_thread(void * arg)
 int main()
 {
     // Initialize the config manager with the base descriptor it is to manage.
-    config_manager cm(get_base_descriptor());
+    Config_manager cm(get_base_descriptor());
 
     pthread_t thread;
     int rc = pthread_create(&thread, NULL, stats_thread, &cm);
     assert(0 == rc);
-    
+
     while (true)
     {
         char   cmd[120];

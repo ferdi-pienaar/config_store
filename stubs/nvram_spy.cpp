@@ -16,7 +16,7 @@ static unsigned bytesWritten = 0; // max number of bytes written, i.e. the file 
 
 static void hexdump(const uint8_t * b, size_t len);
 
-bool Nvram::initForWrite()
+bool cfg_mgr::Nvram::initForWrite()
 {
     offset = 0;
     bytesWritten = 0;
@@ -24,39 +24,39 @@ bool Nvram::initForWrite()
 }
 
 
-bool Nvram::initForRead()
+bool cfg_mgr::Nvram::initForRead()
 {
     offset = 0;
     return true;
 }
 
 
-void Nvram::accessComplete()
+void cfg_mgr::Nvram::accessComplete()
 {
 
 }
 
 
-void Nvram::setOffset(unsigned int o)
+void cfg_mgr::Nvram::setOffset(unsigned int o)
 {
     offset = o;
 }
 
 
-unsigned int Nvram::getOffset()
+unsigned int cfg_mgr::Nvram::getOffset()
 {
     return offset;
 }
 
 
-void Nvram::adjustOffset(int i)
+void cfg_mgr::Nvram::adjustOffset(int i)
 {
     offset += i;
 }
 
 
 //
-bool Nvram::write(const uint8_t * d, unsigned int len)
+bool cfg_mgr::Nvram::write(const uint8_t * d, unsigned int len)
 {
     memcpy(nvMem + offset, d, len);
     offset += len;
@@ -68,7 +68,7 @@ bool Nvram::write(const uint8_t * d, unsigned int len)
 }
 
 
-bool Nvram::read(uint8_t * d, unsigned int len)
+bool cfg_mgr::Nvram::read(uint8_t * d, unsigned int len)
 {
     if (offset + len > bytesWritten)
     {
