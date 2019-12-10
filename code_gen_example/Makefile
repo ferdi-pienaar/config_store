@@ -5,6 +5,7 @@ CXXFLAGS = -Wall -g -I . -I $(CFG_MAN_SRC_DIR) -I ../export
 #CXXFLAGS += -Wl,-Map=output.map # pass option to linker
 VPATH = $(CFG_MAN_SRC_DIR) # so make can find the library
 
+# Make knows -lCfgMan means dependency on 'libCfgMan.a'.
 test_cfg1: \
 $(CFG_MAN_SRC_DIR)config_manager_util.h \
 $(CFG_MAN_SRC_DIR)config_manager_setdef_null.h \

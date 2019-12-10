@@ -12,7 +12,9 @@ config_manager_util.o \
 config_manager_setdef_null.o \
 config_manager_store.o \
 nvram.o \
-config_manager_printf.o
+config_manager_printf.o \
+config_manager_descriptor.o \
+config_manager_aggregate.o
 
 OBJS += config_manager_tlv_store.o config_manager_tlv.o
 

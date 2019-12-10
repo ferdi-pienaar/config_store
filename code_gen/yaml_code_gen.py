@@ -86,9 +86,9 @@ class Item:
     def get_common_metadata_init(self):
         "Return string representing initialization of the common metadata structure"
         s = indent + "{\n"
-        s += 2 * indent + "\"" + self.d['name'] + "\",\n"
-        s += 2 * indent + self.id + ",\n"
-        s += 2 * indent + self.get_size() + ",\n"
+        s += 2 * indent + "\"" + self.d['name'] + "\", // name\n"
+        s += 2 * indent + self.id + ", // id\n"
+        s += 2 * indent + self.get_size() + ", // size\n"
         s += 2 * indent
         if self.d['persistent']:
              s += "true\n"
@@ -138,19 +138,19 @@ class SimpleItem(Item):
             s += self.d['set']
         else:
             s += "NULL"
-        s += ",\n"
+        s += ", // set\n"
         s += indent
         if 'setdef' in self.d:
             s += self.d['setdef']
         else:
             s += "NULL"
-        s += ",\n"
+        s += ", // setdef\n"
         s += indent
         if 'print' in self.d:
             s += self.d['print']
         else:
             s += "NULL"
-        s += ",\n};\n"
+        s += ", // print\n};\n"
         return s
     
     def get_type_and_name(self, aggrType):
@@ -489,7 +489,9 @@ def saveInititializationFile(baseFileName, baseItem):
     finit = open(baseFileName + ".cpp", "w")
     finit.write(getInitHeader(sys.argv[0], sys.argv[1]))
     finit.write("#include \"" + baseFileName + "_depend.h\"\n\n")
+    finit.write("namespace {\n")
     finit.write(baseItem.get_init())
+    finit.write("}\n\n")
     finit.write(baseItem.get_access_fn())
     finit.close()    
     
