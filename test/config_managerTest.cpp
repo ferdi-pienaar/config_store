@@ -9,6 +9,8 @@
 
 #include "gtest/gtest.h"
 #include "config_manager.h"       // Unit under test
+#include "config_manager_descriptor.h"       // Unit under test
+#include "config_manager_aggregate.h"       // Unit under test
 #include "config_manager_util.h"  // Extensions to unit under test (generic "set" functions)
 #include "config_manager_setdef_null.h" // generic setdef function
 #include "nvram_spy.h"

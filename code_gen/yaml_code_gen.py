@@ -488,7 +488,10 @@ def saveInititializationFile(baseFileName, baseItem):
     "Make .cpp file containing definitions and initializations"
     finit = open(baseFileName + ".cpp", "w")
     finit.write(getInitHeader(sys.argv[0], sys.argv[1]))
-    finit.write("#include \"" + baseFileName + "_depend.h\"\n\n")
+    finit.write("#include \"config_manager_descriptor.h\" // from cfg_mgr library\n")
+    finit.write("#include \"config_manager_aggregate.h\" // from cfg_mgr library\n")
+    finit.write("#include \"" + baseFileName + ".h\" // auto-generated\n")
+    finit.write("#include \"" + baseFileName + "_depend.h\" // supplied by application programmer\n\n")
     finit.write("namespace {\n")
     finit.write(baseItem.get_init())
     finit.write("}\n\n")

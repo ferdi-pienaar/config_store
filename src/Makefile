@@ -14,7 +14,8 @@ config_manager_store.o \
 nvram.o \
 config_manager_printf.o \
 config_manager_descriptor.o \
-config_manager_aggregate.o
+config_manager_aggregate.o \
+config_manager_command.o
 
 OBJS += config_manager_tlv_store.o config_manager_tlv.o
 

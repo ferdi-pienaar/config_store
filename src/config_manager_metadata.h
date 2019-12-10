@@ -11,7 +11,6 @@
 #include <stdint.h> // uint8_t, etc
 #include <string>
 #include "config_manager_types.h"
-#include <stdio.h> // FILE
 
 namespace cfg_mgr
 {

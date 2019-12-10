@@ -1,8 +1,9 @@
 /// config manager def
-#include "config_manager.h"
+#include "config_manager_aggregate.h"
+#include "config_manager_command.h"
+#include "config_manager_descriptor.h"
 #include "config_manager_util.h"
 #include "config_manager_dbg.h"
-#include "config_manager_store.h"
 #include "config_manager_printf.h"
 
 #include <stdlib.h> // malloc

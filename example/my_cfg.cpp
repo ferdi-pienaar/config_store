@@ -17,6 +17,8 @@
 
 // xxx should be a naming convention: camelCase, or underscores, etc.
 #include "my_cfg.h"
+#include "config_manager_descriptor.h"
+#include "config_manager_aggregate.h"
 #include "config_manager_util.h"
 #include "config_manager_setdef_null.h"
 #include "my_cfg_fn.h" // User-written functions "plugged in" to Config_manager
