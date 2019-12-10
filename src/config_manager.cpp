@@ -26,7 +26,7 @@ Config_manager::Config_manager(const Descriptor * desc): base_desc(desc)
 {
     ramBase = (uint8_t *)malloc(base_desc->getLen());
     DBG_PRT("init: ramBase, %d at %p\n", base_desc->getLen(), ramBase);
-    assert(ramBase != NULL);
+    assert(ramBase != nullptr);
     memset(ramBase, 0, base_desc->getLen());
     base_desc->setDefault(ramBase);
     resetCtxt();

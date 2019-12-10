@@ -16,7 +16,7 @@ namespace cfg_mgr
 class Nvram
 {
 public:
-    Nvram(): offset(0), fp(NULL) {}
+    Nvram(): offset(0), fp(nullptr) {}
     bool initForWrite();
     bool initForRead();
     void accessComplete();

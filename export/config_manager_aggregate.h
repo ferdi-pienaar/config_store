@@ -14,7 +14,7 @@
 // to the descriptor of its counter, which must be a member of the same
 // composite.  Hence, the offset (and size) is available, and the counter can be accessed
 // (in RAM).  This also forces the application programmer to
-// supply a counter reference (or explicitly give NULL if it's a array with max size 1),
+// supply a counter reference (or explicitly give nullptr if it's a array with max size 1),
 // i.e. the API guides him.
 // xxx Is there something we can do to verify, maybe at run-time, that the correct thing
 // has been done?
@@ -107,7 +107,7 @@ public:
     {
         (void)pParentItem;
         assert(false);
-        return NULL;
+        return nullptr;
     }
     void del(uint8_t * pParentItem, unsigned int itemIdx) const
     {

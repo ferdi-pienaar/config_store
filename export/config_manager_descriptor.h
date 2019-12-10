@@ -53,7 +53,6 @@ class Store;
 // xxx methods are private (not for user), but Config_manager is friend?
 class Descriptor
 {
-
 public:
     Descriptor() {}
     virtual ~Descriptor() {}

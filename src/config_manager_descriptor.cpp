@@ -26,7 +26,7 @@ namespace cfg_mgr
 Composite_descriptor::Composite_descriptor(const Composite_metadata * pMeta):
     pData(pMeta)
 {
-    assert(pData != NULL);
+    assert(pData != nullptr);
 }
 
 
@@ -50,7 +50,7 @@ bool Composite_descriptor::handleCmd(Command_stack * cmd,
 {
     DBG_PRT("composite::handleCmd: %s\n", cmd->getTop());
 
-    assert(pItem != NULL);
+    assert(pItem != nullptr);
 
     switch (cmd->getTopOp())
     {
@@ -104,7 +104,7 @@ bool Composite_descriptor::handleIdWord(Command_stack * cmd,
                                         bool & updateCtxt) const
 {
     const Aggregate * pAggr = getAggr(cmd->getTop()); // Component that is identified by cmd
-    if (pAggr == NULL)
+    if (pAggr == nullptr)
     {
         // Unhandled word(s): not a command, and also doesn't identify a component
         cm_printf("'%s' not in composite '%s'.\n", cmd->getTop(), getName());
@@ -159,7 +159,7 @@ bool Composite_descriptor::handleAdd(Command_stack * cmd, uint8_t * pItem) const
     }
 
     const Aggregate * pAggr = getAggr(cmd->getTop());
-    if (pAggr == NULL)
+    if (pAggr == nullptr)
     {
         cm_printf("'%s' not in composite '%s'.\n", cmd->getTop(), getName());
         return false;
@@ -183,7 +183,7 @@ bool Composite_descriptor::handleDel(Command_stack * cmd, uint8_t * pItem) const
 
     const Aggregate * pAggr = getAggr(cmd->getTop());
 
-    if (pAggr == NULL)
+    if (pAggr == nullptr)
     {
         cm_printf("'%s' not in composite '%s'.\n", cmd->getTop(), getName());
         return false;
@@ -215,7 +215,7 @@ void Composite_descriptor::print(const uint8_t * pItem, string prefix, bool incl
 //
 // @pre: item contains valid data, i.e. if an OWNED
 // component has no items allocated, the pointer to the items
-// is NULL, so we can know not to try to free them.
+// is nullptr, so we can know not to try to free them.
 //
 // For OWNED components, we free owned memory before setting
 // the corresponding counter to 0.
@@ -250,12 +250,12 @@ const Aggregate * Composite_descriptor::getAggr(const char * name) const
             return getAggrAtIndex(i);
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 
 // Look for the aggregate whose component has a matching ID
-// @return aggregate, or NULL if ID does not identify an aggregate in this context
+// @return aggregate, or nullptr if ID does not identify an aggregate in this context
 const Aggregate * Composite_descriptor::getAggr(item_id_t id) const
 {
     for (unsigned i = 0; i < pData->aggrCount; i++)
@@ -265,7 +265,7 @@ const Aggregate * Composite_descriptor::getAggr(item_id_t id) const
             return getAggrAtIndex(i);
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 
@@ -328,7 +328,7 @@ result_t Composite_descriptor::endLoad(uint8_t * pItem, Store * store) const
 Simple_descriptor::Simple_descriptor(const Simple_metadata * pMeta):
     pData(pMeta)
 {
-    assert(pData != NULL);
+    assert(pData != nullptr);
 }
 
 
@@ -341,7 +341,7 @@ void Simple_descriptor::print(const uint8_t * pItem, string prefix, bool include
 
     cm_printf("%s= ", prefix.c_str());
 
-    if (pData->pPrt == NULL)
+    if (pData->pPrt == nullptr)
     {
         // No function installed so use default print function: hex chars
         cm_printf("%s", cm_prt_hexstr(pItem, getLen()).c_str());
@@ -406,7 +406,7 @@ bool Simple_descriptor::set(uint8_t * pItem, string val) const
 {
     DBG_PRT("set simple %s at %p to '%s'\n", getName(), pItem, val.c_str());
 
-    if (pData->pSet != NULL)
+    if (pData->pSet != nullptr)
     {
         return pData->pSet(pItem, getLen(), val);
     }
@@ -418,7 +418,7 @@ bool Simple_descriptor::set(uint8_t * pItem, string val) const
 // Set configurable item to its default value.
 void Simple_descriptor::setDefault(uint8_t * pItem) const
 {
-    if (pData->pSetDefault != NULL)
+    if (pData->pSetDefault != nullptr)
     {
         pData->pSetDefault(pItem, getLen());
     }
@@ -436,8 +436,8 @@ void Simple_descriptor::save(const uint8_t *pItem, Store * store) const
 // @param pItem
 result_t Simple_descriptor::startLoad(Store * store) const
 {
-    result_t ret = store->startLoadSimple(pData)
-                   DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id, ret);
+    result_t ret = store->startLoadSimple(pData);
+    DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id, ret);
     return ret;
 }
 

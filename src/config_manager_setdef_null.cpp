@@ -18,7 +18,7 @@ namespace cfg_mgr
 //
 void cm_setdef_null(uint8_t *pItem, item_len_t len)
 {
-    assert(pItem != NULL);
+    assert(pItem != nullptr);
     memset(pItem, 0, len);
 }
 

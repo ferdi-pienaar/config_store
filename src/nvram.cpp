@@ -14,7 +14,7 @@ bool Nvram::initForWrite()
 
     fp = fopen(CFG_FILE_NAME, "wb");  // open file for binary write
 
-    if (fp == NULL)
+    if (fp == nullptr)
     {
         return false;
     }
@@ -28,7 +28,7 @@ bool Nvram::initForRead()
 
     fp = fopen(CFG_FILE_NAME, "rb");  // open file for binary read
 
-    if (fp == NULL)
+    if (fp == nullptr)
     {
         return false;
     }

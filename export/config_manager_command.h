@@ -19,9 +19,7 @@ class Descriptor;
 class Cmd_context
 {
 public:
-   
-
-   Cmd_context (std::string istr = "", const Descriptor * desc = NULL, uint8_t * item = NULL):
+    Cmd_context (std::string istr = "", const Descriptor * desc = nullptr, uint8_t * item = nullptr):
         str(istr), pDesc(desc), pItem(item) {}
     void add(std::string w);
     void add(unsigned idx);
