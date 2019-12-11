@@ -53,10 +53,7 @@ public: // Should be private; currently public so we can call methods on pData->
 public:
     Aggregate(const Aggregate_data * d): pData(d) {};
     virtual ~Aggregate() {}
-    bool needIndex(const uint8_t * pParentItem) const
-    {
-        return getCount(pParentItem) > 1;
-    }
+    bool needIndex(const uint8_t * pParentItem) const;
     bool getIndex(Command_stack * cmd, unsigned int & itemIndex) const;
     uint8_t * getItemAtIndex(const uint8_t * pParentItem, unsigned idx) const;
     /// returns number of items currently in the aggregate

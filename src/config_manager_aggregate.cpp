@@ -196,6 +196,14 @@ result_t Aggregate::load(uint8_t * pParentItem, Store * store) const
 }
 
 
+// @return true if an index is necessary (when deleting an item on command line).
+// If there can be more than 1 item, an index identifies the target item.
+bool Aggregate::needIndex(const uint8_t * pParentItem) const
+{
+    return pData->maxCount > 1;
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Contained_aggregate
