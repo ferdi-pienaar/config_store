@@ -20,36 +20,36 @@ class Cmd_context
 {
 public:
     Cmd_context (std::string istr = "", const Descriptor * desc = nullptr, uint8_t * item = nullptr):
-        str(istr), pDesc(desc), pItem(item) {}
+        m_string(istr), m_desc(desc), m_item(item) {}
     void add(std::string w);
     void add(unsigned idx);
     void setDesc(const Descriptor * desc)
     {
-        pDesc = desc;
+        m_desc = desc;
     }
 
     void setItem(uint8_t * item)
     {
-        pItem = item;
+        m_item = item;
     }
 
     std::string getString() const
     {
-        return str;
+        return m_string;
     }
     const Descriptor * getDesc() const
     {
-        return pDesc;
+        return m_desc;
     }
     uint8_t * getItem() const
     {
-        return pItem;
+        return m_item;
     }
 
 private:
-    std::string           str;
-    const Descriptor *    pDesc;
-    uint8_t *             pItem;
+    std::string           m_string;
+    const Descriptor *    m_desc;
+    uint8_t *             m_item;
 };
 
 // Container for the command passed to cfg_mgr.  It's a stack of words, i.e.
@@ -73,33 +73,33 @@ public:
         CM_OP_NONE
     };
 
-    Command_stack(int argc, char ** argv) : count(argc), wordPtr(argv) {}
+    Command_stack(int argc, char ** argv) : m_count(argc), m_wordPtr(argv) {}
 
     // Pop top word.
     // Return ref to self so the value returned by the command can be passed to a fn
     Command_stack & pop()
     {
-        count--;
-        wordPtr++;
+        m_count--;
+        m_wordPtr++;
         return *this;
     }
 
     char * getTop() const
     {
-        return wordPtr[0];
+        return m_wordPtr[0];
     }
 
     int getCount() const
     {
-        return count;
+        return m_count;
     }
 
     eCmOp getTopOp() const;
     bool getIndex(unsigned int & itemIdx);
 
 private:
-    int     count;
-    char ** wordPtr;
+    int     m_count;
+    char ** m_wordPtr;
 };
 }
 #endif // CFG_MAN_COMMAND_H

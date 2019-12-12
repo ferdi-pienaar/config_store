@@ -33,7 +33,7 @@ Command_stack::eCmOp Command_stack::getTopOp() const
 // Extract index from top word in command stack and pop it.
 bool Command_stack::getIndex(unsigned int & itemIdx)
 {
-    if (count == 0) return false;
+    if (m_count == 0) return false;
 
     char * pEnd; // pointer to char after chars accepted by strtoul
     itemIdx = strtoul(getTop(), &pEnd, 0);
@@ -56,7 +56,7 @@ bool Command_stack::getIndex(unsigned int & itemIdx)
 // Add a word to the context string
 void Cmd_context::add(string w)
 {
-    str += w + " ";
+    m_string += w + " ";
 }
 
 
@@ -66,7 +66,7 @@ void Cmd_context::add(unsigned idx)
     char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
 
     snprintf(indexbuf, sizeof(indexbuf), "%d ", idx);
-    str += indexbuf;
+    m_string += indexbuf;
 }
 
 }

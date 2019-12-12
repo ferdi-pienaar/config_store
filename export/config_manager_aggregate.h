@@ -47,11 +47,8 @@ class Store;
 //
 class Aggregate
 {
-public: // Should be private; currently public so we can call methods on pData->pDesc
-    const Aggregate_data * const pData;
-
 public:
-    Aggregate(const Aggregate_data * d): pData(d) {};
+    Aggregate(const Aggregate_data * d): m_data(d) {};
     virtual ~Aggregate() {}
     bool needIndex(const uint8_t * pParentItem) const;
     bool getIndex(Command_stack * cmd, unsigned int & itemIndex) const;
@@ -75,11 +72,17 @@ public:
     result_t load(uint8_t * pParentItem, Store * store) const;
     virtual void help(const uint8_t * pItem) const = 0;
     virtual uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const = 0;
+    const Aggregate_data * getData() const
+    {
+        return m_data;
+    }
 
 private:
     /// returns address of the first item in the array
     virtual uint8_t * getFirstItem(const uint8_t * pParentItem) const = 0;
     virtual void freeItems(uint8_t * pParentItem) const = 0;
+
+    const Aggregate_data * const m_data;
 };
 
 
@@ -135,7 +138,7 @@ class Owned_aggregate : public Aggregate
 public:
     Owned_aggregate(const Aggregate_data * d,
                     const Contained_aggregate * cntAggr):
-        Aggregate(d), pCounterAggr(cntAggr) {}
+        Aggregate(d), m_counterAggr(cntAggr) {}
 
     virtual unsigned getCount(const uint8_t * pParentItem) const;
     bool handleAdd(uint8_t * pItem) const;
@@ -151,11 +154,8 @@ private:
     uint8_t * getFirstItem(const uint8_t * pParentItem) const;
     void freeItems(uint8_t * pParentItem) const;
 
-    const Contained_aggregate * const pCounterAggr; // the counter for this owned component
+    const Contained_aggregate * const m_counterAggr; // the counter for this owned component
 };
 
 }
 #endif // CFG_MAN_AGGREGATE_H
-
-
-

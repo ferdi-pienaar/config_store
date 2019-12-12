@@ -16,7 +16,7 @@ namespace cfg_mgr
 class Nvram
 {
 public:
-    Nvram(): offset(0), fp(nullptr) {}
+    Nvram(): m_offset(0), m_fp(nullptr) {}
     bool initForWrite();
     bool initForRead();
     void accessComplete();
@@ -27,9 +27,8 @@ public:
     void adjustOffset(int i);
 
 private:
-    unsigned int offset; // read/write offset relative to base address [bytes]
-
-    FILE * fp;
+    unsigned int m_offset; // read/write offset relative to base address [bytes]
+    FILE * m_fp;
 
 };
 }

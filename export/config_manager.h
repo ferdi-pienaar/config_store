@@ -28,7 +28,7 @@ public:
     const char * getPromptString() const; ///< get context-dependent prompt string h file
     void * getConfig()
     {
-        return (void *)ramBase;
+        return (void *)m_ramBase;
     }
 
 private:
@@ -36,11 +36,11 @@ private:
     void load();
     void resetCtxt();
 
-    const Descriptor * base_desc;
-    uint8_t *    ramBase;
-    Cmd_context   currCtxt;      // current command-line context
-    Cmd_context   candidateCtxt; // command-line context built while handling current command
-    Store * store;
+    const Descriptor * m_baseDesc;
+    uint8_t *    m_ramBase;
+    Cmd_context   m_currCtxt;      // current command-line context
+    Cmd_context   m_candidateCtxt; // command-line context built while handling current command
+    Store * m_store;
 };
 
 }

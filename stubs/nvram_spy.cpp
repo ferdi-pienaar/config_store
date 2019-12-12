@@ -18,7 +18,7 @@ static void hexdump(const uint8_t * b, size_t len);
 
 bool cfg_mgr::Nvram::initForWrite()
 {
-    offset = 0;
+    m_offset = 0;
     bytesWritten = 0;
     return true;
 }
@@ -26,7 +26,7 @@ bool cfg_mgr::Nvram::initForWrite()
 
 bool cfg_mgr::Nvram::initForRead()
 {
-    offset = 0;
+    m_offset = 0;
     return true;
 }
 
@@ -39,30 +39,30 @@ void cfg_mgr::Nvram::accessComplete()
 
 void cfg_mgr::Nvram::setOffset(unsigned int o)
 {
-    offset = o;
+    m_offset = o;
 }
 
 
 unsigned int cfg_mgr::Nvram::getOffset()
 {
-    return offset;
+    return m_offset;
 }
 
 
 void cfg_mgr::Nvram::adjustOffset(int i)
 {
-    offset += i;
+    m_offset += i;
 }
 
 
 //
 bool cfg_mgr::Nvram::write(const uint8_t * d, unsigned int len)
 {
-    memcpy(nvMem + offset, d, len);
-    offset += len;
-    if (offset > bytesWritten)
+    memcpy(nvMem + m_offset, d, len);
+    m_offset += len;
+    if (m_offset > bytesWritten)
     {
-        bytesWritten = offset;
+        bytesWritten = m_offset;
     }
     return true;
 }
@@ -70,14 +70,14 @@ bool cfg_mgr::Nvram::write(const uint8_t * d, unsigned int len)
 
 bool cfg_mgr::Nvram::read(uint8_t * d, unsigned int len)
 {
-    if (offset + len > bytesWritten)
+    if (m_offset + len > bytesWritten)
     {
         // Fail: attempt to read bytes that haven't been set
         return false;
     }
 
-    memcpy(d, nvMem + offset, len);
-    offset += len;
+    memcpy(d, nvMem + m_offset, len);
+    m_offset += len;
 
     return true;
 }

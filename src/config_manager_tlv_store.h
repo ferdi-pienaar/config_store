@@ -30,7 +30,7 @@ public:
     result_t endLoadComposite();
 
 private:
-    Tlv * tlv;
+    Tlv * m_tlv;
 
 };
 }

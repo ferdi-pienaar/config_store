@@ -35,7 +35,7 @@ using namespace std;
 namespace cfg_mgr
 {
 
-Yaml::Yaml(Nvram * pNvram): nvram(pNvram), stackIndex(0)
+Yaml::Yaml(Nvram * pNvram): m_nvram(pNvram), m_stackIndex(0)
 {
 }
 
@@ -47,7 +47,7 @@ Yaml::~Yaml()
 
 void Yaml::reset()
 {
-    stackIndex = 0;
+    m_stackIndex = 0;
 }
 
 
@@ -67,7 +67,7 @@ void Yaml::startWriteComposite(const char * name)
 {
     write_indent();
     cout << name << ": " << endl;
-    stackIndex++;
+    m_stackIndex++;
 }
 
 
@@ -75,7 +75,7 @@ void Yaml::startWriteComposite(const char * name)
 // xxx return boolean to indicate if we've reached the bottom of the stack?
 void Yaml::endWriteComposite()
 {
-    stackIndex--;
+    m_stackIndex--;
 
     write_indent();
     cout << "end" << endl;
@@ -85,7 +85,7 @@ result_t Yaml::startLoadSimple(const char * name)
 {
     unsigned int readLen = strlen(name) + 2; // add space for quotes.
     char readName[129];
-    if (!nvram->read((uint8_t *)readName, readLen))
+    if (!m_nvram->read((uint8_t *)readName, readLen))
     {
         return CM_READ_FAIL;
     }
@@ -126,7 +126,7 @@ void Yaml::endWriteList()
 
 void Yaml::write_indent()
 {
-    for (int i = 0; i < stackIndex; i++)
+    for (int i = 0; i < m_stackIndex; i++)
     {
         cout << " ";
     }

@@ -28,14 +28,15 @@ public:
 private:
     static const unsigned HDR_LENGTH = sizeof(item_id_t) + sizeof(item_len_t);
     // Context used in writing
-    struct compositeWriteContext
+    struct CompositeWriteContext
     {
-        unsigned      headerOffset; // offset of location of composite's T + L, relative to base of NVRAM
+        unsigned   headerOffset; // offset of location of composite's T + L, relative to base of NVRAM
         item_id_t  id;           // composite ID given by client
         item_len_t length;       // actual cumulative length in composite
     };
 
-    struct compositeLoadContext
+    // Context used in loading
+    struct CompositeLoadContext
     {
         item_len_t valueOffset;  // offset of location of composite's V (i.e. first component), relative to base of NVRAM
         item_len_t length;       // length [bytes] in composite, read from NVRAM
@@ -45,10 +46,11 @@ private:
     result_t findTypeInComposite(item_id_t t);
     result_t matchType(item_id_t t);
     void addLengthToComposite(unsigned length);
-    Nvram *  nvram;
-    int stackIndex;  // write/load stack index; -1 means the current item is top-level, not part of a composite
-    compositeWriteContext writeStack[stackDepth];
-    compositeLoadContext  loadStack[stackDepth];
+
+    Nvram * m_nvram;
+    int m_stackIndex;  // write/load stack index; -1 means the current item is top-level, not part of a composite
+    CompositeWriteContext m_writeStack[stackDepth];
+    CompositeLoadContext  m_loadStack[stackDepth];
 };
 }
 #endif // CFG_MAN_TLV_H

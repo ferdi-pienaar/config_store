@@ -1,7 +1,7 @@
 ///
 // Type-Length-Value format config data, for storage in non-volatile media, e.g. a file.
 // This is defined as a separate class hierarchy, since it's an optional feature:
-// not all managed objects are saved in NVRAM.
+// not all managed objects are saved in m_nvram.
 //
 // This module asserts that the data passed to it by the client is valid, e.g.
 // in writing:
@@ -39,7 +39,7 @@ using namespace std;
 namespace cfg_mgr
 {
 
-Tlv::Tlv(Nvram * pNvram): nvram(pNvram), stackIndex(-1)
+Tlv::Tlv(Nvram * pNvram): m_nvram(pNvram), m_stackIndex(-1)
 {
 }
 
@@ -51,15 +51,15 @@ Tlv::~Tlv()
 
 void Tlv::reset()
 {
-    stackIndex = -1;
+    m_stackIndex = -1;
 }
 
 
 void Tlv::writeSimple(item_id_t t, item_len_t len, const uint8_t * v)
 {
-    nvram->write((uint8_t *)&t, sizeof(t));
-    nvram->write((uint8_t *)&len, sizeof(len));
-    nvram->write(v, len);
+    m_nvram->write((uint8_t *)&t, sizeof(t));
+    m_nvram->write((uint8_t *)&len, sizeof(len));
+    m_nvram->write(v, len);
 
     addLengthToComposite(len);
 }
@@ -69,18 +69,18 @@ void Tlv::writeSimple(item_id_t t, item_len_t len, const uint8_t * v)
 // composite is empty.
 void Tlv::startWriteComposite(item_id_t t)
 {
-    assert(stackIndex < (int)stackDepth);
+    assert(m_stackIndex < (int)stackDepth);
 
-    stackIndex++;
+    m_stackIndex++;
 
-    Tlv::compositeWriteContext * context = &(writeStack[stackIndex]);
+    CompositeWriteContext & context = m_writeStack[m_stackIndex];
 
-    context->id = t;
-    context->length = 0;
-    context->headerOffset = nvram->getOffset();
+    context.id = t;
+    context.length = 0;
+    context.headerOffset = m_nvram->getOffset();
 
     // reserve space for T + L, to be written by endWriteComposite()
-    nvram->adjustOffset(HDR_LENGTH);
+    m_nvram->adjustOffset(HDR_LENGTH);
 }
 
 
@@ -88,15 +88,15 @@ void Tlv::startWriteComposite(item_id_t t)
 // xxx return boolean to indicate if we've reached the bottom of the stack?
 void Tlv::endWriteComposite()
 {
-    assert(stackIndex >= 0); // we must be inside a composite to end one
+    assert(m_stackIndex >= 0); // we must be inside a composite to end one
 
-    unsigned int endOffset = nvram->getOffset(); // current offset, at end of composite
-    Tlv::compositeWriteContext * context = &(writeStack[stackIndex]);
+    unsigned int endOffset = m_nvram->getOffset(); // current offset, at end of composite
+    const CompositeWriteContext & context = m_writeStack[m_stackIndex];
 
     // switch to context of owning composite (or set to -1 if we're exiting the final composite)
-    stackIndex--;
+    m_stackIndex--;
 
-    if (context->length == 0)
+    if (context.length == 0)
     {
         // Empty composite: write nothing, and set offset to beginning of composite
         assert(endOffset >= HDR_LENGTH);
@@ -105,22 +105,22 @@ void Tlv::endWriteComposite()
     else
     {
         // Non-empty composite: write its header
-        nvram->setOffset(context->headerOffset);
-        nvram->write((uint8_t *)&(context->id), sizeof(context->id));
-        nvram->write((uint8_t *)&(context->length), sizeof(context->length));
+        m_nvram->setOffset(context.headerOffset);
+        m_nvram->write((uint8_t *)&(context.id), sizeof(context.id));
+        m_nvram->write((uint8_t *)&(context.length), sizeof(context.length));
 
-        addLengthToComposite(context->length);
+        addLengthToComposite(context.length);
     }
 
-    if (stackIndex >= 0)
+    if (m_stackIndex >= 0)
     {
         // We're still inside a composite, so set offset for writing next component
-        nvram->setOffset(endOffset);
+        m_nvram->setOffset(endOffset);
     }
     else
     {
-        // Final composite is complete: we're done reading from NVRAM
-        nvram->accessComplete();
+        // Final composite is complete: we're done reading from m_nvram
+        m_nvram->accessComplete();
     }
 }
 
@@ -143,7 +143,7 @@ result_t Tlv::startLoadSimple(item_id_t t)
 result_t Tlv::endLoadSimple(item_len_t * pLength, uint8_t * pRam)
 {
     item_len_t length;
-    nvram->read((uint8_t *)&length, sizeof(item_len_t));
+    m_nvram->read((uint8_t *)&length, sizeof(item_len_t));
 
     if (*pLength != length)
     {
@@ -153,7 +153,7 @@ result_t Tlv::endLoadSimple(item_len_t * pLength, uint8_t * pRam)
 
     // DBG_PRT("%s: %d at %p\n", __PRETTY_FUNCTION__, length, pRam);
 
-    if (!nvram->read(pRam, length))
+    if (!m_nvram->read(pRam, length))
     {
         // This error aborts the loading process, and there's no need to updateContainer xxx obsolete comment.
         return CM_READ_FAIL;
@@ -174,11 +174,11 @@ result_t Tlv::startLoadComposite(item_id_t t)
     }
 
     item_len_t length;
-    nvram->read((uint8_t *)&length, sizeof(item_len_t));
+    m_nvram->read((uint8_t *)&length, sizeof(item_len_t));
 
-    stackIndex++;
-    loadStack[stackIndex].length = length;
-    loadStack[stackIndex].valueOffset = nvram->getOffset();
+    m_stackIndex++;
+    m_loadStack[m_stackIndex].length = length;
+    m_loadStack[m_stackIndex].valueOffset = m_nvram->getOffset();
     return CM_SUCCESS;
 }
 
@@ -188,22 +188,22 @@ result_t Tlv::startLoadComposite(item_id_t t)
 //  of the components add up to the length in the composite header.
 result_t Tlv::endLoadComposite()
 {
-    if (stackIndex < 0)
+    if (m_stackIndex < 0)
     {
         // We're not in a composite. xxx error should be INVALID_CALL, the client called End without a corresponding Start.
         return CM_INCOHERENT_DATA;
     }
-    // Move to next item in NVRAM (in case we didn't just read the last component of this composite).
-    nvram->setOffset(loadStack[stackIndex].valueOffset + loadStack[stackIndex].length);
-    stackIndex--;
+    // Move to next item in m_nvram (in case we didn't just read the last component of this composite).
+    m_nvram->setOffset(m_loadStack[m_stackIndex].valueOffset + m_loadStack[m_stackIndex].length);
+    m_stackIndex--;
     return CM_SUCCESS;
 }
 
 
 // Look in current context for the requested type.
 //
-// In case of success, it sets NVRAM offset to the location after T.
-// If T is not found, it returns NVRAM offset to its value at start of the call,
+// In case of success, it sets m_nvram offset to the location after T.
+// If T is not found, it returns m_nvram offset to its value at start of the call,
 // so next attempt starts from same position as this one did.
 // xxx Do we need something more advanced to support out-of-order load?
 // Yes, we could search from current position as above, but if that
@@ -212,12 +212,12 @@ result_t Tlv::findType(item_id_t t)
 {
     result_t ret;
     // Save start location of search so we can restore it if search fails.
-    unsigned int start_offset = nvram->getOffset();
+    unsigned int start_offset = m_nvram->getOffset();
 
-    DBG_PRT("%s: type=%hx start_offset=%d stackIndex=%d\n",
-            __PRETTY_FUNCTION__, t, start_offset, stackIndex);
+    DBG_PRT("%s: type=%hx start_offset=%d m_stackIndex=%d\n",
+            __PRETTY_FUNCTION__, t, start_offset, m_stackIndex);
 
-    if (stackIndex == -1)
+    if (m_stackIndex == -1)
     {
         // We're not within a composite, so no search is needed.
         ret = matchType(t);
@@ -229,59 +229,59 @@ result_t Tlv::findType(item_id_t t)
 
     if (ret == CM_NOT_FOUND)
     {
-        DBG_PRT("%s: type=%hx not found so restore NVRAM offset=%u\n",
+        DBG_PRT("%s: type=%hx not found so restore m_nvram offset=%u\n",
                 __PRETTY_FUNCTION__, t, start_offset);
-        nvram->setOffset(start_offset);
+        m_nvram->setOffset(start_offset);
     }
     return ret;
 }
 
 // Search for type t in the context of a composite.
-// Search forward from current NVRAM offset.
+// Search forward from current m_nvram offset.
 //
-// @pre we're in a compound
+// @pre we're in a composite
 //
 // The search strategy is: search forward, to end of the composite.
 result_t Tlv::findTypeInComposite(item_id_t t)
 {
-    assert(stackIndex >= 0);
+    assert(m_stackIndex >= 0);
 
-    compositeLoadContext * context = &(loadStack[stackIndex]);
-    while (nvram->getOffset() - context->valueOffset + HDR_LENGTH < context->length)
+    const CompositeLoadContext & context = m_loadStack[m_stackIndex];
+    while (m_nvram->getOffset() - context.valueOffset + HDR_LENGTH < context.length)
     {
         // Enough space for a HDR (T + L) remains in current composite.
         result_t ret = matchType(t);
         if (ret != CM_NOT_FOUND)
         {
-            // Found, or NVRAM error (trying to read beyond end of NVRAM file).
+            // Found, or m_nvram error (trying to read beyond end of m_nvram file).
             return ret;
         }
         // T did not match, so keep searching.
         item_len_t len;
-        if (!nvram->read((uint8_t *)&len, sizeof(len)))
+        if (!m_nvram->read((uint8_t *)&len, sizeof(len)))
         {
             return CM_READ_FAIL;
         }
         // Move to next element.
-        nvram->adjustOffset(len);
+        m_nvram->adjustOffset(len);
     }
     // We got to end of current composite without finding t.
     return CM_NOT_FOUND;
 }
 
 
-// See if value form NVRAM matches t.
-// This advances NVRAM read loc to start of L.
-// @pre xxx enough bytes should remain in NVRAM that we can read T.
+// See if value form m_nvram matches t.
+// This advances m_nvram read loc to start of L.
+// @pre xxx enough bytes should remain in m_nvram that we can read T.
 result_t Tlv::matchType(item_id_t t)
 {
     item_id_t found_t;
 
-    // Read T from next location in NVRAM.
-    if (!nvram->read((uint8_t *)&found_t, sizeof(found_t)))
+    // Read T from next location in m_nvram.
+    if (!m_nvram->read((uint8_t *)&found_t, sizeof(found_t)))
     {
-        DBG_PRT("%s: type=%hx read fail NVRAM offset=%lu\n",
-                __PRETTY_FUNCTION__, t, nvram->getOffset() - sizeof(found_t));
+        DBG_PRT("%s: type=%hx read fail m_nvram offset=%lu\n",
+                __PRETTY_FUNCTION__, t, m_nvram->getOffset() - sizeof(found_t));
         return CM_READ_FAIL;
     }
 
@@ -289,8 +289,8 @@ result_t Tlv::matchType(item_id_t t)
     {
         return CM_SUCCESS;
     }
-    DBG_PRT("%s: type=%hx does not match %hx found at NVRAM offset=%lu\n",
-            __PRETTY_FUNCTION__, t, found_t, nvram->getOffset() - sizeof(found_t));
+    DBG_PRT("%s: type=%hx does not match %hx found at m_nvram offset=%lu\n",
+            __PRETTY_FUNCTION__, t, found_t, m_nvram->getOffset() - sizeof(found_t));
     return CM_NOT_FOUND;
 }
 
@@ -298,10 +298,10 @@ result_t Tlv::matchType(item_id_t t)
 // @param L field of component, excluding length of its T + L, which is added by this method
 void Tlv::addLengthToComposite(unsigned length)
 {
-    if (stackIndex >= 0)
+    if (m_stackIndex >= 0)
     {
         // Current item is member of a composite, so add component's contribution to its length
-        writeStack[stackIndex].length += length + HDR_LENGTH;
+        m_writeStack[m_stackIndex].length += length + HDR_LENGTH;
     }
 }
 }

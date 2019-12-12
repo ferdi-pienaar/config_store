@@ -2,7 +2,6 @@
 #include "config_manager_aggregate.h"
 #include "config_manager_command.h"
 #include "config_manager_descriptor.h"
-#include "config_manager_util.h"
 #include "config_manager_dbg.h"
 #include "config_manager_printf.h"
 
@@ -29,7 +28,7 @@ namespace cfg_mgr
 bool Aggregate::getIndex(Command_stack * cmd, unsigned int & itemIdx) const
 {
     if (cmd->getIndex(itemIdx)) return true;
-    cm_printf("'%s' needs index.\n", pData->pDesc->getName());
+    cm_printf("'%s' needs index.\n", m_data->pDesc->getName());
     return false;
 }
 
@@ -41,7 +40,7 @@ uint8_t * Aggregate::getItemAtIndex(const uint8_t * pParentItem, unsigned idx) c
     {
         return nullptr;
     }
-    return getFirstItem(pParentItem) + idx * pData->pDesc->getLen();
+    return getFirstItem(pParentItem) + idx * m_data->pDesc->getLen();
 }
 
 
@@ -52,7 +51,7 @@ void Aggregate::setDefault(uint8_t * pItem) const
     // Set each item to default (thus freeing memory of OWNed sub-components)
     for (unsigned i = 0; i < getCount(pItem); i++)
     {
-        pData->pDesc->setDefault(getItemAtIndex(pItem, i));
+        m_data->pDesc->setDefault(getItemAtIndex(pItem, i));
     }
 
     // Free item memory (for OWNed aggregates, no effect on CONTAINed)
@@ -64,7 +63,7 @@ void Aggregate::setDefault(uint8_t * pItem) const
 // @param prefix string to be pre-pended to the value, representing its context
 void Aggregate::print(const uint8_t * pItem, std::string prefix, bool include_state) const
 {
-    if (!include_state && !pData->pDesc->isPersistent())
+    if (!include_state && !m_data->pDesc->isPersistent())
     {
         // The item is not persistent, i.e. state, so exclude it because not required
         return;
@@ -74,14 +73,14 @@ void Aggregate::print(const uint8_t * pItem, std::string prefix, bool include_st
 
     for (unsigned i = 0; i < getCount(pItem); i++)
     {
-        if (pData->maxCount > 1)
+        if (m_data->maxCount > 1)
         {
             // There can be more than one item, so print the index to distinguish among them
             snprintf(indexbuf, sizeof(indexbuf), " %d", i);
         }
-        pData->pDesc->print(getItemAtIndex(pItem, i),
-                            prefix + pData->pDesc->getName() + indexbuf + " ",
-                            include_state);
+        m_data->pDesc->print(getItemAtIndex(pItem, i),
+                             prefix + m_data->pDesc->getName() + indexbuf + " ",
+                             include_state);
     }
 }
 
@@ -106,7 +105,7 @@ bool Aggregate::getComponentItem(Command_stack * cmd,
     added = false; // By default, didn't add a new component
     unsigned int itemIdx = 0; // If no index is needed, we'll use offset 0
 
-    if (pData->maxCount > 1)
+    if (m_data->maxCount > 1)
     {
         // There can be more than one instance, so we need an explicit index
         if (!getIndex(cmd, itemIdx))
@@ -119,7 +118,7 @@ bool Aggregate::getComponentItem(Command_stack * cmd,
     }
 
     DBG_PRT("getComponentItem %p offset %d idx %d cnt %d len %d\n",
-            *ppItem, pData->offset, itemIdx, getCount(pParentItem), pData->pDesc->getLen());
+            *ppItem, m_data->offset, itemIdx, getCount(pParentItem), m_data->pDesc->getLen());
 
     if (itemIdx >= getCount(pParentItem))
     {
@@ -132,7 +131,7 @@ bool Aggregate::getComponentItem(Command_stack * cmd,
         added = true;
     }
     *ppItem = getItemAtIndex(pParentItem, itemIdx);
-    candidateCtxt->setDesc(pData->pDesc);
+    candidateCtxt->setDesc(m_data->pDesc);
     candidateCtxt->setItem(*ppItem);
     return true;
 }
@@ -141,13 +140,13 @@ bool Aggregate::getComponentItem(Command_stack * cmd,
 // Save to persistent storage all elements in the array, if its metadata says it's a persistent item
 void Aggregate::save(const uint8_t *pItem, Store * store) const
 {
-    if (!pData->pDesc->isPersistent())
+    if (!m_data->pDesc->isPersistent())
     {
         return;
     }
     for (unsigned i = 0; i < getCount(pItem); i++)
     {
-        pData->pDesc->save(getItemAtIndex(pItem, i), store);
+        m_data->pDesc->save(getItemAtIndex(pItem, i), store);
     }
 }
 
@@ -162,15 +161,15 @@ void Aggregate::save(const uint8_t *pItem, Store * store) const
 //         else an indication of why store load failed
 result_t Aggregate::load(uint8_t * pParentItem, Store * store) const
 {
-    if (!pData->pDesc->isPersistent())
+    if (!m_data->pDesc->isPersistent())
     {
         return CM_SUCCESS;
     }
 
-    for (unsigned idx = 0; idx < pData->maxCount; idx++)
+    for (unsigned idx = 0; idx < m_data->maxCount; idx++)
     {
         // This fails if there isn't an item in the store to load.
-        result_t res = pData->pDesc->startLoad(store);
+        result_t res = m_data->pDesc->startLoad(store);
         if (res != CM_SUCCESS)
         {
             return res;
@@ -186,7 +185,7 @@ result_t Aggregate::load(uint8_t * pParentItem, Store * store) const
         }
 
         // We have memory to load the item into, so complete the load.
-        res = pData->pDesc->endLoad(pItem, store);
+        res = m_data->pDesc->endLoad(pItem, store);
         if (res != CM_SUCCESS)
         {
             return res;
@@ -200,7 +199,7 @@ result_t Aggregate::load(uint8_t * pParentItem, Store * store) const
 // If there can be more than 1 item, an index identifies the target item.
 bool Aggregate::needIndex(const uint8_t * pParentItem) const
 {
-    return pData->maxCount > 1;
+    return m_data->maxCount > 1;
 }
 
 
@@ -216,7 +215,7 @@ bool Aggregate::needIndex(const uint8_t * pParentItem) const
 //
 uint8_t * Contained_aggregate::getFirstItem(const uint8_t * pParentItem) const
 {
-    return (uint8_t *)(pParentItem + pData->offset);
+    return (uint8_t *)(pParentItem + getData()->offset);
 }
 
 
@@ -224,14 +223,14 @@ uint8_t * Contained_aggregate::getFirstItem(const uint8_t * pParentItem) const
 // For a contained component, the count is fixed at maxCount.
 unsigned Contained_aggregate::getCount(const uint8_t * pParentItem) const
 {
-    return pData->maxCount;
+    return getData()->maxCount;
 }
 
 
 // Handle command 'add' on command line
 bool Contained_aggregate::handleAdd(uint8_t * pItem) const
 {
-    cm_printf("'add' not supported for contained '%s'.\n", pData->pDesc->getName());
+    cm_printf("'add' not supported for contained '%s'.\n", getData()->pDesc->getName());
     return false;
 }
 
@@ -239,7 +238,7 @@ bool Contained_aggregate::handleAdd(uint8_t * pItem) const
 // Handle command 'del' on command line
 bool Contained_aggregate::handleDel(Command_stack * cmd, uint8_t * pItem) const
 {
-    cm_printf("'del' not supported for contained '%s'.\n", pData->pDesc->getName());
+    cm_printf("'del' not supported for contained '%s'.\n", getData()->pDesc->getName());
     return false;
 }
 
@@ -268,7 +267,7 @@ uint8_t * Contained_aggregate::getComponentItem(unsigned idx, uint8_t * pParentI
 // Give name, count
 void Contained_aggregate::help(const uint8_t * pItem) const
 {
-    cm_printf("%s [%u]\n", pData->pDesc->getName(), getCount(pItem));
+    cm_printf("%s [%u]\n", getData()->pDesc->getName(), getCount(pItem));
 }
 
 
@@ -285,7 +284,7 @@ void Contained_aggregate::help(const uint8_t * pItem) const
 //
 uint8_t * Owned_aggregate::getFirstItem(const uint8_t * pParentItem) const
 {
-    return *(uint8_t **)(pParentItem + pData->offset); // location is a pointer to the OWNED item
+    return *(uint8_t **)(pParentItem + getData()->offset); // location is a pointer to the OWNED item
 }
 
 
@@ -294,22 +293,22 @@ uint8_t * Owned_aggregate::getFirstItem(const uint8_t * pParentItem) const
 // would restrict the application developer.
 unsigned Owned_aggregate::getCount(const uint8_t * pParentItem) const
 {
-    if (pCounterAggr == nullptr)
+    if (m_counterAggr == nullptr)
     {
         // If there's no counter, then count is just 0 (absence) or 1 (presence)
         return (getFirstItem(pParentItem) == nullptr) ? 0 : 1;
     }
 
-    switch (pCounterAggr->pData->pDesc->getLen())
+    switch (m_counterAggr->getData()->pDesc->getLen())
     {
     case sizeof(uint8_t):
-        return (unsigned)(*(pParentItem + pCounterAggr->pData->offset));
+        return (unsigned)(*(pParentItem + m_counterAggr->getData()->offset));
 
     case sizeof(uint16_t):
-        return (unsigned)(*((uint16_t *)(pParentItem + pCounterAggr->pData->offset)));
+        return (unsigned)(*((uint16_t *)(pParentItem + m_counterAggr->getData()->offset)));
 
     case sizeof(uint32_t):
-        return (unsigned)(*((uint32_t *)(pParentItem + pCounterAggr->pData->offset)));
+        return (unsigned)(*((uint32_t *)(pParentItem + m_counterAggr->getData()->offset)));
 
     default:
         assert(0);
@@ -322,7 +321,7 @@ unsigned Owned_aggregate::getCount(const uint8_t * pParentItem) const
 // would restrict the application developer.
 void Owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) const
 {
-    if (pCounterAggr == nullptr)
+    if (m_counterAggr == nullptr)
     {
         // There is no counter -- it's optional if maxCount == 1
         // xxx what happens if there's no counter but maxCount > 1?
@@ -330,26 +329,26 @@ void Owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) const
     }
 
     DBG_PRT("%s: %s count=%d, %d bytes at %p\n",
-            __PRETTY_FUNCTION__, pData->pDesc->getName(), count,
-            pCounterAggr->pData->pDesc->getLen(), pParentItem + pCounterAggr->pData->offset);
+            __PRETTY_FUNCTION__, getData()->pDesc->getName(), count,
+            m_counterAggr->getData()->pDesc->getLen(), pParentItem + m_counterAggr->getData()->offset);
 
-    assert(count <= pData->maxCount);
+    assert(count <= getData()->maxCount);
 
-    switch (pCounterAggr->pData->pDesc->getLen())
+    switch (m_counterAggr->getData()->pDesc->getLen())
     {
     case sizeof(uint8_t):
         assert(count <= UINT8_MAX);
-        memcpy(pParentItem + pCounterAggr->pData->offset, (uint8_t *)&count, sizeof(uint8_t));
+        memcpy(pParentItem + m_counterAggr->getData()->offset, (uint8_t *)&count, sizeof(uint8_t));
         break;
 
     case sizeof(uint16_t):
         assert(count <= UINT16_MAX);
-        memcpy(pParentItem + pCounterAggr->pData->offset, (uint16_t *)&count, sizeof(uint16_t));
+        memcpy(pParentItem + m_counterAggr->getData()->offset, (uint16_t *)&count, sizeof(uint16_t));
         break;
 
     case sizeof(uint32_t):
         assert(count <= UINT32_MAX);
-        memcpy(pParentItem + pCounterAggr->pData->offset, (uint32_t *)&count, sizeof(uint32_t));
+        memcpy(pParentItem + m_counterAggr->getData()->offset, (uint32_t *)&count, sizeof(uint32_t));
         break;
 
     default:
@@ -363,7 +362,7 @@ void Owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) const
 //
 void Owned_aggregate::freeItems(uint8_t * pParentItem) const
 {
-    uint8_t ** ppItems = (uint8_t **)(pParentItem + pData->offset);
+    uint8_t ** ppItems = (uint8_t **)(pParentItem + getData()->offset);
 
     if (*ppItems == nullptr)
     {
@@ -384,9 +383,9 @@ void Owned_aggregate::freeItems(uint8_t * pParentItem) const
 // Handle command 'add' on command line
 bool Owned_aggregate::handleAdd(uint8_t * pItem) const
 {
-    if (getCount(pItem) >= pData->maxCount)
+    if (getCount(pItem) >= getData()->maxCount)
     {
-        cm_printf("Can't add '%s' (max %u).\n", pData->pDesc->getName(), pData->maxCount);
+        cm_printf("Can't add '%s' (max %u).\n", getData()->pDesc->getName(), getData()->maxCount);
         return false;
     }
 
@@ -407,7 +406,7 @@ bool Owned_aggregate::handleDel(Command_stack * cmd, uint8_t * pItem) const
 
     if (cnt == 0)
     {
-        cm_printf("Currently no '%s'.\n", pData->pDesc->getName());
+        cm_printf("Currently no '%s'.\n", getData()->pDesc->getName());
         return false;
     }
 
@@ -418,7 +417,7 @@ bool Owned_aggregate::handleDel(Command_stack * cmd, uint8_t * pItem) const
         // An index is needed but couldn't be extracted from the command
         return false;
     }
-    
+
     DBG_PRT("%s: count=%u itemIdx=%u\n", __PRETTY_FUNCTION__, cnt, itemIdx);
 
     if (itemIdx >= cnt)
@@ -440,29 +439,29 @@ uint8_t * Owned_aggregate::add(uint8_t * pParentItem) const
 {
     // Reallocate memory, and save pointer in the same location
     unsigned   cnt     = getCount(pParentItem);
-    uint8_t ** ppItems = (uint8_t **)(pParentItem + pData->offset);
+    uint8_t ** ppItems = (uint8_t **)(pParentItem + getData()->offset);
 
-    assert(cnt < pData->maxCount);
+    assert(cnt < getData()->maxCount);
 
     DBG_PRT("%s: %d * %d at %p + %d (%p), currently %p\n",
-            __PRETTY_FUNCTION__, cnt+1, pData->pDesc->getLen(), pParentItem, pData->offset, ppItems, *ppItems);
+            __PRETTY_FUNCTION__, cnt+1, getData()->pDesc->getLen(), pParentItem, getData()->offset, ppItems, *ppItems);
 
-    uint8_t * pNewMem = (uint8_t *)realloc(*ppItems, (cnt + 1) * pData->pDesc->getLen());
+    uint8_t * pNewMem = (uint8_t *)realloc(*ppItems, (cnt + 1) * getData()->pDesc->getLen());
     if (pNewMem == nullptr)
     {
-        cm_printf("No %u for %s\n", pData->pDesc->getLen(), pData->pDesc->getName());
+        cm_printf("No %u for %s\n", getData()->pDesc->getLen(), getData()->pDesc->getName());
         return nullptr;
     }
 
     // Memory successfully allocated, so reference the (possibly new) memory
     *ppItems = pNewMem;
 
-    uint8_t * pNewItem = pNewMem + cnt * pData->pDesc->getLen();
+    uint8_t * pNewItem = pNewMem + cnt * getData()->pDesc->getLen();
 
     // Initialize added item with default values. First memset to ensure
     // counters, which have no setDefault fn, are 0 (also sets pointers to owned to nullptr).
-    memset(pNewItem, 0, pData->pDesc->getLen());
-    pData->pDesc->setDefault(pNewItem);
+    memset(pNewItem, 0, getData()->pDesc->getLen());
+    getData()->pDesc->setDefault(pNewItem);
 
     DBG_PRT("%s: pNewMem=%p\n", __PRETTY_FUNCTION__, pNewMem);
 
@@ -476,8 +475,8 @@ uint8_t * Owned_aggregate::add(uint8_t * pParentItem) const
 // and sets the pointer to the memory to nullptr if it's all been freed.
 void Owned_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
 {
-    uint8_t ** ppItems = (uint8_t **)(pParentItem + pData->offset);
-    item_len_t componentLen = pData->pDesc->getLen();
+    uint8_t ** ppItems = (uint8_t **)(pParentItem + getData()->offset);
+    item_len_t componentLen = getData()->pDesc->getLen();
     unsigned cnt = getCount(pParentItem);
 
     assert(*ppItems != nullptr);
@@ -504,7 +503,8 @@ void Owned_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
 
 
 // Implicit add a RAM item, i.e. add an item because it is referenced by
-// a command that is not an explicit 'add'. This allows the client to re-create
+// a command that is not an explicit 'add', or during load from NVRAM.
+// This allows the client to re-create
 // configuration by "playing back" the output from command "prt".
 // @return a pointer to the new item, if the index is one larger than the current
 // largest item index, and in-range; else nullptr.
@@ -512,9 +512,9 @@ void Owned_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
 uint8_t * Owned_aggregate::addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const
 {
     DBG_PRT("%s: %s idx=%d cnt=%d\n",
-            __PRETTY_FUNCTION__, pData->pDesc->getName(), itemIdx, getCount(pParentItem));
+            __PRETTY_FUNCTION__, getData()->pDesc->getName(), itemIdx, getCount(pParentItem));
 
-    if ((itemIdx == getCount(pParentItem)) && (itemIdx < pData->maxCount))
+    if ((itemIdx == getCount(pParentItem)) && (itemIdx < getData()->maxCount))
     {
         // Index refers to an item to create
         return add(pParentItem);
@@ -541,7 +541,7 @@ uint8_t * Owned_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem)
 // Give name, current count, and maxcount.
 void Owned_aggregate::help(const uint8_t * pItem) const
 {
-    cm_printf("%s [%u/%u]\n", pData->pDesc->getName(), getCount(pItem), pData->maxCount);
+    cm_printf("%s [%u/%u]\n", getData()->pDesc->getName(), getCount(pItem), getData()->maxCount);
 }
 
 }

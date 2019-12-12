@@ -83,15 +83,15 @@ public:
     ~Composite_descriptor() {};
     const char * getName() const
     {
-        return pData->c.name;
+        return m_data->c.name;
     }
     virtual item_id_t getId() const
     {
-        return pData->c.id;
+        return m_data->c.id;
     }
     virtual item_len_t getLen() const
     {
-        return pData->c.len;
+        return m_data->c.len;
     }
     bool handleCmd(Command_stack * cmd, uint8_t * pItem, Cmd_context * candidate, bool & setCtxt) const;
     void print(const uint8_t * pItem, std::string prefix, bool include_state) const;
@@ -102,7 +102,7 @@ public:
     result_t endLoad(uint8_t * pItem, Store * store) const;
     bool isPersistent() const
     {
-        return pData->c.persistent;
+        return m_data->c.persistent;
     }
 
 private:
@@ -111,16 +111,16 @@ private:
     bool handleIdWord(Command_stack * cmd, uint8_t * pItem, Cmd_context * candidate, bool & setCtxt) const;
     virtual unsigned short getAggrCount() const
     {
-        return pData->aggrCount;
+        return m_data->aggrCount;
     }
     virtual const Aggregate * getAggrAtIndex(unsigned int i) const
     {
-        return pData->aggrList[i];
+        return m_data->aggrList[i];
     }
     const Aggregate * getAggr(const char * name) const;
     const Aggregate * getAggr(item_id_t id) const;
 
-    const Composite_metadata * const pData;
+    const Composite_metadata * const m_data;
 };
 
 
@@ -136,15 +136,15 @@ public:
     bool handleCmd(Command_stack * cmd, uint8_t * pItem, Cmd_context * candidate, bool & setCtxt) const;
     const char * getName() const
     {
-        return pData->c.name;
+        return m_data->c.name;
     }
     virtual item_id_t getId() const
     {
-        return pData->c.id;
+        return m_data->c.id;
     }
     virtual item_len_t getLen() const
     {
-        return pData->c.len;
+        return m_data->c.len;
     }
     void print(const uint8_t * pItem, std::string prefix, bool include_state) const;
     bool set(uint8_t * pItem, std::string val) const;
@@ -159,11 +159,11 @@ public:
     result_t endLoad(uint8_t * pItem, Store * store) const;
     bool isPersistent() const
     {
-        return pData->c.persistent;
+        return m_data->c.persistent;
     }
 
 private:
-    const Simple_metadata * const pData;
+    const Simple_metadata * const m_data;
 };
 
 }

@@ -31,7 +31,7 @@ public:
     result_t endLoadComposite();
 
 private:
-    Yaml * yaml;
+    Yaml * m_yaml;
 
 };
 }

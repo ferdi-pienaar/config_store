@@ -44,7 +44,7 @@ private:
         bool isFirstMember; // Are we writing the first member of a list or composite?
         bool isInArray; // Are we writing a list? xxx I think we'll need multiple copies -- we could be in an array inside an array.
     };
-    WriteContext writeContext;
+    WriteContext m_writeContext;
 };
 }
 #endif // CFG_MAN_JSON_H

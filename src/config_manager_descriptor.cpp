@@ -24,9 +24,9 @@ namespace cfg_mgr
 ////////////////////////////////////////////////////////////////////////////////
 
 Composite_descriptor::Composite_descriptor(const Composite_metadata * pMeta):
-    pData(pMeta)
+    m_data(pMeta)
 {
-    assert(pData != nullptr);
+    assert(m_data != nullptr);
 }
 
 
@@ -111,7 +111,7 @@ bool Composite_descriptor::handleIdWord(Command_stack * cmd,
         return false;
     }
 
-    candidateCtxt->add(pAggr->pData->pDesc->getName());
+    candidateCtxt->add(pAggr->getData()->pDesc->getName());
 
     bool      added;           // Did getComponentItem create a new item?
     uint8_t * pComponentItem;  // pointer to component RAM
@@ -131,7 +131,7 @@ bool Composite_descriptor::handleIdWord(Command_stack * cmd,
     }
 
     // Pass the remainder of the command to the found component
-    if (!pAggr->pData->pDesc->handleCmd(cmd, pComponentItem, candidateCtxt, updateCtxt))
+    if (!pAggr->getData()->pDesc->handleCmd(cmd, pComponentItem, candidateCtxt, updateCtxt))
     {
         // Component says the command is invalid
         if (added)
@@ -198,13 +198,13 @@ void Composite_descriptor::print(const uint8_t * pItem, string prefix, bool incl
 {
     DBG_PRT("print composite %s len %d include_state=%d\n", getName(), getLen(), include_state);
 
-    if (!include_state && !pData->c.persistent)
+    if (!include_state && !m_data->c.persistent)
     {
         // The item is not persistent, i.e. state, so exclude it because not required
         return;
     }
 
-    for (unsigned i = 0; i < pData->aggrCount; i++)
+    for (unsigned i = 0; i < m_data->aggrCount; i++)
     {
         getAggrAtIndex(i)->print(pItem, prefix, include_state);
     }
@@ -223,7 +223,7 @@ void Composite_descriptor::print(const uint8_t * pItem, string prefix, bool incl
 void Composite_descriptor::setDefault(uint8_t * pItem) const
 {
     // Set each component to default
-    for (unsigned i = 0; i < pData->aggrCount; i++)
+    for (unsigned i = 0; i < m_data->aggrCount; i++)
     {
         getAggrAtIndex(i)->setDefault(pItem);
     }
@@ -233,7 +233,7 @@ void Composite_descriptor::setDefault(uint8_t * pItem) const
 // Give help for each component.
 void Composite_descriptor::help(const uint8_t * pItem) const
 {
-    for (unsigned i = 0; i < pData->aggrCount; i++)
+    for (unsigned i = 0; i < m_data->aggrCount; i++)
     {
         getAggrAtIndex(i)->help(pItem);
     }
@@ -243,9 +243,9 @@ void Composite_descriptor::help(const uint8_t * pItem) const
 // Look for the aggregate whose component has a matching name
 const Aggregate * Composite_descriptor::getAggr(const char * name) const
 {
-    for (unsigned i = 0; i < pData->aggrCount; i++)
+    for (unsigned i = 0; i < m_data->aggrCount; i++)
     {
-        if (strcmp(name, getAggrAtIndex(i)->pData->pDesc->getName()) == 0)
+        if (strcmp(name, getAggrAtIndex(i)->getData()->pDesc->getName()) == 0)
         {
             return getAggrAtIndex(i);
         }
@@ -258,9 +258,9 @@ const Aggregate * Composite_descriptor::getAggr(const char * name) const
 // @return aggregate, or nullptr if ID does not identify an aggregate in this context
 const Aggregate * Composite_descriptor::getAggr(item_id_t id) const
 {
-    for (unsigned i = 0; i < pData->aggrCount; i++)
+    for (unsigned i = 0; i < m_data->aggrCount; i++)
     {
-        if (getAggrAtIndex(i)->pData->pDesc->getId() == id)
+        if (getAggrAtIndex(i)->getData()->pDesc->getId() == id)
         {
             return getAggrAtIndex(i);
         }
@@ -273,8 +273,8 @@ const Aggregate * Composite_descriptor::getAggr(item_id_t id) const
 //
 void Composite_descriptor::save(const uint8_t *pItem, Store * store) const
 {
-    DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id);
-    store->startWriteComposite(pData);
+    DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id);
+    store->startWriteComposite(m_data);
 
     for (unsigned i = 0; i < getAggrCount(); i++)
     {
@@ -289,8 +289,8 @@ void Composite_descriptor::save(const uint8_t *pItem, Store * store) const
 //
 result_t Composite_descriptor::startLoad(Store * store) const
 {
-    result_t ret = store->startLoadComposite(pData);
-    DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id, ret);
+    result_t ret = store->startLoadComposite(m_data);
+    DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id, ret);
     return ret;
 }
 
@@ -315,7 +315,7 @@ result_t Composite_descriptor::endLoad(uint8_t * pItem, Store * store) const
             return ret;
         }
     }
-    DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id);
+    DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id);
     return store->endLoadComposite();
 }
 
@@ -326,9 +326,9 @@ result_t Composite_descriptor::endLoad(uint8_t * pItem, Store * store) const
 ////////////////////////////////////////////////////////////////////////////////
 
 Simple_descriptor::Simple_descriptor(const Simple_metadata * pMeta):
-    pData(pMeta)
+    m_data(pMeta)
 {
-    assert(pData != nullptr);
+    assert(m_data != nullptr);
 }
 
 
@@ -341,14 +341,14 @@ void Simple_descriptor::print(const uint8_t * pItem, string prefix, bool include
 
     cm_printf("%s= ", prefix.c_str());
 
-    if (pData->pPrt == nullptr)
+    if (m_data->pPrt == nullptr)
     {
         // No function installed so use default print function: hex chars
         cm_printf("%s", cm_prt_hexstr(pItem, getLen()).c_str());
     }
     else
     {
-        cm_printf("%s", pData->pPrt(pItem, getLen()).c_str());
+        cm_printf("%s", m_data->pPrt(pItem, getLen()).c_str());
     }
     cm_printf("\n");
 }
@@ -406,9 +406,9 @@ bool Simple_descriptor::set(uint8_t * pItem, string val) const
 {
     DBG_PRT("set simple %s at %p to '%s'\n", getName(), pItem, val.c_str());
 
-    if (pData->pSet != nullptr)
+    if (m_data->pSet != nullptr)
     {
-        return pData->pSet(pItem, getLen(), val);
+        return m_data->pSet(pItem, getLen(), val);
     }
     cm_printf("'%s' can't be set.\n", getName());
     return false;
@@ -418,9 +418,9 @@ bool Simple_descriptor::set(uint8_t * pItem, string val) const
 // Set configurable item to its default value.
 void Simple_descriptor::setDefault(uint8_t * pItem) const
 {
-    if (pData->pSetDefault != nullptr)
+    if (m_data->pSetDefault != nullptr)
     {
-        pData->pSetDefault(pItem, getLen());
+        m_data->pSetDefault(pItem, getLen());
     }
 }
 
@@ -428,24 +428,24 @@ void Simple_descriptor::setDefault(uint8_t * pItem) const
 /// Save item to persistent storage
 void Simple_descriptor::save(const uint8_t *pItem, Store * store) const
 {
-    DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id);
-    store->writeSimple(pData, pItem);
+    DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id);
+    store->writeSimple(m_data, pItem);
 }
 
 
 // @param pItem
 result_t Simple_descriptor::startLoad(Store * store) const
 {
-    result_t ret = store->startLoadSimple(pData);
-    DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id, ret);
+    result_t ret = store->startLoadSimple(m_data);
+    DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id, ret);
     return ret;
 }
 
 // @param pItem
 result_t Simple_descriptor::endLoad(uint8_t * pItem, Store * store) const
 {
-    result_t ret = store->endLoadSimple(pItem, pData);
-    DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, pData->c.name, pData->c.id, ret);
+    result_t ret = store->endLoadSimple(pItem, m_data);
+    DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id, ret);
     return ret;
 }
 

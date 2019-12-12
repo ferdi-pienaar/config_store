@@ -10,11 +10,11 @@ namespace cfg_mgr
 
 bool Nvram::initForWrite()
 {
-    offset = 0;
+    m_offset = 0;
 
-    fp = fopen(CFG_FILE_NAME, "wb");  // open file for binary write
+    m_fp = fopen(CFG_FILE_NAME, "wb");  // open file for binary write
 
-    if (fp == nullptr)
+    if (m_fp == nullptr)
     {
         return false;
     }
@@ -24,11 +24,11 @@ bool Nvram::initForWrite()
 
 bool Nvram::initForRead()
 {
-    offset = 0;
+    m_offset = 0;
 
-    fp = fopen(CFG_FILE_NAME, "rb");  // open file for binary read
+    m_fp = fopen(CFG_FILE_NAME, "rb");  // open file for binary read
 
-    if (fp == nullptr)
+    if (m_fp == nullptr)
     {
         return false;
     }
@@ -38,49 +38,49 @@ bool Nvram::initForRead()
 
 void Nvram::accessComplete()
 {
-    fclose(fp);
+    fclose(m_fp);
 }
 
 
 void Nvram::setOffset(unsigned int o)
 {
-    fseek(fp, o, SEEK_SET);
-    offset = o;
+    fseek(m_fp, o, SEEK_SET);
+    m_offset = o;
 }
 
 
 unsigned int Nvram::getOffset()
 {
     // xxx can we eliminate offset by getting this from fp?
-    return offset;
+    return m_offset;
 }
 
 
 void Nvram::adjustOffset(int i)
 {
-    fseek(fp, i, SEEK_CUR);
-    offset += i;
+    fseek(m_fp, i, SEEK_CUR);
+    m_offset += i;
 }
 
 
 //
 bool Nvram::write(const uint8_t * d, unsigned int len)
 {
-    fwrite(d, 1, len, fp);
+    fwrite(d, 1, len, m_fp);
 
-    offset += len;
+    m_offset += len;
     return true;
 }
 
 
 bool Nvram::read(uint8_t * d, unsigned int len)
 {
-    if (fread(d, len, 1, fp) != 1)
+    if (fread(d, len, 1, m_fp) != 1)
     {
         return false;
     }
 
-    offset += len;
+    m_offset += len;
     return true;
 }
 

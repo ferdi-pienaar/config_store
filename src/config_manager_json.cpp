@@ -60,7 +60,7 @@ void Json::writeSimple(const char * name, item_len_t length, const uint8_t * v, 
     writeName(name);
     string val_str = prt(v, length);
     nvram->write((const uint8_t *)val_str.c_str(), val_str.size());
-    writeContext.isFirstMember = false;
+    m_writeContext.isFirstMember = false;
 }
 
 
@@ -73,7 +73,7 @@ void Json::startWriteComposite(const char * name)
     nvram->write((const uint8_t *)"{", 1);
 
     indent += " ";
-    writeContext.isFirstMember = true;
+    m_writeContext.isFirstMember = true;
 }
 
 
@@ -97,8 +97,8 @@ void Json::startWriteArray(const char * name)
     nvram->write((const uint8_t *)"[", 1);
 
     indent += " ";
-    writeContext.isFirstMember = true;
-    writeContext.isInArray = true;
+    m_writeContext.isFirstMember = true;
+    m_writeContext.isInArray = true;
 }
 
 //
@@ -110,7 +110,7 @@ void Json::endWriteArray()
     nvram->write((const uint8_t *)indent.c_str(), indent.size());
     nvram->write((const uint8_t *)"]", 1);
 
-    writeContext.isInArray = false;
+    m_writeContext.isInArray = false;
 }
 
 result_t Json::startLoadSimple(const char * name)
@@ -150,7 +150,7 @@ result_t Json::endLoadComposite()
 // Called when starting an object: close the previous one with a comma if necessary.
 void Json::closePredecessorLine()
 {
-    if (!writeContext.isFirstMember)
+    if (!m_writeContext.isFirstMember)
     {
         nvram->write((const uint8_t *)",", 1);
     }
@@ -160,7 +160,7 @@ void Json::closePredecessorLine()
 // If necessary, write name in quotes, followed by ": ".
 void Json::writeName(const char * name)
 {
-    if (writeContext.isInArray)
+    if (m_writeContext.isInArray)
     {
         // In an array, the name has already been written as
         // the array's name.

@@ -1,7 +1,6 @@
 /// config manager def
 #include "config_manager.h"
 #include "config_manager_descriptor.h"
-#include "config_manager_util.h"
 #include "config_manager_dbg.h"
 #include "config_manager_store.h"
 #include "config_manager_printf.h"
@@ -22,21 +21,21 @@ namespace cfg_mgr
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-Config_manager::Config_manager(const Descriptor * desc): base_desc(desc)
+Config_manager::Config_manager(const Descriptor * desc): m_baseDesc(desc)
 {
-    ramBase = (uint8_t *)malloc(base_desc->getLen());
-    DBG_PRT("init: ramBase, %d at %p\n", base_desc->getLen(), ramBase);
-    assert(ramBase != nullptr);
-    memset(ramBase, 0, base_desc->getLen());
-    base_desc->setDefault(ramBase);
+    m_ramBase = (uint8_t *)malloc(m_baseDesc->getLen());
+    DBG_PRT("init: ramBase, %d at %p\n", m_baseDesc->getLen(), m_ramBase);
+    assert(m_ramBase != nullptr);
+    memset(m_ramBase, 0, m_baseDesc->getLen());
+    m_baseDesc->setDefault(m_ramBase);
     resetCtxt();
-    store = Store::getStore();
+    m_store = Store::getStore();
 }
 
 Config_manager::~Config_manager()
 {
-    free(ramBase);
-    delete store; // xxx is this clean, is delete the obvious pair to getStore (in Config_manager constructor)?
+    free(m_ramBase);
+    delete m_store; // xxx is this clean, is delete the obvious pair to getStore (in Config_manager constructor)?
 }
 
 /// Execute command words entered by client on CLI cpp file
@@ -64,13 +63,13 @@ void Config_manager::handleCmd(int argc, char *argv[])
     }
 
     // The candidate context starts as a copy of the current context
-    candidateCtxt = currCtxt;
+    m_candidateCtxt = m_currCtxt;
 
     // Pass command that doesn't apply to CM as a whole, to current context for handling
-    currCtxt.getDesc()->handleCmd(&cmd, currCtxt.getItem(), &candidateCtxt, updateCtxt);
+    m_currCtxt.getDesc()->handleCmd(&cmd, m_currCtxt.getItem(), &m_candidateCtxt, updateCtxt);
     if (updateCtxt)
     {
-        currCtxt = candidateCtxt;
+        m_currCtxt = m_candidateCtxt;
     }
 }
 
@@ -79,26 +78,26 @@ void Config_manager::handleCmd(int argc, char *argv[])
 void Config_manager::resetCtxt()
 {
     DBG_PRT("resetCtxt\n");
-    currCtxt = Cmd_context("", base_desc, ramBase); // temp context with base properties
+    m_currCtxt = Cmd_context("", m_baseDesc, m_ramBase); // temp context with base properties
 }
 
 
 // Get a prompt string to display to user, representing the current context
 const char * Config_manager::getPromptString() const
 {
-    return currCtxt.getString().c_str();
+    return m_currCtxt.getString().c_str();
 }
 
 
 // Save data in RAM to persistent storage
 void Config_manager::save()
 {
-    if (!base_desc->isPersistent())
+    if (!m_baseDesc->isPersistent())
     {
         return;
     }
-    store->initForWrite();
-    base_desc->save(ramBase, store);
+    m_store->initForWrite();
+    m_baseDesc->save(m_ramBase, m_store);
 }
 
 
@@ -106,19 +105,19 @@ void Config_manager::save()
 // Resets context, since a reload re-allocates memory and makes current context invalid
 void Config_manager::load()
 {
-    store->initForRead();
+    m_store->initForRead();
 
     // Before loading, thus allocating new memory, call setDefault to free owned memory
-    base_desc->setDefault(ramBase);
-    result_t res = base_desc->startLoad(store);
+    m_baseDesc->setDefault(m_ramBase);
+    result_t res = m_baseDesc->startLoad(m_store);
     if (res == CM_SUCCESS)
     {
-        res = base_desc->endLoad(ramBase, store);
+        res = m_baseDesc->endLoad(m_ramBase, m_store);
     }
     if (res != CM_SUCCESS)
     {
         cm_printf("Load failed: defaults restored.\n");
-        base_desc->setDefault(ramBase);
+        m_baseDesc->setDefault(m_ramBase);
         return;
     }
     resetCtxt();

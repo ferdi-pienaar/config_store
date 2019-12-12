@@ -67,4 +67,3 @@ struct Aggregate_data
 
 }
 #endif // CFG_MAN_METADATA_H
-

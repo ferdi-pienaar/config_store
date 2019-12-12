@@ -29,7 +29,7 @@ public:
     static Store * getStore();
 
 protected:
-    Nvram  nvram;
+    Nvram  m_nvram;
 
 };
 }

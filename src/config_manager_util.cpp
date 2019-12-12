@@ -82,48 +82,36 @@ bool cm_set_int(uint8_t *pItem, item_len_t len, string val)
     switch (len)
     {
     case sizeof(int8_t):
-    {
         if ((v > INT8_MAX) || (v < INT8_MIN))
         {
             return false;
         }
-        int8_t cv = (int8_t)v;
-        memcpy(pItem, &cv, sizeof(cv));
+        memcpy(pItem, (int8_t *)&v, sizeof(int8_t));
         return true;
-    }
 
     case sizeof(int16_t):
-    {
         if ((v > INT16_MAX) || (v < INT16_MIN))
         {
             return false;
         }
-        int16_t sv = (int16_t)v;
-        memcpy(pItem, &sv, sizeof(sv));
+        memcpy(pItem, (int16_t *)&v, sizeof(int16_t));
         return true;
-    }
 
     case sizeof(int32_t):
-    {
         if ((v > INT32_MAX) || (v < INT32_MIN))
         {
             return false;
         }
-        int32_t lv = (int32_t)v;
-        memcpy(pItem, &lv, sizeof(lv));
+        memcpy(pItem, (int32_t *)&v, sizeof(int32_t));
         return true;
-    }
 
     case sizeof(int64_t):
-    {
         if ((v > INT64_MAX) || (v < INT64_MIN))
         {
             return false;
         }
-        int64_t lv = (int64_t)v;
-        memcpy(pItem, &lv, sizeof(lv));
+        memcpy(pItem, (int64_t *)&v, sizeof(int64_t));
         return true;
-    }
 
     default:
         assert("Unexpected input integer len."==0);
@@ -172,4 +160,3 @@ string cm_prt_hexstr(const uint8_t *pItem, item_len_t len)
 }
 
 }
-

@@ -43,12 +43,12 @@ void setdef_t1(uint8_t *pItem, item_len_t len)
 
 
 // test set 1 metadata
-const Simple_metadata s1_d = {{"name1", 1, sizeof(int), true}, NULL, cm_setdef_null, NULL};
+const Simple_metadata s1_d = {{"name1", 1, sizeof(int), true}, nullptr, cm_setdef_null, nullptr};
 const Simple_descriptor s1(&s1_d);
 const Aggregate_data ca1_d = {&s1, 1, offsetof(struct m, m1)};
 const Contained_aggregate ca1(&ca1_d);
 
-const Simple_metadata s2_d = {{"name2", 2, sizeof(int), true}, NULL, setdef_t1, NULL};
+const Simple_metadata s2_d = {{"name2", 2, sizeof(int), true}, nullptr, setdef_t1, nullptr};
 const Simple_descriptor s2(&s2_d);
 const Aggregate_data ca2_d = {&s2, 1, offsetof(struct m, m2)};
 const Contained_aggregate ca2(&ca2_d);
@@ -254,7 +254,7 @@ TEST_F(Contained, loadIncoherent)
 
 
 // Load file with incoherent CONTAINED composite (sum of the sizes
-// of components is larger than the size of the composite).
+// of components is smaller than the size of the composite).
 // Load fails, so defaults are set.
 TEST_F(Contained, loadIncoherent1)
 {
@@ -283,12 +283,12 @@ struct m2
 };
 
 // test set 2 metadata
-const Simple_metadata s3_d = {{"count", 3, sizeof(unsigned), false}, NULL, NULL, NULL};
+const Simple_metadata s3_d = {{"count", 3, sizeof(unsigned), false}, nullptr, nullptr, nullptr};
 const Simple_descriptor s3(&s3_d);
 const Aggregate_data ca3_d = {&s3, 1, offsetof(struct m2, cnt)};
 const Contained_aggregate ca3(&ca3_d);
 
-const Simple_metadata s4_d = {{"owned", 4, sizeof(int), true}, cm_set_int, NULL, NULL};
+const Simple_metadata s4_d = {{"owned", 4, sizeof(int), true}, cm_set_int, nullptr, nullptr};
 const Simple_descriptor s4(&s4_d);
 const Aggregate_data ca4_d = {&s4, MAX_NUMBER_OWNED, offsetof(struct m2, owned)};
 const Owned_aggregate oa4(&ca4_d, &ca3);
@@ -329,7 +329,7 @@ TEST_F(Owned, load)
     char * commandWord[] = {(char *)"load"};
     cm->handleCmd(1, commandWord);
     EXPECT_EQ(2, GET_C2_CONFIG->cnt);
-    ASSERT_TRUE(GET_C2_CONFIG->owned != NULL);
+    ASSERT_TRUE(GET_C2_CONFIG->owned != nullptr);
     EXPECT_EQ(7, GET_C2_CONFIG->owned[0]);
     EXPECT_EQ(8, GET_C2_CONFIG->owned[1]);
 }
@@ -377,7 +377,7 @@ TEST_F(Owned, loadNonPersistent)
     char * commandWord[] = {(char *)"load"};
     cm->handleCmd(1, commandWord);
     EXPECT_EQ(1, GET_C2_CONFIG->cnt);
-    ASSERT_TRUE(GET_C2_CONFIG->owned != NULL);
+    ASSERT_TRUE(GET_C2_CONFIG->owned != nullptr);
     EXPECT_EQ(5, GET_C2_CONFIG->owned[0]);
 }
 
@@ -405,7 +405,7 @@ TEST_F(Owned, implicitAdd)
     /*T    L    T    L    V    */
 
     EXPECT_EQ(0, GET_C2_CONFIG->cnt);
-    EXPECT_EQ(NULL, GET_C2_CONFIG->owned);
+    EXPECT_EQ(nullptr, GET_C2_CONFIG->owned);
 
     char * commandWord[] = {(char *)"owned", (char *)"0"}; // reference owned item 0, causing implicit add
     cm->handleCmd(2, commandWord);
@@ -427,13 +427,13 @@ TEST_F(Owned, implicitAddnSet)
     /*T    L    T    L    V    */
 
     EXPECT_EQ(0, GET_C2_CONFIG->cnt);
-    EXPECT_EQ(NULL, GET_C2_CONFIG->owned);
+    EXPECT_EQ(nullptr, GET_C2_CONFIG->owned);
 
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"=", (char *)"7"}; // set item 0, causing implicit add
     cm->handleCmd(4, commandWord);
 
     EXPECT_EQ(1, GET_C2_CONFIG->cnt);
-    ASSERT_TRUE(GET_C2_CONFIG->owned != NULL);
+    ASSERT_TRUE(GET_C2_CONFIG->owned != nullptr);
     EXPECT_EQ(7, GET_C2_CONFIG->owned[0]);
 
     char * commandWord2[] = {(char *)"save"};
@@ -451,13 +451,13 @@ TEST_F(Owned, explicitAdd)
     /*T    L    T    L    V    */
 
     EXPECT_EQ(0, GET_C2_CONFIG->cnt);
-    EXPECT_EQ(NULL, GET_C2_CONFIG->owned);
+    EXPECT_EQ(nullptr, GET_C2_CONFIG->owned);
 
     char * commandWord[] = {(char *)"add", (char *)"owned"};
     cm->handleCmd(2, commandWord);
 
     EXPECT_EQ(1, GET_C2_CONFIG->cnt);
-    EXPECT_TRUE(GET_C2_CONFIG->owned != NULL);
+    EXPECT_TRUE(GET_C2_CONFIG->owned != nullptr);
 
     char * commandWord2[] = {(char *)"save"};
     cm->handleCmd(1, commandWord2);
@@ -484,14 +484,14 @@ TEST_F(Owned, del)
     char * commandWord[] = {(char *)"load"};
     cm->handleCmd(1, commandWord);
     EXPECT_EQ(1, GET_C2_CONFIG->cnt);
-    ASSERT_TRUE(GET_C2_CONFIG->owned != NULL);
+    ASSERT_TRUE(GET_C2_CONFIG->owned != nullptr);
     EXPECT_EQ(5, GET_C2_CONFIG->owned[0]);
 
-    char * commandWord2[] = {(char *)"del", (char *)"owned"};
-    cm->handleCmd(2, commandWord2);
+    char * commandWord2[] = {(char *)"del", (char *)"owned", (char *)"0"};
+    cm->handleCmd(3, commandWord2);
 
     EXPECT_EQ(0, GET_C2_CONFIG->cnt);
-    EXPECT_EQ(NULL, GET_C2_CONFIG->owned);
+    EXPECT_EQ(nullptr, GET_C2_CONFIG->owned);
 
     char * commandWord3[] = {(char *)"save"};
     cm->handleCmd(1, commandWord3);
@@ -511,7 +511,7 @@ struct m3
 };
 
 // test set 3 metadata
-const Simple_metadata s5_d = {{"name1", 1, sizeof(short int), true}, NULL, NULL, NULL};
+const Simple_metadata s5_d = {{"name1", 1, sizeof(short int), true}, nullptr, nullptr, nullptr};
 const Simple_descriptor s5(&s5_d);
 const Aggregate_data ca5_d = {&s5, T3_ARRAY_SIZE, offsetof(struct m3, m1)};
 const Contained_aggregate ca5(&ca5_d);
@@ -595,12 +595,12 @@ struct m6
 };
 
 // test set 4 metadata
-const Simple_metadata s6_d = {{"name1", 1, sizeof(short int), true}, NULL, NULL, NULL};
+const Simple_metadata s6_d = {{"name1", 1, sizeof(short int), true}, nullptr, nullptr, nullptr};
 const Simple_descriptor s6(&s6_d);
 const Aggregate_data ca6_d = {&s6, T6_ARRAY_SIZE, offsetof(struct m6, m1)};
 const Contained_aggregate ca6(&ca6_d);
 
-const Simple_metadata s7_d = {{"name2", 2, sizeof(short int), true}, NULL, NULL, NULL};
+const Simple_metadata s7_d = {{"name2", 2, sizeof(short int), true}, nullptr, nullptr, nullptr};
 const Simple_descriptor s7(&s7_d);
 const Aggregate_data ca7_d = {&s7, T7_ARRAY_SIZE, offsetof(struct m6, m2)};
 const Contained_aggregate ca7(&ca7_d);

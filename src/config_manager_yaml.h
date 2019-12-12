@@ -35,14 +35,14 @@ public:
 
 private:
     // Context used in writing
-    struct compositeWriteContext
+    struct CompositeWriteContext
     {
         unsigned      headerOffset; // offset of location of composite's T + L, relative to base of NVRAM
         item_id_t  id;           // composite ID given by client
         item_len_t length;       // actual cumulative length in composite
     };
 
-    struct compositeLoadContext
+    struct CompositeLoadContext
     {
         item_len_t length;       // length [bytes] in composite, read from NVRAM
         item_len_t readBytes;    // number of composite bytes read from MVRAM
@@ -51,10 +51,10 @@ private:
     void write_indent();
 
     result_t updateContainer(item_len_t length, unsigned * complete);
-    Nvram *  nvram;
-    int stackIndex;  // write stack index; -1 means the current item is top-level, not part of a composite
-    compositeWriteContext writeStack[stackDepth];
-    compositeLoadContext  loadStack[stackDepth];
+    Nvram *  m_nvram;
+    int m_stackIndex;  // write stack index; -1 means the current item is top-level, not part of a composite
+    CompositeWriteContext m_writeStack[stackDepth];
+    CompositeLoadContext  m_loadStack[stackDepth];
 };
 }
 #endif // CFG_MAN_YAML_H
