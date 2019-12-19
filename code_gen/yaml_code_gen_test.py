@@ -67,14 +67,14 @@ class Test_simple_gen(unittest.TestCase):
         expected_init = ('const cfg_mgr::Simple_metadata alf_data =\n'
         '{\n'
         '    {\n'
-        '        "alf",\n'
-        '        55,\n'
-        '        sizeof(int),\n'
+        '        "alf", // name\n'
+        '        55, // id\n'
+        '        sizeof(int), // size\n'
         '        true\n'
         '    },\n'
-        '    NULL,\n'
-        '    NULL,\n'
-        '    NULL,\n'
+        '    NULL, // set\n'
+        '    NULL, // setdef\n'
+        '    NULL, // print\n'
         '};\n'
         'const cfg_mgr::Simple_descriptor alf(&alf_data);\n')
         self.assertEqual(expected_init, b.get_init())
@@ -85,14 +85,14 @@ class Test_simple_gen(unittest.TestCase):
         expected_init = ('const cfg_mgr::Simple_metadata alf_data =\n'
         '{\n'
         '    {\n'
-        '        "alf",\n'
-        '        0,\n'
-        '        sizeof(int),\n'
+        '        "alf", // name\n'
+        '        0, // id\n'
+        '        sizeof(int), // size\n'
         '        true\n'
         '    },\n'
-        '    NULL,\n'
-        '    NULL,\n'
-        '    NULL,\n'
+        '    NULL, // set\n'
+        '    NULL, // setdef\n'
+        '    NULL, // print\n'
         '};\n'
         'const cfg_mgr::Simple_descriptor alf(&alf_data);\n')
         self.assertEqual(expected_init, b.get_init())        
@@ -129,7 +129,7 @@ class Test_contained_array_gen(unittest.TestCase):
         
     def test_contained_array_init(self):
         b = yaml_code_gen.makeBaseItem(self.cfg, self.id)
-        print b.get_init()
+        print(b.get_init())
         
 if __name__ == "__main__":
     unittest.main()

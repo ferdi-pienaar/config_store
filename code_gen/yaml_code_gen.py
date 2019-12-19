@@ -78,7 +78,7 @@ class Item:
             self.id = str(old_id['id'])
         else:
             self.id = container_id_gen.get_id(d['name'])
-            print d['name'], "assigned new ID", self.id
+            print("{} assigned new ID {}".format(d['name'], self.id))
         
     def get_metadata_name(self):
         return self.full_name + "_data"
@@ -224,7 +224,7 @@ class CompositeItem(Item):
                     d['components'] = id_list
             except:
                 # Can't find a component item with a matching name -- no longer supported
-                print "%s, ID %d, is no longer in use" % (name, component_ids[name])
+                print("{}, ID {}, is no longer in use".format(name, component_ids[name]))
             components.append(d)
         return components
 
@@ -356,7 +356,7 @@ class OwnedAggregate(Aggregate):
         if not 'counter' in self.d:
             max_count = self.get_max_count()
             if max_count > 1:
-                print "Warning: aggregate for", self.d['item']['name'], "has no counter, but max_count is", max_count
+                print("Warning: aggregate for {} has no counter, but max_count is {}".format(self.d['item']['name'], max_count))
                 return False
         return True  
         
@@ -403,9 +403,9 @@ def loadCfgData(cfgFileName):
     try:
         f = open(cfgFileName)
     except:
-        print "Configuration file name not given."
+        print("Configuration file name not given.")
         return
-    print "Reading config file", cfgFileName
+    print("Reading config file {}".format(cfgFileName))
     data = f.read()
     f.close()
     return data
@@ -417,9 +417,9 @@ def loadIdData(baseFileName):
     try:
         f = open(fname)
     except IOError:
-        print "Can't open ID file", fname
+        print("Can't open ID file {}".format(fname))
         return
-    print "Reading ID file", fname
+    print("Reading ID file {}".format(fname))
     data = f.read()
     f.close()
     return data
@@ -430,22 +430,22 @@ def makeBaseItem(yaml_cfg_text, id_text):
     try:
         cfg = yaml.load(yaml_cfg_text)
     except:
-        print "config file can't be loaded as YAML"
+        print("config file can't be loaded as YAML")
         return
     try:
         base_item_config = cfg['item']
     except:
-        print "Root element in configuration is not an item"
+        print("Root element in configuration is not an item")
         return
     try:
         id_dict = yaml.load(id_text)
     except:
         # This happens in the normal case where no ID file exists yet
-        print "ID file can't be loaded as YAML"
+        print("ID file can't be loaded as YAML")
         return makeItem(base_item_config, Id_generator(None), None, base_item_config['name'])
     if id_dict['name'] != base_item_config['name']:
         # The ID data has no entry for the base item
-        print "'{0}' in ID data file doesn't match '{1}' in config file: generating new IDs!".format(id_dict['name'], base_item_config['name'])
+        print("'{0}' in ID data file doesn't match '{1}' in config file: generating new IDs!".format(id_dict['name'], base_item_config['name']))
         id_dict = None
     return makeItem(base_item_config, Id_generator(None), id_dict, base_item_config['name'])
 

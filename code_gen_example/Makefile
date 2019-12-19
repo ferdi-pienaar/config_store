@@ -21,7 +21,7 @@ test_cfg1: $(OBJS) -lCfgMgr
 # cfg_id.yaml is optional; depend on it, but only if it exists.
 cfg-id-yaml-exists := $(wildcard cfg_id.yaml)
 cfg.cpp: cfg.yaml $(cfg-id-yaml-exists)
-	python ../code_gen/yaml_code_gen.py $<
+	python3 ../code_gen/yaml_code_gen.py $<
 
 .PHONY: clean
 clean:
