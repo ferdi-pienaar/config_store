@@ -19,13 +19,14 @@ GTEST_DIR = ../../gtest/googletest-master/googletest
 # Where to find user code.
 USER_DIR = ../src
 STUB_DIR = ../stubs
+UTIL_DIR = ../util
 
 VPATH = ../src # so make can find the sources and library
 
 # Flags passed to the preprocessor.
 # Set Google Test's header directory as a system directory, such that
 # the compiler doesn't generate warnings in Google Test headers.
-CPPFLAGS += -isystem $(GTEST_DIR)/include -I $(USER_DIR) -I $(STUB_DIR) -I ../export
+CPPFLAGS += -isystem $(GTEST_DIR)/include -I $(USER_DIR) -I $(STUB_DIR) -I $(UTIL_DIR) -I ../export
 
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g -Wall -Wextra -pthread
@@ -41,6 +42,7 @@ TEST_OBJS = cm_tlvTest.o \
  cm_jsonTest.o
 
 MOCK_OBJS = $(STUB_DIR)/nvram_spy.o $(STUB_DIR)/config_manager_printf_spy.o 
+UTIL_OBJS = $(UTIL_DIR)/config_manager_set_int.o $(UTIL_DIR)/config_manager_prt_int.o
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
@@ -52,7 +54,7 @@ GTEST_HEADERS = $(GTEST_DIR)/include/gtest/*.h \
 all : $(TESTS)
 
 clean :
-	rm -f $(TESTS) gtest.a gtest_main.a *.o $(STUB_DIR)/*.o
+	rm -f $(TESTS) gtest.a gtest_main.a *.o $(STUB_DIR)/*.o $(UTIL_DIR)/*.o
     
     
 # Execute test iff executable is untested (or new) -- the tag file timestamps last test execution.
@@ -88,5 +90,5 @@ gtest_main.a : gtest-all.o gtest_main.o
 # gtest_main.a, depending on whether it defines its own main()
 # function.
 
-cm_test : $(TEST_OBJS) $(MOCK_OBJS) gtest_main.a -lCfgMan
+cm_test : $(TEST_OBJS) $(MOCK_OBJS) $(UTIL_OBJS) gtest_main.a -lCfgMgr
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@

@@ -19,7 +19,10 @@
 #include "my_cfg.h"
 #include "config_manager_descriptor.h"
 #include "config_manager_aggregate.h"
-#include "config_manager_util.h"
+#include "config_manager_set_int.h"
+#include "config_manager_prt_int.h"
+#include "config_manager_set_str.h"
+#include "config_manager_prt_str.h"
 #include "config_manager_setdef_null.h"
 #include "my_cfg_fn.h" // User-written functions "plugged in" to Config_manager
 

@@ -8,7 +8,7 @@ CPPFLAGS += -D M_DEFINED_STORE_TYPE=TLV_STORE
 # Generate the .d files when generating objects
 CXXFLAGS += -MMD
 OBJS = config_manager.o \
-config_manager_util.o \
+config_manager_prt_hexstr.o \
 config_manager_setdef_null.o \
 config_manager_store.o \
 nvram.o \
@@ -27,7 +27,7 @@ OBJS += config_manager_json.o
 #  c: create the archive (without this option, if archive doesn't exist, there's a warning)
 #  r: insert the files into archive (with replacement)
 # We only pass newer prerequisites to the command ($? instead of $^)
-libCfgMan.a: $(OBJS)
+libCfgMgr.a: $(OBJS)
 	ar cr $@ $?
 
 .PHONY: clean

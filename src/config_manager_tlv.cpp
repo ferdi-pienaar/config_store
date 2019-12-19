@@ -275,9 +275,8 @@ result_t Tlv::findTypeInComposite(item_id_t t)
 // @pre xxx enough bytes should remain in m_nvram that we can read T.
 result_t Tlv::matchType(item_id_t t)
 {
-    item_id_t found_t;
-
     // Read T from next location in m_nvram.
+    item_id_t found_t;
     if (!m_nvram->read((uint8_t *)&found_t, sizeof(found_t)))
     {
         DBG_PRT("%s: type=%hx read fail m_nvram offset=%lu\n",

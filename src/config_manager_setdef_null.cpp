@@ -7,8 +7,6 @@
 #include <assert.h>
 #include <string.h> // memset
 
-using namespace std;
-
 namespace cfg_mgr
 {
 

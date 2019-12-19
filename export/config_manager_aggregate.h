@@ -71,7 +71,6 @@ public:
     void save(const uint8_t *pItem, Store * store) const;
     result_t load(uint8_t * pParentItem, Store * store) const;
     virtual void help(const uint8_t * pItem) const = 0;
-    virtual uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const = 0;
     const Aggregate_data * getData() const
     {
         return m_data;
@@ -81,6 +80,7 @@ private:
     /// returns address of the first item in the array
     virtual uint8_t * getFirstItem(const uint8_t * pParentItem) const = 0;
     virtual void freeItems(uint8_t * pParentItem) const = 0;
+    virtual uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const = 0;
 
     const Aggregate_data * const m_data;
 };
@@ -115,7 +115,6 @@ public:
         (void)itemIdx;
         assert(false);
     }
-    uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const;
     uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const;
     void help(const uint8_t * pItem) const;
 
@@ -126,6 +125,7 @@ private:
     {
         (void)pParentItem;
     }
+    uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const;
 };
 
 
@@ -146,13 +146,13 @@ public:
     void setCount(uint8_t * pParentItem, unsigned int) const;
     uint8_t * add(uint8_t * pParentItem) const;
     void del(uint8_t * pParentItem, unsigned int itemIdx) const;
-    uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const;
     uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const;
     void help(const uint8_t * pItem) const;
 
 private:
     uint8_t * getFirstItem(const uint8_t * pParentItem) const;
     void freeItems(uint8_t * pParentItem) const;
+    uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const;
 
     const Contained_aggregate * const m_counterAggr; // the counter for this owned component
 };

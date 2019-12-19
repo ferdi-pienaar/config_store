@@ -5,7 +5,7 @@
 
 #include "gtest/gtest.h"
 #include "config_manager_yaml.h"  // Unit under test
-#include "config_manager_util.h" // load and save functions re-used
+#include "config_manager_set_int.h" // load and save functions re-used
 #include <string.h> // strncmp
 #include "nvram_spy.h"
 

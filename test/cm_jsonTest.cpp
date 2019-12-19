@@ -4,7 +4,8 @@
 
 #include "gtest/gtest.h"
 #include "config_manager_json.h"  // Unit under test
-#include "config_manager_util.h" // load and save functions re-used
+#include "config_manager_prt_int.h" // load and save functions re-used
+#include "config_manager_set_int.h" // load and save functions re-used
 #include "nvram_spy.h"
 #include <iostream>
 

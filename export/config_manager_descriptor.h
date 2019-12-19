@@ -79,7 +79,8 @@ public:
 class Composite_descriptor : public Descriptor
 {
 public:
-    Composite_descriptor(const Composite_metadata * pMeta);
+    Composite_descriptor(const Composite_metadata * pMeta):
+        m_data(pMeta) {}
     ~Composite_descriptor() {};
     const char * getName() const
     {
@@ -131,7 +132,8 @@ private:
 class Simple_descriptor : public Descriptor
 {
 public:
-    Simple_descriptor(const Simple_metadata * pMeta);
+    Simple_descriptor(const Simple_metadata * pMeta):
+        m_data(pMeta) {}
     virtual ~Simple_descriptor() {}
     bool handleCmd(Command_stack * cmd, uint8_t * pItem, Cmd_context * candidate, bool & setCtxt) const;
     const char * getName() const

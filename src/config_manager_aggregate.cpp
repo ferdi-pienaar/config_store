@@ -61,9 +61,9 @@ void Aggregate::setDefault(uint8_t * pItem) const
 
 // Print, appending index to prefix (if necessary) and delegating to items
 // @param prefix string to be pre-pended to the value, representing its context
-void Aggregate::print(const uint8_t * pItem, std::string prefix, bool include_state) const
+void Aggregate::print(const uint8_t * pItem, std::string prefix, bool show_state) const
 {
-    if (!include_state && !m_data->pDesc->isPersistent())
+    if (!show_state && !m_data->pDesc->isPersistent())
     {
         // The item is not persistent, i.e. state, so exclude it because not required
         return;
@@ -80,7 +80,7 @@ void Aggregate::print(const uint8_t * pItem, std::string prefix, bool include_st
         }
         m_data->pDesc->print(getItemAtIndex(pItem, i),
                              prefix + m_data->pDesc->getName() + indexbuf + " ",
-                             include_state);
+                             show_state);
     }
 }
 
@@ -92,7 +92,7 @@ void Aggregate::print(const uint8_t * pItem, std::string prefix, bool include_st
 // @param cmd - command string stack
 // @param pParentItem: (in) the owning item
 // @param ppItem: (out) the wanted item
-// @param added: (out) did this function allocate memory for the item?
+// @param added: (out) set 'true' if this function allocated memory for the item.
 //
 // @return true if item is returned, false if no index, or index out of range
 //
@@ -102,7 +102,6 @@ bool Aggregate::getComponentItem(Command_stack * cmd,
                                  bool & added,
                                  Cmd_context * candidateCtxt) const
 {
-    added = false; // By default, didn't add a new component
     unsigned int itemIdx = 0; // If no index is needed, we'll use offset 0
 
     if (m_data->maxCount > 1)
@@ -437,11 +436,11 @@ bool Owned_aggregate::handleDel(Command_stack * cmd, uint8_t * pItem) const
 // @return pointer to new allocated memory, or nullptr in case of failure
 uint8_t * Owned_aggregate::add(uint8_t * pParentItem) const
 {
-    // Reallocate memory, and save pointer in the same location
-    unsigned   cnt     = getCount(pParentItem);
-    uint8_t ** ppItems = (uint8_t **)(pParentItem + getData()->offset);
-
+    unsigned cnt = getCount(pParentItem);
     assert(cnt < getData()->maxCount);
+
+    // Reallocate memory, and save pointer in the same location
+    uint8_t ** ppItems = (uint8_t **)(pParentItem + getData()->offset);
 
     DBG_PRT("%s: %d * %d at %p + %d (%p), currently %p\n",
             __PRETTY_FUNCTION__, cnt+1, getData()->pDesc->getLen(), pParentItem, getData()->offset, ppItems, *ppItems);

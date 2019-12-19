@@ -8,7 +8,7 @@
 #include "config_manager_descriptor.h"       // Unit under test
 #include "config_manager_aggregate.h"       // Unit under test
 #include "config_manager_command.h"       // Unit under test
-#include "config_manager_util.h"  // Extensions to unit under test (generic "set" functions)
+#include "config_manager_set_int.h"  // Extensions to unit under test (generic "set" functions)
 #include "config_manager_printf_spy.h"
 
 #include <string>

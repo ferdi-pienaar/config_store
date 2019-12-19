@@ -2,7 +2,7 @@
 #include "config_manager_descriptor.h"
 #include "config_manager_aggregate.h"
 #include "config_manager_command.h"
-#include "config_manager_util.h"
+#include "config_manager_prt_hexstr.h"
 #include "config_manager_dbg.h"
 #include "config_manager_store.h"
 #include "config_manager_printf.h"
@@ -22,13 +22,6 @@ namespace cfg_mgr
 // Composite_descriptor
 //
 ////////////////////////////////////////////////////////////////////////////////
-
-Composite_descriptor::Composite_descriptor(const Composite_metadata * pMeta):
-    m_data(pMeta)
-{
-    assert(m_data != nullptr);
-}
-
 
 //
 // @param cmd - stack of strings containing name elements
@@ -113,7 +106,7 @@ bool Composite_descriptor::handleIdWord(Command_stack * cmd,
 
     candidateCtxt->add(pAggr->getData()->pDesc->getName());
 
-    bool      added;           // Did getComponentItem create a new item?
+    bool      added = false;   // Set true by getComponentItem if it creates a new item.
     uint8_t * pComponentItem;  // pointer to component RAM
 
     if (!pAggr->getComponentItem(&cmd->pop(), pItem, &pComponentItem, added, candidateCtxt))
@@ -194,11 +187,11 @@ bool Composite_descriptor::handleDel(Command_stack * cmd, uint8_t * pItem) const
 
 // Delegate print command to components
 //
-void Composite_descriptor::print(const uint8_t * pItem, string prefix, bool include_state) const
+void Composite_descriptor::print(const uint8_t * pItem, string prefix, bool show_state) const
 {
-    DBG_PRT("print composite %s len %d include_state=%d\n", getName(), getLen(), include_state);
+    DBG_PRT("print composite %s len %d show_state=%d\n", getName(), getLen(), show_state);
 
-    if (!include_state && !m_data->c.persistent)
+    if (!show_state && !m_data->c.persistent)
     {
         // The item is not persistent, i.e. state, so exclude it because not required
         return;
@@ -206,7 +199,7 @@ void Composite_descriptor::print(const uint8_t * pItem, string prefix, bool incl
 
     for (unsigned i = 0; i < m_data->aggrCount; i++)
     {
-        getAggrAtIndex(i)->print(pItem, prefix, include_state);
+        getAggrAtIndex(i)->print(pItem, prefix, show_state);
     }
 }
 
@@ -325,19 +318,12 @@ result_t Composite_descriptor::endLoad(uint8_t * pItem, Store * store) const
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-Simple_descriptor::Simple_descriptor(const Simple_metadata * pMeta):
-    m_data(pMeta)
-{
-    assert(m_data != nullptr);
-}
-
-
 // An item does not print its own name, since
 // it may be preceded by an index, which is known
 // to the item's composite but not to the item.
-void Simple_descriptor::print(const uint8_t * pItem, string prefix, bool include_state) const
+void Simple_descriptor::print(const uint8_t * pItem, string prefix, bool show_state) const
 {
-    DBG_PRT("print simple %s len %d at %p include_state=%d\n", getName(), getLen(), pItem, include_state);
+    DBG_PRT("print simple %s len %d at %p show_state=%d\n", getName(), getLen(), pItem, show_state);
 
     cm_printf("%s= ", prefix.c_str());
 
