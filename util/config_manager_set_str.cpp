@@ -4,10 +4,7 @@
 //  for special types, such as IP or Ethernet addresses.
 
 #include "config_manager_set_str.h"
-#include "config_manager_printf.h"
-#include <assert.h>
-#include <limits.h>
-#include <stdlib.h> // strto...
+#include <stdio.h> // snprintf
 
 using namespace std;
 

@@ -3,8 +3,7 @@
 #define CFG_MAN_PRT_STR_H
 #include "config_manager_types.h"
 #include <iostream>
-#include <stdio.h> // FILE
-#include <string.h>
+#include <stdint.h> // uint8_t, etc
 
 namespace cfg_mgr
 {

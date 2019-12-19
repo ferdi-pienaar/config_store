@@ -3,7 +3,7 @@
 #define CFG_MAN_COMMAND_H
 
 #include <stdint.h> // uint8_t, etc
-#include <iostream>
+#include <string>
 #include "config_manager_types.h"
 
 namespace cfg_mgr
@@ -74,26 +74,12 @@ public:
     };
 
     Command_stack(int argc, char ** argv) : m_count(argc), m_wordPtr(argv) {}
-
-    // Pop top word.
-    // Return ref to self so the value returned by the command can be passed to a fn
-    Command_stack & pop()
-    {
-        m_count--;
-        m_wordPtr++;
-        return *this;
-    }
-
-    char * getTop() const
-    {
-        return m_wordPtr[0];
-    }
-
+    Command_stack & pop();
+    char * getTop() const;
     int getCount() const
     {
         return m_count;
     }
-
     eCmOp getTopOp() const;
     bool getIndex(unsigned int & itemIdx);
 

@@ -2,7 +2,7 @@
 #ifndef CFG_MAN_SET_INT_H
 #define CFG_MAN_SET_INT_H
 #include "config_manager_types.h"
-#include <iostream>
+#include <string>
 #include <stdint.h> // uint8_t, etc
 
 namespace cfg_mgr

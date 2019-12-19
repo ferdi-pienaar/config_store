@@ -13,6 +13,22 @@ namespace cfg_mgr
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+// Pop top word.
+// Return ref to self so the value returned by the command can be passed to a fn
+Command_stack & Command_stack::pop()
+{
+    m_count--;
+    m_wordPtr++;
+    return *this;
+}
+
+
+char * Command_stack::getTop() const
+{
+    return m_wordPtr[0];
+}
+
+
 // Return the operation represented by the word at the top of the command stack
 Command_stack::eCmOp Command_stack::getTopOp() const
 {

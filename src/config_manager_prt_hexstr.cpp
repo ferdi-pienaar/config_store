@@ -4,9 +4,6 @@
 //  for special types, such as IP or Ethernet addresses.
 
 #include "config_manager_prt_hexstr.h"
-#include "config_manager_printf.h"
-#include <assert.h>
-#include <limits.h>
 #include <sstream>
 #include <iomanip> // setw
 
