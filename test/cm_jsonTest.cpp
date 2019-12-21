@@ -76,7 +76,11 @@ TEST_F(JsonTest, writeArray)
 {
     uint32_t s1 = 67305985; // 0x04030201
     uint32_t s2 = 16843009; // 0x01010101
-    string expected = "\n\"values\": [\n 67305985,\n 16843009\n]";
+    string expected = "\n"
+                      "\"values\": [\n"
+                      " 67305985,\n"
+                      " 16843009\n"
+                      "]";
 
     json->startWriteArray("values");
     json->writeSimple("inside", sizeof(s1), (uint8_t *)&s1, cm_prt_int);

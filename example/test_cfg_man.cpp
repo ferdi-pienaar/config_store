@@ -5,7 +5,7 @@
 #include <iostream>
 #include "config_manager.h"
 #include "my_cfg.h"
-#include <cstring> // strtok
+#include "config_manager_strtok.h" // strtok
 #include <pthread.h>
 #include <unistd.h> // sleep
 
@@ -59,11 +59,11 @@ int main()
             continue;
         }
 
-        if ((param[0] = strtok(cmd, WORD_DELIMITERS)) != NULL)
+        if ((param[0] = cm_strtok(cmd)) != nullptr)
         {
             wordCnt = 1;
 
-            while (NULL != (param[wordCnt] = strtok(NULL, WORD_DELIMITERS)))
+            while (nullptr != (param[wordCnt] = cm_strtok(nullptr)))
             {
                 wordCnt++;
             }

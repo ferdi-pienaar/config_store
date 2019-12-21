@@ -3,7 +3,6 @@
 #define CFG_MAN_DESCRIPTOR_H
 
 #include <stdint.h> // uint8_t, etc
-#include <iostream>
 #include "config_manager_types.h"
 #include "config_manager_metadata.h"
 
@@ -151,11 +150,7 @@ public:
     void print(const uint8_t * pItem, std::string prefix, bool include_state) const;
     bool set(uint8_t * pItem, std::string val) const;
     void setDefault(uint8_t * pItem) const;
-    void help(const uint8_t * pItem) const
-    {
-        (void)pItem;
-        std::cout << "len " << getLen() << std::endl;
-    }
+    void help(const uint8_t * pItem) const;
     virtual void save(const uint8_t * pItem, Store * store) const;
     result_t startLoad(Store * store) const;
     result_t endLoad(uint8_t * pItem, Store * store) const;

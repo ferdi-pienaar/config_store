@@ -36,7 +36,7 @@ public:
 private:
     void writeName(const char * name);
     void closePredecessorLine();
-    Nvram *  nvram;
+    Nvram * m_nvram;
     std::string indent;
     struct WriteContext
     {

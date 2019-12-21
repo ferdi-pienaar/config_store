@@ -38,7 +38,7 @@ using namespace std;
 namespace cfg_mgr
 {
 
-Json::Json(Nvram * pNvram): nvram(pNvram)
+Json::Json(Nvram * pNvram): m_nvram(pNvram)
 {
 }
 
@@ -56,10 +56,10 @@ void Json::reset()
 void Json::writeSimple(const char * name, item_len_t length, const uint8_t * v, JSON_PRT_FPTR prt)
 {
     closePredecessorLine();
-    nvram->write((const uint8_t *)indent.c_str(), indent.size());
+    m_nvram->write((const uint8_t *)indent.c_str(), indent.size());
     writeName(name);
     string val_str = prt(v, length);
-    nvram->write((const uint8_t *)val_str.c_str(), val_str.size());
+    m_nvram->write((const uint8_t *)val_str.c_str(), val_str.size());
     m_writeContext.isFirstMember = false;
 }
 
@@ -68,9 +68,9 @@ void Json::writeSimple(const char * name, item_len_t length, const uint8_t * v, 
 void Json::startWriteComposite(const char * name)
 {
     closePredecessorLine();
-    nvram->write((const uint8_t *)indent.c_str(), indent.size());
+    m_nvram->write((const uint8_t *)indent.c_str(), indent.size());
     writeName(name);
-    nvram->write((const uint8_t *)"{", 1);
+    m_nvram->write((const uint8_t *)"{", 1);
 
     indent += " ";
     m_writeContext.isFirstMember = true;
@@ -82,9 +82,9 @@ void Json::endWriteComposite()
 {
     indent.resize(indent.size() - 1);
 
-    nvram->write((const uint8_t *)"\n", 1);
-    nvram->write((const uint8_t *)indent.c_str(), indent.size());
-    nvram->write((const uint8_t *)"}", 1);
+    m_nvram->write((const uint8_t *)"\n", 1);
+    m_nvram->write((const uint8_t *)indent.c_str(), indent.size());
+    m_nvram->write((const uint8_t *)"}", 1);
 }
 
 
@@ -92,9 +92,9 @@ void Json::endWriteComposite()
 void Json::startWriteArray(const char * name)
 {
     closePredecessorLine();
-    nvram->write((const uint8_t *)indent.c_str(), indent.size());
+    m_nvram->write((const uint8_t *)indent.c_str(), indent.size());
     writeName(name);
-    nvram->write((const uint8_t *)"[", 1);
+    m_nvram->write((const uint8_t *)"[", 1);
 
     indent += " ";
     m_writeContext.isFirstMember = true;
@@ -106,9 +106,9 @@ void Json::endWriteArray()
 {
     indent.resize(indent.size() - 1);
 
-    nvram->write((const uint8_t *)"\n", 1);
-    nvram->write((const uint8_t *)indent.c_str(), indent.size());
-    nvram->write((const uint8_t *)"]", 1);
+    m_nvram->write((const uint8_t *)"\n", 1);
+    m_nvram->write((const uint8_t *)indent.c_str(), indent.size());
+    m_nvram->write((const uint8_t *)"]", 1);
 
     m_writeContext.isInArray = false;
 }
@@ -117,7 +117,7 @@ result_t Json::startLoadSimple(const char * name)
 {
     unsigned int readLen = strlen(name) + 2; // add space for quotes.
     char readName[129];
-    if (!nvram->read((uint8_t *)readName, readLen))
+    if (!m_nvram->read((uint8_t *)readName, readLen))
     {
         return CM_READ_FAIL;
     }
@@ -152,9 +152,9 @@ void Json::closePredecessorLine()
 {
     if (!m_writeContext.isFirstMember)
     {
-        nvram->write((const uint8_t *)",", 1);
+        m_nvram->write((const uint8_t *)",", 1);
     }
-    nvram->write((const uint8_t *)"\n", 1);
+    m_nvram->write((const uint8_t *)"\n", 1);
 }
 
 // If necessary, write name in quotes, followed by ": ".
@@ -166,9 +166,9 @@ void Json::writeName(const char * name)
         // the array's name.
         return;
     }
-    nvram->write((const uint8_t *)"\"", 1);
-    nvram->write((const uint8_t *)name, strlen(name));
-    nvram->write((const uint8_t *)"\": ", 3);
+    m_nvram->write((const uint8_t *)"\"", 1);
+    m_nvram->write((const uint8_t *)name, strlen(name));
+    m_nvram->write((const uint8_t *)"\": ", 3);
 }
 
 }

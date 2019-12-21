@@ -1,6 +1,6 @@
 /// config manager def
 #include "config_manager_command.h"
-#include <string.h> // memset, strcmp, memcpy
+#include <string.h> // strcmp
 
 using namespace std;
 

@@ -16,20 +16,18 @@ namespace cfg_mgr
 class Nvram
 {
 public:
-    Nvram(): m_offset(0), m_fp(nullptr) {}
+    Nvram(): m_fp(nullptr) {}
     bool initForWrite();
     bool initForRead();
     void accessComplete();
     bool write(const uint8_t * d, unsigned int len);
     bool read(uint8_t * d, unsigned int len);
-    void setOffset(unsigned int o);
+    bool setOffset(unsigned int offset);
     unsigned int getOffset();
-    void adjustOffset(int i);
+    bool adjustOffset(int i);
 
 private:
-    unsigned int m_offset; // read/write offset relative to base address [bytes]
     FILE * m_fp;
-
 };
 }
 #endif // NVRAM_H
