@@ -12,7 +12,8 @@ OBJS = cfg.o my_cfg_fn1.o \
 $(CFG_MAN_UTIL_DIR)config_manager_set_int.o \
 $(CFG_MAN_UTIL_DIR)config_manager_prt_int.o \
 $(CFG_MAN_UTIL_DIR)config_manager_set_str.o \
-$(CFG_MAN_UTIL_DIR)config_manager_prt_str.o
+$(CFG_MAN_UTIL_DIR)config_manager_prt_str.o \
+$(CFG_MAN_UTIL_DIR)config_manager_strtok.o
 
 # Make knows -lCfgMgr means dependency on 'libCfgMgr.a'.
 test_cfg1: $(OBJS) -lCfgMgr

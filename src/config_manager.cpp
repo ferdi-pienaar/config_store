@@ -43,6 +43,10 @@ Config_manager::~Config_manager()
 /// @param argv command word array
 void Config_manager::handleCmd(int argc, char *argv[])
 {
+    if (argc <= 0)
+    {
+        return;
+    }
     Command_stack cmd(argc, argv);
     bool updateCtxt = false;
 

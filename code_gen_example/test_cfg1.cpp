@@ -5,7 +5,7 @@
 #include <iostream>
 #include "config_manager.h"
 #include "cfg.h"
-#include <cstring> // strtok
+#include "config_manager_strtok.h" // strtok
 #include <pthread.h>
 #include <unistd.h> // sleep
 
@@ -15,6 +15,7 @@ using namespace cfg_mgr;
 const Descriptor * get_base_descriptor();
 
 #define WORD_DELIMITERS " \n"
+#define BLOCK_DELIMITER "\""
 
 // Periodically, update some stats that can be displayed by cfg_mgr.
 // NB: there's a race condition here! By the time we modify config
@@ -58,18 +59,14 @@ int main()
             continue;
         }
 
-        // Break commands into a list of words, as expected by config manager
+        // Break commands into a list of tokens, as expected by config manager
         char * param[20];
-        if ((param[0] = strtok(cmd, WORD_DELIMITERS)) != NULL)
+        Strtok strtok(cmd);
+        unsigned int wordCnt = 0;
+        while (nullptr != (param[wordCnt] = strtok(WORD_DELIMITERS, BLOCK_DELIMITER)))
         {
-            unsigned wordCnt = 1;
-            while (NULL != (param[wordCnt] = strtok(NULL, WORD_DELIMITERS)))
-            {
-                wordCnt++;
-            }
-            cm.handleCmd(wordCnt, param);
+            wordCnt++;
         }
+        cm.handleCmd(wordCnt, param);
     }
 }
-
-

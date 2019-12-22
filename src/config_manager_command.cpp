@@ -18,14 +18,14 @@ namespace cfg_mgr
 Command_stack & Command_stack::pop()
 {
     m_count--;
-    m_wordPtr++;
+    m_tokenPtr++;
     return *this;
 }
 
 
 char * Command_stack::getTop() const
 {
-    return m_wordPtr[0];
+    return m_tokenPtr[0];
 }
 
 
@@ -46,7 +46,7 @@ Command_stack::eCmOp Command_stack::getTopOp() const
 }
 
 
-// Extract index from top word in command stack and pop it.
+// Extract index from top token in command stack and pop it.
 bool Command_stack::getIndex(unsigned int & itemIdx)
 {
     if (m_count == 0) return false;
@@ -69,7 +69,7 @@ bool Command_stack::getIndex(unsigned int & itemIdx)
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-// Add a word to the context string
+// Add a token to the context string
 void Cmd_context::add(string w)
 {
     m_string += w + " ";

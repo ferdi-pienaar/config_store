@@ -42,7 +42,9 @@ TEST_OBJS = cm_tlvTest.o \
  cm_jsonTest.o
 
 MOCK_OBJS = $(STUB_DIR)/nvram_spy.o $(STUB_DIR)/config_manager_printf_spy.o 
-UTIL_OBJS = $(UTIL_DIR)/config_manager_set_int.o $(UTIL_DIR)/config_manager_prt_int.o
+UTIL_OBJS = $(UTIL_DIR)/config_manager_set_int.o \
+ $(UTIL_DIR)/config_manager_prt_int.o \
+ $(UTIL_DIR)/config_manager_prt_str.o
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.

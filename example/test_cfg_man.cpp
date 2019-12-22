@@ -13,6 +13,7 @@ using namespace std;
 using namespace cfg_mgr;
 
 #define WORD_DELIMITERS " \n"
+#define BLOCK_DELIMITER "\""
 
 
 // Periodically, update some stats that can be displayed by cfg_mgr.
@@ -59,19 +60,11 @@ int main()
             continue;
         }
 
-        if ((param[0] = cm_strtok(cmd)) != nullptr)
+        Strtok strtok(cmd);
+        while (nullptr != (param[wordCnt] = strtok(WORD_DELIMITERS, BLOCK_DELIMITER)))
         {
-            wordCnt = 1;
-
-            while (nullptr != (param[wordCnt] = cm_strtok(nullptr)))
-            {
-                wordCnt++;
-            }
-
-            cm.handleCmd(wordCnt, param);
+            wordCnt++;
         }
+        cm.handleCmd(wordCnt, param);
     }
 }
-
-
-

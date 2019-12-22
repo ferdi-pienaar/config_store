@@ -5,6 +5,7 @@
 #include "gtest/gtest.h"
 #include "config_manager_json.h"  // Unit under test
 #include "config_manager_prt_int.h" // load and save functions re-used
+#include "config_manager_prt_str.h" // load and save functions re-used
 #include "config_manager_set_int.h" // load and save functions re-used
 #include "nvram_spy.h"
 #include <iostream>
@@ -36,9 +37,21 @@ protected:
 TEST_F(JsonTest, writeSimple)
 {
     uint32_t mem = 67305985; // 0x04030201
-    string expected = "\n\"thing\": 67305985";
+    string expected = "\n"
+                      "\"thing\": 67305985";
 
     json->writeSimple("thing", sizeof(mem), (uint8_t *)&mem, cm_prt_int);
+
+    EXPECT_TRUE(nvram_spy_match((uint8_t *)expected.c_str(), expected.length()));
+}
+
+TEST_F(JsonTest, writeSimpleString)
+{
+    const char mem[] = "property 13";
+    string expected = "\n"
+                      "\"thing\": \"property 13\"";
+
+    json->writeSimple("thing", sizeof(mem), (uint8_t *)&mem, cm_prt_str);
 
     EXPECT_TRUE(nvram_spy_match((uint8_t *)expected.c_str(), expected.length()));
 }
@@ -47,7 +60,11 @@ TEST_F(JsonTest, writeComposite)
 {
     uint32_t s1 = 67305985; // 0x04030201
     uint32_t s2 = 16843009; // 0x01010101
-    string expected = "\n\"compo\": {\n \"inside\": 67305985,\n \"next\": 16843009\n}";
+    string expected = "\n"
+                      "\"compo\": {\n"
+                      " \"inside\": 67305985,\n"
+                      " \"next\": 16843009\n"
+                      "}";
 
     json->startWriteComposite("compo");
     json->writeSimple("inside", sizeof(s1), (uint8_t *)&s1, cm_prt_int);
@@ -60,7 +77,12 @@ TEST_F(JsonTest, writeComposite)
 TEST_F(JsonTest, writeEmbeddedComposite)
 {
     uint32_t s1 = 67305985; // 0x04030201
-    string expected = "\n\"compo\": {\n \"compo2\": {\n  \"inside\": 67305985\n }\n}";
+    string expected = "\n"
+                      "\"compo\": {\n"
+                      " \"compo2\": {\n"
+                      "  \"inside\": 67305985\n"
+                      " }\n"
+                      "}";
 
     json->startWriteComposite("compo");
     json->startWriteComposite("compo2");

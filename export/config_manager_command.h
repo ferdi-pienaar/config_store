@@ -52,8 +52,8 @@ private:
     uint8_t *             m_item;
 };
 
-// Container for the command passed to cfg_mgr.  It's a stack of words, i.e.
-// a stack of C-strings, each string consisting of 1 word only (i.e. no spaces).
+// Container for the command passed to cfg_mgr.  It's a stack of tokens, i.e.
+// a stack of C-strings, each string consisting of 1 token (such as a word or a quoted block).
 class Command_stack
 {
 public:
@@ -73,7 +73,7 @@ public:
         CM_OP_NONE
     };
 
-    Command_stack(int argc, char ** argv) : m_count(argc), m_wordPtr(argv) {}
+    Command_stack(int argc, char ** argv) : m_count(argc), m_tokenPtr(argv) {}
     Command_stack & pop();
     char * getTop() const;
     int getCount() const
@@ -85,7 +85,7 @@ public:
 
 private:
     int     m_count;
-    char ** m_wordPtr;
+    char ** m_tokenPtr;
 };
 }
 #endif // CFG_MAN_COMMAND_H

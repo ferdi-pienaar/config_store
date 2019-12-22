@@ -1,59 +1,78 @@
-// Tokenization assistant.
+// Tokenization helper class.
+// Unlike strtok, it's a class, and each instance keeps its own state,
+// so you could have instances running concurrently.
 //
 #include "config_manager_strtok.h"
 
 namespace cfg_mgr
 {
-// Split string into tokens, similar to strtok.
-// If not in quote, return a string consisting of next word.
-// If quoted block, return a string including opening and closing quotes.
-//  This means that quoted blocks must be separated by whitespace.
-char * cm_strtok (char * str)
-{
-    static char * lstr = nullptr;
-    if (str != nullptr)
-    {
-        lstr = str;
-    }
 
-    char * start = lstr;
-    bool in_quote = false;
-    for (; *lstr != 0; lstr++)
+// Split string into tokens, similar to strtok, but optionally defines blocks
+// that start and end with same (set of) chars as tokens (e.g. quoted blocks).
+// If not in block, return a string consisting of next word.
+// If in block, return a string including opening and closing block marks (e.g. quotes).
+//  This means that blocks must be separated by whitespace, to have a place to write null terminator.
+char * Strtok::operator() (const char * word_delimiter, const char * block_delimiter)
+{
+    State st = PREFIX;
+    char * start;
+    for ( ; *m_str != 0; m_str++)
     {
-        if (!in_quote)
+        if ((st == PREFIX) && (!is_in_set(*m_str, word_delimiter)))
         {
-            if ((*lstr == ' ') || (*lstr == '\t') || (*lstr == '\n'))
+            // After prefix (if any), start token of type WORD or BLOCK.
+            start = m_str;
+            if (is_in_set(*m_str, block_delimiter))
             {
-                // End of word.
-                break;
+                st = BLOCK;
+                // In block, start looking for block close AFTER block open.
+                m_str++;
             }
-            else if (*lstr == '\"')
+            else
             {
-                // Start of quote: now look for its end.
-                in_quote = true;
+                st = WORD;
             }
         }
-        else
+
+        if ((st == BLOCK) && (is_in_set(*m_str, block_delimiter)))
         {
-            // In quote: look for closing quote.
-            if (*lstr == '\"')
-            {
-                // Token ends AFTER the closing quote.
-                lstr++;
-                break;
-            }
+            // Token ends AFTER the closing mark of block.
+            m_str++;
+            break;
+        }
+        else if ((st == WORD) && (is_in_set(*m_str, word_delimiter)))
+        {
+            // Token ends at word closing delimiter.
+            break;
         }
     }
-    if (*lstr == 0)
+    if (*m_str == 0)
     {
         // No token found: done.
         return nullptr;
     }
-    // Terminate the output string at token's end
-    *lstr = 0;
+    // Terminate the output string at token's end.
+    *m_str = 0;
     // Next time, start search from first char after this token's end.
-    lstr++;
+    m_str++;
     return start;
+}
+
+
+bool Strtok::is_in_set(char c, const char * set)
+{
+    if (set == nullptr)
+    {
+        return false;
+    }
+    for (const char * d = set; *d != 0; d++)
+    {
+        if (c == *d)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 }
