@@ -25,17 +25,17 @@ Tlv_store::~Tlv_store()
 }
 
 
-bool Tlv_store::initForRead()
+bool Tlv_store::startLoad()
 {
     m_tlv->reset();
-    return m_nvram->initForRead();
+    return Store::startLoad();
 }
 
 
-bool Tlv_store::initForWrite()
+bool Tlv_store::startWrite()
 {
     m_tlv->reset();
-    return m_nvram->initForWrite();
+    return Store::startWrite();
 }
 
 

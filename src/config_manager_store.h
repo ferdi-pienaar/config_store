@@ -18,11 +18,15 @@ class Store
 public:
     Store(Nvram * nvram) : m_nvram(nvram) {}
     virtual ~Store() {}
-    virtual bool initForRead() = 0;
-    virtual bool initForWrite() = 0;
+    virtual bool startWrite();
+    virtual void endWrite();
+    virtual bool startLoad();
+    virtual void endLoad();
     virtual void writeSimple(const Simple_metadata * data, const uint8_t * v) = 0;
     virtual void startWriteComposite(const Composite_metadata * data) = 0;
     virtual void endWriteComposite() = 0;
+    virtual void startWriteArray(const char * name) {}
+    virtual void endWriteArray() {}
     virtual result_t startLoadSimple(const Simple_metadata * data) = 0;
     virtual result_t endLoadSimple(uint8_t * pRam, const Simple_metadata * data) = 0;
     virtual result_t startLoadComposite(const Composite_metadata * data) = 0;

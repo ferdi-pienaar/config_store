@@ -13,7 +13,7 @@ namespace cfg_mgr
 enum CM_PERSISTENT_STORE_TYPE
 {
     TLV_STORE,
-    YAML_STORE
+    JSON_STORE
 };
 
 Store * Store::createStore(Nvram * nvram)
@@ -22,6 +22,26 @@ Store * Store::createStore(Nvram * nvram)
         return new Tlv_store(nvram);
     else
         return new Json_store(nvram);
+}
+
+bool Store::startLoad()
+{
+    return m_nvram->initForRead();
+}
+
+void Store::endLoad()
+{
+    m_nvram->accessComplete();
+}
+
+bool Store::startWrite()
+{
+    return m_nvram->initForWrite();
+}
+
+void Store::endWrite()
+{
+    m_nvram->accessComplete();
 }
 
 }

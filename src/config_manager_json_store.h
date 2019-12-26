@@ -19,12 +19,15 @@ class Json_store : public Store
 public:
     Json_store(Nvram * nvram);
     ~Json_store();
-
-    bool initForRead();
-    bool initForWrite();
+    bool startWrite();
+    void endWrite();
+    bool startLoad();
+    void endLoad();
     void writeSimple(const Simple_metadata * data, const uint8_t * v);
     void startWriteComposite(const Composite_metadata * data);
     void endWriteComposite();
+    void startWriteArray(const char * name);
+    void endWriteArray();
     result_t startLoadSimple(const Simple_metadata * data);
     result_t endLoadSimple(uint8_t * pRam, const Simple_metadata * data);
     result_t startLoadComposite(const Composite_metadata * data);

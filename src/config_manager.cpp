@@ -100,8 +100,9 @@ void Config_manager::save()
     {
         return;
     }
-    m_store->initForWrite();
+    m_store->startWrite();
     m_baseDesc->save(m_ramBase, m_store);
+    m_store->endWrite();
 }
 
 
@@ -109,7 +110,7 @@ void Config_manager::save()
 // Resets context, since a reload re-allocates memory and makes current context invalid
 void Config_manager::load()
 {
-    m_store->initForRead();
+    m_store->startLoad();
 
     // Before loading, thus allocating new memory, call setDefault to free owned memory
     m_baseDesc->setDefault(m_ramBase);
@@ -122,8 +123,8 @@ void Config_manager::load()
     {
         cm_printf("Load failed: defaults restored.\n");
         m_baseDesc->setDefault(m_ramBase);
-        return;
     }
+    m_store->endLoad();
     resetCtxt();
 }
 

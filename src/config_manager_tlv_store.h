@@ -19,8 +19,8 @@ public:
     Tlv_store(Nvram * nvram);
     ~Tlv_store();
 
-    bool initForRead();
-    bool initForWrite();
+    bool startLoad();
+    bool startWrite();
     void writeSimple(const Simple_metadata * data, const uint8_t * v);
     void startWriteComposite(const Composite_metadata * data);
     void endWriteComposite();

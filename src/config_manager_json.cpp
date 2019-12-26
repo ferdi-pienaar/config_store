@@ -48,15 +48,25 @@ Json::~Json()
 }
 
 
-void Json::reset()
+void Json::startWrite()
 {
+    m_nvram->write((const uint8_t *)"{", 1);
+
+    m_stackIndex = 0;
+    m_writeContext[m_stackIndex].m_isFirstMember = true;
+    m_writeContext[m_stackIndex].m_type = WriteContext::OBJECT;
+}
+
+void Json::endWrite()
+{
+    m_nvram->write((const uint8_t *)"\n}", 2);
 }
 
 
 void Json::writeSimple(const char * name, item_len_t length, const uint8_t * v, JSON_PRT_FPTR prt)
 {
     closePredecessorLine();
-    writeIndent(m_stackIndex);
+    writeIndent();
     if (m_writeContext[m_stackIndex].m_type == WriteContext::OBJECT)
     {
         writeName(name);
@@ -71,7 +81,7 @@ void Json::writeSimple(const char * name, item_len_t length, const uint8_t * v, 
 void Json::startWriteComposite(const char * name)
 {
     closePredecessorLine();
-    writeIndent(m_stackIndex);
+    writeIndent();
     if (m_writeContext[m_stackIndex].m_type == WriteContext::OBJECT)
     {
         writeName(name);
@@ -80,7 +90,6 @@ void Json::startWriteComposite(const char * name)
     m_stackIndex++;
     m_writeContext[m_stackIndex].m_isFirstMember = true;
     m_writeContext[m_stackIndex].m_type = WriteContext::OBJECT;
-
 }
 
 
@@ -89,7 +98,7 @@ void Json::endWriteComposite()
 {
     m_stackIndex--;
     m_nvram->write((const uint8_t *)"\n", 1);
-    writeIndent(m_stackIndex);
+    writeIndent();
     m_nvram->write((const uint8_t *)"}", 1);
 }
 
@@ -98,7 +107,7 @@ void Json::endWriteComposite()
 void Json::startWriteArray(const char * name)
 {
     closePredecessorLine();
-    writeIndent(m_stackIndex);
+    writeIndent();
     if (m_writeContext[m_stackIndex].m_type == WriteContext::OBJECT)
     {
         writeName(name);
@@ -115,7 +124,7 @@ void Json::endWriteArray()
     m_stackIndex--;
 
     m_nvram->write((const uint8_t *)"\n", 1);
-    writeIndent(m_stackIndex);
+    writeIndent();
     m_nvram->write((const uint8_t *)"]", 1);
 
 }
@@ -164,9 +173,9 @@ void Json::closePredecessorLine()
     m_nvram->write((const uint8_t *)"\n", 1);
 }
 
-void Json::writeIndent(unsigned n)
+void Json::writeIndent()
 {
-    for (unsigned i = 0; i < n; i++)
+    for (unsigned i = 0; i < m_stackIndex + 1; i++)
     {
         m_nvram->write((const uint8_t *)m_singleIndent.c_str(), m_singleIndent.length());
     }

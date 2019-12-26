@@ -4,6 +4,7 @@
 #include "config_manager_descriptor.h"
 #include "config_manager_dbg.h"
 #include "config_manager_printf.h"
+#include "config_manager_store.h"
 
 #include <stdlib.h> // malloc
 #include <string.h> // memset, strcmp, memcpy
@@ -141,9 +142,18 @@ void Aggregate::save(const uint8_t *pItem, Store * store) const
     {
         return;
     }
+
+    if (m_data->maxCount > 1)
+    {
+        store->startWriteArray(m_data->pDesc->getName());
+    }
     for (unsigned i = 0; i < getCount(pItem); i++)
     {
         m_data->pDesc->save(getItemAtIndex(pItem, i), store);
+    }
+    if (m_data->maxCount > 1)
+    {
+        store->endWriteArray();
     }
 }
 

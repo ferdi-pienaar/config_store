@@ -22,7 +22,8 @@ public:
     Json(Nvram * pNvram);
     ~Json();
 
-    void reset();
+    void startWrite();
+    void endWrite();
     void writeSimple(const char * name, item_len_t length, const uint8_t * v, JSON_PRT_FPTR prt);
     void startWriteComposite(const char * name);
     void endWriteComposite();
@@ -36,7 +37,7 @@ public:
 private:
     void writeName(const char * name);
     void closePredecessorLine();
-    void writeIndent(unsigned n);
+    void writeIndent();
 
     struct WriteContext
     {

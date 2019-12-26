@@ -117,11 +117,6 @@ void Tlv::endWriteComposite()
         // We're still inside a composite, so set offset for writing next component
         m_nvram->setOffset(endOffset);
     }
-    else
-    {
-        // Final composite is complete: we're done reading from m_nvram
-        m_nvram->accessComplete();
-    }
 }
 
 // Load a simple item into the provided memory.

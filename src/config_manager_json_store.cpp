@@ -29,23 +29,38 @@ Json_store::~Json_store()
 }
 
 
-bool Json_store::initForRead()
+bool Json_store::startWrite()
 {
-    cout << "Json_store::resetRead()" << endl;
+    cout << __PRETTY_FUNCTION__ << endl;
 
-    m_json->reset();
-    return m_nvram->initForRead();
+    if (!Store::startWrite())
+    {
+        return false;
+    }
+    m_json->startWrite();
+    return true;
 }
 
 
-bool Json_store::initForWrite()
+void Json_store::endWrite()
 {
-    cout << "Json_store::resetWrite()" << endl;
-
-    m_json->reset();
-    return m_nvram->initForWrite();
+    m_json->endWrite();
+    Store::endWrite();
 }
 
+
+bool Json_store::startLoad()
+{
+    cout << __PRETTY_FUNCTION__ << endl;
+
+    return Store::startLoad();
+}
+
+
+void Json_store::endLoad()
+{
+    Store::endLoad();
+}
 
 void Json_store::writeSimple(const Simple_metadata * data, const uint8_t * v)
 {
@@ -62,6 +77,16 @@ void Json_store::startWriteComposite(const Composite_metadata * data)
 void Json_store::endWriteComposite()
 {
     m_json->endWriteComposite();
+}
+
+void Json_store::startWriteArray(const char * name)
+{
+    m_json->startWriteArray(name);
+}
+
+void Json_store::endWriteArray()
+{
+    m_json->endWriteArray();
 }
 
 result_t Json_store::startLoadSimple(const Simple_metadata * data)
