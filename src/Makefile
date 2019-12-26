@@ -1,8 +1,8 @@
 CXXFLAGS = -Wall -g -I . -I ../export
 # Include some C99 macros that are not part of the C++ standard
 CPPFLAGS += -D __STDC_LIMIT_MACROS
-#CPPFLAGS += -D M_DEFINED_STORE_TYPE=TLV_STORE
-CPPFLAGS += -D M_DEFINED_STORE_TYPE=JSON_STORE
+CPPFLAGS += -D M_DEFINED_STORE_TYPE=TLV_STORE
+#CPPFLAGS += -D M_DEFINED_STORE_TYPE=JSON_STORE
 #CXXFLAGS += -save-temps
 #CPPFLAGS += -D DEBUG_PRINT
 # Generate the .d files when generating objects

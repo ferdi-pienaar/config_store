@@ -95,7 +95,7 @@ TEST_F(JsonTest, writeEmbeddedComposite)
 }
 
 
-TEST_F(JsonTest, writeArray)
+TEST_F(JsonTest, writeArrayOfSimple)
 {
     uint32_t s1 = 67305985; // 0x04030201
     uint32_t s2 = 16843009; // 0x01010101
@@ -110,6 +110,31 @@ TEST_F(JsonTest, writeArray)
     json->writeSimple("next", sizeof(s2), (uint8_t *)&s2, cm_prt_int);
     json->endWriteArray();
 
+    EXPECT_TRUE(nvram->match((uint8_t *)expected.c_str(), expected.length()));
+}
+
+TEST_F(JsonTest, writeArrayOfComposite)
+{
+    const char v1[] = "property 1";
+    const char v2[] = "property 2";
+    string expected = "\n"
+                      " \"array\": [\n"
+                      "  {\n"
+                      "   \"v1\": \"property 1\"\n"
+                      "  },\n"
+                      "  {\n"
+                      "   \"v2\": \"property 2\"\n"
+                      "  }\n"
+                      " ]";
+
+    json->startWriteArray("array");
+    json->startWriteComposite("composite1");
+    json->writeSimple("v1", sizeof(v1), (uint8_t *)v1, cm_prt_str);
+    json->endWriteComposite();
+    json->startWriteComposite("composite2");
+    json->writeSimple("v2", sizeof(v2), (uint8_t *)v2, cm_prt_str);
+    json->endWriteComposite();
+    json->endWriteArray();
     EXPECT_TRUE(nvram->match((uint8_t *)expected.c_str(), expected.length()));
 }
 

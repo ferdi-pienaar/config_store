@@ -100,6 +100,7 @@ void Json::endWriteComposite()
     m_nvram->write((const uint8_t *)"\n", 1);
     writeIndent();
     m_nvram->write((const uint8_t *)"}", 1);
+    m_writeContext[m_stackIndex].m_isFirstMember = false;
 }
 
 

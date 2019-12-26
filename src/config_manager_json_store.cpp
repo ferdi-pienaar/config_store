@@ -15,16 +15,12 @@ namespace cfg_mgr
 
 Json_store::Json_store(Nvram * nvram) : Store(nvram)
 {
-    cout << "Json_store::Json_store()" << endl;
-
     m_json = new Json(m_nvram);
 }
 
 
 Json_store::~Json_store()
 {
-    cout << "Json_store::~Json_store()" << endl;
-
     delete m_json;
 }
 
@@ -91,13 +87,11 @@ void Json_store::endWriteArray()
 
 result_t Json_store::startLoadSimple(const Simple_metadata * data)
 {
-    cout << __PRETTY_FUNCTION__ << endl;
     return m_json->startLoadSimple(data->c.name);
 }
 
 result_t Json_store::endLoadSimple(uint8_t * pRam, const Simple_metadata * data)
 {
-    cout << __PRETTY_FUNCTION__ << endl;
     item_len_t len = data->c.len;
     return m_json->endLoadSimple(&len, pRam, data->pSet);
 }
@@ -105,14 +99,11 @@ result_t Json_store::endLoadSimple(uint8_t * pRam, const Simple_metadata * data)
 // xxx incomplete
 result_t Json_store::startLoadComposite(const Composite_metadata * data)
 {
-    cout << "Json_store::startLoadComposite()" << endl;
-
     return m_json->startLoadComposite(data->c.name);
 }
 
 result_t Json_store::endLoadComposite()
 {
-    cout << "Json_store::endLoadComposite()" << endl;
     return m_json->endLoadComposite();
 }
 
