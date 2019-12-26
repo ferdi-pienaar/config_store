@@ -17,6 +17,7 @@ public:
     virtual bool setOffset(unsigned int offset);
     virtual unsigned int getOffset();
     virtual bool adjustOffset(int i);
+    // spy methods follow.
     void init();
     bool match(uint8_t * expected, unsigned len);
     void set(uint8_t * d, unsigned len);

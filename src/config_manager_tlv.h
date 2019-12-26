@@ -11,7 +11,7 @@ namespace cfg_mgr
 class Tlv
 {
 public:
-    static const unsigned int stackDepth = 8;
+    static const unsigned int STACK_DEPTH = 8;
 
     Tlv(Nvram * pNvram);
     ~Tlv();
@@ -49,8 +49,8 @@ private:
 
     Nvram * m_nvram;
     int m_stackIndex;  // write/load stack index; -1 means the current item is top-level, not part of a composite
-    CompositeWriteContext m_writeStack[stackDepth];
-    CompositeLoadContext  m_loadStack[stackDepth];
+    CompositeWriteContext m_writeStack[STACK_DEPTH];
+    CompositeLoadContext  m_loadStack[STACK_DEPTH];
 };
 }
 #endif // CFG_MAN_TLV_H

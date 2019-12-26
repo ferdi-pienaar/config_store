@@ -57,7 +57,10 @@ void Json::writeSimple(const char * name, item_len_t length, const uint8_t * v, 
 {
     closePredecessorLine();
     writeIndent(m_stackIndex);
-    writeName(name);
+    if (m_writeContext[m_stackIndex].m_type == WriteContext::OBJECT)
+    {
+        writeName(name);
+    }
     string val_str = prt(v, length);
     m_nvram->write((const uint8_t *)val_str.c_str(), val_str.size());
     m_writeContext[m_stackIndex].m_isFirstMember = false;
@@ -69,16 +72,22 @@ void Json::startWriteComposite(const char * name)
 {
     closePredecessorLine();
     writeIndent(m_stackIndex);
-    writeName(name);
+    if (m_writeContext[m_stackIndex].m_type == WriteContext::OBJECT)
+    {
+        writeName(name);
+    }
     m_nvram->write((const uint8_t *)"{", 1);
-    m_writeContext[m_stackIndex].m_isFirstMember = true;
     m_stackIndex++;
+    m_writeContext[m_stackIndex].m_isFirstMember = true;
+    m_writeContext[m_stackIndex].m_type = WriteContext::OBJECT;
+
 }
 
 
 // Close writing of composite.
 void Json::endWriteComposite()
 {
+    m_stackIndex--;
     m_nvram->write((const uint8_t *)"\n", 1);
     writeIndent(m_stackIndex);
     m_nvram->write((const uint8_t *)"}", 1);
@@ -90,11 +99,14 @@ void Json::startWriteArray(const char * name)
 {
     closePredecessorLine();
     writeIndent(m_stackIndex);
-    writeName(name);
+    if (m_writeContext[m_stackIndex].m_type == WriteContext::OBJECT)
+    {
+        writeName(name);
+    }
     m_nvram->write((const uint8_t *)"[", 1);
+    m_stackIndex++;
     m_writeContext[m_stackIndex].m_isFirstMember = true;
     m_writeContext[m_stackIndex].m_type = WriteContext::ARRAY;
-    m_stackIndex++;
 }
 
 //
@@ -164,12 +176,6 @@ void Json::writeIndent(unsigned n)
 // If necessary, write name in quotes, followed by ": ".
 void Json::writeName(const char * name)
 {
-    if (m_writeContext[m_stackIndex].m_type == WriteContext::ARRAY)
-    {
-        // In an array, the name has already been written as
-        // the array's name.
-        return;
-    }
     m_nvram->write((const uint8_t *)"\"", 1);
     m_nvram->write((const uint8_t *)name, strlen(name));
     m_nvram->write((const uint8_t *)"\": ", 3);

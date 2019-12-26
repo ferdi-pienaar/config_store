@@ -59,10 +59,6 @@ unsigned int Nvram_spy::getOffset()
 
 bool Nvram_spy::adjustOffset(int i)
 {
-    if (m_offset + i > m_bytesWritten)
-    {
-        return false;
-    }
     m_offset += i;
     return true;
 }

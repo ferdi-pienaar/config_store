@@ -69,7 +69,7 @@ void Tlv::writeSimple(item_id_t t, item_len_t len, const uint8_t * v)
 // composite is empty.
 void Tlv::startWriteComposite(item_id_t t)
 {
-    assert(m_stackIndex < (int)stackDepth);
+    assert(m_stackIndex < (int)STACK_DEPTH);
 
     m_stackIndex++;
 

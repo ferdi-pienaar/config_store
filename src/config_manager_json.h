@@ -17,7 +17,7 @@ typedef std::string (*JSON_PRT_FPTR)(const uint8_t *pItem, item_len_t len);
 class Json
 {
 public:
-    static const unsigned int stackDepth = 16;
+    static const unsigned int STACK_DEPTH = 16;
 
     Json(Nvram * pNvram);
     ~Json();
@@ -51,7 +51,7 @@ private:
         bool m_isFirstMember; // Are we writing the first member of a list or composite?
     };
     std::string m_singleIndent;
-    WriteContext m_writeContext[stackDepth];
+    WriteContext m_writeContext[STACK_DEPTH];
     unsigned m_stackIndex;
     Nvram * m_nvram;
 };
