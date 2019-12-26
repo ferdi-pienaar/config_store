@@ -18,19 +18,20 @@ static uint8_t clientRam[1024];
 namespace {
 class JsonTest : public testing::Test {
 protected:
-    Nvram nvram;
+    Nvram_spy * nvram;
     Json * json;
 
     virtual void SetUp()
     {
-        json = new Json(&nvram);
-        nvram_spy_init();
+        nvram = new Nvram_spy;
+        json = new Json(nvram);
     }
 
     virtual void TearDown()
     {
         //clean up steps are executed after each TEST
         delete json;
+        delete nvram;
     }
 };
 
@@ -42,7 +43,7 @@ TEST_F(JsonTest, writeSimple)
 
     json->writeSimple("thing", sizeof(mem), (uint8_t *)&mem, cm_prt_int);
 
-    EXPECT_TRUE(nvram_spy_match((uint8_t *)expected.c_str(), expected.length()));
+    EXPECT_TRUE(nvram->match((uint8_t *)expected.c_str(), expected.length()));
 }
 
 TEST_F(JsonTest, writeSimpleString)
@@ -53,7 +54,7 @@ TEST_F(JsonTest, writeSimpleString)
 
     json->writeSimple("thing", sizeof(mem), (uint8_t *)&mem, cm_prt_str);
 
-    EXPECT_TRUE(nvram_spy_match((uint8_t *)expected.c_str(), expected.length()));
+    EXPECT_TRUE(nvram->match((uint8_t *)expected.c_str(), expected.length()));
 }
 
 TEST_F(JsonTest, writeComposite)
@@ -71,7 +72,7 @@ TEST_F(JsonTest, writeComposite)
     json->writeSimple("next", sizeof(s2), (uint8_t *)&s2, cm_prt_int);
     json->endWriteComposite();
 
-    EXPECT_TRUE(nvram_spy_match((uint8_t *)expected.c_str(), expected.length()));
+    EXPECT_TRUE(nvram->match((uint8_t *)expected.c_str(), expected.length()));
 }
 
 TEST_F(JsonTest, writeEmbeddedComposite)
@@ -90,7 +91,7 @@ TEST_F(JsonTest, writeEmbeddedComposite)
     json->endWriteComposite();
     json->endWriteComposite();
 
-    EXPECT_TRUE(nvram_spy_match((uint8_t *)expected.c_str(), expected.length()));
+    EXPECT_TRUE(nvram->match((uint8_t *)expected.c_str(), expected.length()));
 }
 
 
@@ -109,7 +110,7 @@ TEST_F(JsonTest, writeArray)
     json->writeSimple("next", sizeof(s2), (uint8_t *)&s2, cm_prt_int);
     json->endWriteArray();
 
-    EXPECT_TRUE(nvram_spy_match((uint8_t *)expected.c_str(), expected.length()));
+    EXPECT_TRUE(nvram->match((uint8_t *)expected.c_str(), expected.length()));
 }
 
 //
@@ -121,7 +122,7 @@ TEST_F(JsonTest, DISABLED_loadSimple)
 
     // xxx set client RAM to bitpattern and verify only the expected section is modified
 
-    nvram_spy_set(nvSet, sizeof(nvSet));
+    nvram->set(nvSet, sizeof(nvSet));
 
     EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("simp"));
     json->endLoadSimple(&length, clientRam, cm_set_int);

@@ -13,10 +13,9 @@ using namespace std;
 namespace cfg_mgr
 {
 
-Tlv_store::Tlv_store()
+Tlv_store::Tlv_store(Nvram * nvram) : Store(nvram)
 {
-    m_tlv = new Tlv(&m_nvram);
-
+    m_tlv = new Tlv(m_nvram);
 }
 
 
@@ -29,14 +28,14 @@ Tlv_store::~Tlv_store()
 bool Tlv_store::initForRead()
 {
     m_tlv->reset();
-    return m_nvram.initForRead();
+    return m_nvram->initForRead();
 }
 
 
 bool Tlv_store::initForWrite()
 {
     m_tlv->reset();
-    return m_nvram.initForWrite();
+    return m_nvram->initForWrite();
 }
 
 

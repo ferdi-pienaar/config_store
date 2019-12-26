@@ -21,6 +21,7 @@ namespace cfg_mgr
 //
 string cm_prt_str(const uint8_t *pItem, item_len_t len)
 {
+	(void)len;
     stringstream ss;
     ss << "\"" << (char *)pItem << "\"";
     return ss.str();

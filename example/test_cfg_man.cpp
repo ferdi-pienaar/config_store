@@ -3,6 +3,7 @@
 
  */
 #include <iostream>
+#include "nvram.h"
 #include "config_manager.h"
 #include "my_cfg.h"
 #include "config_manager_strtok.h" // strtok
@@ -10,7 +11,6 @@
 #include <unistd.h> // sleep
 
 using namespace std;
-using namespace cfg_mgr;
 
 #define WORD_DELIMITERS " \n"
 #define BLOCK_DELIMITER "\""
@@ -19,7 +19,7 @@ using namespace cfg_mgr;
 // Periodically, update some stats that can be displayed by cfg_mgr.
 void * stats_thread(void * arg)
 {
-    Config_manager * cm = (Config_manager *)arg;
+    cfg_mgr::Config_manager * cm = (cfg_mgr::Config_manager *)arg;
     tDevice * pCfg = (tDevice *)cm->getConfig();
 
     for (;;)
@@ -41,7 +41,8 @@ void * stats_thread(void * arg)
 int main()
 {
     // Initialize the config manager with the base descriptor it is to manage.
-    Config_manager cm(get_base_descriptor());
+    cfg_mgr::Nvram nvram;
+    cfg_mgr::Config_manager cm(get_base_descriptor(), &nvram);
 
     pthread_t thread;
     int rc = pthread_create(&thread, NULL, stats_thread, &cm);
@@ -60,7 +61,7 @@ int main()
             continue;
         }
 
-        Strtok strtok(cmd);
+        cfg_mgr::Strtok strtok(cmd);
         while (nullptr != (param[wordCnt] = strtok(WORD_DELIMITERS, BLOCK_DELIMITER)))
         {
             wordCnt++;

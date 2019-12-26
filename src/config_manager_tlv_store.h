@@ -16,7 +16,7 @@ namespace cfg_mgr
 class Tlv_store : public Store
 {
 public:
-    Tlv_store();
+    Tlv_store(Nvram * nvram);
     ~Tlv_store();
 
     bool initForRead();

@@ -2,7 +2,7 @@
 //
 
 #include <stdint.h> // uint8_t, etc
-#include "config_manager_yaml_store.h"
+#include "config_manager_json_store.h"
 #include "config_manager.h"
 #include "config_manager_dbg.h"
 #include "nvram.h"
@@ -13,82 +13,82 @@ using namespace std;
 namespace cfg_mgr
 {
 
-Yaml_store::Yaml_store()
+Json_store::Json_store(Nvram * nvram) : Store(nvram)
 {
-    cout << "Yaml_store::Yaml_store()" << endl;
+    cout << "Json_store::Json_store()" << endl;
 
-    m_yaml = new Yaml(&m_nvram);
+    m_json = new Json(m_nvram);
 }
 
 
-Yaml_store::~Yaml_store()
+Json_store::~Json_store()
 {
-    cout << "Yaml_store::~Yaml_store()" << endl;
+    cout << "Json_store::~Json_store()" << endl;
 
-    delete m_yaml;
+    delete m_json;
 }
 
 
-bool Yaml_store::initForRead()
+bool Json_store::initForRead()
 {
-    cout << "Yaml_store::resetRead()" << endl;
+    cout << "Json_store::resetRead()" << endl;
 
-    m_yaml->reset();
-    return m_nvram.initForRead();
+    m_json->reset();
+    return m_nvram->initForRead();
 }
 
 
-bool Yaml_store::initForWrite()
+bool Json_store::initForWrite()
 {
-    cout << "Yaml_store::resetWrite()" << endl;
+    cout << "Json_store::resetWrite()" << endl;
 
-    m_yaml->reset();
-    return m_nvram.initForWrite();
+    m_json->reset();
+    return m_nvram->initForWrite();
 }
 
 
-void Yaml_store::writeSimple(const Simple_metadata * data, const uint8_t * v)
+void Json_store::writeSimple(const Simple_metadata * data, const uint8_t * v)
 {
-    m_yaml->writeSimple(data->c.name, data->c.len, v, data->pPrt);
+    m_json->writeSimple(data->c.name, data->c.len, v, data->pPrt);
 }
 
 
-void Yaml_store::startWriteComposite(const Composite_metadata * data)
+void Json_store::startWriteComposite(const Composite_metadata * data)
 {
-    m_yaml->startWriteComposite(data->c.name);
+    m_json->startWriteComposite(data->c.name);
 }
 
 
-void Yaml_store::endWriteComposite()
+void Json_store::endWriteComposite()
 {
-    m_yaml->endWriteComposite();
+    m_json->endWriteComposite();
 }
 
-result_t Yaml_store::startLoadSimple(const Simple_metadata * data)
+result_t Json_store::startLoadSimple(const Simple_metadata * data)
 {
     cout << __PRETTY_FUNCTION__ << endl;
-    return m_yaml->startLoadSimple(data->c.name);
+    return m_json->startLoadSimple(data->c.name);
 }
 
-result_t Yaml_store::endLoadSimple(uint8_t * pRam, const Simple_metadata * data)
+result_t Json_store::endLoadSimple(uint8_t * pRam, const Simple_metadata * data)
 {
     cout << __PRETTY_FUNCTION__ << endl;
     item_len_t len = data->c.len;
-    return m_yaml->endLoadSimple(&len, pRam, data->pSet);
+    return m_json->endLoadSimple(&len, pRam, data->pSet);
 }
 
 // xxx incomplete
-result_t Yaml_store::startLoadComposite(const Composite_metadata * data)
+result_t Json_store::startLoadComposite(const Composite_metadata * data)
 {
-    cout << "Yaml_store::startLoadComposite()" << endl;
+    cout << "Json_store::startLoadComposite()" << endl;
 
-    return m_yaml->startLoadComposite(data->c.name);
+    return m_json->startLoadComposite(data->c.name);
 }
 
-result_t Yaml_store::endLoadComposite()
+result_t Json_store::endLoadComposite()
 {
-    cout << "Yaml_store::endLoadComposite()" << endl;
-    return m_yaml->endLoadComposite();
+    cout << "Json_store::endLoadComposite()" << endl;
+    return m_json->endLoadComposite();
 }
 
 }

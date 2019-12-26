@@ -11,16 +11,18 @@ class Strtok
 {
 public:
     Strtok(char * str) : m_str(str) {}
-    char * operator()(const char * word_delimiter, const char * block_delimiter = nullptr);
+    char * operator()(const char * word_delimiters,
+                      const char * block_start = nullptr,
+                      const char * block_end = nullptr);
 
 private:
-    enum State
+    enum TokenType
     {
-        PREFIX,
         WORD,
         BLOCK
     };
-    bool is_in_set(char c, const char * set);
+    char * get_start(const char * word_delimiters, const char * block_start, TokenType * t);
+    bool get_end(const char * word_delimiters, const char * block_end, TokenType t);
 
     char * m_str;
 };

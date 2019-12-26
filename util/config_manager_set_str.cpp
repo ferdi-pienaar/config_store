@@ -24,12 +24,12 @@ bool cm_set_str(uint8_t *pItem, item_len_t len, string val)
 {
     if (val[0] != '\"')
     {
-        cm_printf("String has no opening quote.\n");
+        cm_printf("String '%s' has no opening quote.\n", val.c_str());
         return false;
     }
     if (val[val.length()-1] != '\"')
     {
-        cm_printf("String has no closing quote.\n");
+        cm_printf("String '%s' has no closing quote.\n", val.c_str());
         return false;
     }
     item_len_t write_bytes = (val.length() - 1 > len) ? len : val.length() - 1;

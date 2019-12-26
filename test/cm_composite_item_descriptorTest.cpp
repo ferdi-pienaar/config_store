@@ -365,7 +365,7 @@ const Aggregate * const aggrList4[] = {&oa7};
 const Composite_metadata c4_d = {{"c4", 1, sizeof(struct m4), true}, aggrList4, sizeof(aggrList4)/sizeof(aggrList4[0])};
 const Composite_descriptor c4(&c4_d);
 
-class OwnedWithoutCounter : public testing::Test
+class CompositeOwnedWithoutCounter : public testing::Test
 {
 protected:
     struct m4 mem;
@@ -385,7 +385,7 @@ protected:
 
 
 // Add the sole, uncounted OWNed item
-TEST_F(OwnedWithoutCounter, addOnly)
+TEST_F(CompositeOwnedWithoutCounter, addOnly)
 {
     char * commandWord[] = {(char *)"add", (char *)"owned"};
     Command_stack cmd(2, commandWord);
@@ -401,7 +401,7 @@ TEST_F(OwnedWithoutCounter, addOnly)
 
 
 // Delete the sole, uncounted OWNed item
-TEST_F(OwnedWithoutCounter, delOnly)
+TEST_F(CompositeOwnedWithoutCounter, delOnly)
 {
     char * commandWord[] = {(char *)"del", (char *)"owned"};
     Command_stack cmd(2, commandWord);

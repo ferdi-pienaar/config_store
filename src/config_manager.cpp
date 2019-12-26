@@ -21,7 +21,7 @@ namespace cfg_mgr
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-Config_manager::Config_manager(const Descriptor * desc): m_baseDesc(desc)
+Config_manager::Config_manager(const Descriptor * desc, Nvram * nvram): m_baseDesc(desc)
 {
     m_ramBase = (uint8_t *)malloc(m_baseDesc->getLen());
     DBG_PRT("init: ramBase, %d at %p\n", m_baseDesc->getLen(), m_ramBase);
@@ -29,7 +29,7 @@ Config_manager::Config_manager(const Descriptor * desc): m_baseDesc(desc)
     memset(m_ramBase, 0, m_baseDesc->getLen());
     m_baseDesc->setDefault(m_ramBase);
     resetCtxt();
-    m_store = Store::getStore();
+    m_store = Store::createStore(nvram);
 }
 
 Config_manager::~Config_manager()

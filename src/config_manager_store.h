@@ -16,6 +16,7 @@ namespace cfg_mgr
 class Store
 {
 public:
+    Store(Nvram * nvram) : m_nvram(nvram) {}
     virtual ~Store() {}
     virtual bool initForRead() = 0;
     virtual bool initForWrite() = 0;
@@ -26,10 +27,10 @@ public:
     virtual result_t endLoadSimple(uint8_t * pRam, const Simple_metadata * data) = 0;
     virtual result_t startLoadComposite(const Composite_metadata * data) = 0;
     virtual result_t endLoadComposite() = 0;
-    static Store * getStore();
+    static Store * createStore(Nvram * nvram);
 
 protected:
-    Nvram  m_nvram;
+    Nvram * m_nvram;
 
 };
 }

@@ -17,19 +17,20 @@ static uint8_t clientRam[1024];
 namespace {
 class TlvTest : public testing::Test {
 protected:
-    Nvram nvram;
+    Nvram_spy * nvram;
     Tlv * tlv;
 
     virtual void SetUp()
     {
-        tlv = new Tlv(&nvram);
-        nvram_spy_init();
+        nvram = new Nvram_spy;
+        tlv = new Tlv(nvram);
     }
 
     virtual void TearDown()
     {
         //clean up steps are executed after each TEST
         delete tlv;
+        delete nvram;
     }
 };
 
@@ -45,7 +46,7 @@ TEST_F(TlvTest, writeSimple)
 
     tlv->writeSimple(id, sizeof(mem), mem);
 
-    EXPECT_TRUE(nvram_spy_match(expected, sizeof(expected)));
+    EXPECT_TRUE(nvram->match(expected, sizeof(expected)));
 }
 
 
@@ -67,7 +68,7 @@ TEST_F(TlvTest, writeComposite)
 
     //cout << memcmp(expected, nvMem, sizeof(expected));
 
-    EXPECT_TRUE(nvram_spy_match(expected, sizeof(expected)));
+    EXPECT_TRUE(nvram->match(expected, sizeof(expected)));
 }
 
 
@@ -86,7 +87,7 @@ TEST_F(TlvTest, writeNestedComposite)
     tlv->endWriteComposite();
     tlv->endWriteComposite();
 
-    EXPECT_TRUE(nvram_spy_match(expected, sizeof(expected)));
+    EXPECT_TRUE(nvram->match(expected, sizeof(expected)));
 }
 
 
@@ -105,7 +106,7 @@ TEST_F(TlvTest, writeNestedCompositeAndSimple)
     tlv->writeSimple(0xbc, sizeof(s2), s2);
     tlv->endWriteComposite();
 
-    EXPECT_TRUE(nvram_spy_match(expected, sizeof(expected)));
+    EXPECT_TRUE(nvram->match(expected, sizeof(expected)));
 }
 
 
@@ -119,7 +120,7 @@ TEST_F(TlvTest, loadSimple)
 
     // xxx set client RAM to bitpattern and verify only the expected section is modified
 
-    nvram_spy_set(nvSet, sizeof(nvSet));
+    nvram->set(nvSet, sizeof(nvSet));
 
     tlv->startLoadSimple(0xab);
     tlv->endLoadSimple(&length, clientRam);
@@ -136,7 +137,7 @@ TEST_F(TlvTest, invalidEndLoadComposite)
 // Nothing should be written to clientRam.
 TEST_F(TlvTest, loadEmptyComposite)
 {
-    nvram_spy_set(NULL, 0);
+    nvram->set(NULL, 0);
 
     EXPECT_EQ(CM_READ_FAIL, tlv->startLoadComposite(0));
 }
@@ -150,7 +151,7 @@ TEST_F(TlvTest, loadComposite)
     item_len_t length;
 
     // xxx set client RAM to bitpattern and verify only the expected section is modified
-    nvram_spy_set(nvSet, sizeof(nvSet));
+    nvram->set(nvSet, sizeof(nvSet));
 
     tlv->startLoadComposite(0xab);
 
@@ -175,7 +176,7 @@ TEST_F(TlvTest, DISABLED_loadCompositeOutOfOrder)
     item_len_t length;
 
     // xxx set client RAM to bitpattern and verify only the expected section is modified
-    nvram_spy_set(nvSet, sizeof(nvSet));
+    nvram->set(nvSet, sizeof(nvSet));
 
     tlv->startLoadComposite(0xab);
 
@@ -201,7 +202,7 @@ TEST_F(TlvTest, partialLoadComposite)
     item_len_t length;
 
     // xxx set client RAM to bitpattern and verify only the expected section is modified
-    nvram_spy_set(nvSet, sizeof(nvSet));
+    nvram->set(nvSet, sizeof(nvSet));
 
     tlv->startLoadComposite(0xab);
 
@@ -223,7 +224,7 @@ TEST_F(TlvTest, findFailLoadComposite)
     item_len_t length;
 
     // xxx set client RAM to bitpattern and verify only the expected section is modified
-    nvram_spy_set(nvSet, sizeof(nvSet));
+    nvram->set(nvSet, sizeof(nvSet));
 
     tlv->startLoadComposite(0xab);
 
@@ -255,7 +256,7 @@ TEST_F(TlvTest, loadNestedComposite)
 
     // xxx set client RAM to bitpattern and verify only the expected section is modified
 
-    nvram_spy_set(nvSet, sizeof(nvSet));
+    nvram->set(nvSet, sizeof(nvSet));
 
     tlv->startLoadComposite(0xab);
 
@@ -278,7 +279,7 @@ TEST_F(TlvTest, loadNestedCompositeAndSimple)
     uint8_t expected[] = {1,2,3,4,5,6,10,11};
     item_len_t length;
 
-    nvram_spy_set(nvSet, sizeof(nvSet));
+    nvram->set(nvSet, sizeof(nvSet));
 
     tlv->startLoadComposite(0xab);
     tlv->startLoadComposite(0xab);
@@ -304,7 +305,7 @@ TEST_F(TlvTest, loadCompositeWithUnwantedComponentAndSimple)
     uint8_t expected[] = {10,11};
     item_len_t length;
 
-    nvram_spy_set(nvSet, sizeof(nvSet));
+    nvram->set(nvSet, sizeof(nvSet));
 
     tlv->startLoadComposite(0xab);
     tlv->startLoadComposite(0xab);
@@ -329,7 +330,7 @@ TEST_F(TlvTest, loadNestedCompositeOf2Simples)
     uint8_t expected[] = {1,2,3,4,5,6,10,11};
     item_len_t length;
 
-    nvram_spy_set(nvSet, sizeof(nvSet));
+    nvram->set(nvSet, sizeof(nvSet));
 
     tlv->startLoadComposite(0xab);
 
@@ -355,7 +356,7 @@ TEST_F(TlvTest, load2Composites)
     uint8_t expected[] = {55,00, 88,0};
     item_len_t length;
 
-    nvram_spy_set(nvSet, sizeof(nvSet));
+    nvram->set(nvSet, sizeof(nvSet));
 
     tlv->startLoadComposite(0xab);
     length = 2;
@@ -377,7 +378,7 @@ TEST_F(TlvTest, loadTruncatedSimple)
     uint8_t nvSet[] = {0xab,0, 4,0,  1};
     item_len_t length;
 
-    nvram_spy_set(nvSet, sizeof(nvSet));
+    nvram->set(nvSet, sizeof(nvSet));
 
     length = 4;
     tlv->startLoadSimple(0xab);

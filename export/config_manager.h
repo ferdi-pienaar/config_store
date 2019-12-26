@@ -15,6 +15,7 @@ namespace cfg_mgr
 {
 
 class Store;
+class Nvram;
 
 /// Configuration manager, managing all configurable items in the system.
 // This class is the application programme's sole point of access to
@@ -22,7 +23,7 @@ class Store;
 class Config_manager
 {
 public:
-    Config_manager(const Descriptor * pDesc);
+    Config_manager(const Descriptor * pDesc, Nvram * nvram);
     ~Config_manager();
     void handleCmd(int argc, char *argv[]);
     const char * getPromptString() const; ///< get context-dependent prompt string h file

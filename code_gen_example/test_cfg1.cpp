@@ -3,6 +3,7 @@
 
  */
 #include <iostream>
+#include "nvram.h"
 #include "config_manager.h"
 #include "cfg.h"
 #include "config_manager_strtok.h" // strtok
@@ -10,9 +11,8 @@
 #include <unistd.h> // sleep
 
 using namespace std;
-using namespace cfg_mgr;
 
-const Descriptor * get_base_descriptor();
+const cfg_mgr::Descriptor * get_base_descriptor();
 
 #define WORD_DELIMITERS " \n"
 #define BLOCK_DELIMITER "\""
@@ -22,7 +22,7 @@ const Descriptor * get_base_descriptor();
 // it may not exist anymore.
 void * stats_thread(void * arg)
 {
-    Config_manager * cm = (Config_manager *)arg;
+    cfg_mgr::Config_manager * cm = (cfg_mgr::Config_manager *)arg;
     t_device * pCfg = (t_device *)cm->getConfig();
 
     for (;;)
@@ -41,8 +41,9 @@ void * stats_thread(void * arg)
 
 int main()
 {
+    cfg_mgr::Nvram nvram;
     // Initialize the config manager with the base descriptor it is to manage.
-    Config_manager cm(get_base_descriptor());
+    cfg_mgr::Config_manager cm(get_base_descriptor(), &nvram);
 
     pthread_t thread;
     int rc = pthread_create(&thread, NULL, stats_thread, &cm);
@@ -54,14 +55,14 @@ int main()
         printf("%s> ", cm.getPromptString());
 
         char cmd[120];
-        if (fgets(cmd, sizeof(cmd), stdin) == NULL)
+        if (fgets(cmd, sizeof(cmd), stdin) == nullptr)
         {
             continue;
         }
 
         // Break commands into a list of tokens, as expected by config manager
         char * param[20];
-        Strtok strtok(cmd);
+        cfg_mgr::Strtok strtok(cmd);
         unsigned int wordCnt = 0;
         while (nullptr != (param[wordCnt] = strtok(WORD_DELIMITERS, BLOCK_DELIMITER)))
         {

@@ -19,9 +19,7 @@ config_manager_command.o
 
 OBJS += config_manager_tlv_store.o config_manager_tlv.o
 
-#OBJS += config_manager_yaml_store.o config_manager_yaml.o
-
-OBJS += config_manager_json.o
+OBJS += config_manager_json_store.o config_manager_json.o
 
 # -cr means
 #  c: create the archive (without this option, if archive doesn't exist, there's a warning)

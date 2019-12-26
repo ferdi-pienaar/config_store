@@ -17,7 +17,7 @@ typedef std::string (*JSON_PRT_FPTR)(const uint8_t *pItem, item_len_t len);
 class Json
 {
 public:
-    static const unsigned int stackDepth = 8;
+    static const unsigned int stackDepth = 16;
 
     Json(Nvram * pNvram);
     ~Json();
@@ -36,15 +36,24 @@ public:
 private:
     void writeName(const char * name);
     void closePredecessorLine();
-    Nvram * m_nvram;
-    std::string indent;
+    void writeIndent(unsigned n);
+
     struct WriteContext
     {
-        WriteContext(): isFirstMember(true), isInArray(false) {}
-        bool isFirstMember; // Are we writing the first member of a list or composite?
-        bool isInArray; // Are we writing a list? xxx I think we'll need multiple copies -- we could be in an array inside an array.
+        enum Type
+        {
+            OBJECT,
+            ARRAY
+        };
+        WriteContext(): m_isFirstMember(true) {}
+
+        Type m_type;
+        bool m_isFirstMember; // Are we writing the first member of a list or composite?
     };
-    WriteContext m_writeContext;
+    std::string m_singleIndent;
+    WriteContext m_writeContext[stackDepth];
+    unsigned m_stackIndex;
+    Nvram * m_nvram;
 };
 }
 #endif // CFG_MAN_JSON_H

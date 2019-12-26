@@ -17,14 +17,15 @@ class Nvram
 {
 public:
     Nvram(): m_fp(nullptr) {}
-    bool initForWrite();
-    bool initForRead();
-    void accessComplete();
-    bool write(const uint8_t * d, unsigned int len);
-    bool read(uint8_t * d, unsigned int len);
-    bool setOffset(unsigned int offset);
-    unsigned int getOffset();
-    bool adjustOffset(int i);
+    virtual ~Nvram() {}
+    virtual bool initForWrite();
+    virtual bool initForRead();
+    virtual void accessComplete();
+    virtual bool write(const uint8_t * d, unsigned int len);
+    virtual bool read(uint8_t * d, unsigned int len);
+    virtual bool setOffset(unsigned int offset);
+    virtual unsigned int getOffset();
+    virtual bool adjustOffset(int i);
 
 private:
     FILE * m_fp;

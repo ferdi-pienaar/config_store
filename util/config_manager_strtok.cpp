@@ -3,46 +3,34 @@
 // so you could have instances running concurrently.
 //
 #include "config_manager_strtok.h"
+#include <string.h> // strchr, strncmp
 
 namespace cfg_mgr
 {
 
-// Split string into tokens, similar to strtok, but optionally defines blocks
-// that start and end with same (set of) chars as tokens (e.g. quoted blocks).
-// If not in block, return a string consisting of next word.
-// If in block, return a string including opening and closing block marks (e.g. quotes).
-//  This means that blocks must be separated by whitespace, to have a place to write null terminator.
-char * Strtok::operator() (const char * word_delimiter, const char * block_delimiter)
+// Split string into tokens, similar to strtok, but optionally defines tokens
+// that start and end with special delimiters (e.g. quoted blocks).
+// @return a string consisting of next word, or a string including opening and closing block marks.
+//  Note that blocks must be separated by whitespace, to have a place to write null terminator.
+char * Strtok::operator() (const char * word_delimiters,
+                           const char * block_start,
+                           const char * block_end)
 {
-    State st = PREFIX;
-    char * start;
+    if ((block_start != nullptr) && (block_end == nullptr))
+    {
+        // If caller gives block_start but not block_end, block_start is also block_end.
+        block_end = block_start;
+    }
+    char * start = nullptr;
     for ( ; *m_str != 0; m_str++)
     {
-        if ((st == PREFIX) && (!is_in_set(*m_str, word_delimiter)))
+        TokenType type;
+        if (!start)
         {
-            // After prefix (if any), start token of type WORD or BLOCK.
-            start = m_str;
-            if (is_in_set(*m_str, block_delimiter))
-            {
-                st = BLOCK;
-                // In block, start looking for block close AFTER block open.
-                m_str++;
-            }
-            else
-            {
-                st = WORD;
-            }
+            start = get_start(word_delimiters, block_start, &type);
         }
-
-        if ((st == BLOCK) && (is_in_set(*m_str, block_delimiter)))
+        if (start && get_end(word_delimiters, block_end, type))
         {
-            // Token ends AFTER the closing mark of block.
-            m_str++;
-            break;
-        }
-        else if ((st == WORD) && (is_in_set(*m_str, word_delimiter)))
-        {
-            // Token ends at word closing delimiter.
             break;
         }
     }
@@ -58,19 +46,55 @@ char * Strtok::operator() (const char * word_delimiter, const char * block_delim
     return start;
 }
 
-
-bool Strtok::is_in_set(char c, const char * set)
+// Return pointer to start of token if we're at start of a token.
+// @param word_delimiters - in, set of characters between words
+// @param block_start - in, string
+// @param type - out, type of token starting.
+// @return pointer to start of token, or nullptr if m_str points to a word delimiter.
+// @pre start not found yet.
+// @post if return non-nullptr, m_str points to location to start
+//       looking for the end of the token.
+char * Strtok::get_start(const char * word_delimiters, const char * block_start, TokenType * type)
 {
-    if (set == nullptr)
+    if (strchr(word_delimiters, *m_str))
     {
-        return false;
+        // Still in prefix.
+        return nullptr;
     }
-    for (const char * d = set; *d != 0; d++)
+    // After prefix (if any), start token of type WORD or BLOCK.
+    if ((block_start != nullptr) && (strncmp(block_start, m_str, strlen(block_start)) == 0))
     {
-        if (c == *d)
-        {
-            return true;
-        }
+        *type = BLOCK;
+        char * start = m_str;
+        // Start looking for block close AFTER block open.
+        m_str += strlen(block_start);
+        return start;
+    }
+    else
+    {
+        *type = WORD;
+        return m_str;
+    }
+}
+
+// Return true if we've reached the end of a token.
+// @param word_delimiters - in, set of characters between words
+// @param block_end - in, string
+// @param type - in, type of token we're in.
+// @pre start already found.
+// @post if return true, m_str is set to end of token.
+bool Strtok::get_end(const char * word_delimiters, const char * block_end, TokenType type)
+{
+    if ((type == BLOCK) && (strncmp(block_end, m_str, strlen(block_end)) == 0))
+    {
+        // Token ends AFTER block end.
+        m_str += strlen(block_end);
+        return true;
+    }
+    else if ((type == WORD) && strchr(word_delimiters, *m_str))
+    {
+        // Token ends at word-end delimiter.
+        return true;
     }
     return false;
 }
