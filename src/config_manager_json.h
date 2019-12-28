@@ -2,7 +2,7 @@
 #define CFG_MAN_JSON_H
 
 #include <stdint.h> // uint8_t, etc
-#include <iostream>
+#include <string>
 #include "nvram.h"
 #include "config_manager_types.h"
 
@@ -36,23 +36,40 @@ public:
 
 private:
     void writeName(const char * name);
-    void closePredecessorLine();
+    void writeEndPrecedingLine();
     void writeIndent();
+    bool loadName(const char * name);
+    std::string loadValue();
+    std::string finishLoadString();
+    std::string finishLoadNonString();
+    bool isNextLoad(const char * b, unsigned len);
+    bool skipws();
+    bool isws(char c);
+
+    enum ValueType
+    {
+        OBJECT,
+        ARRAY
+    };
 
     struct WriteContext
     {
-        enum Type
-        {
-            OBJECT,
-            ARRAY
-        };
         WriteContext(): m_isFirstMember(true) {}
 
-        Type m_type;
+        ValueType m_type;
+        bool m_isFirstMember; // Are we writing the first member of a list or composite?
+    };
+
+    struct LoadContext
+    {
+        LoadContext(): m_isFirstMember(true) {}
+
+        ValueType m_type;
         bool m_isFirstMember; // Are we writing the first member of a list or composite?
     };
     std::string m_singleIndent;
     WriteContext m_writeContext[STACK_DEPTH];
+    LoadContext m_loadContext[STACK_DEPTH];
     unsigned m_stackIndex;
     Nvram * m_nvram;
 };

@@ -27,8 +27,6 @@ Json_store::~Json_store()
 
 bool Json_store::startWrite()
 {
-    cout << __PRETTY_FUNCTION__ << endl;
-
     if (!Store::startWrite())
     {
         return false;
@@ -47,8 +45,6 @@ void Json_store::endWrite()
 
 bool Json_store::startLoad()
 {
-    cout << __PRETTY_FUNCTION__ << endl;
-
     return Store::startLoad();
 }
 
@@ -96,7 +92,6 @@ result_t Json_store::endLoadSimple(uint8_t * pRam, const Simple_metadata * data)
     return m_json->endLoadSimple(&len, pRam, data->pSet);
 }
 
-// xxx incomplete
 result_t Json_store::startLoadComposite(const Composite_metadata * data)
 {
     return m_json->startLoadComposite(data->c.name);

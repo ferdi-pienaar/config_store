@@ -7,6 +7,7 @@
 #include "config_manager_prt_int.h" // load and save functions re-used
 #include "config_manager_prt_str.h" // load and save functions re-used
 #include "config_manager_set_int.h" // load and save functions re-used
+#include "config_manager_set_str.h" // load and save functions re-used
 #include "nvram_spy.h"
 #include <iostream>
 
@@ -139,20 +140,41 @@ TEST_F(JsonTest, writeArrayOfComposite)
 }
 
 //
-TEST_F(JsonTest, DISABLED_loadSimple)
+TEST_F(JsonTest, loadString)
 {
-    uint8_t    nvSet[] = {"\"simp\": 55\n"};
-    uint8_t    expected[] = {55,0};
+    uint8_t    nvSet[] = {"\n"
+                          " \"thing\": \"property 13\""
+                         };
+    uint8_t    expected[] = {"property 13"};
     item_len_t length = sizeof(expected);
 
     // xxx set client RAM to bitpattern and verify only the expected section is modified
 
     nvram->set(nvSet, sizeof(nvSet));
 
-    EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("simp"));
-    json->endLoadSimple(&length, clientRam, cm_set_int);
+    EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("thing"));
+    json->endLoadSimple(&length, clientRam, cm_set_str);
 
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
+}
+
+//
+TEST_F(JsonTest, loadNonString)
+{
+    uint8_t    nvSet[] = {"\n"
+                          " \"thing\": 1002003"
+                         };
+    uint32_t    expected = 1002003;
+    item_len_t length = sizeof(expected);
+
+    // xxx set client RAM to bitpattern and verify only the expected section is modified
+
+    nvram->set(nvSet, sizeof(nvSet));
+
+    EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("thing"));
+    json->endLoadSimple(&length, clientRam, cm_set_int);
+
+    EXPECT_TRUE(memcmp(&expected, clientRam, sizeof(expected)) == 0);
 }
 
 } // namespace
