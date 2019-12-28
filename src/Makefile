@@ -7,19 +7,19 @@ CPPFLAGS += -D M_DEFINED_STORE_TYPE=TLV_STORE
 #CPPFLAGS += -D DEBUG_PRINT
 # Generate the .d files when generating objects
 CXXFLAGS += -MMD
-OBJS = config_manager.o \
-config_manager_prt_hexstr.o \
-config_manager_setdef_null.o \
-config_manager_store.o \
+OBJS = cfg_mgr.o \
+cfg_mgr_prt_hexstr.o \
+cfg_mgr_setdef_null.o \
+cfg_mgr_store.o \
 nvram.o \
-config_manager_printf.o \
-config_manager_descriptor.o \
-config_manager_aggregate.o \
-config_manager_command.o
+cfg_mgr_printf.o \
+cfg_mgr_descriptor.o \
+cfg_mgr_aggregate.o \
+cfg_mgr_command.o
 
-OBJS += config_manager_tlv_store.o config_manager_tlv.o
+OBJS += cfg_mgr_tlv_store.o cfg_mgr_tlv.o
 
-OBJS += config_manager_json_store.o config_manager_json.o
+OBJS += cfg_mgr_json_store.o cfg_mgr_json.o
 
 # -cr means
 #  c: create the archive (without this option, if archive doesn't exist, there's a warning)

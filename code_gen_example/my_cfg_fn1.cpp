@@ -7,9 +7,9 @@
 #include <string.h> // strlen
 #include <climits> // SHRT_MIN, SHRT_MAX
 #include <math.h> // round
-#include "config_manager.h"
+#include "cfg_mgr.h"
 #include "my_cfg_fn1.h"
-#include "config_manager_printf.h"
+#include "cfg_mgr_printf.h"
 #include <sstream>
 
 using namespace std;

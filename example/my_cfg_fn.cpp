@@ -3,7 +3,7 @@
 //
 
 #include <iostream>
-#include "config_manager.h"
+#include "cfg_mgr.h"
 #include "my_cfg_fn.h"
 using namespace std;
 using namespace cfg_mgr;

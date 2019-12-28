@@ -1,18 +1,18 @@
-CFG_MAN_SRC_DIR = ../src/
-CFG_MAN_UTIL_DIR = ../util/
-CXXFLAGS = -Wall -g -I . -I $(CFG_MAN_SRC_DIR) -I $(CFG_MAN_UTIL_DIR) -I ../export
+CFG_MGR_SRC_DIR = ../src/
+CFG_MGR_UTIL_DIR = ../util/
+CXXFLAGS = -Wall -g -I . -I $(CFG_MGR_SRC_DIR) -I $(CFG_MGR_UTIL_DIR) -I ../export
 # Generate the .d files when generating objects
 CXXFLAGS += -MMD
 #CXXFLAGS += -save-temps
 #CPPFLAGS += -D DEBUG_PRINT
-VPATH = $(CFG_MAN_SRC_DIR) # so make can find the library
+VPATH = $(CFG_MGR_SRC_DIR) # so make can find the library
 
 OBJS = my_cfg.o my_cfg_fn.o \
-$(CFG_MAN_UTIL_DIR)config_manager_set_int.o \
-$(CFG_MAN_UTIL_DIR)config_manager_prt_int.o \
-$(CFG_MAN_UTIL_DIR)config_manager_set_str.o \
-$(CFG_MAN_UTIL_DIR)config_manager_prt_str.o \
-$(CFG_MAN_UTIL_DIR)config_manager_strtok.o
+$(CFG_MGR_UTIL_DIR)cfg_mgr_set_int.o \
+$(CFG_MGR_UTIL_DIR)cfg_mgr_prt_int.o \
+$(CFG_MGR_UTIL_DIR)cfg_mgr_set_str.o \
+$(CFG_MGR_UTIL_DIR)cfg_mgr_prt_str.o \
+$(CFG_MGR_UTIL_DIR)cfg_mgr_strtok.o
 
 test_cfg_man: $(OBJS) -lCfgMgr
 

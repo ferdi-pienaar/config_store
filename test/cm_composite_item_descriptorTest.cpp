@@ -5,11 +5,11 @@
 //
 
 #include "gtest/gtest.h"
-#include "config_manager_descriptor.h"       // Unit under test
-#include "config_manager_aggregate.h"       // Unit under test
-#include "config_manager_command.h"       // Unit under test
-#include "config_manager_set_int.h"  // Extensions to unit under test (generic "set" functions)
-#include "config_manager_printf_spy.h"
+#include "cfg_mgr_descriptor.h"       // Unit under test
+#include "cfg_mgr_aggregate.h"       // Unit under test
+#include "cfg_mgr_command.h"       // Unit under test
+#include "cfg_mgr_set_int.h"  // Extensions to unit under test (generic "set" functions)
+#include "cfg_mgr_printf_spy.h"
 
 #include <string>
 #include <stdlib.h> // malloc

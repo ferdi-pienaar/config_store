@@ -4,7 +4,7 @@
 //
 
 #include "gtest/gtest.h"
-#include "config_manager_tlv.h"  // Unit under test
+#include "cfg_mgr_tlv.h"  // Unit under test
 #include <string.h> // strncmp
 #include "nvram_spy.h"
 

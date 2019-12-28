@@ -15,7 +15,7 @@
 // 2. From the configuration interface:
 //    Read/write access via Config_manager::handleCmd.
 //
-#include "config_manager_descriptor.h"
+#include "cfg_mgr_descriptor.h"
 
 #define NUM_CLI_PORT      4
 #define MAX_LEN_USER_NAME 16

@@ -4,9 +4,9 @@
  */
 #include <iostream>
 #include "nvram.h"
-#include "config_manager.h"
+#include "cfg_mgr.h"
 #include "my_cfg.h"
-#include "config_manager_strtok.h" // strtok
+#include "cfg_mgr_strtok.h" // strtok
 #include <pthread.h>
 #include <unistd.h> // sleep
 

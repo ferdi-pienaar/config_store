@@ -3,11 +3,11 @@
 //
 
 #include "gtest/gtest.h"
-#include "config_manager_json.h"  // Unit under test
-#include "config_manager_prt_int.h" // load and save functions re-used
-#include "config_manager_prt_str.h" // load and save functions re-used
-#include "config_manager_set_int.h" // load and save functions re-used
-#include "config_manager_set_str.h" // load and save functions re-used
+#include "cfg_mgr_json.h"  // Unit under test
+#include "cfg_mgr_prt_int.h" // load and save functions re-used
+#include "cfg_mgr_prt_str.h" // load and save functions re-used
+#include "cfg_mgr_set_int.h" // load and save functions re-used
+#include "cfg_mgr_set_str.h" // load and save functions re-used
 #include "nvram_spy.h"
 #include <iostream>
 

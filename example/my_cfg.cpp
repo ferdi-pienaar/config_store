@@ -17,13 +17,13 @@
 
 // xxx should be a naming convention: camelCase, or underscores, etc.
 #include "my_cfg.h"
-#include "config_manager_descriptor.h"
-#include "config_manager_aggregate.h"
-#include "config_manager_set_int.h"
-#include "config_manager_prt_int.h"
-#include "config_manager_set_str.h"
-#include "config_manager_prt_str.h"
-#include "config_manager_setdef_null.h"
+#include "cfg_mgr_descriptor.h"
+#include "cfg_mgr_aggregate.h"
+#include "cfg_mgr_set_int.h"
+#include "cfg_mgr_prt_int.h"
+#include "cfg_mgr_set_str.h"
+#include "cfg_mgr_prt_str.h"
+#include "cfg_mgr_setdef_null.h"
 #include "my_cfg_fn.h" // User-written functions "plugged in" to Config_manager
 
 // We can get the size of a member of a type without having to declare a variable of that type
