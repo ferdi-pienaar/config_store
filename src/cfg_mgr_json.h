@@ -24,6 +24,8 @@ public:
 
     void startWrite();
     void endWrite();
+    bool startLoad();
+    void endLoad();
     void writeSimple(const char * name, item_len_t length, const uint8_t * v, JSON_PRT_FPTR prt);
     void startWriteComposite(const char * name);
     void endWriteComposite();
@@ -33,16 +35,18 @@ public:
     result_t endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_FPTR set);
     result_t startLoadComposite(const char * name);
     result_t endLoadComposite();
+    result_t startLoadArray(const char * name);
+    result_t endLoadArray();
 
 private:
     void writeName(const char * name);
     void writeEndPrecedingLine();
     void writeIndent();
-    bool loadName(const char * name);
+    bool readName(const char * name);
     std::string loadValue();
     std::string finishLoadString();
     std::string finishLoadNonString();
-    bool isNextLoad(const char * b, unsigned len);
+    bool isNextRead(const char * b, unsigned len);
     bool skipws();
     bool isws(char c);
 
@@ -54,7 +58,7 @@ private:
 
     struct WriteContext
     {
-        WriteContext(): m_isFirstMember(true) {}
+        WriteContext(): m_type(OBJECT), m_isFirstMember(true) {}
 
         ValueType m_type;
         bool m_isFirstMember; // Are we writing the first member of a list or composite?
@@ -62,7 +66,7 @@ private:
 
     struct LoadContext
     {
-        LoadContext(): m_isFirstMember(true) {}
+        LoadContext(): m_type(OBJECT), m_isFirstMember(true) {}
 
         ValueType m_type;
         bool m_isFirstMember; // Are we writing the first member of a list or composite?

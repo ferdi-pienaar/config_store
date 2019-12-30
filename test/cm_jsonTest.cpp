@@ -26,6 +26,7 @@ protected:
     {
         nvram = new Nvram_spy;
         json = new Json(nvram);
+        memset(clientRam, 0, sizeof(clientRam));
     }
 
     virtual void TearDown()
@@ -173,6 +174,102 @@ TEST_F(JsonTest, loadNonString)
 
     EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("thing"));
     json->endLoadSimple(&length, clientRam, cm_set_int);
+
+    EXPECT_TRUE(memcmp(&expected, clientRam, sizeof(expected)) == 0);
+}
+
+TEST_F(JsonTest, loadComposite)
+{
+    uint8_t    nvSet[] = {"\"compo\": {"
+                          " \"thing1\": \"property 13\",\n"
+                          " \"thing2\": \"property 15\"\n"
+                          "}"
+                         };
+    item_len_t length = 16;
+    char expected[32] = {0};
+    strncpy(expected, "property 13", length);
+    strncpy(expected+length, "property 15", length);
+
+
+    // xxx set client RAM to bitpattern and verify only the expected section is modified
+
+    nvram->set(nvSet, sizeof(nvSet));
+
+    EXPECT_EQ(CM_SUCCESS, json->startLoadComposite("compo"));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("thing1"));
+    json->endLoadSimple(&length, clientRam, cm_set_str);
+    EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("thing2"));
+    json->endLoadSimple(&length, clientRam + length, cm_set_str);
+    json->endLoadComposite();
+
+    EXPECT_TRUE(memcmp(&expected, clientRam, sizeof(expected)) == 0);
+}
+
+
+TEST_F(JsonTest, loadArray)
+{
+    uint8_t    nvSet[] = {"\"array\": ["
+                          " \"value 1\",\n"
+                          " \"value 2\"\n"
+                          "]"
+                         };
+    item_len_t length = 16;
+    char expected[32] = {0};
+    strncpy(expected, "value 1", length);
+    strncpy(expected+length, "value 2", length);
+
+    // xxx set client RAM to bitpattern and verify only the expected section is modified
+
+    nvram->set(nvSet, sizeof(nvSet));
+
+    EXPECT_EQ(CM_SUCCESS, json->startLoadArray("array"));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("array"));
+    json->endLoadSimple(&length, clientRam, cm_set_str);
+    EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("array"));
+    json->endLoadSimple(&length, clientRam + length, cm_set_str);
+    json->endLoadArray();
+
+    EXPECT_TRUE(memcmp(&expected, clientRam, sizeof(expected)) == 0);
+}
+
+TEST_F(JsonTest, loadArrayOfComposite)
+{
+    uint8_t    nvSet[] = {"\"compo\": ["
+                          " {\n"
+                          "  \"thing1\": \"property 13\",\n"
+                          "  \"thing2\": \"property 15\"\n"
+                          " },\n"
+                          " {\n"
+                          "  \"thing1\": \"property 20\",\n"
+                          "  \"thing2\": \"property 22\"\n"
+                          " }\n"
+                          "]"
+                         };
+    item_len_t length = 16;
+    char expected[64] = {0};
+    strncpy(expected, "property 13", length);
+    strncpy(expected+length, "property 15", length);
+    strncpy(expected+2*length, "property 20", length);
+    strncpy(expected+3*length, "property 22", length);
+
+    // xxx set client RAM to bitpattern and verify only the expected section is modified
+
+    nvram->set(nvSet, sizeof(nvSet));
+
+    EXPECT_EQ(CM_SUCCESS, json->startLoadArray("compo"));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadComposite("compo"));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("thing1"));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadSimple(&length, clientRam, cm_set_str));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("thing2"));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadSimple(&length, clientRam + length, cm_set_str));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadComposite());
+    EXPECT_EQ(CM_SUCCESS, json->startLoadComposite("compo"));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("thing1"));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadSimple(&length, clientRam + 2 * length, cm_set_str));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("thing2"));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadSimple(&length, clientRam + 3 * length, cm_set_str));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadComposite());
+    EXPECT_EQ(CM_SUCCESS, json->endLoadArray());
 
     EXPECT_TRUE(memcmp(&expected, clientRam, sizeof(expected)) == 0);
 }

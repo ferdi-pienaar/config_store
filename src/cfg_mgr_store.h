@@ -31,6 +31,14 @@ public:
     virtual result_t endLoadSimple(uint8_t * pRam, const Simple_metadata * data) = 0;
     virtual result_t startLoadComposite(const Composite_metadata * data) = 0;
     virtual result_t endLoadComposite() = 0;
+    virtual result_t startLoadArray(const char * name)
+    {
+        return CM_SUCCESS;
+    }
+    virtual result_t endLoadArray()
+    {
+        return CM_SUCCESS;
+    }
     static Store * createStore(Nvram * nvram);
 
 protected:

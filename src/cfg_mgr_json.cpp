@@ -60,6 +60,25 @@ void Json::endWrite()
     m_nvram->write((const uint8_t *)"\n}", 2);
 }
 
+bool Json::startLoad()
+{
+    skipws();
+    if (!isNextRead("{", 1))
+    {
+        return false;
+    }
+    return true;
+}
+
+void Json::endLoad()
+{
+    skipws();
+    if (!isNextRead("}", 1))
+    {
+        return; // xxx return error
+    }
+    return; // xxx return OK.
+}
 
 void Json::writeSimple(const char * name, item_len_t length, const uint8_t * v, JSON_PRT_FPTR prt)
 {
@@ -134,13 +153,17 @@ result_t Json::startLoadSimple(const char * name)
     if (!m_loadContext[m_stackIndex].m_isFirstMember)
     {
         // This is subsequent member, so expect ',' before its name.
-        if (!isNextLoad(",", 1))
+        if (!isNextRead(",", 1))
         {
             return CM_NOT_FOUND;
         }
         skipws();
     }
-    return loadName(name) ? CM_SUCCESS : CM_NOT_FOUND;
+    if (m_loadContext[m_stackIndex].m_type == OBJECT)
+    {
+        return readName(name) ? CM_SUCCESS : CM_NOT_FOUND;
+    }
+    return CM_SUCCESS;
 }
 
 // Read the value from JSON in nvram, and convert to value in RAM if set function.
@@ -149,22 +172,94 @@ result_t Json::endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_FPTR 
 {
     string valstr = loadValue();
     set(pRam, *length, valstr);
+    m_loadContext[m_stackIndex].m_isFirstMember = false;
     return CM_SUCCESS;
 }
 
 result_t Json::startLoadComposite(const char * name)
 {
+    skipws();
+    if (!m_loadContext[m_stackIndex].m_isFirstMember)
+    {
+        // This is subsequent member, so expect ',' before its name.
+        if (!isNextRead(",", 1))
+        {
+            return CM_NOT_FOUND;
+        }
+        skipws();
+    }
+    if (m_loadContext[m_stackIndex].m_type == OBJECT)
+    {
+        if (!readName(name))
+        {
+            return CM_NOT_FOUND;
+        }
+        skipws();
+    }
+    if (!isNextRead("{", 1))
+    {
+        return CM_NOT_FOUND;
+    }
+    m_stackIndex++;
+    m_loadContext[m_stackIndex].m_type = OBJECT;
+    m_loadContext[m_stackIndex].m_isFirstMember = true;
     return CM_SUCCESS;
 }
 
 result_t Json::endLoadComposite()
 {
-
+    skipws();
+    if (!isNextRead("}", 1))
+    {
+        return CM_NOT_FOUND;
+    }
+    m_stackIndex--;
+    m_loadContext[m_stackIndex].m_isFirstMember = false;
     return CM_SUCCESS;
 }
 
 
+result_t Json::startLoadArray(const char * name)
+{
+    skipws();
+    if (!m_loadContext[m_stackIndex].m_isFirstMember)
+    {
+        // This is subsequent member, so expect ',' before its name.
+        if (!isNextRead(",", 1))
+        {
+            return CM_NOT_FOUND;
+        }
+        skipws();
+    }
+    if (!readName(name))
+    {
+        return CM_NOT_FOUND;
+    }
+    skipws();
+    if (!isNextRead("[", 1))
+    {
+        return CM_NOT_FOUND;
+    }
+    m_stackIndex++;
+    m_loadContext[m_stackIndex].m_type = ARRAY;
+    m_loadContext[m_stackIndex].m_isFirstMember = true;
+    return CM_SUCCESS;
+}
+
+result_t Json::endLoadArray()
+{
+    skipws();
+    if (!isNextRead("]", 1))
+    {
+        return CM_NOT_FOUND;
+    }
+    m_stackIndex--;
+    m_loadContext[m_stackIndex].m_isFirstMember = false;
+    return CM_SUCCESS;
+}
+
 // Called when starting an object: close the previous one with a comma if necessary.
+// xxx line is wrong, since lines are optional whitespace.
 void Json::writeEndPrecedingLine()
 {
     if (!m_writeContext[m_stackIndex].m_isFirstMember)
@@ -193,29 +288,29 @@ void Json::writeName(const char * name)
 
 // Return true if name, surrounded by quotes and followed by ':' is next in nvram,
 // else return false and set nvram xxx.
-bool Json::loadName(const char * name)
+bool Json::readName(const char * name)
 {
-    if (!isNextLoad("\"", 1))
+    if (!isNextRead("\"", 1))
     {
         // No opening quote.
         return false;
     }
 
     // A name should be next, xxx but is it necessarily the name we are looking for?
-    if (!isNextLoad(name, strlen(name)))
+    if (!isNextRead(name, strlen(name)))
     {
         return false;
     }
 
     // A name should be next, xxx but is it necessarily the name we are looking for?
-    if (!isNextLoad("\"", 1))
+    if (!isNextRead("\"", 1))
     {
         // No closing quote.
         return false;
     }
 
     skipws();
-    if (!isNextLoad(":", 1))
+    if (!isNextRead(":", 1))
     {
         // No ':' after the name.
         return false;
@@ -226,7 +321,7 @@ bool Json::loadName(const char * name)
 
 // If next len chars in nvram match b, return true, and set nvram offset to end of match.
 // if no match, return false, and set nvram offset to xxx.
-bool Json::isNextLoad(const char * b, unsigned len)
+bool Json::isNextRead(const char * b, unsigned len)
 {
     for (unsigned i = 0; i < len; i++)
     {

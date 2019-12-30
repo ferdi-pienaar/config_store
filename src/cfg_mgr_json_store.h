@@ -32,7 +32,8 @@ public:
     result_t endLoadSimple(uint8_t * pRam, const Simple_metadata * data);
     result_t startLoadComposite(const Composite_metadata * data);
     result_t endLoadComposite();
-
+    result_t startLoadArray(const char * name);
+    result_t endLoadArray();
 private:
     Json * m_json;
 

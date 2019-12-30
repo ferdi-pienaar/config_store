@@ -45,12 +45,17 @@ void Json_store::endWrite()
 
 bool Json_store::startLoad()
 {
-    return Store::startLoad();
+    if (!Store::startLoad())
+    {
+        return false;
+    }
+    return m_json->startLoad();
 }
 
 
 void Json_store::endLoad()
 {
+    m_json->endLoad();
     Store::endLoad();
 }
 
@@ -100,6 +105,18 @@ result_t Json_store::startLoadComposite(const Composite_metadata * data)
 result_t Json_store::endLoadComposite()
 {
     return m_json->endLoadComposite();
+}
+
+result_t Json_store::startLoadArray(const char * name)
+{
+    return m_json->startLoadArray(name);
+
+}
+
+result_t Json_store::endLoadArray()
+{
+    return m_json->endLoadArray();
+
 }
 
 }

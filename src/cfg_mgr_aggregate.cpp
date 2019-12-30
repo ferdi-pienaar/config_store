@@ -173,6 +173,10 @@ result_t Aggregate::load(uint8_t * pParentItem, Store * store) const
         return CM_SUCCESS;
     }
 
+    if (m_data->maxCount > 1)
+    {
+        store->startLoadArray(m_data->pDesc->getName());
+    }
     for (unsigned idx = 0; idx < m_data->maxCount; idx++)
     {
         // This fails if there isn't an item in the store to load.
@@ -181,7 +185,6 @@ result_t Aggregate::load(uint8_t * pParentItem, Store * store) const
         {
             return res;
         }
-
         // There is an item in the store, so get RAM for it --
         // in case of an owned aggregate, this allocates memory.
         uint8_t * pItem = getComponentItem(idx, pParentItem);
@@ -190,13 +193,16 @@ result_t Aggregate::load(uint8_t * pParentItem, Store * store) const
             // Memory couldn't be allocated for the item.
             return CM_SUCCESS; //xxxx success??
         }
-
         // We have memory to load the item into, so complete the load.
         res = m_data->pDesc->endLoad(pItem, store);
         if (res != CM_SUCCESS)
         {
             return res;
         }
+    }
+    if (m_data->maxCount > 1)
+    {
+        store->endLoadArray();
     }
     return CM_SUCCESS;
 }

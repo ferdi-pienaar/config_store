@@ -14,7 +14,7 @@ $(CFG_MGR_UTIL_DIR)cfg_mgr_set_str.o \
 $(CFG_MGR_UTIL_DIR)cfg_mgr_prt_str.o \
 $(CFG_MGR_UTIL_DIR)cfg_mgr_strtok.o
 
-test_cfg_man: $(OBJS) -lCfgMgr
+test_cfg_mgr: $(OBJS) -lCfgMgr
 
 .PHONY: clean
 clean:
