@@ -43,20 +43,25 @@ void Json_store::endWrite()
 }
 
 
-bool Json_store::startLoad()
+result_t Json_store::startLoad()
 {
-    if (!Store::startLoad())
+    result_t ret = Store::startLoad();
+    if (ret != CM_SUCCESS)
     {
-        return false;
+        return ret;
     }
     return m_json->startLoad();
 }
 
 
-void Json_store::endLoad()
+result_t Json_store::endLoad()
 {
-    m_json->endLoad();
-    Store::endLoad();
+    result_t ret = m_json->endLoad();
+    if (ret != CM_SUCCESS)
+    {
+        return ret;
+    }
+    return Store::endLoad();
 }
 
 void Json_store::writeSimple(const Simple_metadata * data, const uint8_t * v)

@@ -180,7 +180,7 @@ TEST_F(JsonTest, loadNonString)
 
 TEST_F(JsonTest, loadComposite)
 {
-    uint8_t    nvSet[] = {"\"compo\": {"
+    uint8_t    nvSet[] = {"\"compo\": {\n"
                           " \"thing1\": \"property 13\",\n"
                           " \"thing2\": \"property 15\"\n"
                           "}"
@@ -205,10 +205,40 @@ TEST_F(JsonTest, loadComposite)
     EXPECT_TRUE(memcmp(&expected, clientRam, sizeof(expected)) == 0);
 }
 
+TEST_F(JsonTest, loadEmbeddedComposite)
+{
+    uint8_t    nvSet[] = {"\"compo\": {\n"
+                          " \"compoInside\": {\n"
+                          "  \"thing1\": \"property 13\",\n"
+                          "  \"thing2\": \"property 15\"\n"
+                          " }\n"
+                          "}"
+                         };
+    item_len_t length = 16;
+    char expected[32] = {0};
+    strncpy(expected, "property 13", length);
+    strncpy(expected+length, "property 15", length);
+
+
+    // xxx set client RAM to bitpattern and verify only the expected section is modified
+
+    nvram->set(nvSet, sizeof(nvSet));
+
+    EXPECT_EQ(CM_SUCCESS, json->startLoadComposite("compo"));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadComposite("compoInside"));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("thing1"));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadSimple(&length, clientRam, cm_set_str));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("thing2"));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadSimple(&length, clientRam + length, cm_set_str));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadComposite());
+    EXPECT_EQ(CM_SUCCESS, json->endLoadComposite());
+
+    EXPECT_TRUE(memcmp(&expected, clientRam, sizeof(expected)) == 0);
+}
 
 TEST_F(JsonTest, loadArray)
 {
-    uint8_t    nvSet[] = {"\"array\": ["
+    uint8_t    nvSet[] = {"\"array\": [\n"
                           " \"value 1\",\n"
                           " \"value 2\"\n"
                           "]"
@@ -234,7 +264,7 @@ TEST_F(JsonTest, loadArray)
 
 TEST_F(JsonTest, loadArrayOfComposite)
 {
-    uint8_t    nvSet[] = {"\"compo\": ["
+    uint8_t    nvSet[] = {"\"compo\": [\n"
                           " {\n"
                           "  \"thing1\": \"property 13\",\n"
                           "  \"thing2\": \"property 15\"\n"

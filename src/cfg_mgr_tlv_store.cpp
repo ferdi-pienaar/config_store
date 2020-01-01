@@ -25,7 +25,7 @@ Tlv_store::~Tlv_store()
 }
 
 
-bool Tlv_store::startLoad()
+result_t Tlv_store::startLoad()
 {
     m_tlv->reset();
     return Store::startLoad();

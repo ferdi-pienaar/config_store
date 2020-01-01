@@ -24,8 +24,8 @@ public:
 
     void startWrite();
     void endWrite();
-    bool startLoad();
-    void endLoad();
+    result_t startLoad();
+    result_t endLoad();
     void writeSimple(const char * name, item_len_t length, const uint8_t * v, JSON_PRT_FPTR prt);
     void startWriteComposite(const char * name);
     void endWriteComposite();

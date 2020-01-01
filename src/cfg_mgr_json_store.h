@@ -21,8 +21,8 @@ public:
     ~Json_store();
     bool startWrite();
     void endWrite();
-    bool startLoad();
-    void endLoad();
+    result_t startLoad();
+    result_t endLoad();
     void writeSimple(const Simple_metadata * data, const uint8_t * v);
     void startWriteComposite(const Composite_metadata * data);
     void endWriteComposite();

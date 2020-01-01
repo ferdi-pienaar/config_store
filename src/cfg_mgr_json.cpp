@@ -60,24 +60,26 @@ void Json::endWrite()
     m_nvram->write((const uint8_t *)"\n}", 2);
 }
 
-bool Json::startLoad()
+result_t Json::startLoad()
 {
     skipws();
     if (!isNextRead("{", 1))
     {
-        return false;
+        return CM_INCOHERENT_DATA;
     }
-    return true;
+    DBG_PRT("%s OK\n", __PRETTY_FUNCTION__);
+    return CM_SUCCESS;
 }
 
-void Json::endLoad()
+result_t Json::endLoad()
 {
     skipws();
     if (!isNextRead("}", 1))
     {
-        return; // xxx return error
+        return CM_INCOHERENT_DATA;
     }
-    return; // xxx return OK.
+    DBG_PRT("%s OK\n", __PRETTY_FUNCTION__);
+    return CM_SUCCESS;
 }
 
 void Json::writeSimple(const char * name, item_len_t length, const uint8_t * v, JSON_PRT_FPTR prt)
@@ -149,6 +151,8 @@ void Json::endWriteArray()
 // Return success if name (in quotes) followed by ':' is next.
 result_t Json::startLoadSimple(const char * name)
 {
+    DBG_PRT("%s name=%s stackIndex=%u\n", __PRETTY_FUNCTION__, name, m_stackIndex);
+
     skipws();
     if (!m_loadContext[m_stackIndex].m_isFirstMember)
     {
@@ -170,6 +174,8 @@ result_t Json::startLoadSimple(const char * name)
 // @param length - output.
 result_t Json::endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_FPTR set)
 {
+    DBG_PRT("%s m_stackIndex=%u\n", __PRETTY_FUNCTION__, m_stackIndex);
+
     string valstr = loadValue();
     set(pRam, *length, valstr);
     m_loadContext[m_stackIndex].m_isFirstMember = false;
@@ -178,6 +184,8 @@ result_t Json::endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_FPTR 
 
 result_t Json::startLoadComposite(const char * name)
 {
+    DBG_PRT("%s name=%s stackIndex=%u\n", __PRETTY_FUNCTION__, name, m_stackIndex);
+
     skipws();
     if (!m_loadContext[m_stackIndex].m_isFirstMember)
     {
@@ -208,9 +216,12 @@ result_t Json::startLoadComposite(const char * name)
 
 result_t Json::endLoadComposite()
 {
+    DBG_PRT("%s m_stackIndex=%u\n", __PRETTY_FUNCTION__, m_stackIndex);
+
     skipws();
     if (!isNextRead("}", 1))
     {
+        DBG_PRT("%s fail: no '}'\n", __PRETTY_FUNCTION__);
         return CM_NOT_FOUND;
     }
     m_stackIndex--;
@@ -221,6 +232,8 @@ result_t Json::endLoadComposite()
 
 result_t Json::startLoadArray(const char * name)
 {
+    DBG_PRT("%s name=%s stackIndex=%u\n", __PRETTY_FUNCTION__, name, m_stackIndex);
+
     skipws();
     if (!m_loadContext[m_stackIndex].m_isFirstMember)
     {
@@ -248,6 +261,8 @@ result_t Json::startLoadArray(const char * name)
 
 result_t Json::endLoadArray()
 {
+    DBG_PRT("%s m_stackIndex=%u\n", __PRETTY_FUNCTION__, m_stackIndex);
+
     skipws();
     if (!isNextRead("]", 1))
     {

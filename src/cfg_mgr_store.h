@@ -20,8 +20,8 @@ public:
     virtual ~Store() {}
     virtual bool startWrite();
     virtual void endWrite();
-    virtual bool startLoad();
-    virtual void endLoad();
+    virtual result_t startLoad();
+    virtual result_t endLoad();
     virtual void writeSimple(const Simple_metadata * data, const uint8_t * v) = 0;
     virtual void startWriteComposite(const Composite_metadata * data) = 0;
     virtual void endWriteComposite() = 0;

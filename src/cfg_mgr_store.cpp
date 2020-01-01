@@ -24,14 +24,15 @@ Store * Store::createStore(Nvram * nvram)
         return new Json_store(nvram);
 }
 
-bool Store::startLoad()
+result_t Store::startLoad()
 {
-    return m_nvram->initForRead();
+    return m_nvram->initForRead() ? CM_SUCCESS : CM_FAIL;
 }
 
-void Store::endLoad()
+result_t Store::endLoad()
 {
     m_nvram->accessComplete();
+    return CM_SUCCESS;
 }
 
 bool Store::startWrite()
