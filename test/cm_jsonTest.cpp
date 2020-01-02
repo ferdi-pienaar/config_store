@@ -262,6 +262,41 @@ TEST_F(JsonTest, loadArray)
     EXPECT_TRUE(memcmp(&expected, clientRam, sizeof(expected)) == 0);
 }
 
+// Try to load array elements beyond what's present in NVRAM -- a normal case,
+// since client doesn't know how many entries there are.
+// Check that next element, after array, is loaded OK, too.
+TEST_F(JsonTest, loadArrayExtra)
+{
+    uint8_t    nvSet[] = {"\"compo\": {\n"
+                          " \"array1\": [\n"
+                          "  \"avalue 1\"\n"
+                          " ],"
+                          "\"simplename2\": \"simpleval 2\"\n"
+                          "}"
+                         };
+    item_len_t length = 16;
+    char expected[32] = {0};
+    strncpy(expected, "avalue 1", length);
+    strncpy(expected+length, "simpleval 2", length);
+
+    // xxx set client RAM to bitpattern and verify only the expected section is modified
+
+    nvram->set(nvSet, sizeof(nvSet));
+
+    EXPECT_EQ(CM_SUCCESS, json->startLoadComposite("compo"));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadArray("array1"));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("array1"));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadSimple(&length, clientRam, cm_set_str));
+    // Next array entry is not found.
+    EXPECT_EQ(CM_NOT_FOUND, json->startLoadSimple("array1"));
+    // But load end array is OK.
+    EXPECT_EQ(CM_SUCCESS, json->endLoadArray());
+    EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("simplename2"));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadSimple(&length, clientRam + length, cm_set_str));
+
+    EXPECT_TRUE(memcmp(&expected, clientRam, sizeof(expected)) == 0);
+}
+
 TEST_F(JsonTest, loadArrayOfComposite)
 {
     uint8_t    nvSet[] = {"\"compo\": [\n"

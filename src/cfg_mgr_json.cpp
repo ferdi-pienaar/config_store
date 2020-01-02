@@ -27,7 +27,7 @@
 
 #include "cfg_mgr_json.h"
 #include "cfg_mgr_dbg.h"
-#include <string.h> // memcpy
+#include <string.h> // strlen
 #include "nvram.h"
 #include <assert.h>
 
@@ -341,8 +341,8 @@ bool Json::readName(const char * name)
 }
 
 
-// If next len chars in nvram match input expect return true, and set nvram offset to end of match.
-// If mismatch, return false, and set nvram offset to its original value.
+// If the next 'len' chars in nvram match input 'expect', return true and set nvram offset to end of match.
+// If mismatch, return false, with nvram offset unchangedhg .
 bool Json::isNextRead(const char * expect, unsigned len)
 {
     for (unsigned i = 0; i < len; i++)
