@@ -68,6 +68,9 @@ result_t Json::startLoad()
         return CM_INCOHERENT_DATA;
     }
     DBG_PRT("%s OK\n", __PRETTY_FUNCTION__);
+    m_stackIndex = 0;
+    m_loadContext[m_stackIndex].m_type = OBJECT;
+    m_loadContext[m_stackIndex].m_isFirstMember = true;
     return CM_SUCCESS;
 }
 
@@ -177,6 +180,7 @@ result_t Json::endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_FPTR 
     DBG_PRT("%s m_stackIndex=%u\n", __PRETTY_FUNCTION__, m_stackIndex);
 
     string valstr = loadValue();
+    DBG_PRT("%s value='%s'\n", __PRETTY_FUNCTION__, valstr.c_str());
     set(pRam, *length, valstr);
     m_loadContext[m_stackIndex].m_isFirstMember = false;
     return CM_SUCCESS;
@@ -185,13 +189,13 @@ result_t Json::endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_FPTR 
 result_t Json::startLoadComposite(const char * name)
 {
     DBG_PRT("%s name=%s stackIndex=%u\n", __PRETTY_FUNCTION__, name, m_stackIndex);
-
     skipws();
     if (!m_loadContext[m_stackIndex].m_isFirstMember)
     {
         // This is subsequent member, so expect ',' before its name.
         if (!isNextRead(",", 1))
         {
+            DBG_PRT("%s missing ','\n", __PRETTY_FUNCTION__);
             return CM_NOT_FOUND;
         }
         skipws();
@@ -200,12 +204,14 @@ result_t Json::startLoadComposite(const char * name)
     {
         if (!readName(name))
         {
+            DBG_PRT("%s missing '%s'\n", __PRETTY_FUNCTION__, name);
             return CM_NOT_FOUND;
         }
         skipws();
     }
     if (!isNextRead("{", 1))
     {
+        DBG_PRT("%s missing '}'\n", __PRETTY_FUNCTION__);
         return CM_NOT_FOUND;
     }
     m_stackIndex++;
@@ -305,19 +311,20 @@ void Json::writeName(const char * name)
 // else return false and set nvram xxx.
 bool Json::readName(const char * name)
 {
+    unsigned int start_offset = m_nvram->getOffset();
     if (!isNextRead("\"", 1))
     {
         // No opening quote.
         return false;
     }
 
-    // A name should be next, xxx but is it necessarily the name we are looking for?
+    // If the name is unexpected, restore nvram offset.
     if (!isNextRead(name, strlen(name)))
     {
+        m_nvram->setOffset(start_offset);
         return false;
     }
 
-    // A name should be next, xxx but is it necessarily the name we are looking for?
     if (!isNextRead("\"", 1))
     {
         // No closing quote.
@@ -334,9 +341,9 @@ bool Json::readName(const char * name)
 }
 
 
-// If next len chars in nvram match b, return true, and set nvram offset to end of match.
-// if no match, return false, and set nvram offset to xxx.
-bool Json::isNextRead(const char * b, unsigned len)
+// If next len chars in nvram match input expect return true, and set nvram offset to end of match.
+// If mismatch, return false, and set nvram offset to its original value.
+bool Json::isNextRead(const char * expect, unsigned len)
 {
     for (unsigned i = 0; i < len; i++)
     {
@@ -346,9 +353,9 @@ bool Json::isNextRead(const char * b, unsigned len)
             // end of nvram or other read failure.
             return false;
         }
-        if (candidate != b[i])
+        if (candidate != expect[i])
         {
-            // mismatch
+            m_nvram->adjustOffset(-(i + 1));
             return false;
         }
     }

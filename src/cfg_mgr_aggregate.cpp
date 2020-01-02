@@ -172,7 +172,6 @@ result_t Aggregate::load(uint8_t * pParentItem, Store * store) const
     {
         return CM_SUCCESS;
     }
-
     if (m_data->maxCount > 1)
     {
         store->startLoadArray(m_data->pDesc->getName());
@@ -181,8 +180,14 @@ result_t Aggregate::load(uint8_t * pParentItem, Store * store) const
     {
         // This fails if there isn't an item in the store to load.
         result_t res = m_data->pDesc->startLoad(store);
+        if (res == CM_NOT_FOUND)
+        {
+            // Array contains < maxCount. This is normal, so call endLoadArray.
+            break;
+        }
         if (res != CM_SUCCESS)
         {
+            // A 'real' error.
             return res;
         }
         // There is an item in the store, so get RAM for it --
