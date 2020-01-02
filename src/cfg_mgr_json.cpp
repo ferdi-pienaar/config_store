@@ -36,7 +36,7 @@ using namespace std;
 namespace cfg_mgr
 {
 
-Json::Json(Nvram * pNvram): m_singleIndent(" "), m_stackIndex(0), m_nvram(pNvram)
+Json::Json(Nvram * pNvram): m_singleIndent(" "), m_nvram(pNvram)
 {
 }
 
@@ -49,10 +49,7 @@ Json::~Json()
 void Json::startWrite()
 {
     m_nvram->write((const uint8_t *)"{", 1);
-
-    m_stackIndex = 0;
-    m_writeContext[m_stackIndex].m_isFirstMember = true;
-    m_writeContext[m_stackIndex].m_type = OBJECT;
+    m_context.init();
 }
 
 void Json::endWrite()
@@ -68,9 +65,7 @@ result_t Json::startLoad()
         return CM_INCOHERENT_DATA;
     }
     DBG_PRT("%s OK\n", __PRETTY_FUNCTION__);
-    m_stackIndex = 0;
-    m_loadContext[m_stackIndex].m_type = OBJECT;
-    m_loadContext[m_stackIndex].m_isFirstMember = true;
+    m_context.init();
     return CM_SUCCESS;
 }
 
@@ -87,65 +82,45 @@ result_t Json::endLoad()
 
 void Json::writeSimple(const char * name, item_len_t length, const uint8_t * v, JSON_PRT_FPTR prt)
 {
-    writeEndPrecedingLine();
-    writeIndent();
-    if (m_writeContext[m_stackIndex].m_type == OBJECT)
-    {
-        writeName(name);
-    }
+    startWriteMember(name);
     string val_str = prt(v, length);
     m_nvram->write((const uint8_t *)val_str.c_str(), val_str.size());
-    m_writeContext[m_stackIndex].m_isFirstMember = false;
+    m_context.setFirstMember(false);
 }
 
 
 //
 void Json::startWriteComposite(const char * name)
 {
-    writeEndPrecedingLine();
-    writeIndent();
-    if (m_writeContext[m_stackIndex].m_type == OBJECT)
-    {
-        writeName(name);
-    }
+    startWriteMember(name);
     m_nvram->write((const uint8_t *)"{", 1);
-    m_stackIndex++;
-    m_writeContext[m_stackIndex].m_isFirstMember = true;
-    m_writeContext[m_stackIndex].m_type = OBJECT;
+    m_context.push(ContextStack::OBJECT);
 }
 
 
 // Close writing of composite.
 void Json::endWriteComposite()
 {
-    m_stackIndex--;
+    m_context.pop();
     m_nvram->write((const uint8_t *)"\n", 1);
     writeIndent();
     m_nvram->write((const uint8_t *)"}", 1);
-    m_writeContext[m_stackIndex].m_isFirstMember = false;
+    m_context.setFirstMember(false);
 }
 
 
 //
 void Json::startWriteArray(const char * name)
 {
-    writeEndPrecedingLine();
-    writeIndent();
-    if (m_writeContext[m_stackIndex].m_type == OBJECT)
-    {
-        writeName(name);
-    }
+    startWriteMember(name);
     m_nvram->write((const uint8_t *)"[", 1);
-    m_stackIndex++;
-    m_writeContext[m_stackIndex].m_isFirstMember = true;
-    m_writeContext[m_stackIndex].m_type = ARRAY;
+    m_context.push(ContextStack::ARRAY);
 }
 
 //
 void Json::endWriteArray()
 {
-    m_stackIndex--;
-
+    m_context.pop();
     m_nvram->write((const uint8_t *)"\n", 1);
     writeIndent();
     m_nvram->write((const uint8_t *)"]", 1);
@@ -155,22 +130,7 @@ void Json::endWriteArray()
 result_t Json::startLoadSimple(const char * name)
 {
     DBG_PRT("%s name=%s stackIndex=%u\n", __PRETTY_FUNCTION__, name, m_stackIndex);
-
-    skipws();
-    if (!m_loadContext[m_stackIndex].m_isFirstMember)
-    {
-        // This is subsequent member, so expect ',' before its name.
-        if (!isNextRead(",", 1))
-        {
-            return CM_NOT_FOUND;
-        }
-        skipws();
-    }
-    if (m_loadContext[m_stackIndex].m_type == OBJECT)
-    {
-        return readName(name) ? CM_SUCCESS : CM_NOT_FOUND;
-    }
-    return CM_SUCCESS;
+    return startLoadMember(name);
 }
 
 // Read the value from JSON in nvram, and convert to value in RAM if set function.
@@ -182,41 +142,25 @@ result_t Json::endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_FPTR 
     string valstr = loadValue();
     DBG_PRT("%s value='%s'\n", __PRETTY_FUNCTION__, valstr.c_str());
     set(pRam, *length, valstr);
-    m_loadContext[m_stackIndex].m_isFirstMember = false;
+    m_context.setFirstMember(false);
     return CM_SUCCESS;
 }
 
 result_t Json::startLoadComposite(const char * name)
 {
     DBG_PRT("%s name=%s stackIndex=%u\n", __PRETTY_FUNCTION__, name, m_stackIndex);
-    skipws();
-    if (!m_loadContext[m_stackIndex].m_isFirstMember)
+
+    result_t ret = startLoadMember(name);
+    if (ret != CM_SUCCESS)
     {
-        // This is subsequent member, so expect ',' before its name.
-        if (!isNextRead(",", 1))
-        {
-            DBG_PRT("%s missing ','\n", __PRETTY_FUNCTION__);
-            return CM_NOT_FOUND;
-        }
-        skipws();
-    }
-    if (m_loadContext[m_stackIndex].m_type == OBJECT)
-    {
-        if (!readName(name))
-        {
-            DBG_PRT("%s missing '%s'\n", __PRETTY_FUNCTION__, name);
-            return CM_NOT_FOUND;
-        }
-        skipws();
+        return ret;
     }
     if (!isNextRead("{", 1))
     {
         DBG_PRT("%s missing '}'\n", __PRETTY_FUNCTION__);
-        return CM_NOT_FOUND;
+        return CM_NOT_FOUND; // xxx No, it's the kind of error that shouldn't happen.
     }
-    m_stackIndex++;
-    m_loadContext[m_stackIndex].m_type = OBJECT;
-    m_loadContext[m_stackIndex].m_isFirstMember = true;
+    m_context.push(ContextStack::OBJECT);
     return CM_SUCCESS;
 }
 
@@ -228,10 +172,10 @@ result_t Json::endLoadComposite()
     if (!isNextRead("}", 1))
     {
         DBG_PRT("%s fail: no '}'\n", __PRETTY_FUNCTION__);
-        return CM_NOT_FOUND;
+        return CM_NOT_FOUND; // xxx No, it's the kind of error that shouldn't happen.
     }
-    m_stackIndex--;
-    m_loadContext[m_stackIndex].m_isFirstMember = false;
+    m_context.pop();
+    m_context.setFirstMember(false);
     return CM_SUCCESS;
 }
 
@@ -240,28 +184,16 @@ result_t Json::startLoadArray(const char * name)
 {
     DBG_PRT("%s name=%s stackIndex=%u\n", __PRETTY_FUNCTION__, name, m_stackIndex);
 
-    skipws();
-    if (!m_loadContext[m_stackIndex].m_isFirstMember)
+    result_t ret = startLoadMember(name);
+    if (ret != CM_SUCCESS)
     {
-        // This is subsequent member, so expect ',' before its name.
-        if (!isNextRead(",", 1))
-        {
-            return CM_NOT_FOUND;
-        }
-        skipws();
+        return ret;
     }
-    if (!readName(name))
-    {
-        return CM_NOT_FOUND;
-    }
-    skipws();
     if (!isNextRead("[", 1))
     {
-        return CM_NOT_FOUND;
+        return CM_NOT_FOUND; // xxx No, it's the kind of error that shouldn't happen.
     }
-    m_stackIndex++;
-    m_loadContext[m_stackIndex].m_type = ARRAY;
-    m_loadContext[m_stackIndex].m_isFirstMember = true;
+    m_context.push(ContextStack::ARRAY);
     return CM_SUCCESS;
 }
 
@@ -272,10 +204,10 @@ result_t Json::endLoadArray()
     skipws();
     if (!isNextRead("]", 1))
     {
-        return CM_NOT_FOUND;
+        return CM_NOT_FOUND; // xxx No, it's the kind of error that shouldn't happen.
     }
-    m_stackIndex--;
-    m_loadContext[m_stackIndex].m_isFirstMember = false;
+    m_context.pop();
+    m_context.setFirstMember(false);
     return CM_SUCCESS;
 }
 
@@ -283,7 +215,7 @@ result_t Json::endLoadArray()
 // xxx line is wrong, since lines are optional whitespace.
 void Json::writeEndPrecedingLine()
 {
-    if (!m_writeContext[m_stackIndex].m_isFirstMember)
+    if (!m_context.getFirstMember())
     {
         m_nvram->write((const uint8_t *)",", 1);
     }
@@ -292,20 +224,52 @@ void Json::writeEndPrecedingLine()
 
 void Json::writeIndent()
 {
-    for (unsigned i = 0; i < m_stackIndex + 1; i++)
+    for (unsigned i = 0; i < m_context.getIndex() + 1; i++)
     {
         m_nvram->write((const uint8_t *)m_singleIndent.c_str(), m_singleIndent.length());
     }
 }
 
-
-// If necessary, write name in quotes, followed by ": ".
-void Json::writeName(const char * name)
+// Common start for simple, composite, array.
+void Json::startWriteMember(const char * name)
 {
-    m_nvram->write((const uint8_t *)"\"", 1);
-    m_nvram->write((const uint8_t *)name, strlen(name));
-    m_nvram->write((const uint8_t *)"\": ", 3);
+    writeEndPrecedingLine();
+    writeIndent();
+    if (m_context.getType() == ContextStack::OBJECT)
+    {
+        m_nvram->write((const uint8_t *)"\"", 1);
+        m_nvram->write((const uint8_t *)name, strlen(name));
+        m_nvram->write((const uint8_t *)"\": ", 3);
+    }
 }
+
+
+// Common start for simple, composite, array.
+result_t Json::startLoadMember(const char * name)
+{
+    skipws();
+    if (!m_context.getFirstMember())
+    {
+        // This is subsequent member, so expect ',' before its name.
+        if (!isNextRead(",", 1))
+        {
+            DBG_PRT("%s missing ','\n", __PRETTY_FUNCTION__);
+            return CM_NOT_FOUND;
+        }
+        skipws();
+    }
+    if (m_context.getType() == ContextStack::OBJECT)
+    {
+        if (!readName(name))
+        {
+            DBG_PRT("%s missing '%s'\n", __PRETTY_FUNCTION__, name);
+            return CM_NOT_FOUND;
+        }
+        skipws();
+    }
+    return CM_SUCCESS;
+}
+
 
 // Return true if name, surrounded by quotes and followed by ':' is next in nvram,
 // else return false and set nvram xxx.
@@ -435,6 +399,28 @@ bool Json::skipws()
     }
     // reached end of nvram or some other read fail.
     return false;
+}
+
+
+void Json::ContextStack::init()
+{
+    m_index = 0;
+    m_stack[m_index].m_type = OBJECT;
+    m_stack[m_index].m_isFirstMember = true;
+}
+
+void Json::ContextStack::push(ValueType t)
+{
+    m_index++;
+    assert(m_index < STACK_DEPTH);
+    m_stack[m_index].m_type = t;
+    m_stack[m_index].m_isFirstMember = true;
+}
+
+void Json::ContextStack::pop()
+{
+	assert(m_index > 0);
+    m_index--;
 }
 
 bool Json::isws(char c)

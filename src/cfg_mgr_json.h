@@ -17,8 +17,6 @@ typedef std::string (*JSON_PRT_FPTR)(const uint8_t *pItem, item_len_t len);
 class Json
 {
 public:
-    static const unsigned int STACK_DEPTH = 16;
-
     Json(Nvram * pNvram);
     ~Json();
 
@@ -39,9 +37,10 @@ public:
     result_t endLoadArray();
 
 private:
-    void writeName(const char * name);
+    void startWriteMember(const char * name);
     void writeEndPrecedingLine();
     void writeIndent();
+    result_t startLoadMember(const char * name);
     bool readName(const char * name);
     std::string loadValue();
     std::string finishLoadString();
@@ -50,31 +49,57 @@ private:
     bool skipws();
     bool isws(char c);
 
-    enum ValueType
+    // Stack used in writing and loading.
+    class ContextStack
     {
-        OBJECT,
-        ARRAY
+    public:
+        enum ValueType
+        {
+            OBJECT,
+            ARRAY
+        };
+
+        void init();
+        void push(ValueType t);
+        void pop();
+
+        ValueType getType()
+        {
+            return m_stack[m_index].m_type;
+        }
+
+        void setFirstMember(bool first)
+        {
+            m_stack[m_index].m_isFirstMember = first;
+        }
+
+        bool getFirstMember()
+        {
+            return m_stack[m_index].m_isFirstMember;
+        }
+
+        unsigned getIndex()
+        {
+            return m_index;
+        }
+
+    private:
+        static const unsigned int STACK_DEPTH = 16;
+
+        struct Context
+        {
+            Context(): m_type(OBJECT), m_isFirstMember(true) {}
+
+            ValueType m_type;
+            bool m_isFirstMember; // Are we writing/loading the first member of a list or composite?
+        };
+
+        Context m_stack[STACK_DEPTH];
+        unsigned m_index;
     };
 
-    struct WriteContext
-    {
-        WriteContext(): m_type(OBJECT), m_isFirstMember(true) {}
-
-        ValueType m_type;
-        bool m_isFirstMember; // Are we writing the first member of a list or composite?
-    };
-
-    struct LoadContext
-    {
-        LoadContext(): m_type(OBJECT), m_isFirstMember(true) {}
-
-        ValueType m_type;
-        bool m_isFirstMember; // Are we writing the first member of a list or composite?
-    };
+    ContextStack m_context;
     std::string m_singleIndent;
-    WriteContext m_writeContext[STACK_DEPTH];
-    LoadContext m_loadContext[STACK_DEPTH];
-    unsigned m_stackIndex;
     Nvram * m_nvram;
 };
 }
