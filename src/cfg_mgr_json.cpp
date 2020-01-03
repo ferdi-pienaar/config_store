@@ -157,8 +157,8 @@ result_t Json::startLoadComposite(const char * name)
     }
     if (!isNextRead("{", 1))
     {
-        DBG_PRT("%s missing '}'\n", __PRETTY_FUNCTION__);
-        return CM_NOT_FOUND; // xxx No, it's the kind of error that shouldn't happen.
+        DBG_PRT("%s missing '{'\n", __PRETTY_FUNCTION__);
+        return CM_INCOHERENT_DATA;
     }
     m_context.push(ContextStack::OBJECT);
     return CM_SUCCESS;
@@ -171,8 +171,8 @@ result_t Json::endLoadComposite()
     skipws();
     if (!isNextRead("}", 1))
     {
-        DBG_PRT("%s fail: no '}'\n", __PRETTY_FUNCTION__);
-        return CM_NOT_FOUND; // xxx No, it's the kind of error that shouldn't happen.
+        DBG_PRT("%s missing '}'\n", __PRETTY_FUNCTION__);
+        return CM_INCOHERENT_DATA;
     }
     m_context.pop();
     m_context.setFirstMember(false);
@@ -191,7 +191,7 @@ result_t Json::startLoadArray(const char * name)
     }
     if (!isNextRead("[", 1))
     {
-        return CM_NOT_FOUND; // xxx No, it's the kind of error that shouldn't happen.
+        return CM_INCOHERENT_DATA;
     }
     m_context.push(ContextStack::ARRAY);
     return CM_SUCCESS;
@@ -204,7 +204,7 @@ result_t Json::endLoadArray()
     skipws();
     if (!isNextRead("]", 1))
     {
-        return CM_NOT_FOUND; // xxx No, it's the kind of error that shouldn't happen.
+        return CM_INCOHERENT_DATA;
     }
     m_context.pop();
     m_context.setFirstMember(false);
@@ -260,10 +260,10 @@ result_t Json::startLoadMember(const char * name)
     }
     if (m_context.getType() == ContextStack::OBJECT)
     {
-        if (!readName(name))
+        result_t ret = readName(name);
+        if (ret != CM_SUCCESS)
         {
-            DBG_PRT("%s missing '%s'\n", __PRETTY_FUNCTION__, name);
-            return CM_NOT_FOUND;
+            return ret;
         }
         skipws();
     }
@@ -271,37 +271,37 @@ result_t Json::startLoadMember(const char * name)
 }
 
 
-// Return true if name, surrounded by quotes and followed by ':' is next in nvram,
-// else return false and set nvram xxx.
-bool Json::readName(const char * name)
+// Return SUCCESS if name, surrounded by quotes and followed by ':' is next in nvram,
+// else return error.
+// If name is not found, return CM_NOT_FOUND (and restore nvram offset).
+// If invalid JSON, return CM_INCOHERENT_DATA.
+result_t Json::readName(const char * name)
 {
     unsigned int start_offset = m_nvram->getOffset();
     if (!isNextRead("\"", 1))
     {
-        // No opening quote.
-        return false;
+        DBG_PRT("%s missing open for '%s'\n", __PRETTY_FUNCTION__, name);
+        return CM_INCOHERENT_DATA;
     }
-
     // If the name is unexpected, restore nvram offset.
     if (!isNextRead(name, strlen(name)))
     {
+        DBG_PRT("%s missing name '%s'\n", __PRETTY_FUNCTION__, name);
         m_nvram->setOffset(start_offset);
-        return false;
+        return CM_NOT_FOUND;
     }
-
     if (!isNextRead("\"", 1))
     {
-        // No closing quote.
-        return false;
+        DBG_PRT("%s missing close for '%s'\n", __PRETTY_FUNCTION__, name);
+        return CM_INCOHERENT_DATA;
     }
-
     skipws();
     if (!isNextRead(":", 1))
     {
-        // No ':' after the name.
-        return false;
+        DBG_PRT("%s missing ':' after '%s'\n", __PRETTY_FUNCTION__, name);
+        return CM_INCOHERENT_DATA;
     }
-    return true;
+    return CM_SUCCESS;
 }
 
 
@@ -354,13 +354,15 @@ string Json::finishLoadString()
 {
     string str;
     char c;
+    bool escape = false; // are we in escape state because previous char was '\'?
     while (m_nvram->read((uint8_t *)&c, 1))
     {
         str += c;
-        if (c == '"')
+        if (!escape && (c == '"'))
         {
             break;
         }
+        escape = (c == '\\');
     }
     return str;
 }
@@ -419,7 +421,7 @@ void Json::ContextStack::push(ValueType t)
 
 void Json::ContextStack::pop()
 {
-	assert(m_index > 0);
+    assert(m_index > 0);
     m_index--;
 }
 

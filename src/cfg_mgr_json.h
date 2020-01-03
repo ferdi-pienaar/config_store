@@ -41,7 +41,7 @@ private:
     void writeEndPrecedingLine();
     void writeIndent();
     result_t startLoadMember(const char * name);
-    bool readName(const char * name);
+    result_t readName(const char * name);
     std::string loadValue();
     std::string finishLoadString();
     std::string finishLoadNonString();
