@@ -220,10 +220,101 @@ TEST_F(JsonTest, loadNotFound)
 }
 
 // Load component thing2, although there's an unknown component (thing1) in JSON.
-TEST_F(JsonTest, loadSkipUnknownSimple)
+TEST_F(JsonTest, loadSkipUnwantedString)
 {
     uint8_t    nvSet[] = {"\"compo\": {\n"
                           " \"thing1\": \"property 13\",\n"
+                          " \"thing2\": \"property 15\"\n"
+                          "}"
+                         };
+    uint8_t    expected[] = {"property 15"};
+    item_len_t length = sizeof(expected);
+
+    // xxx set client RAM to bitpattern and verify only the expected section is modified
+
+    nvram->set(nvSet, sizeof(nvSet));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadComposite("compo"));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("thing2"));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadSimple(&length, clientRam, cm_set_str));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadComposite());
+
+    EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
+}
+
+// Load component thing2, although there's an unknown component (thing1) in JSON.
+TEST_F(JsonTest, loadSkipUnwantedObject)
+{
+    uint8_t    nvSet[] = {"\"compo\": {\n"
+                          " \"thing1\": {},\n"
+                          " \"thing2\": \"property 15\"\n"
+                          "}"
+                         };
+    uint8_t    expected[] = {"property 15"};
+    item_len_t length = sizeof(expected);
+
+    // xxx set client RAM to bitpattern and verify only the expected section is modified
+
+    nvram->set(nvSet, sizeof(nvSet));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadComposite("compo"));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("thing2"));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadSimple(&length, clientRam, cm_set_str));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadComposite());
+
+    EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
+}
+
+// Load component thing2, although there's an unknown component in JSON.
+TEST_F(JsonTest, loadSkipUnwantedObjectComplex)
+{
+    uint8_t    nvSet[] = {"\"compo\": {\n"
+                          " \"compoInside\": {\n"
+                          "  \"thing1\": \"property{{{{\",\n"
+                          "  \"thing2\": \"property 777\"\n"
+                          " },\n"
+                          "\"thing2\": \"property 15\"\n"
+                          "}"
+                         };
+    uint8_t    expected[] = {"property 15"};
+    item_len_t length = sizeof(expected);
+
+    // xxx set client RAM to bitpattern and verify only the expected section is modified
+
+    nvram->set(nvSet, sizeof(nvSet));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadComposite("compo"));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("thing2"));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadSimple(&length, clientRam, cm_set_str));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadComposite());
+
+    EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
+}
+
+// Load component thing2, although there's an unknown component (thing1) in JSON.
+TEST_F(JsonTest, loadSkipUnwantedObjectNested)
+{
+    uint8_t    nvSet[] = {"\"compo\": {\n"
+                          " \"thing1\": {{{}}},\n"
+                          " \"thing2\": \"property 15\"\n"
+                          "}"
+                         };
+    uint8_t    expected[] = {"property 15"};
+    item_len_t length = sizeof(expected);
+
+    // xxx set client RAM to bitpattern and verify only the expected section is modified
+
+    nvram->set(nvSet, sizeof(nvSet));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadComposite("compo"));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("thing2"));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadSimple(&length, clientRam, cm_set_str));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadComposite());
+
+    EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
+}
+
+// Load component thing2, although there's an unknown component (thing1) in JSON.
+TEST_F(JsonTest, loadSkipUnwantedArray)
+{
+    uint8_t    nvSet[] = {"\"compo\": {\n"
+                          " \"thing1\": [],\n"
                           " \"thing2\": \"property 15\"\n"
                           "}"
                          };

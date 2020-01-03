@@ -43,7 +43,6 @@ private:
     result_t startLoadMember(const char * name);
     result_t findName(const char * name);
     result_t toNextName();
-    result_t toValueEnd();
     result_t toCloser(char open, char close);
     result_t toStringEnd();
     result_t readName(const char * name);

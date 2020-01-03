@@ -275,7 +275,6 @@ result_t Json::startLoadMember(const char * name)
 result_t Json::findName(const char * name)
 {
     unsigned int start_offset = m_nvram->getOffset();
-
     while (true)
     {
         result_t res = readName(name);
@@ -288,7 +287,7 @@ result_t Json::findName(const char * name)
             // Error: it doesn't even look like a name, e.g. no opening or closing quotes.
             return res;
         }
-        // readName returned CM_NOT_FOUND, so try next.
+        // readName returned CM_NOT_FOUND, so go to next name.
         res = toNextName();
         if (res != CM_SUCCESS)
         {
@@ -305,61 +304,43 @@ result_t Json::findName(const char * name)
 // @post
 result_t Json::toNextName()
 {
-    toValueEnd();
-    // NVRAM offset is at end of the value.
-    // Next is a comma if there is another element.
+    result_t ret = CM_SUCCESS;
     skipws();
-    if (!isNextRead(",", 1))
+    char c;
+    if (!m_nvram->read((uint8_t *)&c, 1))
     {
-        DBG_PRT("%s missing ','\n", __PRETTY_FUNCTION__);
+        return CM_INCOHERENT_DATA;
+    }
+    switch (c)
+    {
+    case '{':
+        ret = toCloser('{', '}');
+        break;
+    case '[':
+        ret = toCloser('[', ']');
+        break;
+    case '\"':
+        ret = toStringEnd();
+        break;
+    }
+    if (ret != CM_SUCCESS)
+    {
+        DBG_PRT("%s unterminated '%c'\n", __PRETTY_FUNCTION__, c);
+        return ret;
+    }
+    if (toCloser(0, ',') != CM_SUCCESS)
+    {
+        DBG_PRT("%s no ','\n", __PRETTY_FUNCTION__);
         return CM_NOT_FOUND;
     }
     skipws();
-    return CM_SUCCESS;
+    return ret;
 }
 
-// Go to end of value.
-// @pre nvram offset after ':' that follows a name.
-// @post nvram offset after end of value.
-result_t Json::toValueEnd()
-{
-    skipws();
-    if (isNextRead("{", 1))
-    {
-        if (toCloser('{', '}') != CM_SUCCESS)
-        {
-            DBG_PRT("%s unclosed object.\n", __PRETTY_FUNCTION__);
-            return CM_INCOHERENT_DATA;
-        }
-    }
-    else if (isNextRead("[", 1))
-    {
-        if (toCloser('[', ']')!= CM_SUCCESS)
-        {
-            DBG_PRT("%s unclosed array.\n", __PRETTY_FUNCTION__);
-            return CM_INCOHERENT_DATA;
-        }
-    }
-    else
-    {
-        // A simple value, neither array nor object.
-        if (isNextRead("\"", 1))
-        {
-            if (toStringEnd() != CM_SUCCESS)
-            {
-                DBG_PRT("%s unclosed string.\n", __PRETTY_FUNCTION__);
-                return CM_INCOHERENT_DATA;
-            }
-        }
-        else
-        {
-            toCloser(0, ',');
-        }
-    }
-    return CM_SUCCESS;
-}
 
 // Move NVRAM offset to matching closing marker.
+// Ignore opening and closing markers that appear inside strings.
+// It seems this basic parsing is sufficient.
 result_t Json::toCloser(char open, char close)
 {
     unsigned depth = 0; // number of opens that are not closed.
@@ -377,6 +358,10 @@ result_t Json::toCloser(char open, char close)
         else if (c == open)
         {
             depth++;
+        }
+        else if (c == '\"')
+        {
+            toStringEnd();
         }
     }
     return CM_NOT_FOUND;
