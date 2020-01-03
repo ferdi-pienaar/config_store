@@ -129,7 +129,7 @@ void Json::endWriteArray()
 // Return success if name (in quotes) followed by ':' is next.
 result_t Json::startLoadSimple(const char * name)
 {
-    DBG_PRT("%s name=%s stackIndex=%u\n", __PRETTY_FUNCTION__, name, m_stackIndex);
+    DBG_PRT("%s name=%s stackIndex=%u\n", __PRETTY_FUNCTION__, name, m_context.getIndex());
     return startLoadMember(name);
 }
 
@@ -137,7 +137,7 @@ result_t Json::startLoadSimple(const char * name)
 // @param length - output.
 result_t Json::endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_FPTR set)
 {
-    DBG_PRT("%s m_stackIndex=%u\n", __PRETTY_FUNCTION__, m_stackIndex);
+    DBG_PRT("%s m_stackIndex=%u\n", __PRETTY_FUNCTION__, m_context.getIndex());
 
     string valstr = loadValue();
     DBG_PRT("%s value='%s'\n", __PRETTY_FUNCTION__, valstr.c_str());
@@ -148,7 +148,7 @@ result_t Json::endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_FPTR 
 
 result_t Json::startLoadComposite(const char * name)
 {
-    DBG_PRT("%s name=%s stackIndex=%u\n", __PRETTY_FUNCTION__, name, m_stackIndex);
+    DBG_PRT("%s name=%s stackIndex=%u\n", __PRETTY_FUNCTION__, name, m_context.getIndex());
 
     result_t ret = startLoadMember(name);
     if (ret != CM_SUCCESS)
@@ -166,7 +166,7 @@ result_t Json::startLoadComposite(const char * name)
 
 result_t Json::endLoadComposite()
 {
-    DBG_PRT("%s m_stackIndex=%u\n", __PRETTY_FUNCTION__, m_stackIndex);
+    DBG_PRT("%s m_stackIndex=%u\n", __PRETTY_FUNCTION__, m_context.getIndex());
 
     skipws();
     if (!isNextRead("}", 1))
@@ -182,7 +182,7 @@ result_t Json::endLoadComposite()
 
 result_t Json::startLoadArray(const char * name)
 {
-    DBG_PRT("%s name=%s stackIndex=%u\n", __PRETTY_FUNCTION__, name, m_stackIndex);
+    DBG_PRT("%s name=%s stackIndex=%u\n", __PRETTY_FUNCTION__, name, m_context.getIndex());
 
     result_t ret = startLoadMember(name);
     if (ret != CM_SUCCESS)
@@ -199,7 +199,7 @@ result_t Json::startLoadArray(const char * name)
 
 result_t Json::endLoadArray()
 {
-    DBG_PRT("%s m_stackIndex=%u\n", __PRETTY_FUNCTION__, m_stackIndex);
+    DBG_PRT("%s m_stackIndex=%u\n", __PRETTY_FUNCTION__, m_context.getIndex());
 
     skipws();
     if (!isNextRead("]", 1))
@@ -260,7 +260,7 @@ result_t Json::startLoadMember(const char * name)
     }
     if (m_context.getType() == ContextStack::OBJECT)
     {
-        result_t ret = readName(name);
+        result_t ret = findName(name);
         if (ret != CM_SUCCESS)
         {
             return ret;
@@ -270,38 +270,172 @@ result_t Json::startLoadMember(const char * name)
     return CM_SUCCESS;
 }
 
+// Find name within the current composite.
+// If not found, leave nvram offset unchanged so next find starts at same offset.
+result_t Json::findName(const char * name)
+{
+    unsigned int start_offset = m_nvram->getOffset();
+
+    while (true)
+    {
+        result_t res = readName(name);
+        if (res == CM_SUCCESS)
+        {
+            return res;
+        }
+        if (res != CM_NOT_FOUND)
+        {
+            // Error: it doesn't even look like a name, e.g. no opening or closing quotes.
+            return res;
+        }
+        // readName returned CM_NOT_FOUND, so try next.
+        res = toNextName();
+        if (res != CM_SUCCESS)
+        {
+            // There are no more names in the current context, or some other error.
+            m_nvram->setOffset(start_offset);
+            return res;
+        }
+    }
+    return CM_SUCCESS;
+}
+
+// Advance nvram to name within the current context.
+// @pre nvram is after the ':' that follows a name.
+// @post
+result_t Json::toNextName()
+{
+    toValueEnd();
+    // NVRAM offset is at end of the value.
+    // Next is a comma if there is another element.
+    skipws();
+    if (!isNextRead(",", 1))
+    {
+        DBG_PRT("%s missing ','\n", __PRETTY_FUNCTION__);
+        return CM_NOT_FOUND;
+    }
+    skipws();
+    return CM_SUCCESS;
+}
+
+// Go to end of value.
+// @pre nvram offset after ':' that follows a name.
+// @post nvram offset after end of value.
+result_t Json::toValueEnd()
+{
+    skipws();
+    if (isNextRead("{", 1))
+    {
+        if (toCloser('{', '}') != CM_SUCCESS)
+        {
+            DBG_PRT("%s unclosed object.\n", __PRETTY_FUNCTION__);
+            return CM_INCOHERENT_DATA;
+        }
+    }
+    else if (isNextRead("[", 1))
+    {
+        if (toCloser('[', ']')!= CM_SUCCESS)
+        {
+            DBG_PRT("%s unclosed array.\n", __PRETTY_FUNCTION__);
+            return CM_INCOHERENT_DATA;
+        }
+    }
+    else
+    {
+        // A simple value, neither array nor object.
+        if (isNextRead("\"", 1))
+        {
+            if (toStringEnd() != CM_SUCCESS)
+            {
+                DBG_PRT("%s unclosed string.\n", __PRETTY_FUNCTION__);
+                return CM_INCOHERENT_DATA;
+            }
+        }
+        else
+        {
+            toCloser(0, ',');
+        }
+    }
+    return CM_SUCCESS;
+}
+
+// Move NVRAM offset to matching closing marker.
+result_t Json::toCloser(char open, char close)
+{
+    unsigned depth = 0; // number of opens that are not closed.
+    char c;
+    while (m_nvram->read((uint8_t *)&c, 1))
+    {
+        if (c == close)
+        {
+            if (depth == 0)
+            {
+                return CM_SUCCESS;
+            }
+            depth--;
+        }
+        else if (c == open)
+        {
+            depth++;
+        }
+    }
+    return CM_NOT_FOUND;
+}
+
+// Advance nvram offset to character after closing quote of string.
+result_t Json::toStringEnd()
+{
+    bool escape = false; // are we in escape state because previous char was '\'?
+    char c;
+    while (m_nvram->read((uint8_t *)&c, 1))
+    {
+        if (!escape && (c == '"'))
+        {
+            return CM_SUCCESS;
+        }
+        escape = (c == '\\');
+    }
+    return CM_NOT_FOUND;
+}
+
 
 // Return SUCCESS if name, surrounded by quotes and followed by ':' is next in nvram,
 // else return error.
-// If name is not found, return CM_NOT_FOUND (and restore nvram offset).
-// If invalid JSON, return CM_INCOHERENT_DATA.
+// If name is not found, xxx.
 result_t Json::readName(const char * name)
 {
-    unsigned int start_offset = m_nvram->getOffset();
+    result_t res = CM_SUCCESS;
     if (!isNextRead("\"", 1))
     {
-        DBG_PRT("%s missing open for '%s'\n", __PRETTY_FUNCTION__, name);
+        DBG_PRT("%s missing open\n", __PRETTY_FUNCTION__);
         return CM_INCOHERENT_DATA;
     }
-    // If the name is unexpected, restore nvram offset.
-    if (!isNextRead(name, strlen(name)))
+    if (isNextRead(name, strlen(name)))
     {
-        DBG_PRT("%s missing name '%s'\n", __PRETTY_FUNCTION__, name);
-        m_nvram->setOffset(start_offset);
-        return CM_NOT_FOUND;
+        if (!isNextRead("\"", 1))
+        {
+            DBG_PRT("%s missing close for '%s'\n", __PRETTY_FUNCTION__, name);
+            return CM_INCOHERENT_DATA;
+        }
     }
-    if (!isNextRead("\"", 1))
+    else
     {
-        DBG_PRT("%s missing close for '%s'\n", __PRETTY_FUNCTION__, name);
-        return CM_INCOHERENT_DATA;
+        res = CM_NOT_FOUND;
+        DBG_PRT("%s name '%s' not found.\n", __PRETTY_FUNCTION__, name);
+        // Name doesn't match, but move to end anyway.
+        if (toStringEnd() != CM_SUCCESS)
+        {
+            DBG_PRT("%s unclosed string.\n", __PRETTY_FUNCTION__);
+            return CM_INCOHERENT_DATA;
+        }
     }
     skipws();
     if (!isNextRead(":", 1))
     {
-        DBG_PRT("%s missing ':' after '%s'\n", __PRETTY_FUNCTION__, name);
+        DBG_PRT("%s missing ':'\n", __PRETTY_FUNCTION__);
         return CM_INCOHERENT_DATA;
     }
-    return CM_SUCCESS;
+    return res;
 }
 
 

@@ -220,7 +220,7 @@ TEST_F(JsonTest, loadNotFound)
 }
 
 // Load component thing2, although there's an unknown component (thing1) in JSON.
-TEST_F(JsonTest, loadSkipUnknown)
+TEST_F(JsonTest, loadSkipUnknownSimple)
 {
     uint8_t    nvSet[] = {"\"compo\": {\n"
                           " \"thing1\": \"property 13\",\n"
