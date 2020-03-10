@@ -27,7 +27,7 @@
 
 #include "cfg_mgr_json.h"
 #include "cfg_mgr_dbg.h"
-#include <string.h> // strlen
+#include <cstring> // strlen
 #include "nvram.h"
 #include <assert.h>
 

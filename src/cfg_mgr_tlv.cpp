@@ -30,7 +30,6 @@
 #include "cfg_mgr_tlv.h"
 #include "cfg_mgr_dbg.h"
 #include <iostream>
-#include <string.h> // memcpy
 #include "nvram.h"
 #include <assert.h>
 

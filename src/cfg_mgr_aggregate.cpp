@@ -7,7 +7,7 @@
 #include "cfg_mgr_store.h"
 
 #include <stdlib.h> // malloc
-#include <string.h> // memset, strcmp, memcpy
+#include <cstring> // memset, strcmp, memcpy
 
 using namespace std;
 

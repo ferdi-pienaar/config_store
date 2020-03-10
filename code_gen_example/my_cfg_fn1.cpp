@@ -4,7 +4,7 @@
 
 #include <iostream>
 #include <stdlib.h> // strtod
-#include <string.h> // strlen
+#include <cstring> // strlen
 #include <climits> // SHRT_MIN, SHRT_MAX
 #include <math.h> // round
 #include "cfg_mgr.h"

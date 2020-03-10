@@ -5,7 +5,7 @@
 
 #include "gtest/gtest.h"
 #include "cfg_mgr_tlv.h"  // Unit under test
-#include <string.h> // strncmp
+#include <cstring> // memcmp
 #include "nvram_spy.h"
 
 #include <iostream>

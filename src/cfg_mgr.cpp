@@ -6,7 +6,7 @@
 #include "cfg_mgr_printf.h"
 
 #include <stdlib.h> // malloc
-#include <string.h> // memset, strcmp, memcpy
+#include <cstring> // memset, strcmp, memcpy
 #include <stdint.h> // UINT8_MAX, etc
 
 #include <sstream>

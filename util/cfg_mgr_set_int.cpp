@@ -8,7 +8,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <stdlib.h> // strto...
-#include <string.h> // memcpy
+#include <cstring> // memcpy
 
 using namespace std;
 

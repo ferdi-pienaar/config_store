@@ -5,7 +5,7 @@
 
 #include "cfg_mgr_setdef_null.h"
 #include <assert.h>
-#include <string.h> // memset
+#include <cstring> // memset
 
 namespace cfg_mgr
 {

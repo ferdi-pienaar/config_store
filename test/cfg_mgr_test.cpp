@@ -16,7 +16,7 @@
 #include "nvram_spy.h"
 
 #include <string>
-#include <string.h> // memcmp, strncmp, etc
+#include <cstring> // memcmp, strncmp, etc
 
 using namespace std;
 using namespace cfg_mgr;

@@ -8,7 +8,7 @@
 #include "cfg_mgr_descriptor.h"  // Unit under test
 #include "cfg_mgr_set_int.h"     // Extensions to unit under test (generic "set" functions)
 #include "cfg_mgr_printf_spy.h"
-#include <string.h> // strncmp
+#include <cstring> // strncmp
 
 #include <string>
 using namespace std;

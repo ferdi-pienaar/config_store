@@ -2,7 +2,7 @@
 //
 
 #include "nvram_spy.h"
-#include <string.h> // memset, strcmp, memcpy
+#include <cstring> // memset, strcmp, memcpy
 #include <iostream>
 #include <iomanip> // setw
 

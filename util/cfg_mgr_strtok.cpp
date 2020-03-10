@@ -3,7 +3,7 @@
 // so you could have instances running concurrently.
 //
 #include "cfg_mgr_strtok.h"
-#include <string.h> // strchr, strncmp
+#include <cstring> // strchr, strncmp
 
 namespace cfg_mgr
 {

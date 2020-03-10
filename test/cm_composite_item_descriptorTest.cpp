@@ -13,7 +13,7 @@
 
 #include <string>
 #include <stdlib.h> // malloc
-#include <string.h> // strncmp, etc
+#include <cstring> // strncmp, etc
 
 
 using namespace std;

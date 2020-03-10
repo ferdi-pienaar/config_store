@@ -7,7 +7,7 @@
 #include "cfg_mgr_store.h"
 #include "cfg_mgr_printf.h"
 
-#include <string.h> // memset, strcmp, memcpy
+#include <cstring> // strcmp
 
 using namespace std;
 

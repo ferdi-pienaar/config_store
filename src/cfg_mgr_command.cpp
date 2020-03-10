@@ -1,6 +1,6 @@
 /// config manager def
 #include "cfg_mgr_command.h"
-#include <string.h> // strcmp
+#include <cstring> // strcmp
 
 using namespace std;
 
