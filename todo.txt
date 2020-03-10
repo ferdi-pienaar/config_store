@@ -1,10 +1,5 @@
-- Optionally, save NVRAM not as TLV, but as text -- the same text produced on
-  command "prt", or a YAML configuration file.
-  o Parsing the YAML file should be much the same as parsing an input command.
-    YAML is text: how do we convert the value of a simple item to text?
-    We re-use the print function to print the value to the YAML file,
-    and re-use the set function to set the RAM based on the YAML text.
-
+- We can save to a TLV store or a JSON store, selected at compile-time. But
+  we need to automate testing both of these builds.
 - Allow an owned array element to be identified by a name instead of an index.
 - Create iterators that can iterate across item descriptors and items themselves.
 - Produce quality documentation from doxygen.

@@ -178,30 +178,15 @@ result_t Aggregate::load(uint8_t * pParentItem, Store * store) const
     }
     for (unsigned idx = 0; idx < m_data->maxCount; idx++)
     {
-        // This fails if there isn't an item in the store to load.
-        result_t res = m_data->pDesc->startLoad(store);
+        result_t res = loadItem(pParentItem, idx, store);
         if (res == CM_NOT_FOUND)
         {
-            // Array contains < maxCount. This is normal, so call endLoadArray.
+            // Array in store contains < maxCount. This is normal, so exit this function normally.
             break;
         }
         if (res != CM_SUCCESS)
         {
-            // A 'real' error.
-            return res;
-        }
-        // There is an item in the store, so get RAM for it --
-        // in case of an owned aggregate, this allocates memory.
-        uint8_t * pItem = getComponentItem(idx, pParentItem);
-        if (pItem == nullptr)
-        {
-            // Memory couldn't be allocated for the item.
-            return CM_SUCCESS; //xxxx success??
-        }
-        // We have memory to load the item into, so complete the load.
-        res = m_data->pDesc->endLoad(pItem, store);
-        if (res != CM_SUCCESS)
-        {
+            // A 'real' error, so exit.
             return res;
         }
     }
@@ -220,6 +205,28 @@ bool Aggregate::needIndex(const uint8_t * pParentItem) const
     return m_data->maxCount > 1;
 }
 
+
+// Load item from persistent store into RAM.
+// @param idx -- the offset in RAM.
+result_t Aggregate::loadItem(uint8_t * pParentItem, unsigned idx, Store * store) const
+{
+    // This fails if there isn't an item in the store to load.
+    result_t res = m_data->pDesc->startLoad(store);
+    if (res != CM_SUCCESS)
+    {
+        return res;
+    }
+    // There is an item in the store, so get RAM for it --
+    // in case of an owned aggregate, this allocates memory.
+    uint8_t * pItem = getComponentItem(idx, pParentItem);
+    if (pItem == nullptr)
+    {
+        // Memory couldn't be allocated for the item.
+        return CM_FAIL;
+    }
+    // We have memory to load the item into, so complete the load.
+    return m_data->pDesc->endLoad(pItem, store);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 //

@@ -81,6 +81,7 @@ private:
     virtual uint8_t * getFirstItem(const uint8_t * pParentItem) const = 0;
     virtual void freeItems(uint8_t * pParentItem) const = 0;
     virtual uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const = 0;
+    result_t loadItem(uint8_t * pParentItem, unsigned idx, Store * store) const;
 
     const Aggregate_data * const m_data;
 };
