@@ -3,7 +3,7 @@
 - Allow an owned array element to be identified by a name instead of an index.
 - Create iterators that can iterate across item descriptors and items themselves.
 - Produce quality documentation from doxygen.
-- Unit tests to verify that a user's initialization of cfg_man is correct, i.e.
+- Unit tests to verify that a user's initialization of cfg_mgr is correct, i.e.
   it's a generic test, that verifies some things that are done in my_cfg.cpp.
 - Extend utils to unsigned int, strings, hexstrings, etc.
 - Can we avoid saving the unused parts of strings to TLV?  Descriptor could
@@ -13,30 +13,21 @@
 - Having an ID in a counter descriptor is not needed, since it's not saved to TLV.
   The same applies to any non-persistent items like stats, that are not saved 
   in NVRAM.
+- An ID is also not needed for JSON store, since it uses the name as ID.
 - Provide context-sensitive help in a way that could be used for "tabbing out" input strings.
   Step 1: respond to inputs without a carriage return.
 - Strategy for making fewer methods public: do we need friends, or interface classes...
 - Make C-friendly: a C-friendly wrapper?
 - Should I be using malloc, or new?
 - Is there superfluous info in the TLV files?  At least for simple types, if I know the type
-  I already know the length.  What do we do if a simple item's size is not what's expected?
-  We should just discard it: At least for big-endian systems, correct truncation would depend 
-  on knowing if the item is an integer or a character array (string or hex string)
+  I already know the length. No, we need this for migration -- we can skip over an obsolete
+  entry if the size is in the file, even though we don't know the type because the
+  entry is obsolete.
 
 - Set more than one component of a composite in a single command?
 - Display members of an array by giving array name without index -- or maybe if application
   developer want this he should just wrap the array in a struct.
 - An example of a bitmap item, just to show how the set and prt functions look
-- Separation between TLV and its client: one of the goals is that we could easily
-  substitute another way of saving the data, other than TLV.  The most obvious 
-  alternative is to save the data in text format, exactly the same format that
-  we print to the console.
-  Preferably we should have more modules, instead of the current 2 (client and TLV):
-  1. client
-  2. formatter, that knows TLV or other data format to be stored to NVRAM
-  3. NVRAM, that knows how to read, write and skip through a file.
-  4. Perhaps abstraction of file access at the lowest level, if only to simplify unit
-     testing.
 
 - YAML schemas to validate descriptor and ID files?
 - If a counter aggregate should not be included in its container
@@ -44,7 +35,6 @@
   A flag that says "don't include me", which is false by default?
 - File headers, footers
 - Should YAML config file specify the names of the output file(s)?
-- Unit tests for the code generator
 - Warn user of incorrect configuration:
   - Owned items with count > 1 need counters (what happens if we violate this?)
   - Counters shouldn't have set or setdef (what happens if we add and use them?)

@@ -20,8 +20,6 @@ Help in any case needs a re-think, since it shouldn't be necessary to provide
 an index when asking for help, so perhaps help needs to work differently to 
 other commands, since it's applicable to metadata rather than actual data.
 
-Strings can't contain spaces, because that's seen as a new word...
-
 YAML codegen: if item type is cstring and aggregate type is owned, I think
 the code generated is wrong -- wrapping the strings in a struct is
 a workaround.

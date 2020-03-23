@@ -478,7 +478,7 @@ uint8_t * Owned_aggregate::add(uint8_t * pParentItem) const
         return nullptr;
     }
 
-    // Memory successfully allocated, so reference the (possibly new) memory
+    // Memory successfully allocated, so reference the (possibly new) memory.
     *ppItems = pNewMem;
 
     uint8_t * pNewItem = pNewMem + cnt * getData()->pDesc->getLen();

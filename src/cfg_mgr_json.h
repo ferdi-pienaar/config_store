@@ -72,12 +72,12 @@ private:
             return m_stack[m_index].m_type;
         }
 
-        void setFirstMember(bool first)
+        void setIsFirstMember(bool first)
         {
             m_stack[m_index].m_isFirstMember = first;
         }
 
-        bool getFirstMember()
+        bool isFirstMember()
         {
             return m_stack[m_index].m_isFirstMember;
         }
@@ -90,6 +90,7 @@ private:
     private:
         static const unsigned int STACK_DEPTH = 16;
 
+        // Context maintained for reading/writing a Value that is an Object or Array.
         struct Context
         {
             Context(): m_type(OBJECT), m_isFirstMember(true) {}

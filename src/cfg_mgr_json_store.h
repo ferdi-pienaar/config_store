@@ -10,10 +10,10 @@
 namespace cfg_mgr
 {
 
-// Access to YAML persistent storage via the abstract interface represented by cm_store:
-// it's a ConcreteStrategy of the Strategy cm_store.
-// This class implements the adapter pattern, adapting the interface provided
-// by the YAML class to the needs of the client.
+// Access to JSON persistent storage via the abstract interface represented by
+// class Store: it's a ConcreteStrategy of the Strategy Store.
+// This class implements the Adapter pattern, adapting the interface provided
+// by class Json to the needs of the client.
 class Json_store : public Store
 {
 public:

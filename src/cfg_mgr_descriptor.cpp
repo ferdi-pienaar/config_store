@@ -80,7 +80,7 @@ bool Composite_descriptor::handleCmd(Command_stack * cmd,
 
 
 // Handle word in command string that's not a reserved command word,
-// hence presumably it identifies a component
+// hence presumably it identifies a component.
 //
 // @param candidateContext - in/out, candidate new command=line
 //        context build up while interpreting cmd stack.
@@ -105,28 +105,27 @@ bool Composite_descriptor::handleIdWord(Command_stack * cmd,
 
     bool      added = false;   // Set true by getComponentItem if it creates a new item.
     uint8_t * pComponentItem;  // pointer to component RAM
-
     if (!pAggr->getComponentItem(&cmd->pop(), pItem, &pComponentItem, added, candidateCtxt))
     {
-        // Index problems are reported by the called fn
+        // Index problems are reported by the called fn.
         return false;
     }
 
-    // A component was found
+    // A component was found.
     if (cmd->getCount() == 0)
     {
-        // We have a component, but there are no more words in the command
+        // We found a component, and there are no more words in the command.
         updateCtxt = true;
         return true;
     }
 
-    // Pass the remainder of the command to the found component
+    // Pass the remainder of the command to the found component.
     if (!pAggr->getData()->pDesc->handleCmd(cmd, pComponentItem, candidateCtxt, updateCtxt))
     {
-        // Component says the command is invalid
+        // Component says the command is invalid.
         if (added)
         {
-            // Free memory allocated by a command that turns out to be invalid
+            // Free memory allocated by a command that turns out to be invalid.
             pAggr->del(pItem, pAggr->getCount(pItem) - 1);
         }
         return false;
@@ -230,7 +229,7 @@ void Composite_descriptor::help(const uint8_t * pItem) const
 }
 
 
-// Look for the aggregate whose component has a matching name
+// Look for the aggregate whose component has a matching name.
 const Aggregate * Composite_descriptor::getAggr(const char * name) const
 {
     for (unsigned i = 0; i < m_data->aggrCount; i++)
@@ -244,7 +243,7 @@ const Aggregate * Composite_descriptor::getAggr(const char * name) const
 }
 
 
-// Look for the aggregate whose component has a matching ID
+// Look for the aggregate whose component has a matching ID.
 // @return aggregate, or nullptr if ID does not identify an aggregate in this context
 const Aggregate * Composite_descriptor::getAggr(item_id_t id) const
 {
@@ -284,6 +283,7 @@ result_t Composite_descriptor::startLoad(Store * store) const
     return ret;
 }
 
+
 // Load item from persistent storage.
 // For a composite item, this means loading the components, then closing.
 //
@@ -308,6 +308,7 @@ result_t Composite_descriptor::endLoad(uint8_t * pItem, Store * store) const
     DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id);
     return store->endLoadComposite();
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////
 //

@@ -47,9 +47,8 @@ void Config_manager::handleCmd(int argc, char *argv[])
     {
         return;
     }
-    Command_stack cmd(argc, argv);
-    bool updateCtxt = false;
 
+    Command_stack cmd(argc, argv);
     // First treat the commands that are only applicable at the top level
     switch (cmd.getTopOp())
     {
@@ -66,9 +65,9 @@ void Config_manager::handleCmd(int argc, char *argv[])
         break;
     }
 
-    // The candidate context starts as a copy of the current context
+    // The candidate context starts as a copy of the current context.
     m_candidateCtxt = m_currCtxt;
-
+    bool updateCtxt = false;
     // Pass command that doesn't apply to CM as a whole, to current context for handling
     m_currCtxt.getDesc()->handleCmd(&cmd, m_currCtxt.getItem(), &m_candidateCtxt, updateCtxt);
     if (updateCtxt)

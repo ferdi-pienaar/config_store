@@ -1,5 +1,5 @@
 ///
-// Json format config data, for storage in non-volatile media, e.g. a file.
+// JSON format config data, for storage in non-volatile media, e.g. a file.
 // This is defined as a separate class hierarchy, since it's an optional feature:
 // not all managed objects are saved in NVRAM.
 //
@@ -85,7 +85,7 @@ void Json::writeSimple(const char * name, item_len_t length, const uint8_t * v, 
     startWriteMember(name);
     string val_str = prt(v, length);
     m_nvram->write((const uint8_t *)val_str.c_str(), val_str.size());
-    m_context.setFirstMember(false);
+    m_context.setIsFirstMember(false);
 }
 
 
@@ -105,7 +105,7 @@ void Json::endWriteComposite()
     m_nvram->write((const uint8_t *)"\n", 1);
     writeIndent();
     m_nvram->write((const uint8_t *)"}", 1);
-    m_context.setFirstMember(false);
+    m_context.setIsFirstMember(false);
 }
 
 
@@ -142,7 +142,7 @@ result_t Json::endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_FPTR 
     string valstr = loadValue();
     DBG_PRT("%s value='%s'\n", __PRETTY_FUNCTION__, valstr.c_str());
     set(pRam, *length, valstr);
-    m_context.setFirstMember(false);
+    m_context.setIsFirstMember(false);
     return CM_SUCCESS;
 }
 
@@ -175,7 +175,7 @@ result_t Json::endLoadComposite()
         return CM_INCOHERENT_DATA;
     }
     m_context.pop();
-    m_context.setFirstMember(false);
+    m_context.setIsFirstMember(false);
     return CM_SUCCESS;
 }
 
@@ -207,7 +207,7 @@ result_t Json::endLoadArray()
         return CM_INCOHERENT_DATA;
     }
     m_context.pop();
-    m_context.setFirstMember(false);
+    m_context.setIsFirstMember(false);
     return CM_SUCCESS;
 }
 
@@ -215,7 +215,7 @@ result_t Json::endLoadArray()
 // xxx line is wrong, since lines are optional whitespace.
 void Json::writeEndPrecedingLine()
 {
-    if (!m_context.getFirstMember())
+    if (!m_context.isFirstMember())
     {
         m_nvram->write((const uint8_t *)",", 1);
     }
@@ -244,11 +244,11 @@ void Json::startWriteMember(const char * name)
 }
 
 
-// Common start for simple, composite, array.
+// Common start for simple, composite, and array.
 result_t Json::startLoadMember(const char * name)
 {
     skipws();
-    if (!m_context.getFirstMember())
+    if (!m_context.isFirstMember())
     {
         // This is subsequent member, so expect ',' before its name.
         if (!isNextRead(",", 1))
@@ -446,7 +446,7 @@ bool Json::isNextRead(const char * expect, unsigned len)
 }
 
 // If the value starts with '"' (value is a string), go to the next '"'.
-// Else (value is not a string, i.e. number of true or false or null)
+// Else (value is not a string, i.e. number or true or false or null)
 //  value ends at next whitespace or ',' or ']' or '}'.
 //
 string Json::loadValue()
