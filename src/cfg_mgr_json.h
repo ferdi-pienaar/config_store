@@ -44,10 +44,9 @@ private:
     result_t findName(const char * name);
     result_t toNextName();
     result_t toCloser(char open, char close);
-    result_t toStringEnd();
+    result_t toStringEnd(std::string *str = nullptr);
     result_t readName(const char * name);
     std::string loadValue();
-    std::string finishLoadString();
     std::string finishLoadNonString();
     bool isNextRead(const char * b, unsigned len);
     bool skipws();
@@ -62,6 +61,11 @@ private:
             OBJECT,
             ARRAY
         };
+
+        ContextStack()
+        {
+            init();
+        }
 
         void init();
         void push(ValueType t);

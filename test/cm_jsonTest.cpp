@@ -514,5 +514,32 @@ TEST_F(JsonTest, loadArrayOfComposite)
     EXPECT_TRUE(memcmp(&expected, clientRam, sizeof(expected)) == 0);
 }
 
+// Load component thing2, then thing1, opposite from order in JSON.
+// Disabled because this is not supported now.
+#if 0
+TEST_F(JsonTest, loadOutOfOrder)
+{
+    uint8_t    nvSet[] = {"\"compo\": {\n"
+                          " \"thing1\": \"property 13\",\n"
+                          " \"thing2\": \"property 15\"\n"
+                          "}"
+                         };
+    item_len_t length = 16;
+    char expected[64] = {0};
+    strncpy(expected, "property 15", length);
+    strncpy(expected+length, "property 13", length);
+    // xxx set client RAM to bitpattern and verify only the expected section is modified
+
+    nvram->set(nvSet, sizeof(nvSet));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadComposite("compo"));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("thing2"));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadSimple(&length, clientRam, cm_set_str));
+    EXPECT_EQ(CM_SUCCESS, json->startLoadSimple("thing1"));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadSimple(&length, clientRam + length, cm_set_str));
+    EXPECT_EQ(CM_SUCCESS, json->endLoadComposite());
+
+    EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
+}
+#endif
 } // namespace
 

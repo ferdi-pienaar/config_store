@@ -15,12 +15,6 @@ using namespace std;
 namespace cfg_mgr
 {
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// Config_manager
-//
-////////////////////////////////////////////////////////////////////////////////
-
 Config_manager::Config_manager(const Descriptor * desc, Nvram * nvram): m_baseDesc(desc)
 {
     m_ramBase = (uint8_t *)malloc(m_baseDesc->getLen());
@@ -35,7 +29,7 @@ Config_manager::Config_manager(const Descriptor * desc, Nvram * nvram): m_baseDe
 Config_manager::~Config_manager()
 {
     free(m_ramBase);
-    delete m_store; // xxx is this clean, is delete the obvious pair to getStore (in Config_manager constructor)?
+    delete m_store; // xxx is this clean, is delete the obvious pair to createStore (in Config_manager constructor)?
 }
 
 /// Execute command words entered by client on CLI cpp file
@@ -49,7 +43,7 @@ void Config_manager::handleCmd(int argc, char *argv[])
     }
 
     Command_stack cmd(argc, argv);
-    // First treat the commands that are only applicable at the top level
+    // First treat the commands that are only applicable at the top level.
     switch (cmd.getTopOp())
     {
     case Command_stack::CM_LOAD:
@@ -61,14 +55,14 @@ void Config_manager::handleCmd(int argc, char *argv[])
     case Command_stack::CM_RESET_CTXT:
         return resetCtxt();
 
-    default: // Other commands are passed to current context
+    default: // Other commands are passed to current context.
         break;
     }
 
     // The candidate context starts as a copy of the current context.
     m_candidateCtxt = m_currCtxt;
     bool updateCtxt = false;
-    // Pass command that doesn't apply to CM as a whole, to current context for handling
+    // Pass command that doesn't apply to CM as a whole, to current context for handling.
     m_currCtxt.getDesc()->handleCmd(&cmd, m_currCtxt.getItem(), &m_candidateCtxt, updateCtxt);
     if (updateCtxt)
     {

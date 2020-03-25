@@ -300,7 +300,7 @@ result_t Json::findName(const char * name)
 }
 
 // Advance nvram to name within the current context.
-// @pre nvram is after the ':' that follows a name.
+// @pre nvram is after the ':' that follows a name within the current context.
 // @post
 result_t Json::toNextName()
 {
@@ -339,6 +339,8 @@ result_t Json::toNextName()
 
 
 // Move NVRAM offset to matching closing marker.
+// If we meet 'open's, they must be closed by 'close's,
+// then the next 'close' represents the match we're looking for.
 // Ignore opening and closing markers that appear inside strings.
 // It seems this basic parsing is sufficient.
 result_t Json::toCloser(char open, char close)
@@ -368,12 +370,17 @@ result_t Json::toCloser(char open, char close)
 }
 
 // Advance nvram offset to character after closing quote of string.
-result_t Json::toStringEnd()
+// @param - str in/out, append found characters to this string, if provided.
+result_t Json::toStringEnd(string *str)
 {
     bool escape = false; // are we in escape state because previous char was '\'?
     char c;
     while (m_nvram->read((uint8_t *)&c, 1))
     {
+        if (str != nullptr)
+        {
+            *str += c;
+        }
         if (!escape && (c == '"'))
         {
             return CM_SUCCESS;
@@ -424,8 +431,9 @@ result_t Json::readName(const char * name)
 }
 
 
-// If the next 'len' chars in nvram match input 'expect', return true and set nvram offset to end of match.
-// If mismatch, return false, with nvram offset unchangedhg .
+// If the next 'len' chars in nvram match input 'expect', return true and set
+// nvram offset to end of match.
+// If mismatch, return false, with nvram offset unchanged.
 bool Json::isNextRead(const char * expect, unsigned len)
 {
     for (unsigned i = 0; i < len; i++)
@@ -448,7 +456,8 @@ bool Json::isNextRead(const char * expect, unsigned len)
 // If the value starts with '"' (value is a string), go to the next '"'.
 // Else (value is not a string, i.e. number or true or false or null)
 //  value ends at next whitespace or ',' or ']' or '}'.
-//
+// xxx this could fail, should return error code?
+// @return the characters read from NVRAM.
 string Json::loadValue()
 {
     skipws();
@@ -460,7 +469,9 @@ string Json::loadValue()
     }
     if (c == '"')
     {
-        return c + finishLoadString();
+        std::string str;
+        toStringEnd(&str);
+        return c + str;
     }
     else
     {
@@ -468,25 +479,9 @@ string Json::loadValue()
     }
 }
 
-// Load up to and including closing '"' of string.
-string Json::finishLoadString()
-{
-    string str;
-    char c;
-    bool escape = false; // are we in escape state because previous char was '\'?
-    while (m_nvram->read((uint8_t *)&c, 1))
-    {
-        str += c;
-        if (!escape && (c == '"'))
-        {
-            break;
-        }
-        escape = (c == '\\');
-    }
-    return str;
-}
 
 // Load until end of value: BEFORE whitespace or ',' or ']' or '}'.
+// @return the loaded data.
 string Json::finishLoadNonString()
 {
     string str;
@@ -505,7 +500,7 @@ string Json::finishLoadNonString()
 }
 
 
-// advance nvram offset to byte after whitespace.
+// Advance nvram offset to byte after whitespace.
 bool Json::skipws()
 {
     char candidate;
@@ -519,6 +514,16 @@ bool Json::skipws()
         }
     }
     // reached end of nvram or some other read fail.
+    return false;
+}
+
+// @return true iff c is whitespace.
+bool Json::isws(char c)
+{
+    if (c == ' ') return true;
+    if (c == '\t') return true;
+    if (c == '\n') return true;
+    if (c == '\r') return true;
     return false;
 }
 
@@ -544,12 +549,4 @@ void Json::ContextStack::pop()
     m_index--;
 }
 
-bool Json::isws(char c)
-{
-    if (c == ' ') return true;
-    if (c == '\t') return true;
-    if (c == '\n') return true;
-    if (c == '\r') return true;
-    return false;
-}
 }
