@@ -25,18 +25,27 @@ public:
     result_t startLoad();
     result_t endLoad();
     void writeSimple(const char * name, item_len_t length, const uint8_t * v, JSON_PRT_FPTR prt);
-    void startWriteComposite(const char * name);
-    void endWriteComposite();
+    void startWriteObject(const char * name);
+    void endWriteObject();
     void startWriteArray(const char * name);
     void endWriteArray();
     result_t startLoadSimple(const char * name);
     result_t endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_FPTR set);
-    result_t startLoadComposite(const char * name);
-    result_t endLoadComposite();
+    result_t startLoadObject(const char * name);
+    result_t endLoadObject();
     result_t startLoadArray(const char * name);
     result_t endLoadArray();
 
 private:
+    enum ValueType
+    {
+        OBJECT,
+        ARRAY
+    };
+    void startWriteComposite(const char * name, ValueType t);
+    void endWriteComposite(ValueType t);
+    result_t startLoadComposite(const char * name, ValueType t);
+    result_t endLoadComposite(ValueType t);
     void startWriteMember(const char * name);
     void writeEndPrecedingLine();
     void writeIndent();
@@ -56,12 +65,6 @@ private:
     class ContextStack
     {
     public:
-        enum ValueType
-        {
-            OBJECT,
-            ARRAY
-        };
-
         ContextStack()
         {
             init();
@@ -100,7 +103,7 @@ private:
             Context(): m_type(OBJECT), m_isFirstMember(true) {}
 
             ValueType m_type;
-            bool m_isFirstMember; // Are we writing/loading the first member of a list or composite?
+            bool m_isFirstMember; // Are we writing/loading the first member of a list or object?
         };
 
         Context m_stack[STACK_DEPTH];

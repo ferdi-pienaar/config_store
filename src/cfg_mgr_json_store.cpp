@@ -72,13 +72,13 @@ void Json_store::writeSimple(const Simple_metadata * data, const uint8_t * v)
 
 void Json_store::startWriteComposite(const Composite_metadata * data)
 {
-    m_json->startWriteComposite(data->c.name);
+    m_json->startWriteObject(data->c.name);
 }
 
 
 void Json_store::endWriteComposite()
 {
-    m_json->endWriteComposite();
+    m_json->endWriteObject();
 }
 
 void Json_store::startWriteArray(const char * name)
@@ -104,12 +104,12 @@ result_t Json_store::endLoadSimple(uint8_t * pRam, const Simple_metadata * data)
 
 result_t Json_store::startLoadComposite(const Composite_metadata * data)
 {
-    return m_json->startLoadComposite(data->c.name);
+    return m_json->startLoadObject(data->c.name);
 }
 
 result_t Json_store::endLoadComposite()
 {
-    return m_json->endLoadComposite();
+    return m_json->endLoadObject();
 }
 
 result_t Json_store::startLoadArray(const char * name)

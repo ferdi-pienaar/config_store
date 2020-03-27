@@ -5,24 +5,24 @@
 //
 // This module asserts that the data passed to it by the client is valid, e.g.
 // in writing:
-//  - no endWriteComposite without matching startWriteComposite.
-//  - no more than stackDepth nested calls to startWriteComposite.
+//  - no endWriteObject without matching startWriteObject.
+//  - no more than stackDepth nested calls to startWriteObject.
 //
 // The expected sequence of client calls in writing:
 // - writeSimple, or
-// - startWriteComposite, then
-//   - writeSimple or startWriteComposite
-//   - a call to endWriteComposite for each call to startWriteComposite
+// - startWriteObject, then
+//   - writeSimple or startWriteObject
+//   - a call to endWriteObject for each call to startWriteObject
 //
 // The expected sequence of client calls in loading:
 // 1. Load Simple:
 //  1.1 startLoadSimple
 //  1.2 endLoadSimple if startLoadSimple was OK.
 // OR
-// 2. Load Composite:
-//  2.1 startLoadComposite, then the next steps follow iff that returns OK.
-//  2.2 Load components, either Simple or themselves Composite
-//  2.3 endLoadComposite.
+// 2. Load Object:
+//  2.1 startLoadObject, then the next steps follow iff that returns OK.
+//  2.2 Load components, either Simple or themselves Objects
+//  2.3 endLoadObject.
 //
 
 #include "cfg_mgr_json.h"
@@ -90,40 +90,29 @@ void Json::writeSimple(const char * name, item_len_t length, const uint8_t * v, 
 
 
 //
-void Json::startWriteComposite(const char * name)
+void Json::startWriteObject(const char * name)
 {
-    startWriteMember(name);
-    m_nvram->write((const uint8_t *)"{", 1);
-    m_context.push(ContextStack::OBJECT);
+    return startWriteComposite(name, OBJECT);
 }
 
 
-// Close writing of composite.
-void Json::endWriteComposite()
+// Close writing of Object.
+void Json::endWriteObject()
 {
-    m_context.pop();
-    m_nvram->write((const uint8_t *)"\n", 1);
-    writeIndent();
-    m_nvram->write((const uint8_t *)"}", 1);
-    m_context.setIsFirstMember(false);
+    return endWriteComposite(OBJECT);
 }
 
 
 //
 void Json::startWriteArray(const char * name)
 {
-    startWriteMember(name);
-    m_nvram->write((const uint8_t *)"[", 1);
-    m_context.push(ContextStack::ARRAY);
+    return startWriteComposite(name, ARRAY);
 }
 
 //
 void Json::endWriteArray()
 {
-    m_context.pop();
-    m_nvram->write((const uint8_t *)"\n", 1);
-    writeIndent();
-    m_nvram->write((const uint8_t *)"]", 1);
+    return endWriteComposite(ARRAY);
 }
 
 // Return success if name (in quotes) followed by ':' is next.
@@ -146,64 +135,72 @@ result_t Json::endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_FPTR 
     return CM_SUCCESS;
 }
 
-result_t Json::startLoadComposite(const char * name)
+result_t Json::startLoadObject(const char * name)
 {
-    DBG_PRT("%s name=%s stackIndex=%u\n", __PRETTY_FUNCTION__, name, m_context.getIndex());
-
-    result_t ret = startLoadMember(name);
-    if (ret != CM_SUCCESS)
-    {
-        return ret;
-    }
-    if (!isNextRead("{", 1))
-    {
-        DBG_PRT("%s missing '{'\n", __PRETTY_FUNCTION__);
-        return CM_INCOHERENT_DATA;
-    }
-    m_context.push(ContextStack::OBJECT);
-    return CM_SUCCESS;
+    return startLoadComposite(name, OBJECT);
 }
 
-result_t Json::endLoadComposite()
+result_t Json::endLoadObject()
 {
-    DBG_PRT("%s m_stackIndex=%u\n", __PRETTY_FUNCTION__, m_context.getIndex());
-
-    skipws();
-    if (!isNextRead("}", 1))
-    {
-        DBG_PRT("%s missing '}'\n", __PRETTY_FUNCTION__);
-        return CM_INCOHERENT_DATA;
-    }
-    m_context.pop();
-    m_context.setIsFirstMember(false);
-    return CM_SUCCESS;
+    return endLoadComposite(OBJECT);
 }
-
 
 result_t Json::startLoadArray(const char * name)
 {
-    DBG_PRT("%s name=%s stackIndex=%u\n", __PRETTY_FUNCTION__, name, m_context.getIndex());
-
-    result_t ret = startLoadMember(name);
-    if (ret != CM_SUCCESS)
-    {
-        return ret;
-    }
-    if (!isNextRead("[", 1))
-    {
-        return CM_INCOHERENT_DATA;
-    }
-    m_context.push(ContextStack::ARRAY);
-    return CM_SUCCESS;
+    return startLoadComposite(name, ARRAY);
 }
 
 result_t Json::endLoadArray()
 {
-    DBG_PRT("%s m_stackIndex=%u\n", __PRETTY_FUNCTION__, m_context.getIndex());
+    return endLoadComposite(ARRAY);
+}
+
+// Start writing Object or Array.
+void Json::startWriteComposite(const char * name, ValueType t)
+{
+    startWriteMember(name);
+    m_nvram->write((const uint8_t *)((t == OBJECT) ? "{" : "["), 1);
+    m_context.push(t);
+}
+
+// Close writing of Object or Array.
+void Json::endWriteComposite(ValueType t)
+{
+    m_context.pop();
+    m_nvram->write((const uint8_t *)"\n", 1);
+    writeIndent();
+    m_nvram->write((const uint8_t *)((t == OBJECT) ? "}" : "]"), 1);
+    m_context.setIsFirstMember(false);
+}
+
+// Start loading of Object or Array.
+result_t Json::startLoadComposite(const char * name, ValueType t)
+{
+    DBG_PRT("%s name=%s type=%d stackIndex=%u\n", __PRETTY_FUNCTION__, name, t, m_context.getIndex());
+
+    result_t ret = startLoadMember(name);
+    if (ret != CM_SUCCESS)
+    {
+        return ret;
+    }
+    if (!isNextRead((t == OBJECT) ? "{" : "[", 1))
+    {
+        DBG_PRT("%s missing '%s'\n", __PRETTY_FUNCTION__, (t == OBJECT) ? "{" : "[");
+        return CM_INCOHERENT_DATA;
+    }
+    m_context.push(t);
+    return CM_SUCCESS;
+}
+
+// End loading of Object or Array.
+result_t Json::endLoadComposite(ValueType t)
+{
+    DBG_PRT("%s type=%d, m_stackIndex=%u\n", __PRETTY_FUNCTION__, t, m_context.getIndex());
 
     skipws();
-    if (!isNextRead("]", 1))
+    if (!isNextRead((t == OBJECT) ? "}" : "]", 1))
     {
+        DBG_PRT("%s missing '%s'\n", __PRETTY_FUNCTION__, (t == OBJECT) ? "}" : "]");
         return CM_INCOHERENT_DATA;
     }
     m_context.pop();
@@ -230,12 +227,12 @@ void Json::writeIndent()
     }
 }
 
-// Common start for simple, composite, array.
+// Common start for simple, object, array.
 void Json::startWriteMember(const char * name)
 {
     writeEndPrecedingLine();
     writeIndent();
-    if (m_context.getType() == ContextStack::OBJECT)
+    if (m_context.getType() == OBJECT)
     {
         m_nvram->write((const uint8_t *)"\"", 1);
         m_nvram->write((const uint8_t *)name, strlen(name));
@@ -244,7 +241,7 @@ void Json::startWriteMember(const char * name)
 }
 
 
-// Common start for simple, composite, and array.
+// Common start for simple, object, and array.
 result_t Json::startLoadMember(const char * name)
 {
     skipws();
@@ -258,7 +255,7 @@ result_t Json::startLoadMember(const char * name)
         }
         skipws();
     }
-    if (m_context.getType() == ContextStack::OBJECT)
+    if (m_context.getType() == OBJECT)
     {
         result_t ret = findName(name);
         if (ret != CM_SUCCESS)
@@ -270,7 +267,7 @@ result_t Json::startLoadMember(const char * name)
     return CM_SUCCESS;
 }
 
-// Find name within the current composite.
+// Find name within the current object.
 // If not found, leave nvram offset unchanged so next find starts at same offset.
 result_t Json::findName(const char * name)
 {
@@ -469,7 +466,7 @@ string Json::loadValue()
     }
     if (c == '"')
     {
-        std::string str;
+        string str;
         toStringEnd(&str);
         return c + str;
     }
@@ -520,11 +517,7 @@ bool Json::skipws()
 // @return true iff c is whitespace.
 bool Json::isws(char c)
 {
-    if (c == ' ') return true;
-    if (c == '\t') return true;
-    if (c == '\n') return true;
-    if (c == '\r') return true;
-    return false;
+    return (c == ' ') || (c == '\t') || (c == '\n') || (c == '\r');
 }
 
 
