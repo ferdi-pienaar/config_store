@@ -3,17 +3,6 @@
 // This is defined as a separate class hierarchy, since it's an optional feature:
 // not all managed objects are saved in NVRAM.
 //
-// This module asserts that the data passed to it by the client is valid, e.g.
-// in writing:
-//  - no endWriteObject without matching startWriteObject.
-//  - no more than stackDepth nested calls to startWriteObject.
-//
-// The expected sequence of client calls in writing:
-// - writeSimple, or
-// - startWriteObject, then
-//   - writeSimple or startWriteObject
-//   - a call to endWriteObject for each call to startWriteObject
-//
 // The expected sequence of client calls in loading:
 // 1. Load Simple:
 //  1.1 startLoadSimple
@@ -25,7 +14,7 @@
 //  2.3 endLoadObject.
 //
 
-#include "cfg_mgr_json.h"
+#include "cfg_mgr_json_loader.h"
 #include "cfg_mgr_dbg.h"
 #include <cstring> // strlen
 #include "nvram.h"
@@ -36,28 +25,16 @@ using namespace std;
 namespace cfg_mgr
 {
 
-Json::Json(Nvram * pNvram): m_singleIndent(" "), m_nvram(pNvram)
+JsonLoader::JsonLoader(Nvram * pNvram): m_nvram(pNvram)
 {
 }
 
 
-Json::~Json()
+JsonLoader::~JsonLoader()
 {
 }
 
-
-void Json::startWrite()
-{
-    m_nvram->write((const uint8_t *)"{", 1);
-    m_context.init();
-}
-
-void Json::endWrite()
-{
-    m_nvram->write((const uint8_t *)"\n}", 2);
-}
-
-result_t Json::startLoad()
+result_t JsonLoader::startLoad()
 {
     skipws();
     if (!isNextRead("{", 1))
@@ -69,7 +46,7 @@ result_t Json::startLoad()
     return CM_SUCCESS;
 }
 
-result_t Json::endLoad()
+result_t JsonLoader::endLoad()
 {
     skipws();
     if (!isNextRead("}", 1))
@@ -80,43 +57,8 @@ result_t Json::endLoad()
     return CM_SUCCESS;
 }
 
-void Json::writeSimple(const char * name, item_len_t length, const uint8_t * v, JSON_PRT_FPTR prt)
-{
-    startWriteMember(name);
-    string val_str = prt(v, length);
-    m_nvram->write((const uint8_t *)val_str.c_str(), val_str.size());
-    m_context.setIsFirstMember(false);
-}
-
-
-//
-void Json::startWriteObject(const char * name)
-{
-    return startWriteComposite(name, OBJECT);
-}
-
-
-// Close writing of Object.
-void Json::endWriteObject()
-{
-    return endWriteComposite(OBJECT);
-}
-
-
-//
-void Json::startWriteArray(const char * name)
-{
-    return startWriteComposite(name, ARRAY);
-}
-
-//
-void Json::endWriteArray()
-{
-    return endWriteComposite(ARRAY);
-}
-
 // Return success if name (in quotes) followed by ':' is next.
-result_t Json::startLoadSimple(const char * name)
+result_t JsonLoader::startLoadSimple(const char * name)
 {
     DBG_PRT("%s name=%s stackIndex=%u\n", __PRETTY_FUNCTION__, name, m_context.getIndex());
     return startLoadMember(name);
@@ -124,7 +66,7 @@ result_t Json::startLoadSimple(const char * name)
 
 // Read the value from JSON in nvram, and convert to value in RAM if set function.
 // @param length - output.
-result_t Json::endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_FPTR set)
+result_t JsonLoader::endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_FPTR set)
 {
     DBG_PRT("%s m_stackIndex=%u\n", __PRETTY_FUNCTION__, m_context.getIndex());
 
@@ -135,46 +77,28 @@ result_t Json::endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_FPTR 
     return CM_SUCCESS;
 }
 
-result_t Json::startLoadObject(const char * name)
+result_t JsonLoader::startLoadObject(const char * name)
 {
     return startLoadComposite(name, OBJECT);
 }
 
-result_t Json::endLoadObject()
+result_t JsonLoader::endLoadObject()
 {
     return endLoadComposite(OBJECT);
 }
 
-result_t Json::startLoadArray(const char * name)
+result_t JsonLoader::startLoadArray(const char * name)
 {
     return startLoadComposite(name, ARRAY);
 }
 
-result_t Json::endLoadArray()
+result_t JsonLoader::endLoadArray()
 {
     return endLoadComposite(ARRAY);
 }
 
-// Start writing Object or Array.
-void Json::startWriteComposite(const char * name, ValueType t)
-{
-    startWriteMember(name);
-    m_nvram->write((const uint8_t *)((t == OBJECT) ? "{" : "["), 1);
-    m_context.push(t);
-}
-
-// Close writing of Object or Array.
-void Json::endWriteComposite(ValueType t)
-{
-    m_context.pop();
-    m_nvram->write((const uint8_t *)"\n", 1);
-    writeIndent();
-    m_nvram->write((const uint8_t *)((t == OBJECT) ? "}" : "]"), 1);
-    m_context.setIsFirstMember(false);
-}
-
 // Start loading of Object or Array.
-result_t Json::startLoadComposite(const char * name, ValueType t)
+result_t JsonLoader::startLoadComposite(const char * name, ValueType t)
 {
     DBG_PRT("%s name=%s type=%d stackIndex=%u\n", __PRETTY_FUNCTION__, name, t, m_context.getIndex());
 
@@ -193,7 +117,7 @@ result_t Json::startLoadComposite(const char * name, ValueType t)
 }
 
 // End loading of Object or Array.
-result_t Json::endLoadComposite(ValueType t)
+result_t JsonLoader::endLoadComposite(ValueType t)
 {
     DBG_PRT("%s type=%d, m_stackIndex=%u\n", __PRETTY_FUNCTION__, t, m_context.getIndex());
 
@@ -208,42 +132,8 @@ result_t Json::endLoadComposite(ValueType t)
     return CM_SUCCESS;
 }
 
-// Called when starting an object: close the previous one with a comma if necessary.
-// xxx line is wrong, since lines are optional whitespace.
-void Json::writeEndPrecedingLine()
-{
-    if (!m_context.isFirstMember())
-    {
-        m_nvram->write((const uint8_t *)",", 1);
-    }
-    m_nvram->write((const uint8_t *)"\n", 1);
-}
-
-void Json::writeIndent()
-{
-    for (unsigned i = 0; i < m_context.getIndex() + 1; i++)
-    {
-        m_nvram->write((const uint8_t *)m_singleIndent.c_str(), m_singleIndent.length());
-    }
-}
-
-// Common start for simple, object, array.
-void Json::startWriteMember(const char * name)
-{
-    writeEndPrecedingLine();
-    writeIndent();
-    if (m_context.getType() == OBJECT)
-    {
-        // In an object, write the member's name (but not in an array).
-        m_nvram->write((const uint8_t *)"\"", 1);
-        m_nvram->write((const uint8_t *)name, strlen(name));
-        m_nvram->write((const uint8_t *)"\": ", 3);
-    }
-}
-
-
 // Common start for simple, object, and array.
-result_t Json::startLoadMember(const char * name)
+result_t JsonLoader::startLoadMember(const char * name)
 {
     skipws();
     if (!m_context.isFirstMember())
@@ -271,7 +161,7 @@ result_t Json::startLoadMember(const char * name)
 
 // Find name within the current object.
 // If not found, leave nvram offset unchanged so next find starts at same offset.
-result_t Json::findName(const char * name)
+result_t JsonLoader::findName(const char * name)
 {
     unsigned int start_offset = m_nvram->getOffset();
     while (true)
@@ -301,7 +191,7 @@ result_t Json::findName(const char * name)
 // Advance nvram to name within the current context.
 // @pre nvram is after the ':' that follows a name within the current context.
 // @post
-result_t Json::toNextName()
+result_t JsonLoader::toNextName()
 {
     result_t ret = CM_SUCCESS;
     skipws();
@@ -342,7 +232,7 @@ result_t Json::toNextName()
 // then the next 'close' represents the match we're looking for.
 // Ignore opening and closing markers that appear inside strings.
 // It seems this basic parsing is sufficient.
-result_t Json::toCloser(char open, char close)
+result_t JsonLoader::toCloser(char open, char close)
 {
     unsigned depth = 0; // number of opens that are not closed.
     char c;
@@ -370,7 +260,7 @@ result_t Json::toCloser(char open, char close)
 
 // Advance nvram offset to character after closing quote of string.
 // @param - str in/out, append found characters to this string, if provided.
-result_t Json::toStringEnd(string *str)
+result_t JsonLoader::toStringEnd(string *str)
 {
     bool escape = false; // are we in escape state because previous char was '\'?
     char c;
@@ -393,7 +283,7 @@ result_t Json::toStringEnd(string *str)
 // Return SUCCESS if name, surrounded by quotes and followed by ':' is next in nvram,
 // else return error.
 // If name is not found, xxx.
-result_t Json::readName(const char * name)
+result_t JsonLoader::readName(const char * name)
 {
     result_t res = CM_SUCCESS;
     if (!isNextRead("\"", 1))
@@ -433,7 +323,7 @@ result_t Json::readName(const char * name)
 // If the next 'len' chars in nvram match input 'expect', return true and set
 // nvram offset to end of match.
 // If mismatch, return false, with nvram offset unchanged.
-bool Json::isNextRead(const char * expect, unsigned len)
+bool JsonLoader::isNextRead(const char * expect, unsigned len)
 {
     for (unsigned i = 0; i < len; i++)
     {
@@ -457,7 +347,7 @@ bool Json::isNextRead(const char * expect, unsigned len)
 //  value ends at next whitespace or ',' or ']' or '}'.
 // xxx this could fail, should return error code?
 // @return the characters read from NVRAM.
-string Json::loadValue()
+string JsonLoader::loadValue()
 {
     skipws();
     char c;
@@ -481,7 +371,7 @@ string Json::loadValue()
 
 // Load until end of value: BEFORE whitespace or ',' or ']' or '}'.
 // @return the loaded data.
-string Json::finishLoadNonString()
+string JsonLoader::finishLoadNonString()
 {
     string str;
     char c;
@@ -500,7 +390,7 @@ string Json::finishLoadNonString()
 
 
 // Advance nvram offset to byte after whitespace.
-bool Json::skipws()
+bool JsonLoader::skipws()
 {
     char candidate;
     while (m_nvram->read((uint8_t *)&candidate, 1))
@@ -517,31 +407,9 @@ bool Json::skipws()
 }
 
 // @return true iff c is whitespace.
-bool Json::isws(char c)
+bool JsonLoader::isws(char c)
 {
     return (c == ' ') || (c == '\t') || (c == '\n') || (c == '\r');
-}
-
-
-void Json::ContextStack::init()
-{
-    m_index = 0;
-    m_stack[m_index].m_type = OBJECT;
-    m_stack[m_index].m_isFirstMember = true;
-}
-
-void Json::ContextStack::push(ValueType t)
-{
-    m_index++;
-    assert(m_index < STACK_DEPTH);
-    m_stack[m_index].m_type = t;
-    m_stack[m_index].m_isFirstMember = true;
-}
-
-void Json::ContextStack::pop()
-{
-    assert(m_index > 0);
-    m_index--;
 }
 
 }

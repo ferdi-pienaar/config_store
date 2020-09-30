@@ -4,7 +4,8 @@
 #include <stdint.h> // uint8_t, etc
 #include "cfg_mgr_store.h"
 #include "cfg_mgr_metadata.h"
-#include "cfg_mgr_json.h"
+#include "cfg_mgr_json_writer.h"
+#include "cfg_mgr_json_loader.h"
 #include "nvram.h"
 
 namespace cfg_mgr
@@ -34,9 +35,10 @@ public:
     result_t endLoadComposite();
     result_t startLoadArray(const char * name);
     result_t endLoadArray();
-private:
-    Json * m_json;
 
+private:
+    JsonWriter * m_json_writer;
+    JsonLoader * m_json_loader;
 };
 
 }
