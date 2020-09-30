@@ -25,7 +25,7 @@ private:
     char * get_start(const char * word_delimiters, const char * block_start, TokenType * t);
     bool get_end(const char * word_delimiters, const char * block_end, TokenType t);
 
-    char * m_str;
+    char * m_str; // Pointer to the next character in the string that we're analyzing.
 };
 
 }

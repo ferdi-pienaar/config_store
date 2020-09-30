@@ -234,6 +234,7 @@ void Json::startWriteMember(const char * name)
     writeIndent();
     if (m_context.getType() == OBJECT)
     {
+        // In an object, write the member's name (but not in an array).
         m_nvram->write((const uint8_t *)"\"", 1);
         m_nvram->write((const uint8_t *)name, strlen(name));
         m_nvram->write((const uint8_t *)"\": ", 3);
@@ -257,6 +258,7 @@ result_t Json::startLoadMember(const char * name)
     }
     if (m_context.getType() == OBJECT)
     {
+        // In an object, expect the member's name (but not in an array).
         result_t ret = findName(name);
         if (ret != CM_SUCCESS)
         {

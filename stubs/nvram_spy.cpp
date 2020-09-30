@@ -8,10 +8,6 @@
 
 using namespace std;
 
-#define CFG_FILE_NAME "cfg.bin"
-
-
-
 static void hexdump(const uint8_t * b, size_t len);
 
 Nvram_spy::Nvram_spy() : m_bytesWritten(0), m_offset(0)
@@ -150,7 +146,7 @@ bool Nvram_spy::match(uint8_t * expected, unsigned len)
 // Set the contents of NVRAM. This allows a test to start
 // with values already present, as if saved in a file -- it allows us
 // to simulate the non-volatility of NVRAM.
-// xxx really need this? -- how does it differ from write?
+// It is equivalent to calling: initForWrite, write and setOffset(0).
 void Nvram_spy::set(uint8_t * d, unsigned len)
 {
     memcpy(m_nvMem, d, len);

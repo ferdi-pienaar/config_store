@@ -64,7 +64,7 @@ int main()
         char * param[20];
         cfg_mgr::Strtok strtok(cmd);
         unsigned int wordCnt = 0;
-        while (nullptr != (param[wordCnt] = strtok(WORD_DELIMITERS, BLOCK_DELIMITER)))
+        while ((param[wordCnt] = strtok(WORD_DELIMITERS, BLOCK_DELIMITER)))
         {
             wordCnt++;
         }

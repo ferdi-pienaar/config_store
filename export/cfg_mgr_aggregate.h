@@ -14,7 +14,7 @@
 // to the descriptor of its counter, which must be a member of the same
 // composite.  Hence, the offset (and size) is available, and the counter can be accessed
 // (in RAM).  This also forces the application programmer to
-// supply a counter reference (or explicitly give nullptr if it's a array with max size 1),
+// supply a counter reference (or explicitly give nullptr if it's an array with max size 1),
 // i.e. the API guides him.
 // xxx Is there something we can do to verify, maybe at run-time, that the correct thing
 // has been done?
@@ -34,10 +34,10 @@ class Store;
 /// that are controlled by the aggregate:
 /// - Components may be contained (memory allocated as part of the same
 ///   structure as the composite) or owned (memory allocated separately
-///   from that of the component, and just referenced by the composite).
-/// - There may be one or more instances (i.e. single item or an array of items).
-/// - Offset, of the item array itself (if embedded) or of a pointer to the array
-///   (if owned)
+///   from that of the composite, and just referenced by the composite).
+/// - The number of component instances (i.e. single item or an array of items).
+/// - Location: offset, of the item array itself (if embedded) or of a pointer
+///   to the array (if owned)
 // xxx we could embed this class in Composite_descriptor, but then
 // client could not create component lists at init.  The constructor for this
 // class has to be exposed to the client programmer.

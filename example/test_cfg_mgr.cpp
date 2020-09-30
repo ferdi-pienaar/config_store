@@ -62,7 +62,7 @@ int main()
         }
 
         cfg_mgr::Strtok strtok(cmd);
-        while (nullptr != (param[wordCnt] = strtok(WORD_DELIMITERS, BLOCK_DELIMITER)))
+        while ((param[wordCnt] = strtok(WORD_DELIMITERS, BLOCK_DELIMITER)))
         {
             wordCnt++;
         }

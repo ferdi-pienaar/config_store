@@ -6,10 +6,9 @@
 #include "cfg_mgr_printf.h"
 
 #include <stdlib.h> // malloc
-#include <cstring> // memset, strcmp, memcpy
+#include <cstring> // memset
 #include <stdint.h> // UINT8_MAX, etc
 
-#include <sstream>
 using namespace std;
 
 namespace cfg_mgr

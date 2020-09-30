@@ -50,10 +50,10 @@ char * Strtok::operator() (const char * word_delimiters,
 // @param word_delimiters - in, set of characters between words
 // @param block_start - in, string
 // @param type - out, type of token starting.
-// @return pointer to start of token, or nullptr if m_str points to a word delimiter.
+// @return ptr to token's start, or nullptr if m_str points to a word delimiter.
 // @pre start not found yet.
-// @post if return non-nullptr, m_str points to location to start
-//       looking for the end of the token.
+// @post if return non-nullptr, m_str points to location to start search for
+//       token's end.
 char * Strtok::get_start(const char * word_delimiters, const char * block_start, TokenType * type)
 {
     if (strchr(word_delimiters, *m_str))
