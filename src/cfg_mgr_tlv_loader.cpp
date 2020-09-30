@@ -8,12 +8,6 @@
 //  - no endWriteComposite without matching startWriteComposite.
 //  - no more than stackDepth nested calls to startWriteComposite.
 //
-// The expected sequence of client calls in writing:
-// - writeSimple, or
-// - startWriteComposite, then
-//   - writeSimple or startWriteComposite
-//   - a call to endWriteComposite for each call to startWriteComposite
-//
 // The expected sequence of client calls in loading:
 // 1. Load Simple:
 //  1.1 startLoadSimple
@@ -27,7 +21,7 @@
 //
 
 #include <stdint.h> // uint8_t, etc
-#include "cfg_mgr_tlv.h"
+#include "cfg_mgr_tlv_loader.h"
 #include "cfg_mgr_dbg.h"
 #include <iostream>
 #include "nvram.h"
@@ -38,90 +32,26 @@ using namespace std;
 namespace cfg_mgr
 {
 
-Tlv::Tlv(Nvram * pNvram): m_nvram(pNvram), m_stackIndex(-1)
+TlvLoader::TlvLoader(Nvram * pNvram): m_nvram(pNvram), m_stackIndex(-1)
 {
 }
 
 
-Tlv::~Tlv()
+TlvLoader::~TlvLoader()
 {
 }
 
 
-void Tlv::reset()
+void TlvLoader::reset()
 {
     m_stackIndex = -1;
 }
 
 
-void Tlv::writeSimple(item_id_t t, item_len_t len, const uint8_t * v)
-{
-    m_nvram->write((uint8_t *)&t, sizeof(t));
-    m_nvram->write((uint8_t *)&len, sizeof(len));
-    m_nvram->write(v, len);
-
-    addLengthToComposite(len);
-}
-
-
-// Don't actually write anything yet, since it may turn out that this
-// composite is empty.
-void Tlv::startWriteComposite(item_id_t t)
-{
-    assert(m_stackIndex < (int)STACK_DEPTH);
-
-    m_stackIndex++;
-
-    CompositeWriteContext & context = m_writeStack[m_stackIndex];
-
-    context.id = t;
-    context.length = 0;
-    context.headerOffset = m_nvram->getOffset();
-
-    // reserve space for T + L, to be written by endWriteComposite()
-    m_nvram->adjustOffset(HDR_LENGTH);
-}
-
-
-// Close writing of composite by writing header (T and L) of TLV.
-// xxx return boolean to indicate if we've reached the bottom of the stack?
-void Tlv::endWriteComposite()
-{
-    assert(m_stackIndex >= 0); // we must be inside a composite to end one
-
-    unsigned int endOffset = m_nvram->getOffset(); // current offset, at end of composite
-    const CompositeWriteContext & context = m_writeStack[m_stackIndex];
-
-    // switch to context of owning composite (or set to -1 if we're exiting the final composite)
-    m_stackIndex--;
-
-    if (context.length == 0)
-    {
-        // Empty composite: write nothing, and set offset to beginning of composite
-        assert(endOffset >= HDR_LENGTH);
-        endOffset -= HDR_LENGTH;
-    }
-    else
-    {
-        // Non-empty composite: write its header
-        m_nvram->setOffset(context.headerOffset);
-        m_nvram->write((uint8_t *)&(context.id), sizeof(context.id));
-        m_nvram->write((uint8_t *)&(context.length), sizeof(context.length));
-
-        addLengthToComposite(context.length);
-    }
-
-    if (m_stackIndex >= 0)
-    {
-        // We're still inside a composite, so set offset for writing next component
-        m_nvram->setOffset(endOffset);
-    }
-}
-
 // Load a simple item into the provided memory.
 //
 // @param t: type to load.
-result_t Tlv::startLoadSimple(item_id_t t)
+result_t TlvLoader::startLoadSimple(item_id_t t)
 {
     return findType(t);
 }
@@ -134,7 +64,7 @@ result_t Tlv::startLoadSimple(item_id_t t)
 // @note: if the length is unexpected, we could skip just that item, but it's
 //        simpler to just return an error, presumably forcing the client to abandon
 //        the load process completely.
-result_t Tlv::endLoadSimple(item_len_t * pLength, uint8_t * pRam)
+result_t TlvLoader::endLoadSimple(item_len_t * pLength, uint8_t * pRam)
 {
     item_len_t length;
     m_nvram->read((uint8_t *)&length, sizeof(item_len_t));
@@ -159,7 +89,7 @@ result_t Tlv::endLoadSimple(item_len_t * pLength, uint8_t * pRam)
 }
 
 // Start loading the composite identified by t.
-result_t Tlv::startLoadComposite(item_id_t t)
+result_t TlvLoader::startLoadComposite(item_id_t t)
 {
     result_t ret = findType(t);
     if (ret != CM_SUCCESS)
@@ -180,7 +110,7 @@ result_t Tlv::startLoadComposite(item_id_t t)
 //
 // @note we don't check for coherence, i.e. that the sum of the lengths
 //  of the components add up to the length in the composite header.
-result_t Tlv::endLoadComposite()
+result_t TlvLoader::endLoadComposite()
 {
     if (m_stackIndex < 0)
     {
@@ -202,7 +132,7 @@ result_t Tlv::endLoadComposite()
 // xxx Do we need something more advanced to support out-of-order load?
 // Yes, we could search from current position as above, but if that
 // failed, return to start of the composite and search again.
-result_t Tlv::findType(item_id_t t)
+result_t TlvLoader::findType(item_id_t t)
 {
     result_t ret;
     // Save start location of search so we can restore it if search fails.
@@ -236,7 +166,7 @@ result_t Tlv::findType(item_id_t t)
 // @pre we're in a composite
 //
 // The search strategy is: search forward, to end of the composite.
-result_t Tlv::findTypeInComposite(item_id_t t)
+result_t TlvLoader::findTypeInComposite(item_id_t t)
 {
     assert(m_stackIndex >= 0);
 
@@ -267,7 +197,7 @@ result_t Tlv::findTypeInComposite(item_id_t t)
 // See if value form m_nvram matches t.
 // This advances m_nvram read loc to start of L.
 // @pre xxx enough bytes should remain in m_nvram that we can read T.
-result_t Tlv::matchType(item_id_t t)
+result_t TlvLoader::matchType(item_id_t t)
 {
     // Read T from next location in m_nvram.
     item_id_t found_t;
@@ -287,14 +217,4 @@ result_t Tlv::matchType(item_id_t t)
     return CM_NOT_FOUND;
 }
 
-// Add component's contribution to the length of the composite it is contained in.
-// @param L field of component, excluding length of its T + L, which is added by this method
-void Tlv::addLengthToComposite(unsigned length)
-{
-    if (m_stackIndex >= 0)
-    {
-        // Current item is member of a composite, so add component's contribution to its length
-        m_writeStack[m_stackIndex].length += length + HDR_LENGTH;
-    }
-}
 }

@@ -4,7 +4,8 @@
 //
 
 #include "gtest/gtest.h"
-#include "cfg_mgr_tlv.h"  // Unit under test
+#include "cfg_mgr_tlv_writer.h"  // Unit under test
+#include "cfg_mgr_tlv_loader.h"  // Unit under test
 #include <cstring> // memcmp
 #include "nvram_spy.h"
 
@@ -18,18 +19,21 @@ namespace {
 class TlvTest : public testing::Test {
 protected:
     Nvram_spy * nvram;
-    Tlv * tlv;
+    TlvWriter * tlv_writer;
+    TlvLoader * tlv_loader;
 
     virtual void SetUp()
     {
         nvram = new Nvram_spy;
-        tlv = new Tlv(nvram);
+        tlv_writer = new TlvWriter(nvram);
+        tlv_loader = new TlvLoader(nvram);
     }
 
     virtual void TearDown()
     {
         //clean up steps are executed after each TEST
-        delete tlv;
+        delete tlv_writer;
+        delete tlv_loader;
         delete nvram;
     }
 };
@@ -44,7 +48,7 @@ TEST_F(TlvTest, writeSimple)
     //                    T     L              V
     uint8_t expected[] = {55,0, sizeof(mem),0, 1,2,3,4};
 
-    tlv->writeSimple(id, sizeof(mem), mem);
+    tlv_writer->writeSimple(id, sizeof(mem), mem);
 
     EXPECT_TRUE(nvram->match(expected, sizeof(expected)));
 }
@@ -61,10 +65,10 @@ TEST_F(TlvTest, writeComposite)
     //                    T     L     T     L     V         T      L     V
     uint8_t expected[] = {55,0, 16,0, 44,0, 4,0,  1,2,3,4,  44,0,  4,0,  11,22,33,44};
 
-    tlv->startWriteComposite(cId);
-    tlv->writeSimple(sId, sizeof(s1), s1);
-    tlv->writeSimple(sId, sizeof(s2), s2);
-    tlv->endWriteComposite();
+    tlv_writer->startWriteComposite(cId);
+    tlv_writer->writeSimple(sId, sizeof(s1), s1);
+    tlv_writer->writeSimple(sId, sizeof(s2), s2);
+    tlv_writer->endWriteComposite();
 
     //cout << memcmp(expected, nvMem, sizeof(expected));
 
@@ -81,11 +85,11 @@ TEST_F(TlvTest, writeNestedComposite)
     //                    T       L     T       L      T       L     V
     uint8_t expected[] = {0xab,0, 14,0, 0xab,0, 10,0,  0xab,0, 6,0,  1,2,3,4,5,6};
 
-    tlv->startWriteComposite(id);
-    tlv->startWriteComposite(id);
-    tlv->writeSimple(id, sizeof(s1), s1);
-    tlv->endWriteComposite();
-    tlv->endWriteComposite();
+    tlv_writer->startWriteComposite(id);
+    tlv_writer->startWriteComposite(id);
+    tlv_writer->writeSimple(id, sizeof(s1), s1);
+    tlv_writer->endWriteComposite();
+    tlv_writer->endWriteComposite();
 
     EXPECT_TRUE(nvram->match(expected, sizeof(expected)));
 }
@@ -99,12 +103,12 @@ TEST_F(TlvTest, writeNestedCompositeAndSimple)
     //                    T       L     T       L      T       L     V            T       L    V
     uint8_t expected[] = {0xab,0, 20,0, 0xab,0, 10,0,  0xab,0, 6,0,  1,2,3,4,5,6, 0xbc,0, 2,0, 10,11};
 
-    tlv->startWriteComposite(0xab);
-    tlv->startWriteComposite(0xab);
-    tlv->writeSimple(0xab, sizeof(s1), s1);
-    tlv->endWriteComposite();
-    tlv->writeSimple(0xbc, sizeof(s2), s2);
-    tlv->endWriteComposite();
+    tlv_writer->startWriteComposite(0xab);
+    tlv_writer->startWriteComposite(0xab);
+    tlv_writer->writeSimple(0xab, sizeof(s1), s1);
+    tlv_writer->endWriteComposite();
+    tlv_writer->writeSimple(0xbc, sizeof(s2), s2);
+    tlv_writer->endWriteComposite();
 
     EXPECT_TRUE(nvram->match(expected, sizeof(expected)));
 }
@@ -122,15 +126,15 @@ TEST_F(TlvTest, loadSimple)
 
     nvram->set(nvSet, sizeof(nvSet));
 
-    tlv->startLoadSimple(0xab);
-    tlv->endLoadSimple(&length, clientRam);
+    tlv_loader->startLoadSimple(0xab);
+    tlv_loader->endLoadSimple(&length, clientRam);
 
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
 TEST_F(TlvTest, invalidEndLoadComposite)
 {
-    EXPECT_EQ(CM_INCOHERENT_DATA, tlv->endLoadComposite());
+    EXPECT_EQ(CM_INCOHERENT_DATA, tlv_loader->endLoadComposite());
 }
 
 // Client tries to load a composite when NVRAM is empty.
@@ -139,7 +143,7 @@ TEST_F(TlvTest, loadEmptyComposite)
 {
     nvram->set(NULL, 0);
 
-    EXPECT_EQ(CM_READ_FAIL, tlv->startLoadComposite(0));
+    EXPECT_EQ(CM_READ_FAIL, tlv_loader->startLoadComposite(0));
 }
 
 //
@@ -153,17 +157,17 @@ TEST_F(TlvTest, loadComposite)
     // xxx set client RAM to bitpattern and verify only the expected section is modified
     nvram->set(nvSet, sizeof(nvSet));
 
-    tlv->startLoadComposite(0xab);
+    tlv_loader->startLoadComposite(0xab);
 
-    tlv->startLoadSimple(4);
+    tlv_loader->startLoadSimple(4);
     length = 2;
-    tlv->endLoadSimple(&length, clientRam);
+    tlv_loader->endLoadSimple(&length, clientRam);
     EXPECT_EQ(2, length);
 
-    tlv->startLoadSimple(4);
-    tlv->endLoadSimple(&length, clientRam + length);
+    tlv_loader->startLoadSimple(4);
+    tlv_loader->endLoadSimple(&length, clientRam + length);
     EXPECT_EQ(2, length);
-    EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
+    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
@@ -178,18 +182,18 @@ TEST_F(TlvTest, DISABLED_loadCompositeOutOfOrder)
     // xxx set client RAM to bitpattern and verify only the expected section is modified
     nvram->set(nvSet, sizeof(nvSet));
 
-    tlv->startLoadComposite(0xab);
+    tlv_loader->startLoadComposite(0xab);
 
     // Load T=9 first, which is 2nd in NVRAM, then load T=8, which is 1st in NVRAM.
-    tlv->startLoadSimple(9);
+    tlv_loader->startLoadSimple(9);
     length = 2;
-    tlv->endLoadSimple(&length, clientRam);
+    tlv_loader->endLoadSimple(&length, clientRam);
     EXPECT_EQ(2, length);
 
-    tlv->startLoadSimple(8);
-    tlv->endLoadSimple(&length, clientRam + length);
+    tlv_loader->startLoadSimple(8);
+    tlv_loader->endLoadSimple(&length, clientRam + length);
     EXPECT_EQ(2, length);
-    EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
+    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
@@ -204,13 +208,13 @@ TEST_F(TlvTest, partialLoadComposite)
     // xxx set client RAM to bitpattern and verify only the expected section is modified
     nvram->set(nvSet, sizeof(nvSet));
 
-    tlv->startLoadComposite(0xab);
+    tlv_loader->startLoadComposite(0xab);
 
     length = 2;
-    tlv->startLoadSimple(0xDD);
-    tlv->endLoadSimple(&length, clientRam);
+    tlv_loader->startLoadSimple(0xDD);
+    tlv_loader->endLoadSimple(&length, clientRam);
     EXPECT_EQ(2, length);
-    EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
+    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
@@ -226,21 +230,21 @@ TEST_F(TlvTest, findFailLoadComposite)
     // xxx set client RAM to bitpattern and verify only the expected section is modified
     nvram->set(nvSet, sizeof(nvSet));
 
-    tlv->startLoadComposite(0xab);
+    tlv_loader->startLoadComposite(0xab);
 
     length = 2;
-    result_t ret = tlv->startLoadSimple(0xdeff);
+    result_t ret = tlv_loader->startLoadSimple(0xdeff);
     EXPECT_EQ(ret, CM_NOT_FOUND);
 
     length = 2;
-    tlv->startLoadSimple(4);
-    tlv->endLoadSimple(&length, clientRam);
+    tlv_loader->startLoadSimple(4);
+    tlv_loader->endLoadSimple(&length, clientRam);
     EXPECT_EQ(2, length);
 
-    tlv->startLoadSimple(4);
-    tlv->endLoadSimple(&length, clientRam + length);
+    tlv_loader->startLoadSimple(4);
+    tlv_loader->endLoadSimple(&length, clientRam + length);
     EXPECT_EQ(2, length);
-    EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
+    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
@@ -258,14 +262,14 @@ TEST_F(TlvTest, loadNestedComposite)
 
     nvram->set(nvSet, sizeof(nvSet));
 
-    tlv->startLoadComposite(0xab);
+    tlv_loader->startLoadComposite(0xab);
 
-    tlv->startLoadComposite(0xab);
+    tlv_loader->startLoadComposite(0xab);
 
-    tlv->startLoadSimple(0xab);
-    tlv->endLoadSimple(&length, clientRam);
-    EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
-    EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
+    tlv_loader->startLoadSimple(0xab);
+    tlv_loader->endLoadSimple(&length, clientRam);
+    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
+    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
@@ -281,17 +285,17 @@ TEST_F(TlvTest, loadNestedCompositeAndSimple)
 
     nvram->set(nvSet, sizeof(nvSet));
 
-    tlv->startLoadComposite(0xab);
-    tlv->startLoadComposite(0xab);
+    tlv_loader->startLoadComposite(0xab);
+    tlv_loader->startLoadComposite(0xab);
     length = 6;
-    tlv->startLoadSimple(0xab);
-    tlv->endLoadSimple(&length, clientRam);
-    EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
+    tlv_loader->startLoadSimple(0xab);
+    tlv_loader->endLoadSimple(&length, clientRam);
+    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
 
     length = 2;
-    tlv->startLoadSimple(0xbc);
-    tlv->endLoadSimple(&length, clientRam + 6);
-    EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
+    tlv_loader->startLoadSimple(0xbc);
+    tlv_loader->endLoadSimple(&length, clientRam + 6);
+    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
 
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
@@ -307,17 +311,17 @@ TEST_F(TlvTest, loadCompositeWithUnwantedComponentAndSimple)
 
     nvram->set(nvSet, sizeof(nvSet));
 
-    tlv->startLoadComposite(0xab);
-    tlv->startLoadComposite(0xab);
+    tlv_loader->startLoadComposite(0xab);
+    tlv_loader->startLoadComposite(0xab);
     length = 6;
-    EXPECT_EQ(CM_NOT_FOUND, tlv->startLoadSimple(0xd00d));
+    EXPECT_EQ(CM_NOT_FOUND, tlv_loader->startLoadSimple(0xd00d));
     // not found, so client doesn't call endLoadSimple.
-    EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
+    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
 
     length = 2;
-    tlv->startLoadSimple(0xbc);
-    tlv->endLoadSimple(&length, clientRam);
-    EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
+    tlv_loader->startLoadSimple(0xbc);
+    tlv_loader->endLoadSimple(&length, clientRam);
+    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
 
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
@@ -332,19 +336,19 @@ TEST_F(TlvTest, loadNestedCompositeOf2Simples)
 
     nvram->set(nvSet, sizeof(nvSet));
 
-    tlv->startLoadComposite(0xab);
+    tlv_loader->startLoadComposite(0xab);
 
-    tlv->startLoadComposite(0xab);
+    tlv_loader->startLoadComposite(0xab);
 
     length = 6;
-    tlv->startLoadSimple(0xab);
-    tlv->endLoadSimple(&length, clientRam);
+    tlv_loader->startLoadSimple(0xab);
+    tlv_loader->endLoadSimple(&length, clientRam);
 
     length = 2;
-    tlv->startLoadSimple(0xbc);
-    tlv->endLoadSimple(&length, clientRam + 6);
-    EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
-    EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
+    tlv_loader->startLoadSimple(0xbc);
+    tlv_loader->endLoadSimple(&length, clientRam + 6);
+    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
+    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
@@ -358,16 +362,16 @@ TEST_F(TlvTest, load2Composites)
 
     nvram->set(nvSet, sizeof(nvSet));
 
-    tlv->startLoadComposite(0xab);
+    tlv_loader->startLoadComposite(0xab);
     length = 2;
-    tlv->startLoadSimple(0x31);
-    tlv->endLoadSimple(&length, clientRam);
-    EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
+    tlv_loader->startLoadSimple(0x31);
+    tlv_loader->endLoadSimple(&length, clientRam);
+    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
 
-    tlv->startLoadComposite(0xda);
-    tlv->startLoadSimple(0xbc);
-    tlv->endLoadSimple(&length, clientRam + length);
-    EXPECT_EQ(CM_SUCCESS, tlv->endLoadComposite());
+    tlv_loader->startLoadComposite(0xda);
+    tlv_loader->startLoadSimple(0xbc);
+    tlv_loader->endLoadSimple(&length, clientRam + length);
+    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
@@ -381,8 +385,8 @@ TEST_F(TlvTest, loadTruncatedSimple)
     nvram->set(nvSet, sizeof(nvSet));
 
     length = 4;
-    tlv->startLoadSimple(0xab);
-    result_t res = tlv->endLoadSimple(&length, clientRam);
+    tlv_loader->startLoadSimple(0xab);
+    result_t res = tlv_loader->endLoadSimple(&length, clientRam);
     EXPECT_EQ(CM_READ_FAIL, res);
 }
 } // namespace

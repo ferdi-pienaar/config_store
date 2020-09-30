@@ -17,7 +17,7 @@ cfg_mgr_descriptor.o \
 cfg_mgr_aggregate.o \
 cfg_mgr_command.o
 
-OBJS += cfg_mgr_tlv_store.o cfg_mgr_tlv.o
+OBJS += cfg_mgr_tlv_store.o cfg_mgr_tlv_writer.o cfg_mgr_tlv_loader.o
 
 OBJS += cfg_mgr_json_store.o cfg_mgr_json_writer.o cfg_mgr_json_loader.o cfg_mgr_json_ctxt.o
 

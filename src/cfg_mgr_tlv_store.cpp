@@ -15,56 +15,58 @@ namespace cfg_mgr
 
 Tlv_store::Tlv_store(Nvram * nvram) : Store(nvram)
 {
-    m_tlv = new Tlv(m_nvram);
+    m_tlv_writer = new TlvWriter(m_nvram);
+    m_tlv_loader = new TlvLoader(m_nvram);
 }
 
 
 Tlv_store::~Tlv_store()
 {
-    delete m_tlv;
+    delete m_tlv_writer;
+    delete m_tlv_loader;
 }
 
 
 result_t Tlv_store::startLoad()
 {
-    m_tlv->reset();
+    m_tlv_loader->reset();
     return Store::startLoad();
 }
 
 
 bool Tlv_store::startWrite()
 {
-    m_tlv->reset();
+    m_tlv_writer->reset();
     return Store::startWrite();
 }
 
 
 void Tlv_store::writeSimple(const Simple_metadata * data, const uint8_t * v)
 {
-    m_tlv->writeSimple(data->c.id, data->c.len, v);
+    m_tlv_writer->writeSimple(data->c.id, data->c.len, v);
 }
 
 
 void Tlv_store::startWriteComposite(const Composite_metadata * data)
 {
-    m_tlv->startWriteComposite(data->c.id);
+    m_tlv_writer->startWriteComposite(data->c.id);
 }
 
 
 void Tlv_store::endWriteComposite()
 {
-    m_tlv->endWriteComposite();
+    m_tlv_writer->endWriteComposite();
 }
 
 result_t Tlv_store::startLoadSimple(const Simple_metadata * data)
 {
-    return m_tlv->startLoadSimple(data->c.id);
+    return m_tlv_loader->startLoadSimple(data->c.id);
 }
 
 result_t Tlv_store::endLoadSimple(uint8_t * pRam, const Simple_metadata * data)
 {
     item_len_t len = data->c.len;
-    result_t ret = m_tlv->endLoadSimple(&len, pRam);
+    result_t ret = m_tlv_loader->endLoadSimple(&len, pRam);
 
     // Sanity check: the length loaded is the length that was requested.
     // In theory we might support truncation by the persistent storage module, but given that
@@ -76,11 +78,11 @@ result_t Tlv_store::endLoadSimple(uint8_t * pRam, const Simple_metadata * data)
 
 result_t Tlv_store::startLoadComposite(const Composite_metadata * data)
 {
-    return m_tlv->startLoadComposite(data->c.id);
+    return m_tlv_loader->startLoadComposite(data->c.id);
 }
 
 result_t Tlv_store::endLoadComposite()
 {
-    return m_tlv->endLoadComposite();
+    return m_tlv_loader->endLoadComposite();
 }
 }

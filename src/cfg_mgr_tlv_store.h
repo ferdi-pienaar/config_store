@@ -4,7 +4,8 @@
 #include <stdint.h> // uint8_t, etc
 #include "cfg_mgr_store.h"
 #include "cfg_mgr_metadata.h"
-#include "cfg_mgr_tlv.h"
+#include "cfg_mgr_tlv_writer.h"
+#include "cfg_mgr_tlv_loader.h"
 #include "nvram.h"
 
 namespace cfg_mgr
@@ -30,7 +31,8 @@ public:
     result_t endLoadComposite();
 
 private:
-    Tlv * m_tlv;
+    TlvWriter * m_tlv_writer;
+    TlvLoader * m_tlv_loader;
 
 };
 }
