@@ -245,6 +245,28 @@ TEST_F(JsonTest, loadSkipUnwantedString)
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
+// Load component thing2, although there's an unknown component that matches (thing22) in JSON.
+TEST_F(JsonTest, loadSkipUnwantedSuperstring)
+{
+    uint8_t    nvSet[] = {"\"compo\": {\n"
+                          " \"thing22\": \"property 13\",\n"
+                          " \"thing2\": \"property 15\"\n"
+                          "}"
+                         };
+    uint8_t    expected[] = {"property 15"};
+    item_len_t length = sizeof(expected);
+
+    // xxx set client RAM to bitpattern and verify only the expected section is modified
+
+    nvram->set(nvSet, sizeof(nvSet));
+    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadObject("compo"));
+    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing2"));
+    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
+    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadObject());
+
+    EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
+}
+
 // Load component thing2, although there's an unknown component (thing1) in JSON.
 TEST_F(JsonTest, loadSkipUnwantedObject)
 {
@@ -336,8 +358,9 @@ TEST_F(JsonTest, loadSkipUnwantedArray)
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
-// xxx describe this failing test, which makes subsequent tests crash or fail.
-TEST_F(JsonTest, DISABLED_loadSkipUnknown2)
+// How should this fail? endLoadSimple should return an error if it sees
+// something that is not a valid value, i.e. stars with '{'.
+TEST_F(JsonTest, DISABLED_loadSimpleForObject)
 {
     uint8_t    nvSet[] = {"\"compo\": {\n"
                           " \"thing1\": \"property 13\",\n"
@@ -351,7 +374,7 @@ TEST_F(JsonTest, DISABLED_loadSkipUnknown2)
 
     nvram->set(nvSet, sizeof(nvSet));
 
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing2"));
+    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("compo"));
     json_loader->endLoadSimple(&length, clientRam, cm_set_str);
 
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);

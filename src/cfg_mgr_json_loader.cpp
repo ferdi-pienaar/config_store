@@ -176,7 +176,7 @@ result_t JsonLoader::findName(const char * name)
             // Error: it doesn't even look like a name, e.g. no opening or closing quotes.
             return res;
         }
-        // readName returned CM_NOT_FOUND, so go to next name.
+        // readName returned CM_NOT_FOUND (the expected name isn't there), so go to next name.
         res = toNextName();
         if (res != CM_SUCCESS)
         {
@@ -259,7 +259,9 @@ result_t JsonLoader::toCloser(char open, char close)
 }
 
 // Advance nvram offset to character after closing quote of string.
-// @param - str in/out, append found characters to this string, if provided.
+// @param - str in/out, append found characters to this string, if provided -- includes closing quote.
+// @return CM_SUCCESS, or CM_NOT_FOUND if NVRAM ends before we reach end of string.
+// @pre - opening quote of string has been read.
 result_t JsonLoader::toStringEnd(string *str)
 {
     bool escape = false; // are we in escape state because previous char was '\'?
@@ -268,6 +270,7 @@ result_t JsonLoader::toStringEnd(string *str)
     {
         if (str != nullptr)
         {
+            // An input string was provided, so append characters.
             *str += c;
         }
         if (!escape && (c == '"'))
@@ -280,35 +283,32 @@ result_t JsonLoader::toStringEnd(string *str)
 }
 
 
-// Return SUCCESS if name, surrounded by quotes and followed by ':' is next in nvram,
-// else return error.
-// If name is not found, xxx.
+// @return CM_SUCCESS if name, surrounded by quotes and followed by ':' is next in nvram.
+//         CM_NOT_FOUND if a name is found, but not the name that we expected.
+//         CM_INCOHERENT_DATA if next in NVRAM is not a quoted string followed by ":".
+// @post if there is a name, nvram advanced to after following ":".
 result_t JsonLoader::readName(const char * name)
 {
-    result_t res = CM_SUCCESS;
     if (!isNextRead("\"", 1))
     {
         DBG_PRT("%s missing open\n", __PRETTY_FUNCTION__);
         return CM_INCOHERENT_DATA;
     }
-    if (isNextRead(name, strlen(name)))
+
+    string foundName;
+    result_t res = toStringEnd(&foundName);
+    if (res != CM_SUCCESS)
     {
-        if (!isNextRead("\"", 1))
-        {
-            DBG_PRT("%s missing close for '%s'\n", __PRETTY_FUNCTION__, name);
-            return CM_INCOHERENT_DATA;
-        }
+        DBG_PRT("%s name string unclosed.\n", __PRETTY_FUNCTION__);
+        return CM_INCOHERENT_DATA;
     }
-    else
+    size_t name_len = strlen(name);
+    size_t found_len = foundName.length() - 1; // subtract 1 because foundName includes closing quote.
+    if ((name_len != found_len) || (strncmp(foundName.c_str(), name, name_len) != 0))
     {
+        // Wrong name, but we don't return, continue to check the format.
+        DBG_PRT("%s '%s' doesn't match '%s'.\n", __PRETTY_FUNCTION__, foundName.c_str(), name);
         res = CM_NOT_FOUND;
-        DBG_PRT("%s name '%s' not found.\n", __PRETTY_FUNCTION__, name);
-        // Name doesn't match, but move to end anyway.
-        if (toStringEnd() != CM_SUCCESS)
-        {
-            DBG_PRT("%s unclosed string.\n", __PRETTY_FUNCTION__);
-            return CM_INCOHERENT_DATA;
-        }
     }
     skipws();
     if (!isNextRead(":", 1))
@@ -379,7 +379,7 @@ string JsonLoader::finishLoadNonString()
     {
         if (isws(c) || (c == ',') || (c == ']') || (c == '}'))
         {
-            // Next character read will be same again.
+            // This character is not part of the value, so move offset back.
             m_nvram->adjustOffset(-1);
             break;
         }
@@ -397,7 +397,7 @@ bool JsonLoader::skipws()
     {
         if (!isws(candidate))
         {
-            // Next character read will be this non-ws again.
+            // This character is not whitespace, so move offset back.
             m_nvram->adjustOffset(-1);
             return true;
         }
