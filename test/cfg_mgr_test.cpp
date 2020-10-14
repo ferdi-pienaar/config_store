@@ -239,7 +239,7 @@ TEST_F(CfgMgrContained, loadTruncated2)
 // Load file with incoherent CONTAINED composite (sum of the sizes
 // of components is larger than the size of the composite).
 // Load fails, so defaults are set.
-TEST_F(CfgMgrContained, loadIncoherent)
+TEST_F(CfgMgrContained, DISABLED_loadIncoherent)
 {
     uint8_t tlv[20] =
     { 1,0, 14,0, 1,0, 4,0, 8,0,0,0, 2,0, 4,0, 9,0,0,0};
@@ -258,7 +258,7 @@ TEST_F(CfgMgrContained, loadIncoherent)
 // Load file with incoherent CONTAINED composite (sum of the sizes
 // of components is smaller than the size of the composite).
 // Load fails, so defaults are set.
-TEST_F(CfgMgrContained, loadIncoherent1)
+TEST_F(CfgMgrContained, DISABLED_loadIncoherent1)
 {
     uint8_t tlv[20] =
     { 1,0, 17,0, 1,0, 4,0, 8,0,0,0, 2,0, 4,0, 9,0,0,0};

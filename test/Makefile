@@ -62,7 +62,7 @@ clean :
     
 # Execute test iff executable is untested (or new) -- the tag file timestamps last test execution.
 testTag: cm_test
-	./cm_test
+	./cm_test --gtest_shuffle
 	touch testTag
 
 # Builds gtest.a and gtest_main.a.

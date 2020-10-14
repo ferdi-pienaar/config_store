@@ -17,8 +17,6 @@
 #include "cfg_mgr_json_loader.h"
 #include "cfg_mgr_dbg.h"
 #include <cstring> // strlen
-#include "nvram.h"
-#include <assert.h>
 
 using namespace std;
 

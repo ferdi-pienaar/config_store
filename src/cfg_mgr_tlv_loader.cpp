@@ -20,11 +20,8 @@
 //
 //
 
-#include <stdint.h> // uint8_t, etc
 #include "cfg_mgr_tlv_loader.h"
 #include "cfg_mgr_dbg.h"
-#include <iostream>
-#include "nvram.h"
 #include <assert.h>
 
 using namespace std;
