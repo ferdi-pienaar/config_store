@@ -6,7 +6,7 @@
 #include <assert.h>
 #include <iostream>
 #include "cfg_mgr_types.h"
-#include "cfg_mgr_command.h"
+#include "cfg_mgr_cmd_ctxt.h"
 
 
 // xxx throughout I've provisionally avoided the use of references; revise this.

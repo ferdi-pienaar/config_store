@@ -1,7 +1,8 @@
 /// config manager def
 #include "cfg_mgr_descriptor.h"
 #include "cfg_mgr_aggregate.h"
-#include "cfg_mgr_command.h"
+#include "cfg_mgr_cmd_stack.h"
+#include "cfg_mgr_cmd_ctxt.h"
 #include "cfg_mgr_prt_hexstr.h"
 #include "cfg_mgr_dbg.h"
 #include "cfg_mgr_store.h"

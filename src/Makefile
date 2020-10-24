@@ -15,7 +15,8 @@ nvram.o \
 cfg_mgr_printf.o \
 cfg_mgr_descriptor.o \
 cfg_mgr_aggregate.o \
-cfg_mgr_command.o
+cfg_mgr_cmd_stack.o \
+cfg_mgr_cmd_ctxt.o
 
 OBJS += cfg_mgr_tlv_store.o cfg_mgr_tlv_writer.o cfg_mgr_tlv_loader.o
 

@@ -4,6 +4,7 @@
 #include "cfg_mgr_dbg.h"
 #include "cfg_mgr_store.h"
 #include "cfg_mgr_printf.h"
+#include "cfg_mgr_cmd_stack.h"
 
 #include <stdlib.h> // malloc
 #include <cstring> // memset

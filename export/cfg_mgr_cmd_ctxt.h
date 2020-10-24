@@ -1,10 +1,8 @@
-
-#ifndef CFG_MGR_COMMAND_H
-#define CFG_MGR_COMMAND_H
+#ifndef CFG_MGR_CMD_CTXT_H
+#define CFG_MGR_CMD_CTXT_H
 
 #include <stdint.h> // uint8_t, etc
 #include <string>
-#include "cfg_mgr_types.h"
 
 namespace cfg_mgr
 {
@@ -52,40 +50,5 @@ private:
     uint8_t *             m_item;
 };
 
-// Container for the command passed to cfg_mgr.  It's a stack of tokens, i.e.
-// a stack of C-strings, each string consisting of 1 token (such as a word or a quoted block).
-class Command_stack
-{
-public:
-    // Operations - each represents a reserved 'word' in commands passed to Config_manager
-    enum eCmOp
-    {
-        CM_ADD,
-        CM_DEL,
-        CM_PRT,
-        CM_PRT_CFG,
-        CM_SET,
-        CM_SETDEF,
-        CM_LOAD,
-        CM_SAVE,
-        CM_HELP,       //
-        CM_RESET_CTXT, // return context to top level
-        CM_OP_NONE
-    };
-
-    Command_stack(int argc, char ** argv) : m_count(argc), m_tokenPtr(argv) {}
-    Command_stack & pop();
-    char * getTop() const;
-    int getCount() const
-    {
-        return m_count;
-    }
-    eCmOp getTopOp() const;
-    bool getIndex(unsigned int & itemIdx);
-
-private:
-    int     m_count;
-    char ** m_tokenPtr;
-};
 }
-#endif // CFG_MGR_COMMAND_H
+#endif // CFG_MGR_CMD_CTXT_H

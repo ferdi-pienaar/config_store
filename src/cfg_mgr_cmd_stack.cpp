@@ -1,17 +1,11 @@
-/// config manager def
-#include "cfg_mgr_command.h"
+#include "cfg_mgr_cmd_stack.h"
 #include <cstring> // strcmp
+#include <stdlib.h> // strtoul
 
 using namespace std;
 
 namespace cfg_mgr
 {
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// Command_stack
-//
-////////////////////////////////////////////////////////////////////////////////
 
 // Pop top word.
 // Return ref to self so the value returned by the command can be passed to a fn
@@ -60,29 +54,6 @@ bool Command_stack::getIndex(unsigned int & itemIdx)
     }
     pop();
     return true;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// Cmd_context
-//
-////////////////////////////////////////////////////////////////////////////////
-
-// Add a token to the context string
-void Cmd_context::add(string w)
-{
-    m_string += w + " ";
-}
-
-
-// Add an unsigned integer to the context string
-void Cmd_context::add(unsigned idx)
-{
-    char indexbuf[6]; // xxx big enough to avoid truncation in all cases?
-
-    snprintf(indexbuf, sizeof(indexbuf), "%d ", idx);
-    m_string += indexbuf;
 }
 
 }
