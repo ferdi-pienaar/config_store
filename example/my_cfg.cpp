@@ -17,8 +17,10 @@
 
 // xxx should be a naming convention: camelCase, or underscores, etc.
 #include "my_cfg.h"
-#include "cfg_mgr_descriptor.h"
-#include "cfg_mgr_aggregate.h"
+#include "cfg_mgr_simple_descriptor.h"
+#include "cfg_mgr_composite_descriptor.h"
+#include "cfg_mgr_contained_aggregate.h"
+#include "cfg_mgr_owned_aggregate.h"
 #include "cfg_mgr_set_int.h"
 #include "cfg_mgr_prt_int.h"
 #include "cfg_mgr_set_str.h"

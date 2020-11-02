@@ -5,8 +5,10 @@
 //
 
 #include "gtest/gtest.h"
-#include "cfg_mgr_descriptor.h"       // Unit under test
-#include "cfg_mgr_aggregate.h"       // Unit under test
+#include "cfg_mgr_composite_descriptor.h"       // Unit under test
+#include "cfg_mgr_simple_descriptor.h"       // Unit under test
+#include "cfg_mgr_contained_aggregate.h"       // Unit under test
+#include "cfg_mgr_owned_aggregate.h"       // Unit under test
 #include "cfg_mgr_cmd_ctxt.h"       // Unit under test
 #include "cfg_mgr_cmd_stack.h"       // Unit under test
 #include "cfg_mgr_set_int.h"  // Extensions to unit under test (generic "set" functions)

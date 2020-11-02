@@ -9,8 +9,10 @@
 
 #include "gtest/gtest.h"
 #include "cfg_mgr.h"       // Unit under test
-#include "cfg_mgr_descriptor.h"       // Unit under test
-#include "cfg_mgr_aggregate.h"       // Unit under test
+#include "cfg_mgr_simple_descriptor.h"       // Unit under test
+#include "cfg_mgr_composite_descriptor.h"       // Unit under test
+#include "cfg_mgr_contained_aggregate.h"       // Unit under test
+#include "cfg_mgr_owned_aggregate.h"       // Unit under test
 #include "cfg_mgr_set_int.h"  // Extensions to unit under test (generic "set" functions)
 #include "cfg_mgr_setdef_null.h" // generic setdef function
 #include "nvram_spy.h"

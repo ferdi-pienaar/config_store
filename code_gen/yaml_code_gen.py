@@ -6,10 +6,13 @@ describing the contents of those structures.
 Usage: python yaml_code_gen.py [source YAML file]
 
 todo:
-Should we mark items in the ID file that are no longer present in the config file?
-We retain the IDs in the ID file (so this script can avoid re-using them), but
-it could be useful to see what's no longer used in the current config without
-having to compare the config file and the ID file.
+  Should we mark items in the ID file that are no longer present in the config file?
+  We retain the IDs in the ID file (so this script can avoid re-using them), but
+  it could be useful to see what's no longer used in the current config without
+  having to compare the config file and the ID file.
+
+  Only include cfg_mgr_simple_descriptor.h/cfg_mgr_composite_descriptor.h and
+  cfg_mgr_contained_aggregate.h/cfg_mgr_owned_aggregate.h if actually used.
 
 """
 
@@ -488,8 +491,10 @@ def saveInititializationFile(baseFileName, baseItem):
     "Make .cpp file containing definitions and initializations"
     finit = open(baseFileName + ".cpp", "w")
     finit.write(getInitHeader(sys.argv[0], sys.argv[1]))
-    finit.write("#include \"cfg_mgr_descriptor.h\" // from cfg_mgr library\n")
-    finit.write("#include \"cfg_mgr_aggregate.h\" // from cfg_mgr library\n")
+    finit.write("#include \"cfg_mgr_simple_descriptor.h\" // from cfg_mgr library\n")
+    finit.write("#include \"cfg_mgr_composite_descriptor.h\" // from cfg_mgr library\n")
+    finit.write("#include \"cfg_mgr_contained_aggregate.h\" // from cfg_mgr library\n")
+    finit.write("#include \"cfg_mgr_owned_aggregate.h\" // from cfg_mgr library\n")
     finit.write("#include \"" + baseFileName + ".h\" // auto-generated\n")
     finit.write("#include \"" + baseFileName + "_depend.h\" // supplied by application programmer\n\n")
     finit.write("namespace {\n")

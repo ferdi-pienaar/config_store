@@ -13,8 +13,11 @@ cfg_mgr_setdef_null.o \
 cfg_mgr_store.o \
 nvram.o \
 cfg_mgr_printf.o \
-cfg_mgr_descriptor.o \
+cfg_mgr_simple_descriptor.o \
+cfg_mgr_composite_descriptor.o \
 cfg_mgr_aggregate.o \
+cfg_mgr_contained_aggregate.o \
+cfg_mgr_owned_aggregate.o \
 cfg_mgr_cmd_stack.o \
 cfg_mgr_cmd_ctxt.o
 
