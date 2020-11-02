@@ -40,8 +40,9 @@ Command_stack::eCmOp Command_stack::getTopOp() const
 }
 
 
-// Extract index from top token in command stack and pop it.
-bool Command_stack::getIndex(unsigned int & itemIdx)
+// Pop an integer (representing an index).
+// @return true iff there's an integer at stack top.
+bool Command_stack::popIndex(unsigned int & itemIdx)
 {
     if (m_count == 0) return false;
 

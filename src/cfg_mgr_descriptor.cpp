@@ -425,7 +425,7 @@ void Simple_descriptor::save(const uint8_t *pItem, Store * store) const
 }
 
 
-// @param pItem
+// @param store
 result_t Simple_descriptor::startLoad(Store * store) const
 {
     result_t ret = store->startLoadSimple(m_data);

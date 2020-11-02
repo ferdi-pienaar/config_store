@@ -27,7 +27,7 @@ namespace cfg_mgr
 //
 bool Aggregate::getIndex(Command_stack * cmd, unsigned int & itemIdx) const
 {
-    if (cmd->getIndex(itemIdx)) return true;
+    if (cmd->popIndex(itemIdx)) return true;
     cm_printf("'%s' needs index.\n", m_data->pDesc->getName());
     return false;
 }

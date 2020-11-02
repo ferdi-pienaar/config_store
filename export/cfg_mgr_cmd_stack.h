@@ -33,7 +33,7 @@ public:
         return m_count;
     }
     eCmOp getTopOp() const;
-    bool getIndex(unsigned int & itemIdx);
+    bool popIndex(unsigned int & itemIdx);
 
 private:
     int     m_count;
