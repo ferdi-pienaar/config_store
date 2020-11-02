@@ -7,7 +7,8 @@
 #include "gtest/gtest.h"
 #include "cfg_mgr_descriptor.h"       // Unit under test
 #include "cfg_mgr_aggregate.h"       // Unit under test
-#include "cfg_mgr_command.h"       // Unit under test
+#include "cfg_mgr_cmd_ctxt.h"       // Unit under test
+#include "cfg_mgr_cmd_stack.h"       // Unit under test
 #include "cfg_mgr_set_int.h"  // Extensions to unit under test (generic "set" functions)
 #include "cfg_mgr_printf_spy.h"
 
