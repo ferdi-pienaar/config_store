@@ -1,7 +1,7 @@
 #ifndef MY_CFG_FN_H
 #define MY_CFG_FN_H
 
-#include "cfg_mgr.h"
+#include "cfg_mgr_types.h" // cfg_mgr::item_len_t
 
 void setdef_temp(uint8_t *pItem, cfg_mgr::item_len_t len);
 std::string prt_temp(const uint8_t *pItem, cfg_mgr::item_len_t len);

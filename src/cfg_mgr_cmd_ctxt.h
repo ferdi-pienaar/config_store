@@ -9,7 +9,7 @@ namespace cfg_mgr
 
 class Descriptor;
 
-// xxx should not be exported
+// Should not be included directly by client files.
 // The context in which a command string is interpreted:
 // the current item, its descriptor (i.e. its metadata), and the
 // string that's displayed on the command-line to represent the context, i.e. the location

@@ -7,10 +7,11 @@
 #include <cstring> // strlen
 #include <climits> // SHRT_MIN, SHRT_MAX
 #include <math.h> // round
-#include "cfg_mgr.h"
+#include "cfg_mgr_types.h"
 #include "my_cfg_fn1.h"
 #include "cfg_mgr_printf.h"
 #include <sstream>
+#include <assert.h>
 
 using namespace std;
 using namespace cfg_mgr;

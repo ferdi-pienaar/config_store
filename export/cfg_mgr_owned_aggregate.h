@@ -3,7 +3,6 @@
 #define CFG_MGR_OWNED_AGGREGATE_H
 
 #include <stdint.h> // uint8_t, etc
-#include <assert.h>
 #include "cfg_mgr_aggregate.h" // parent class
 #include "cfg_mgr_types.h"
 #include "cfg_mgr_metadata.h"

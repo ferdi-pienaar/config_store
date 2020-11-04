@@ -1,4 +1,3 @@
-/// config manager def
 #include "cfg_mgr.h"
 #include "cfg_mgr_descriptor.h"
 #include "cfg_mgr_dbg.h"
@@ -9,6 +8,7 @@
 #include <stdlib.h> // malloc
 #include <cstring> // memset
 #include <stdint.h> // UINT8_MAX, etc
+#include <assert.h>
 
 using namespace std;
 

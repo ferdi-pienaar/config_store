@@ -2,10 +2,8 @@
 // the features provided by the Config_manager.
 //
 
-#include <iostream>
-#include "cfg_mgr.h"
 #include "my_cfg_fn.h"
-using namespace std;
+#include <assert.h>
 using namespace cfg_mgr;
 
 //

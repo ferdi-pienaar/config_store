@@ -1,4 +1,3 @@
-/// config manager def
 #include "cfg_mgr_simple_descriptor.h"
 #include "cfg_mgr_cmd_stack.h"
 #include "cfg_mgr_cmd_ctxt.h"

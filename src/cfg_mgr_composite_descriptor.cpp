@@ -1,4 +1,3 @@
-/// config manager def
 #include "cfg_mgr_composite_descriptor.h"
 #include "cfg_mgr_aggregate.h"
 #include "cfg_mgr_cmd_stack.h"
@@ -18,7 +17,7 @@ namespace cfg_mgr
 //
 // @param cmd - stack of strings containing name elements
 // @param pItem - pointer to RAM where item is located
-// @param candidateContext - in/out, candidate new command=line
+// @param candidateContext - in/out, candidate new command-line
 //        context build up while interpreting cmd stack.
 // @param updateCtx - out, true if candidateContext should become
 //        the new context.
@@ -158,9 +157,9 @@ bool Composite_descriptor::handleDel(Command_stack * cmd, uint8_t * pItem) const
 {
     DBG_PRT("handleDel %s\n", cmd->getTop());
 
-    if ((cmd->getCount() != 1) && (cmd->getCount() != 2))
+    if (!((cmd->getCount() == 1) || (cmd->getCount() == 2)))
     {
-        // Provide item name and, optionally, index
+        // Should provide item name and, optionally, index.
         cm_printf("%u parameters for 'del'.\n", cmd->getCount());
         return false;
     }

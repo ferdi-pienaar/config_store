@@ -4,11 +4,12 @@
  */
 #include <iostream>
 #include "nvram.h"
-#include "cfg_mgr.h"
+#include "cfg_mgr_interface.h"
 #include "cfg.h"
 #include "cfg_mgr_strtok.h" // strtok
 #include <pthread.h>
 #include <unistd.h> // sleep
+#include <assert.h>
 
 using namespace std;
 
@@ -17,12 +18,54 @@ const cfg_mgr::Descriptor * get_base_descriptor();
 #define WORD_DELIMITERS " \n"
 #define BLOCK_DELIMITER "\""
 
+static void * stats_thread(void * arg);
+static void handle_command(cfg_mgr::Config_manager_interface & cm);
+
+int main()
+{
+    cfg_mgr::Nvram nvram;
+    // Initialize the config manager with the base descriptor it is to manage.
+    cfg_mgr::Config_manager_interface cm(get_base_descriptor(), &nvram);
+
+    pthread_t thread;
+    int rc = pthread_create(&thread, NULL, stats_thread, &cm);
+    assert(0 == rc);
+
+    // Read commands from stdin and give them to the config manager
+    while (true)
+    {
+        handle_command(cm);
+    }
+}
+
+// Get command from stdin and pass it to Config_manager_interface.
+void handle_command(cfg_mgr::Config_manager_interface & cm)
+{
+    printf("%s> ", cm.getPromptString());
+
+    char cmd[120];
+    if (fgets(cmd, sizeof(cmd), stdin) == nullptr)
+    {
+        return;
+    }
+
+    // Break commands into a list of tokens, as expected by config manager
+    char * param[20];
+    cfg_mgr::Strtok strtok(cmd);
+    unsigned int wordCnt = 0;
+    while ((param[wordCnt] = strtok(WORD_DELIMITERS, BLOCK_DELIMITER)))
+    {
+        wordCnt++;
+    }
+    cm.handleCmd(wordCnt, param);
+}
+
 // Periodically, update some stats that can be displayed by cfg_mgr.
 // NB: there's a race condition here! By the time we modify config
 // it may not exist anymore.
 void * stats_thread(void * arg)
 {
-    cfg_mgr::Config_manager * cm = (cfg_mgr::Config_manager *)arg;
+    cfg_mgr::Config_manager_interface * cm = (cfg_mgr::Config_manager_interface *)arg;
     t_device * pCfg = (t_device *)cm->getConfig();
 
     for (;;)
@@ -37,37 +80,4 @@ void * stats_thread(void * arg)
         }
     }
     return NULL;
-}
-
-int main()
-{
-    cfg_mgr::Nvram nvram;
-    // Initialize the config manager with the base descriptor it is to manage.
-    cfg_mgr::Config_manager cm(get_base_descriptor(), &nvram);
-
-    pthread_t thread;
-    int rc = pthread_create(&thread, NULL, stats_thread, &cm);
-    assert(0 == rc);
-
-    // Read commands from stdin and give them to the config manager
-    while (true)
-    {
-        printf("%s> ", cm.getPromptString());
-
-        char cmd[120];
-        if (fgets(cmd, sizeof(cmd), stdin) == nullptr)
-        {
-            continue;
-        }
-
-        // Break commands into a list of tokens, as expected by config manager
-        char * param[20];
-        cfg_mgr::Strtok strtok(cmd);
-        unsigned int wordCnt = 0;
-        while ((param[wordCnt] = strtok(WORD_DELIMITERS, BLOCK_DELIMITER)))
-        {
-            wordCnt++;
-        }
-        cm.handleCmd(wordCnt, param);
-    }
 }

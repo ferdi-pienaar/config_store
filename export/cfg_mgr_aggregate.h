@@ -31,6 +31,8 @@ class Store;
 // Perhaps all members should be private, with Composite_descriptor
 // as friend, since it has to read (but not write) them.
 //
+// This is the parent class; a client's data definition uses 1 of its 2 derived
+// classes.
 //
 class Aggregate
 {

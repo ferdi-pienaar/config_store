@@ -4,9 +4,11 @@
 
 #include <stdint.h> // uint8_t, etc
 #include "cfg_mgr_types.h"
-#include "cfg_mgr_metadata.h"
+#include <string>
 
 /*
+ * Relationship between the exported classes Simple_descriptor, Composite_descriptor,
+ * Contained_aggregate and Owned_aggregate.
  *
  *              +----------------+
  *              |  descriptor    |
@@ -50,6 +52,8 @@ class Store;
 ////////////////////////////////////////////////////////////////////////////////
 /// Descriptor of configurable item (either simple or composite).
 // xxx methods are private (not for user), but Config_manager is friend?
+// This is the parent class; a client's data definition uses 1 of its 2 derived
+// classes.
 class Descriptor
 {
 public:

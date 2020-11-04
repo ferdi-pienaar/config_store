@@ -1,4 +1,3 @@
-/// config manager def
 #include "cfg_mgr_owned_aggregate.h"
 #include "cfg_mgr_contained_aggregate.h"
 #include "cfg_mgr_descriptor.h"

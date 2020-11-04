@@ -3,7 +3,6 @@
 #define CFG_MGR_H
 
 #include <stdint.h> // uint8_t, etc
-#include <assert.h>
 #include <iostream>
 #include "cfg_mgr_types.h"
 #include "cfg_mgr_cmd_ctxt.h"
@@ -19,7 +18,7 @@ class Nvram;
 
 /// Configuration manager, managing all configurable items in the system.
 // This class is the application programme's sole point of access to
-// the configurable items.
+// the configurable items, that live in RAM allocated by this class.
 class Config_manager
 {
 public:
