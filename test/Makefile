@@ -20,13 +20,14 @@ GTEST_DIR = ../../gtest/googletest-master/googletest
 USER_DIR = ../src
 STUB_DIR = ../stubs
 UTIL_DIR = ../util
+UTIL_EXPORT_DIR = ../export/util
 
 VPATH = ../src # so make can find the sources and library
 
 # Flags passed to the preprocessor.
 # Set Google Test's header directory as a system directory, such that
 # the compiler doesn't generate warnings in Google Test headers.
-CPPFLAGS += -isystem $(GTEST_DIR)/include -I $(USER_DIR) -I $(STUB_DIR) -I $(UTIL_DIR) -I ../export
+CPPFLAGS += -isystem $(GTEST_DIR)/include -I $(USER_DIR) -I $(STUB_DIR) -I $(UTIL_EXPORT_DIR) -I ../export
 
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g -Wall -Wextra -pthread
@@ -45,7 +46,8 @@ MOCK_OBJS = $(STUB_DIR)/nvram_spy.o $(STUB_DIR)/cfg_mgr_printf_spy.o
 UTIL_OBJS = $(UTIL_DIR)/cfg_mgr_set_int.o \
  $(UTIL_DIR)/cfg_mgr_set_str.o \
  $(UTIL_DIR)/cfg_mgr_prt_int.o \
- $(UTIL_DIR)/cfg_mgr_prt_str.o
+ $(UTIL_DIR)/cfg_mgr_prt_str.o \
+ $(UTIL_DIR)/cfg_mgr_setdef_null.o
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.

@@ -22,8 +22,7 @@ static void handle_command(cfg_mgr::Config_manager_interface & cm);
 int main()
 {
     // Initialize the config manager with the base descriptor it is to manage.
-    cfg_mgr::Nvram nvram;
-    cfg_mgr::Config_manager_interface cm(get_base_descriptor(), &nvram);
+    cfg_mgr::Config_manager_interface cm(get_base_descriptor());
 
     pthread_t thread;
     int rc = pthread_create(&thread, NULL, stats_thread, &cm);

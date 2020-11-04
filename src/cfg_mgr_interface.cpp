@@ -1,17 +1,23 @@
 #include "cfg_mgr_interface.h"
 #include "cfg_mgr.h"
+#include "nvram.h"
 
 namespace cfg_mgr
 {
 
-Config_manager_interface::Config_manager_interface(const Descriptor * pDesc, Nvram * nvram)
+// Having this class inject Nvram reference to Config_manager
+// simplifies testing, since it allows test to inject a spy
+// to Config_manager.
+Config_manager_interface::Config_manager_interface(const Descriptor * pDesc)
 {
-    m_config_manager = new Config_manager(pDesc, nvram);
+    m_nvram = new Nvram;
+    m_config_manager = new Config_manager(pDesc, m_nvram);
 }
 
 Config_manager_interface::~Config_manager_interface()
 {
     delete m_config_manager;
+    delete m_nvram;
 }
 
 void Config_manager_interface::handleCmd(int argc, char *argv[])

@@ -10,7 +10,6 @@ CXXFLAGS += -MMD
 OBJS = cfg_mgr.o \
 cfg_mgr_interface.o \
 cfg_mgr_prt_hexstr.o \
-cfg_mgr_setdef_null.o \
 cfg_mgr_store.o \
 nvram.o \
 cfg_mgr_printf.o \
