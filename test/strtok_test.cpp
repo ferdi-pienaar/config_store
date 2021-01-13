@@ -118,4 +118,32 @@ TEST_F(SpecialBlock, get)
     EXPECT_EQ(nullptr, t(word_delimiters, block_open, block_close));
 }
 
+// Block followed directly by a word, without a word delimiter.
+class BlockNextWord : public testing::Test
+{
+protected:
+    void SetUp()
+    {
+        strncpy(words, "BEGINinBENDout", sizeof(words));
+    }
+    char words[100];
+    const char * word_delimiters = " ";
+    const char * block_open = "BEGIN";
+    const char * block_close = "BEND";
+};
+
+// Are we handling this case correctly? The implementation is that we
+// segment the original string, not create new strings, so there always
+// must be a space to write the string terminator. In this case, where there
+// is no space, should we handle it by losing one character from next token,
+// or in some other way?
+TEST_F(BlockNextWord, get)
+{
+    cfg_mgr::Strtok t(words);
+
+    EXPECT_STREQ("BEGINinBEND", t(word_delimiters, block_open, block_close));
+    EXPECT_STREQ("ut", t(word_delimiters, block_open, block_close));
+    EXPECT_EQ(nullptr, t(word_delimiters, block_open, block_close));
+}
+
 } // namespace

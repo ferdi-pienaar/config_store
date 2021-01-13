@@ -16,88 +16,117 @@ char * Strtok::operator() (const char * word_delimiters,
                            const char * block_start,
                            const char * block_end)
 {
-    if ((block_start != nullptr) && (block_end == nullptr))
+    if (block_start && !block_end)
     {
-        // If caller gives block_start but not block_end, block_start is also block_end.
+        // Caller gave block_start but not block_end: use block_start for both.
         block_end = block_start;
     }
-    char * start = nullptr;
-    for ( ; *m_str != 0; m_str++)
+    State state = seek_token(word_delimiters, block_start, block_end);
+    if (state == FAIL)
     {
-        TokenType type;
-        if (!start)
-        {
-            start = get_start(word_delimiters, block_start, &type);
-        }
-        if (start && get_end(word_delimiters, block_end, type))
-        {
-            break;
-        }
-    }
-    if (*m_str == 0)
-    {
-        // No token found: done.
         return nullptr;
     }
     // Terminate the output string at token's end.
-    *m_str = 0;
-    // Next time, start search from first char after this token's end.
-    m_str++;
-    return start;
+    *(m_str - 1) = 0;
+    return m_start;
 }
 
-// Return pointer to start of token if we're at start of a token.
+// Search the remainder of the string for the next token.
+// @return FOUND if a token was found. m_start points to the token
+//          and m_str points to the character after the token.
+//         FAIL if string terminator reached without a token.
+Strtok::State Strtok::seek_token(const char * word_delimiters,
+                                 const char * block_start,
+                                 const char * block_end)
+{
+    State state = PREFIX;
+    for ( ; state < FOUND; m_str++)
+    {
+        TokenType type;
+        if (state == PREFIX)
+        {
+            state = seek_start(word_delimiters, block_start, &type);
+        }
+        else if (state == TOKEN)
+        {
+            state = seek_end(word_delimiters, block_end, type);
+        }
+    }
+    return state;
+}
+
+// Set pointer to start of token if we're at start of a token.
 // @param word_delimiters - in, set of characters between words
 // @param block_start - in, string
 // @param type - out, type of token starting.
-// @return ptr to token's start, or nullptr if m_str points to a word delimiter.
-// @pre start not found yet.
-// @post if return non-nullptr, m_str points to location to start search for
-//       token's end.
-char * Strtok::get_start(const char * word_delimiters, const char * block_start, TokenType * type)
+// @return state.
+// @pre state == SEEK.
+// @return PREFIX if still in prefix consisting of word-delimiters
+//         TOKEN (m_start is set and m_str advanced past block start if type is BLOCK)
+//         FAIL if string terminator reached without finding token start.
+Strtok::State Strtok::seek_start(const char * word_delimiters,
+                                 const char * block_start,
+                                 TokenType * type)
 {
+    if (*m_str == 0)
+    {
+        return FAIL;
+    }
     if (strchr(word_delimiters, *m_str))
     {
-        // Still in prefix.
-        return nullptr;
+        return PREFIX;
     }
     // After prefix (if any), start token of type WORD or BLOCK.
-    if ((block_start != nullptr) && (strncmp(block_start, m_str, strlen(block_start)) == 0))
+    m_start = m_str;
+    *type = WORD; // the default type is WORD.
+    if (block_start && (strncmp(block_start, m_str, strlen(block_start)) == 0))
     {
         *type = BLOCK;
-        char * start = m_str;
         // Start looking for block close AFTER block open.
         m_str += strlen(block_start);
-        return start;
     }
-    else
-    {
-        *type = WORD;
-        return m_str;
-    }
+    return TOKEN;
 }
 
-// Return true if we've reached the end of a token.
+// Look for end of a token or the end of the string.
 // @param word_delimiters - in, set of characters between words
 // @param block_end - in, string
 // @param type - in, type of token we're in.
-// @pre start already found.
-// @post if return true, m_str is set to end of token.
-bool Strtok::get_end(const char * word_delimiters, const char * block_end, TokenType type)
+// @pre state == TOKEN.
+// @return TOKEN (still in token)
+//         FOUND or
+//         FAIL if string terminator reached before end of block-type token.
+Strtok::State Strtok::seek_end(const char * word_delimiters,
+                               const char * block_end,
+                               TokenType type)
 {
-    if ((type == BLOCK) && (strncmp(block_end, m_str, strlen(block_end)) == 0))
+    if (type == BLOCK)
     {
-        // Token ends AFTER block end.
-        m_str += strlen(block_end);
-        return true;
+        return seek_block_end(block_end);
     }
-    else if ((type == WORD) && strchr(word_delimiters, *m_str))
+    // Word ends at string terminator or word delimiter.
+    if ((*m_str == 0) || strchr(word_delimiters, *m_str))
     {
-        // Token ends at word-end delimiter.
-        return true;
+        return FOUND;
     }
-    return false;
+    return TOKEN;
+}
+
+Strtok::State Strtok::seek_block_end(const char * block_end)
+{
+    if (*m_str == 0)
+    {
+        // Reached string terminator without finding block end.
+        return FAIL;
+    }
+    unsigned block_end_len = strlen(block_end);
+    if (strncmp(block_end, m_str, block_end_len) == 0)
+    {
+        // Token ends AFTER block end -- string may terminate too.
+        m_str += block_end_len;
+        return FOUND;
+    }
+    return TOKEN;
 }
 
 }
-
