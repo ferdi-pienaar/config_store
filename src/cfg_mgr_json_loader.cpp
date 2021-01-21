@@ -360,10 +360,7 @@ string JsonLoader::loadValue()
         toStringEnd(&str);
         return c + str;
     }
-    else
-    {
-        return c + finishLoadNonString();
-    }
+    return c + finishLoadNonString();
 }
 
 

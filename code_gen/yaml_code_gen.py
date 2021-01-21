@@ -31,24 +31,24 @@ def getCommonHdr(script, inputFile):
 def getDeclHeader(script, inputFile):
     return (getCommonHdr(script, inputFile) +
             "// It contains data structure definitions for configurable items managed by cfg_mgr.\n\n")
-    
+
 def getInitHeader(script, inputFile):
     return (getCommonHdr(script, inputFile) +
             "// It contains initialization of metadata for configurable items managed by cfg_mgr.\n\n")
 
 def getIdHeader(script):
     return ("# This file is both input to and output from " + script + ".\n" +
-	        "# It 'remembers' the ID that's used to identify each item in NVRAM, for interoperability\n" +
-			"# between different versions of the user-defined configurable item hierarchy.\n" +
-	        "# It may be modified, typically to remove an item whose ID may be re-allocated because it\n" +
+            "# It 'remembers' the ID that's used to identify each item in NVRAM, for interoperability\n" +
+            "# between different versions of the user-defined configurable item hierarchy.\n" +
+            "# It may be modified, typically to remove an item whose ID may be re-allocated because it\n" +
             "# is no longer used anywhere.\n")
-    
-class Id_generator():
+
+class Id_generator:
     "Generate IDs for TLV: the data struct of existing IDs in the context is used to avoid allocating IDs that are taken"
     def __init__(self, id_dlist):
         "id_dlist is a data structure that contains IDs that are already allocated, i.e. not available"
         self.__make_id_dict(id_dlist)
-        
+
     def get_id(self, name):
         "Generate an int ID for a name, but not one that's already in use in the context"
         id = 0
@@ -57,11 +57,11 @@ class Id_generator():
             id = id + 1
         self.allocated_id[name] = id
         return str(id)
-        
+
     def get_ids(self):
         "Get the dictionary of name:ID in use, newly-generated or not"
         return self.allocated_id
-            
+
     def __make_id_dict(self, id_dlist):
         "From more complex data struct passed to constructor, generate a name:ID dictionary"
         self.allocated_id = collections.OrderedDict()
@@ -82,10 +82,10 @@ class Item:
         else:
             self.id = container_id_gen.get_id(d['name'])
             print("{} assigned new ID {}".format(d['name'], self.id))
-        
+
     def get_metadata_name(self):
         return self.full_name + "_data"
-        
+
     def get_common_metadata_init(self):
         "Return string representing initialization of the common metadata structure"
         s = indent + "{\n"
@@ -99,11 +99,11 @@ class Item:
             s += "false\n"
         s += indent + "},\n"
         return s
-        
+
     def get_component_ids(self):
         "Implemented by CompositeItem"
         pass
-        
+
     def get_access_fn(self):
         "Return string representing a fn to access the item."
         s = "const cfg_mgr::Descriptor * get_base_descriptor()\n"
@@ -111,8 +111,8 @@ class Item:
         s += indent + "return &" + self.full_name + ";\n"
         s += "}\n"
         return s
-        
-    
+
+
 class SimpleItem(Item):
     def __init__(self, d, container_id_gen, old_id, full_name):
         Item.__init__(self, d, container_id_gen, old_id, full_name)
@@ -120,19 +120,19 @@ class SimpleItem(Item):
         if "string" in d['type']:
             self.is_string_type = True
             self.string_len = d['type'].split()[1]
-                   
+
     def verify(self):
         "Check item description in YAML file is valid and consistent."
         # Not much to check here -- if the basics like 'name' and 'type' are absent, an exception is raised,
         # maybe even before we get to this point.        
         return True
-                    
+
     def get_init(self):
         "Return string containing initialization of the metadata"
         s = self.get_metadata_init()
         s += "const cfg_mgr::Simple_descriptor " + self.full_name + "(&" + self.get_metadata_name() + ");\n"
         return s
-        
+
     def get_metadata_init(self):
         s = "const cfg_mgr::Simple_metadata " + self.get_metadata_name() + " =\n{\n"
         s += self.get_common_metadata_init()
@@ -155,7 +155,7 @@ class SimpleItem(Item):
             s += "NULL"
         s += ", // print\n};\n"
         return s
-    
+
     def get_type_and_name(self, aggrType):
         "Get the type and the name, part of the definition line"
         if self.is_string_type:
@@ -180,15 +180,15 @@ class SimpleItem(Item):
     def get_definition(self):
         "No struct def for simple"
         return ""
-        
-        
+
+
 def get_value_from_dictionary_list(dlist, key):
     "Helper function: from list of dictionaries, return the value of 1st dictionary with the desired 'name' entry(or None)"
     for d in dlist:
         if d['name'] == key:
             return d
 
-      
+
 class CompositeItem(Item):
     def __init__(self, d, container_id_gen, old_id, full_name):
         "prefix_string, from containing item, is prefixed to this item's name to give this item's structure name"
@@ -209,7 +209,7 @@ class CompositeItem(Item):
         for aggr in self.aggregates:
             aggr.verify()
         return True
-        
+
     def get_component_ids(self):
         "Get list of component IDs in format used to generate the ID yaml file"
         component_ids = self.id_gen.get_ids() # This dictionary includes old IDs from ID file
@@ -242,7 +242,7 @@ class CompositeItem(Item):
             s += indent + aggr.get_instance_definition()
         s += "};\n"
         return s
-        
+
     def get_init(self):
         "Return string containing initialization of the metadata, including pre-pended initialization of included data"
         s = ""
@@ -252,14 +252,14 @@ class CompositeItem(Item):
         s += self.get_metadata_init()
         s += "const cfg_mgr::Composite_descriptor " + self.full_name + "(&" + self.get_metadata_name() + ");\n"
         return s
-        
+
     def get_aggr_list_init(self):
         s = "const cfg_mgr::Aggregate * const " + self.get_aggr_list_name() + "[] =\n{\n"
         for a in self.aggregates:
             s += indent + "&" + a.full_name + "_aggr,\n"
         s += "\n};\n"
         return s
-        
+
     def get_metadata_init(self):
         s = "const cfg_mgr::Composite_metadata " + self.get_metadata_name() + " =\n{\n"
         s += self.get_common_metadata_init()
@@ -267,24 +267,24 @@ class CompositeItem(Item):
         s += indent + "sizeof(" + self.get_aggr_list_name() + ")/sizeof(" + self.get_aggr_list_name() + "[0])\n"
         s += "};\n"
         return s
-        
+
     def get_aggr_list_name(self):
         return self.full_name + "_aggr_list"
-        
+
     def get_type(self):
         return "t_" + self.full_name
-        
+
     def get_type_and_name(self, aggrType):
         s = self.get_type() + " "
         if aggrType == 'owned':
             s += "* "
         s += self.d['name']
         return s
-        
+
     def get_size(self):
         return "sizeof(" + self.get_type() + ")"
-              
-                    
+
+
 class Aggregate:
     def __init__(self, d, id_gen, old_id, container_name):
         self.d = d
@@ -364,8 +364,14 @@ class OwnedAggregate(Aggregate):
         return True  
         
     def get_instance_definition(self):
-        return self.item.get_type_and_name('owned') + ";\n"
-        
+        s = self.item.get_type_and_name('owned') + "; // Pointer to item"
+        if self.get_max_count() > 1:
+            s += " array, max entries is " + self.get_count_str()
+            if 'counter' in self.d:
+                s += ", counter is " + self.d['counter']['item']['name']
+        s += ".\n"
+        return s
+
     def get_instantiate(self):
         s = "const cfg_mgr::Owned_aggregate " + self.full_name + "_aggr(&" + self.get_data_name()
         if len(self.counter_name) > 0:
@@ -383,15 +389,15 @@ class OwnedAggregate(Aggregate):
         except:
             # Simple case: return the value
             return self.d['count']
-        
-        
+
+
 def makeItem(d, container_id_gen, old_id, full_name):
     "Factory method returns an Item object of the requested class"
     if 'aggregate' in d: 
         return CompositeItem(d, container_id_gen, old_id, full_name)
     else:
         return SimpleItem(d, container_id_gen, old_id, full_name)
-        
+
 
 def makeAggregate(d, id_gen, old_id, container_name):
     "Factory method returns an Aggregate object of the requested class"
@@ -400,7 +406,7 @@ def makeAggregate(d, id_gen, old_id, container_name):
     else:
         return ContainedAggregate(d, id_gen, old_id, container_name)
 
-        
+
 def loadCfgData(cfgFileName):
     "Load configuration metadata from YAML config file"
     try:
@@ -427,7 +433,7 @@ def loadIdData(baseFileName):
     f.close()
     return data
 
-    
+
 def makeBaseItem(yaml_cfg_text, id_text):
     "From the config file and the ID file, create objects to generate C++ code and a new ID file."
     try:
@@ -467,8 +473,8 @@ def saveIdData(baseFileName, old_id_text):
     f.write(getIdHeader(sys.argv[0]))
     f.write(yaml.dump(id_data, default_flow_style=False))
     f.close()
-    
-    
+
+
 def getIdData():
     "Get current ID data, including newly allocated ones and ones in the previous ID file, in ID file format."
     # Special case: the top-level item is the only one that doesn't get its ID from a generator object
@@ -477,16 +483,16 @@ def getIdData():
     id_dict['id'] = int(baseItem.id)
     id_dict['components'] = baseItem.get_component_ids()
     return id_dict
-    
-    
+
+
 def saveDefinitionFile(baseFileName, baseItem):
     "Make .h file containing type definitions"
     fdecl = open(baseFileName + ".h", "w")
     fdecl.write(getDeclHeader(sys.argv[0], sys.argv[1]))
     fdecl.write(baseItem.get_definition())
     fdecl.close()
-    
-    
+
+
 def saveInititializationFile(baseFileName, baseItem):
     "Make .cpp file containing definitions and initializations"
     finit = open(baseFileName + ".cpp", "w")
@@ -502,8 +508,8 @@ def saveInititializationFile(baseFileName, baseItem):
     finit.write("}\n\n")
     finit.write(baseItem.get_access_fn())
     finit.close()    
-    
-    
+
+
 if __name__ == "__main__":
     baseFileName, extension = os.path.splitext(sys.argv[1])
     cfg_text = loadCfgData(sys.argv[1])

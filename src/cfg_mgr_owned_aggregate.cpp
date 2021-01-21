@@ -119,6 +119,7 @@ void Owned_aggregate::freeItems(uint8_t * pParentItem) const
 
 
 // Handle command 'add' on command line
+// @return true iff OK.
 bool Owned_aggregate::handleAdd(uint8_t * pItem) const
 {
     if (getCount(pItem) >= getData()->maxCount)
@@ -126,16 +127,12 @@ bool Owned_aggregate::handleAdd(uint8_t * pItem) const
         cm_printf("Can't add '%s' (max %u).\n", getData()->pDesc->getName(), getData()->maxCount);
         return false;
     }
-
-    if (add(pItem) == nullptr)
-    {
-        return false;
-    }
-    return true;
+    return add(pItem) != nullptr;
 }
 
 
 // Handle command 'del' on command line
+// @return true iff OK.
 bool Owned_aggregate::handleDel(Command_stack * cmd, uint8_t * pItem) const
 {
     unsigned int cnt = getCount(pItem); // number of items currently in array

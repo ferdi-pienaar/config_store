@@ -14,7 +14,7 @@ using namespace std;
 namespace cfg_mgr
 {
 
-// Utility method to extract in index from an array of command words
+// Utility method to extract an index from an array of command words
 // @return false if unable to extract a valid (in-range) index,
 //         true if returning a valid (in-range) index.
 //

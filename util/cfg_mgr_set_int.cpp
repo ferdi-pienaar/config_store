@@ -20,8 +20,8 @@ namespace cfg_mgr
 // len - number of bytes the integer consists of
 // val - a string representing the new value
 //
-// @return false if the received value does not represent
-//         in integer, or is out-of-range for the target data type
+// @return false if the received string does not represent
+//         an integer, or is out-of-range for the target data type
 //
 // Integers are kept in the order prescribed by the given
 // system (little-endian or big-endian).

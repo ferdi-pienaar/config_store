@@ -80,7 +80,7 @@ bool Composite_descriptor::handleCmd(Command_stack * cmd,
 //        context build up while interpreting cmd stack.
 // @param updateCtx - out, true if candidateContext should become
 //        the new context.
-// @return true if a word was from cmd was parsed
+// @return true if a word from cmd was parsed.
 //
 bool Composite_descriptor::handleIdWord(Command_stack * cmd,
                                         uint8_t * pItem,
