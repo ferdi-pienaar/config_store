@@ -19,15 +19,13 @@ class Cmd_context
 public:
     Cmd_context (std::string istr = "", const Descriptor * desc = nullptr, uint8_t * item = nullptr):
         m_string(istr), m_desc(desc), m_item(item) {}
-    void add(std::string w);
-    void add(unsigned idx);
-    void setDesc(const Descriptor * desc)
+    Cmd_context(const Cmd_context & rhs) :
+        m_string(rhs.m_string), m_desc(rhs.m_desc), m_item(rhs.m_item) {}
+    void addToString(std::string w);
+    void addToString(unsigned idx);
+    void setItem(const Descriptor * desc, uint8_t * item)
     {
         m_desc = desc;
-    }
-
-    void setItem(uint8_t * item)
-    {
         m_item = item;
     }
 

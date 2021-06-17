@@ -7,7 +7,6 @@
 #include "cfg_mgr_types.h"
 #include "cfg_mgr_cmd_ctxt.h"
 
-
 // xxx throughout I've provisionally avoided the use of references; revise this.
 
 namespace cfg_mgr
@@ -15,6 +14,7 @@ namespace cfg_mgr
 
 class Store;
 class Nvram;
+class Command_stack;
 
 /// Configuration manager, managing all configurable items in the system.
 // This class is the application programme's sole point of access to
@@ -32,18 +32,19 @@ public:
     }
 
 private:
-    void save();
-    void load();
-    void resetCtxt();
+    typedef void (Config_manager::*cmd_handler)(Command_stack *cmd);
+    void delegate(Command_stack *cmd);
+    void resetCtxt(Command_stack *cmd);
+    void emptyCmd(Command_stack *cmd);
+    void save(Command_stack *cmd);
+    void load(Command_stack *cmd);
 
     const Descriptor * m_baseDesc;
     uint8_t *    m_ramBase;
     Cmd_context   m_currCtxt;      // current command-line context
-    Cmd_context   m_candidateCtxt; // command-line context built while handling current command
     Store * m_store;
+    static const cmd_handler handlers[];
 };
 
 }
 #endif // CFG_MGR_H
-
-

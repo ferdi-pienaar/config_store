@@ -22,7 +22,8 @@ public:
         CM_SAVE,
         CM_HELP,       //
         CM_RESET_CTXT, // return context to top level
-        CM_OP_NONE
+        CM_OP_NONE, // not a keyword
+        CM_EMPTY // client passed an empty command stack.
     };
 
     Command_stack(int argc, char ** argv) : m_count(argc), m_tokenPtr(argv) {}

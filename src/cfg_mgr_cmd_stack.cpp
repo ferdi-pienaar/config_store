@@ -1,6 +1,7 @@
 #include "cfg_mgr_cmd_stack.h"
 #include <cstring> // strcmp
 #include <stdlib.h> // strtoul
+#include <assert.h>
 
 using namespace std;
 
@@ -19,6 +20,7 @@ Command_stack & Command_stack::pop()
 
 char * Command_stack::getTop() const
 {
+    assert(m_count > 0);
     return m_tokenPtr[0];
 }
 
@@ -26,6 +28,7 @@ char * Command_stack::getTop() const
 // Return the operation represented by the word at the top of the command stack
 Command_stack::eCmOp Command_stack::getTopOp() const
 {
+    if (m_count == 0) return CM_EMPTY;
     if (strcmp(getTop(), "add") == 0)     return CM_ADD;
     if (strcmp(getTop(), "del") == 0)     return CM_DEL;
     if (strcmp(getTop(), "prt") == 0)     return CM_PRT;

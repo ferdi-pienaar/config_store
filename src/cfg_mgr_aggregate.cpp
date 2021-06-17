@@ -95,18 +95,18 @@ bool Aggregate::getComponentItem(Command_stack * cmd,
                                  bool & added,
                                  Cmd_context * candidateCtxt) const
 {
-    unsigned int itemIdx = 0; // If no index is needed, we'll use offset 0
+    unsigned int itemIdx = 0; // If no index is needed, we'll use offset 0.
 
     if (m_data->maxCount > 1)
     {
-        // There can be more than one instance, so we need an explicit index
+        // There can be more than one instance, so we need an explicit index.
         if (!getIndex(cmd, itemIdx))
         {
-            // The necessary index was not in the command
+            // The necessary index was not in the command.
             return false;
         }
-        // Index is available: add it to the context string
-        candidateCtxt->add(itemIdx);
+        // Index is available: add it to the context string.
+        candidateCtxt->addToString(itemIdx);
     }
 
     DBG_PRT("getComponentItem %p offset %d idx %d cnt %d len %d\n",
@@ -114,7 +114,7 @@ bool Aggregate::getComponentItem(Command_stack * cmd,
 
     if (itemIdx >= getCount(pParentItem))
     {
-        // We may add a new RAM item, depending on index and aggregate type
+        // We may add a new RAM item, depending on index and aggregate type.
         if ((*ppItem = addImplicit(itemIdx, pParentItem)) == nullptr)
         {
             cm_printf("Index %u out of range.\n", itemIdx);
@@ -123,13 +123,12 @@ bool Aggregate::getComponentItem(Command_stack * cmd,
         added = true;
     }
     *ppItem = getItemAtIndex(pParentItem, itemIdx);
-    candidateCtxt->setDesc(m_data->pDesc);
-    candidateCtxt->setItem(*ppItem);
+    candidateCtxt->setItem(m_data->pDesc, *ppItem);
     return true;
 }
 
 
-// Save to persistent storage all elements in the array, if its metadata says it's a persistent item
+// Save to persistent storage all elements in the array, if its metadata says it's a persistent item.
 void Aggregate::save(const uint8_t *pItem, Store * store) const
 {
     if (!m_data->pDesc->isPersistent())

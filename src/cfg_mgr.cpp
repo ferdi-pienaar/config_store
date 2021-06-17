@@ -15,6 +15,23 @@ using namespace std;
 namespace cfg_mgr
 {
 
+// Array of command handlers, indexed by command.
+const Config_manager::cmd_handler Config_manager::handlers[] =
+{
+    Config_manager::delegate, // CM_ADD
+    Config_manager::delegate, // CM_DEL
+    Config_manager::delegate, // CM_PRT
+    Config_manager::delegate, // CM_PRT_CFG
+    Config_manager::delegate, // CM_SET
+    Config_manager::delegate, // CM_SETDEF
+    Config_manager::load, // CM_LOAD
+    Config_manager::save, // CM_SAVE
+    Config_manager::delegate, // CM_HELP,
+    Config_manager::resetCtxt, // CM_RESET_CTXT
+    Config_manager::delegate, // CM_OP_NONE
+    Config_manager::emptyCmd // CM_EMPTY
+};
+
 Config_manager::Config_manager(const Descriptor * desc, Nvram * nvram): m_baseDesc(desc)
 {
     m_ramBase = (uint8_t *)malloc(m_baseDesc->getLen());
@@ -22,7 +39,7 @@ Config_manager::Config_manager(const Descriptor * desc, Nvram * nvram): m_baseDe
     assert(m_ramBase != nullptr);
     memset(m_ramBase, 0, m_baseDesc->getLen());
     m_baseDesc->setDefault(m_ramBase);
-    resetCtxt();
+    resetCtxt(nullptr);
     m_store = Store::createStore(nvram);
 }
 
@@ -32,62 +49,51 @@ Config_manager::~Config_manager()
     delete m_store; // xxx is this clean, is delete the obvious pair to createStore (in Config_manager constructor)?
 }
 
-/// Execute command words entered by client on CLI cpp file
-/// @param argc number of command words
+/// Execute command words entered by client (via CLI).
+/// @param argc number of entries in the command word array
 /// @param argv command word array
 void Config_manager::handleCmd(int argc, char *argv[])
 {
-    if (argc <= 0)
-    {
-        return;
-    }
-
     Command_stack cmd(argc, argv);
-    // First treat the commands that are only applicable at the top level.
-    switch (cmd.getTopOp())
-    {
-    case Command_stack::CM_LOAD:
-        return load();
-
-    case Command_stack::CM_SAVE:
-        return save();
-
-    case Command_stack::CM_RESET_CTXT:
-        return resetCtxt();
-
-    default: // Other commands are passed to current context.
-        break;
-    }
-
-    // The candidate context starts as a copy of the current context.
-    m_candidateCtxt = m_currCtxt;
-    bool updateCtxt = false;
-    // Pass command that doesn't apply to CM as a whole, to current context for handling.
-    m_currCtxt.getDesc()->handleCmd(&cmd, m_currCtxt.getItem(), &m_candidateCtxt, updateCtxt);
-    if (updateCtxt)
-    {
-        m_currCtxt = m_candidateCtxt;
-    }
+    // Get command handler corresponding to the command and execute it.
+    cmd_handler handler = handlers[cmd.getTopOp()];
+    return (this->*handler)(&cmd);
 }
 
-
-// Set context back to base
-void Config_manager::resetCtxt()
-{
-    DBG_PRT("resetCtxt\n");
-    m_currCtxt = Cmd_context("", m_baseDesc, m_ramBase); // temp context with base properties
-}
-
-
-// Get a prompt string to display to user, representing the current context
+// Get a prompt string to display to user, representing the current context.
 const char * Config_manager::getPromptString() const
 {
     return m_currCtxt.getString().c_str();
 }
 
+// Pass command that doesn't apply to CM as a whole, to current context for handling.
+void Config_manager::delegate(Command_stack * cmd)
+{
+    // The candidate context starts as a copy of the current context.
+    Cmd_context candidateCtxt(m_currCtxt);
+    bool updateCtxt = false;
+    m_currCtxt.getDesc()->handleCmd(cmd, m_currCtxt.getItem(), &candidateCtxt, updateCtxt);
+    if (updateCtxt)
+    {
+        m_currCtxt = candidateCtxt;
+    }
+}
 
-// Save data in RAM to persistent storage
-void Config_manager::save()
+// Set context back to base.
+void Config_manager::resetCtxt(Command_stack * cmd)
+{
+    DBG_PRT("resetCtxt\n");
+    m_currCtxt = Cmd_context("", m_baseDesc, m_ramBase); // temp context with base properties
+}
+
+// Handle empty command stack.
+void Config_manager::emptyCmd(Command_stack * cmd)
+{
+    cm_printf("Enter a command.\n");
+}
+
+// Save data in RAM to persistent storage.
+void Config_manager::save(Command_stack * cmd)
 {
     if (!m_baseDesc->isPersistent())
     {
@@ -98,14 +104,13 @@ void Config_manager::save()
     m_store->endWrite();
 }
 
-
 // Load data in persistent storage, to configurable items in RAM.
-// Resets context, since a reload re-allocates memory and makes current context invalid
-void Config_manager::load()
+// Resets context, since a reload re-allocates memory and makes current context invalid.
+void Config_manager::load(Command_stack *cmd)
 {
     m_store->startLoad();
 
-    // Before loading, thus allocating new memory, call setDefault to free owned memory
+    // Before loading, thus allocating new memory, call setDefault to free owned memory.
     m_baseDesc->setDefault(m_ramBase);
     result_t res = m_baseDesc->startLoad(m_store);
     if (res == CM_SUCCESS)
@@ -118,7 +123,7 @@ void Config_manager::load()
         m_baseDesc->setDefault(m_ramBase);
     }
     m_store->endLoad();
-    resetCtxt();
+    resetCtxt(nullptr);
 }
 
 }

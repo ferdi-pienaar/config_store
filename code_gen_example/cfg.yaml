@@ -52,8 +52,8 @@ item: &user
             persistent: false
             print: cfg_mgr::cm_prt_int
             type: unsigned
-             
-# Component item defined here to avoid too much indenting                    
+
+# Component item defined here to avoid too much indenting
 item: &home
     name: home
     persistent: true
@@ -117,7 +117,7 @@ item:
     -   count: *nUsers
         type: owned
         counter: *userCnt_aggr
-        item: *user        
+        item: *user
     -   count: 1
         type: contained
         item: *home

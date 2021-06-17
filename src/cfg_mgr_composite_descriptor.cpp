@@ -95,7 +95,7 @@ bool Composite_descriptor::handleIdWord(Command_stack * cmd,
         return false;
     }
 
-    candidateCtxt->add(pAggr->getData()->pDesc->getName());
+    candidateCtxt->addToString(pAggr->getData()->pDesc->getName());
 
     bool      added = false;   // Set true by getComponentItem if it creates a new item.
     uint8_t * pComponentItem;  // pointer to component RAM
