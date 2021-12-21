@@ -18,6 +18,6 @@ Command-handling API
  cfg_mgr_interface.h
   - Instantiate Config_manager_interface, passing it a descriptor reference.
   - Pass commands to it.
-  - Get config to it, i.e. access the RAM that it allocates and manages.
+  - Get config from it, i.e. access the RAM that it allocates and manages.
  util/cfg_mgr_strtok.h
   - Help 'chop' input command strings into tokens.

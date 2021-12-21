@@ -437,7 +437,7 @@ def loadIdData(baseFileName):
 def makeBaseItem(yaml_cfg_text, id_text):
     "From the config file and the ID file, create objects to generate C++ code and a new ID file."
     try:
-        cfg = yaml.load(yaml_cfg_text)
+        cfg = yaml.load(yaml_cfg_text, Loader=yaml.SafeLoader)
     except:
         print("config file can't be loaded as YAML")
         return
@@ -447,7 +447,7 @@ def makeBaseItem(yaml_cfg_text, id_text):
         print("Root element in configuration is not an item")
         return
     try:
-        id_dict = yaml.load(id_text)
+        id_dict = yaml.load(id_text, Loader=yaml.SafeLoader)
     except:
         # This happens in the normal case where no ID file exists yet
         print("ID file can't be loaded as YAML")
@@ -464,7 +464,7 @@ def saveIdData(baseFileName, old_id_text):
     id_data = getIdData()
     # Compare the data, ignore the comments that are also part of the file text
     if old_id_text is not None:
-        old_id_data = yaml.load(old_id_text)
+        old_id_data = yaml.load(old_id_text, Loader=yaml.SafeLoader)
         if id_data == old_id_data:
             # Don't overwrite file with same data, 'make' considers it a changed dependency
             return

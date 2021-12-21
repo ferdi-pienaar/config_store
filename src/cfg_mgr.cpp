@@ -15,7 +15,7 @@ using namespace std;
 namespace cfg_mgr
 {
 
-// Array of command handlers, indexed by command.
+// Array of command handlers, indexed by command ID.
 const Config_manager::cmd_handler Config_manager::handlers[] =
 {
     Config_manager::delegate, // CM_ADD

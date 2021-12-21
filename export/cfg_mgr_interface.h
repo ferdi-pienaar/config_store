@@ -13,6 +13,9 @@ class Descriptor;
 // the configurable items, that live in RAM allocated by this class.
 // This class is a wrapper around Config_manager; its purpose is to
 // avoid exporting internal classes used by Config_manager.
+// It's also convenient to have a thin wrapper that allocates nvram module and passes it
+// to the implementation class. It means the client doesn't have to know about nvram,
+// but that when we test the implementation class, we can pass it a fake nvram object.
 //
 class Config_manager_interface
 {
