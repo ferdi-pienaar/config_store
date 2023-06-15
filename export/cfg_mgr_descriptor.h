@@ -51,7 +51,7 @@ class Store;
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Descriptor of configurable item (either simple or composite).
-// xxx methods are private (not for user), but Config_manager is friend?
+// xxx methods are private (not for user), but Config_manager_implement is friend?
 // This is the parent class; a client's data definition uses 1 of its 2 derived
 // classes.
 class Descriptor

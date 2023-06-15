@@ -1,6 +1,6 @@
 
-#ifndef CFG_MGR_H
-#define CFG_MGR_H
+#ifndef CFG_MGR_IMPLEMENT_H
+#define CFG_MGR_IMPLEMENT_H
 
 #include <stdint.h> // uint8_t, etc
 #include <iostream>
@@ -19,11 +19,11 @@ class Command_stack;
 /// Configuration manager, managing all configurable items in the system.
 // This class is the application programme's sole point of access to
 // the configurable items, that live in RAM allocated by this class.
-class Config_manager
+class Config_manager_implement
 {
 public:
-    Config_manager(const Descriptor * pDesc, Nvram * nvram);
-    ~Config_manager();
+    Config_manager_implement(const Descriptor * pDesc, Nvram * nvram);
+    ~Config_manager_implement();
     void handleCmd(int argc, char *argv[]);
     const char * getPromptString() const; ///< get context-dependent prompt string h file
     void * getConfig()
@@ -32,7 +32,7 @@ public:
     }
 
 private:
-    typedef void (Config_manager::*cmd_handler)(Command_stack *cmd);
+    typedef void (Config_manager_implement::*cmd_handler)(Command_stack *cmd);
     void delegate(Command_stack *cmd);
     void resetCtxt(Command_stack *cmd);
     void emptyCmd(Command_stack *cmd);
@@ -47,4 +47,4 @@ private:
 };
 
 }
-#endif // CFG_MGR_H
+#endif // CFG_MGR_IMPLEMENT_H

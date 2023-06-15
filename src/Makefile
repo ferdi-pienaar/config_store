@@ -7,8 +7,8 @@ CPPFLAGS += -D M_DEFINED_STORE_TYPE=TLV_STORE
 #CPPFLAGS += -D DEBUG_PRINT
 # Generate the .d files when generating objects
 CXXFLAGS += -MMD
-OBJS = cfg_mgr.o \
-cfg_mgr_interface.o \
+OBJS = cfg_mgr_implement.o \
+cfg_mgr.o \
 cfg_mgr_prt_hexstr.o \
 cfg_mgr_store.o \
 nvram.o \

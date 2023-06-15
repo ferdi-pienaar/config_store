@@ -17,7 +17,7 @@ class Store;
 ////////////////////////////////////////////////////////////////////////////////
 /// A simple descriptor is a leaf in the tree of descriptors, representing
 /// metadata for a single configurable item.
-// xxx methods (apart from constructor) are private (not for user), but Config_manager is friend?
+// xxx methods (apart from constructor) are private (not for user), but Config_manager_implement is friend?
 class Simple_descriptor : public Descriptor
 {
 public:

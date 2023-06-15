@@ -4,7 +4,7 @@
  */
 #include <iostream>
 #include "nvram.h"
-#include "cfg_mgr_interface.h"
+#include "cfg_mgr.h"
 #include "my_cfg.h"
 #include "cfg_mgr_strtok.h" // strtok
 #include <pthread.h>
@@ -17,12 +17,12 @@ using namespace std;
 #define BLOCK_DELIMITER "\""
 
 static void * stats_thread(void * arg);
-static void handle_command(cfg_mgr::Config_manager_interface & cm);
+static void handle_command(cfg_mgr::Config_manager & cm);
 
 int main()
 {
     // Initialize the config manager with the base descriptor it is to manage.
-    cfg_mgr::Config_manager_interface cm(get_base_descriptor());
+    cfg_mgr::Config_manager cm(get_base_descriptor());
 
     pthread_t thread;
     int rc = pthread_create(&thread, NULL, stats_thread, &cm);
@@ -34,8 +34,8 @@ int main()
     }
 }
 
-// Get a command from stdin and pass it to Config_manager_interface.
-void handle_command(cfg_mgr::Config_manager_interface & cm)
+// Get a command from stdin and pass it to Config_manager.
+void handle_command(cfg_mgr::Config_manager & cm)
 {
     char   cmd[120];
     char * param[20];
@@ -59,7 +59,7 @@ void handle_command(cfg_mgr::Config_manager_interface & cm)
 // Periodically, update some stats that can be displayed by cfg_mgr.
 void * stats_thread(void * arg)
 {
-    cfg_mgr::Config_manager_interface * cm = (cfg_mgr::Config_manager_interface *)arg;
+    cfg_mgr::Config_manager * cm = (cfg_mgr::Config_manager *)arg;
     tDevice * pCfg = (tDevice *)cm->getConfig();
 
     for (;;)

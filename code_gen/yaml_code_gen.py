@@ -94,9 +94,9 @@ class Item:
         s += 2 * indent + self.get_size() + ", // size\n"
         s += 2 * indent
         if self.d['persistent']:
-             s += "true\n"
+             s += "true // persistent\n"
         else:
-            s += "false\n"
+            s += "false // not persistent\n"
         s += indent + "},\n"
         return s
 

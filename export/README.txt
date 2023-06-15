@@ -15,8 +15,8 @@ Metadata creation API
  
 Command-handling API
 ====================
- cfg_mgr_interface.h
-  - Instantiate Config_manager_interface, passing it a descriptor reference.
+ cfg_mgr.h
+  - Instantiate Config_manager, passing it a descriptor reference.
   - Pass commands to it.
   - Get config from it, i.e. access the RAM that it allocates and manages.
  util/cfg_mgr_strtok.h

@@ -1,129 +1,38 @@
 #include "cfg_mgr.h"
-#include "cfg_mgr_descriptor.h"
-#include "cfg_mgr_dbg.h"
-#include "cfg_mgr_store.h"
-#include "cfg_mgr_printf.h"
-#include "cfg_mgr_cmd_stack.h"
-
-#include <stdlib.h> // malloc
-#include <cstring> // memset
-#include <stdint.h> // UINT8_MAX, etc
-#include <assert.h>
-
-using namespace std;
+#include "cfg_mgr_implement.h"
+#include "nvram.h"
 
 namespace cfg_mgr
 {
 
-// Array of command handlers, indexed by command ID.
-const Config_manager::cmd_handler Config_manager::handlers[] =
+// Having this class inject Nvram reference to Config_manager_implement
+// simplifies testing, since it allows test to inject a spy
+// to Config_manager_implement.
+Config_manager::Config_manager(const Descriptor * pDesc)
 {
-    Config_manager::delegate, // CM_ADD
-    Config_manager::delegate, // CM_DEL
-    Config_manager::delegate, // CM_PRT
-    Config_manager::delegate, // CM_PRT_CFG
-    Config_manager::delegate, // CM_SET
-    Config_manager::delegate, // CM_SETDEF
-    Config_manager::load, // CM_LOAD
-    Config_manager::save, // CM_SAVE
-    Config_manager::delegate, // CM_HELP,
-    Config_manager::resetCtxt, // CM_RESET_CTXT
-    Config_manager::delegate, // CM_OP_NONE
-    Config_manager::emptyCmd // CM_EMPTY
-};
-
-Config_manager::Config_manager(const Descriptor * desc, Nvram * nvram): m_baseDesc(desc)
-{
-    m_ramBase = (uint8_t *)malloc(m_baseDesc->getLen());
-    DBG_PRT("init: ramBase, %d at %p\n", m_baseDesc->getLen(), m_ramBase);
-    assert(m_ramBase != nullptr);
-    memset(m_ramBase, 0, m_baseDesc->getLen());
-    m_baseDesc->setDefault(m_ramBase);
-    resetCtxt(nullptr);
-    m_store = Store::createStore(nvram);
+    m_nvram = new Nvram;
+    m_config_manager = new Config_manager_implement(pDesc, m_nvram);
 }
 
 Config_manager::~Config_manager()
 {
-    free(m_ramBase);
-    delete m_store; // xxx is this clean, is delete the obvious pair to createStore (in Config_manager constructor)?
+    delete m_config_manager;
+    delete m_nvram;
 }
 
-/// Execute command words entered by client (via CLI).
-/// @param argc number of entries in the command word array
-/// @param argv command word array
 void Config_manager::handleCmd(int argc, char *argv[])
 {
-    Command_stack cmd(argc, argv);
-    // Get command handler corresponding to the command and execute it.
-    cmd_handler handler = handlers[cmd.getTopOp()];
-    return (this->*handler)(&cmd);
+    m_config_manager->handleCmd(argc, argv);
 }
 
-// Get a prompt string to display to user, representing the current context.
 const char * Config_manager::getPromptString() const
 {
-    return m_currCtxt.getString().c_str();
+    return m_config_manager->getPromptString();
 }
 
-// Pass command that doesn't apply to CM as a whole, to current context for handling.
-void Config_manager::delegate(Command_stack * cmd)
+void * Config_manager::getConfig()
 {
-    // The candidate context starts as a copy of the current context.
-    Cmd_context candidateCtxt(m_currCtxt);
-    bool updateCtxt = false;
-    m_currCtxt.getDesc()->handleCmd(cmd, m_currCtxt.getItem(), &candidateCtxt, updateCtxt);
-    if (updateCtxt)
-    {
-        m_currCtxt = candidateCtxt;
-    }
-}
-
-// Set context back to base.
-void Config_manager::resetCtxt(Command_stack * cmd)
-{
-    DBG_PRT("resetCtxt\n");
-    m_currCtxt = Cmd_context("", m_baseDesc, m_ramBase); // temp context with base properties
-}
-
-// Handle empty command stack.
-void Config_manager::emptyCmd(Command_stack * cmd)
-{
-    cm_printf("Enter a command.\n");
-}
-
-// Save data in RAM to persistent storage.
-void Config_manager::save(Command_stack * cmd)
-{
-    if (!m_baseDesc->isPersistent())
-    {
-        return;
-    }
-    m_store->startWrite();
-    m_baseDesc->save(m_ramBase, m_store);
-    m_store->endWrite();
-}
-
-// Load data in persistent storage, to configurable items in RAM.
-// Resets context, since a reload re-allocates memory and makes current context invalid.
-void Config_manager::load(Command_stack *cmd)
-{
-    m_store->startLoad();
-
-    // Before loading, thus allocating new memory, call setDefault to free owned memory.
-    m_baseDesc->setDefault(m_ramBase);
-    result_t res = m_baseDesc->startLoad(m_store);
-    if (res == CM_SUCCESS)
-    {
-        res = m_baseDesc->endLoad(m_ramBase, m_store);
-    }
-    if (res != CM_SUCCESS)
-    {
-        cm_printf("Load failed: defaults restored.\n");
-        m_baseDesc->setDefault(m_ramBase);
-    }
-    m_store->endLoad();
-    resetCtxt(nullptr);
+    return m_config_manager->getConfig();
 }
 
 }

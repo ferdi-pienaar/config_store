@@ -1,35 +1,35 @@
-#ifndef CFG_MGR_INTERFACE_H
-#define CFG_MGR_INTERFACE_H
+#ifndef CFG_MGRH
+#define CFG_MGR_H
 
 namespace cfg_mgr
 {
 
-class Config_manager;
+class Config_manager_implement;
 class Nvram;
 class Descriptor;
 
 /// Interface class for configuration manager, managing all configurable items in the system.
 // This class is the application programme's sole point of access to
 // the configurable items, that live in RAM allocated by this class.
-// This class is a wrapper around Config_manager; its purpose is to
-// avoid exporting internal classes used by Config_manager.
+// This class is a wrapper around Config_manager_implement; its purpose is to
+// avoid exporting internal classes used by Config_manager_implement.
 // It's also convenient to have a thin wrapper that allocates nvram module and passes it
 // to the implementation class. It means the client doesn't have to know about nvram,
 // but that when we test the implementation class, we can pass it a fake nvram object.
 //
-class Config_manager_interface
+class Config_manager
 {
 public:
-    Config_manager_interface(const Descriptor * pDesc);
-    ~Config_manager_interface();
+    Config_manager(const Descriptor * pDesc);
+    ~Config_manager();
     void handleCmd(int argc, char *argv[]);
     const char * getPromptString() const; ///< get context-dependent prompt string h file
     void * getConfig();
 
 private:
-    Config_manager * m_config_manager;
+    Config_manager_implement * m_config_manager;
     Nvram * m_nvram;
 };
 
 }
-#endif // CFG_MGR_INTERFACE_H
+#endif // CFG_MGR_H

@@ -17,7 +17,7 @@ class Store;
 ////////////////////////////////////////////////////////////////////////////////
 /// A composite descriptor consists of components, linked to the composite via
 /// aggregates.
-// xxx methods (apart from constructor) are private (not for user), but Config_manager is friend?
+// xxx methods (apart from constructor) are private (not for user), but Config_manager_implement is friend?
 class Composite_descriptor : public Descriptor
 {
 public:

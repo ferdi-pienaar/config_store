@@ -3,7 +3,7 @@
 
 #include <stdint.h> // uint8_t, etc
 #include "cfg_mgr_tlv_store.h"
-#include "cfg_mgr.h"
+#include "cfg_mgr_implement.h"
 #include "cfg_mgr_dbg.h"
 #include "nvram.h"
 #include <assert.h>

@@ -1,14 +1,14 @@
 // Unit test using open-source unit test framework
 // These tests the config manager as a whole, using the following interfaces:
-// 1. Input: character strings passed to Config_manager::handleCmd
-// 2. Input/output: the binary file containing TLV data used by Config_manager
+// 1. Input: character strings passed to Config_manager_implement::handleCmd
+// 2. Input/output: the binary file containing TLV data used by Config_manager_implement
 //    for non-volatile storage
 //
 // xxx how many of these tests belong in cm_tlvTest.cpp?
 //
 
 #include "gtest/gtest.h"
-#include "cfg_mgr.h"       // Unit under test
+#include "cfg_mgr_implement.h"       // Unit under test
 #include "cfg_mgr_simple_descriptor.h"       // Unit under test
 #include "cfg_mgr_composite_descriptor.h"       // Unit under test
 #include "cfg_mgr_contained_aggregate.h"       // Unit under test
@@ -65,13 +65,13 @@ class CfgMgrContained : public testing::Test
 {
 protected:
     Nvram_spy * nvram;
-    Config_manager * cm;
+    Config_manager_implement * cm;
 
     //Define data accessible to test group members here.
     virtual void SetUp()
     {
         nvram = new Nvram_spy;
-        cm = new Config_manager(&c1, nvram);
+        cm = new Config_manager_implement(&c1, nvram);
     }
 
     virtual void TearDown()
@@ -307,13 +307,13 @@ class CfgMgrOwned : public testing::Test
 {
 protected:
     Nvram_spy * nvram;
-    Config_manager * cm;
+    Config_manager_implement * cm;
 
     //Define data accessible to test group members here.
     virtual void SetUp()
     {
         nvram = new Nvram_spy;
-        cm = new Config_manager(&c2, nvram);
+        cm = new Config_manager_implement(&c2, nvram);
     }
 
     virtual void TearDown()
@@ -532,13 +532,13 @@ class CfgMgrContainedArray : public testing::Test
 {
 protected:
     Nvram_spy * nvram;
-    Config_manager * cm;
+    Config_manager_implement * cm;
 
     //Define data accessible to test group members here.
     virtual void SetUp()
     {
         nvram = new Nvram_spy;
-        cm = new Config_manager(&c3, nvram);
+        cm = new Config_manager_implement(&c3, nvram);
     }
 
     virtual void TearDown()
@@ -623,13 +623,13 @@ class CfgMgrContainedArrays : public testing::Test
 {
 protected:
     Nvram_spy * nvram;
-    Config_manager * cm;
+    Config_manager_implement * cm;
 
     //Define data accessible to test group members here.
     virtual void SetUp()
     {
         nvram = new Nvram_spy;
-        cm = new Config_manager(&c4, nvram);
+        cm = new Config_manager_implement(&c4, nvram);
     }
 
     virtual void TearDown()
