@@ -31,6 +31,7 @@ struct Common_metadata
     const bool persistent; ///< Saved to NVRAM?
 };
 
+// class Simple_descriptor has a pointer to an object of this type.
 struct Simple_metadata
 {
     const Common_metadata c;
@@ -46,6 +47,7 @@ struct Simple_metadata
 
 class Aggregate;
 
+// class Composite_descriptor has a pointer to an object of this type.
 struct Composite_metadata
 {
     const Common_metadata c;
@@ -57,6 +59,7 @@ struct Composite_metadata
 
 class Descriptor;
 
+// class Aggregate has a pointer to an object of this type.
 struct Aggregate_data
 {
     const Descriptor * const pDesc; ///< the component's descriptor

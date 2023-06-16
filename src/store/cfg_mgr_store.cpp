@@ -1,9 +1,9 @@
 ///
 //
 
-#include "cfg_mgr_store.h"
-#include "cfg_mgr_tlv_store.h"
-#include "cfg_mgr_json_store.h"
+#include "store/cfg_mgr_store.h"
+#include "store/tlv/cfg_mgr_tlv_store.h"
+#include "store/json/cfg_mgr_json_store.h"
 
 using namespace std;
 

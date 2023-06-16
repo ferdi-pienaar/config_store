@@ -3,7 +3,6 @@
 
  */
 #include <iostream>
-#include "nvram.h"
 #include "cfg_mgr.h"
 #include "my_cfg.h"
 #include "cfg_mgr_strtok.h" // strtok

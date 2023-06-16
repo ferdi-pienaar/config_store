@@ -3,10 +3,10 @@
 
 #include <stdint.h> // uint8_t, etc
 #include <string>
-#include "nvram.h"
+#include "store/nvram.h"
 #include "cfg_mgr_types.h"
-#include "cfg_mgr_json_ctxt.h"
-#include "cfg_mgr_json_common.h"
+#include "store/json/cfg_mgr_json_ctxt.h"
+#include "store/json/cfg_mgr_json_common.h"
 
 namespace cfg_mgr
 {

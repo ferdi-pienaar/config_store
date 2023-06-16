@@ -2,7 +2,7 @@
 #ifndef NVRAM_SPY_H
 #define NVRAM_SPY_H
 
-#include "nvram.h"
+#include "store/nvram.h"
 
 class Nvram_spy : public cfg_mgr::Nvram
 {

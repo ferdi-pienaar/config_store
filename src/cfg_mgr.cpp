@@ -1,6 +1,6 @@
 #include "cfg_mgr.h"
 #include "cfg_mgr_implement.h"
-#include "nvram.h"
+#include "store/nvram.h"
 
 namespace cfg_mgr
 {

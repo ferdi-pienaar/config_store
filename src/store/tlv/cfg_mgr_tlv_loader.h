@@ -2,7 +2,7 @@
 #define CFG_MGR_TLV_LOADER_H
 
 #include <stdint.h> // uint8_t, etc
-#include "nvram.h"
+#include "store/nvram.h"
 #include "cfg_mgr_types.h"
 
 namespace cfg_mgr

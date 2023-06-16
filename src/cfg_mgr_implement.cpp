@@ -1,7 +1,7 @@
 #include "cfg_mgr_implement.h"
 #include "cfg_mgr_descriptor.h"
 #include "cfg_mgr_dbg.h"
-#include "cfg_mgr_store.h"
+#include "store/cfg_mgr_store.h"
 #include "cfg_mgr_printf.h"
 #include "cfg_mgr_cmd_stack.h"
 

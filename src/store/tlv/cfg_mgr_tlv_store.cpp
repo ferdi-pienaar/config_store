@@ -5,7 +5,7 @@
 #include "cfg_mgr_tlv_store.h"
 #include "cfg_mgr_implement.h"
 #include "cfg_mgr_dbg.h"
-#include "nvram.h"
+#include "store/nvram.h"
 #include <assert.h>
 
 using namespace std;

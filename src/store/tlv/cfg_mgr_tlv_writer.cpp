@@ -19,7 +19,7 @@
 #include "cfg_mgr_tlv_writer.h"
 #include "cfg_mgr_dbg.h"
 #include <iostream>
-#include "nvram.h"
+#include "store/nvram.h"
 #include <assert.h>
 
 using namespace std;

@@ -5,8 +5,6 @@
 #include "cfg_mgr_cmd_ctxt.h"
 #include "cfg_mgr_dbg.h"
 #include "cfg_mgr_printf.h"
-#include "cfg_mgr_store.h"
-
 #include <stdlib.h> // malloc
 #include <cstring> // memset, strcmp, memcpy
 

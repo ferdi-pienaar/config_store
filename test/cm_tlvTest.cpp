@@ -4,8 +4,8 @@
 //
 
 #include "gtest/gtest.h"
-#include "cfg_mgr_tlv_writer.h"  // Unit under test
-#include "cfg_mgr_tlv_loader.h"  // Unit under test
+#include "store/tlv/cfg_mgr_tlv_writer.h"  // Unit under test
+#include "store/tlv/cfg_mgr_tlv_loader.h"  // Unit under test
 #include <cstring> // memcmp
 #include "nvram_spy.h"
 

@@ -2,11 +2,11 @@
 #define CFG_MGR_JSON_STORE_H
 
 #include <stdint.h> // uint8_t, etc
-#include "cfg_mgr_store.h"
+#include "store/cfg_mgr_store.h"
 #include "cfg_mgr_metadata.h"
-#include "cfg_mgr_json_writer.h"
-#include "cfg_mgr_json_loader.h"
-#include "nvram.h"
+#include "store/json/cfg_mgr_json_writer.h"
+#include "store/json/cfg_mgr_json_loader.h"
+#include "store/nvram.h"
 
 namespace cfg_mgr
 {

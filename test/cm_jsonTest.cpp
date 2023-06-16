@@ -3,8 +3,8 @@
 //
 
 #include "gtest/gtest.h"
-#include "cfg_mgr_json_writer.h"  // Unit under test
-#include "cfg_mgr_json_loader.h"  // Unit under test
+#include "store/json/cfg_mgr_json_writer.h"  // Unit under test
+#include "store/json/cfg_mgr_json_loader.h"  // Unit under test
 #include "cfg_mgr_prt_int.h" // load and save functions re-used
 #include "cfg_mgr_prt_str.h" // load and save functions re-used
 #include "cfg_mgr_set_int.h" // load and save functions re-used

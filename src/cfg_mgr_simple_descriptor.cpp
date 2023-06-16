@@ -3,7 +3,7 @@
 #include "cfg_mgr_cmd_ctxt.h"
 #include "cfg_mgr_prt_hexstr.h"
 #include "cfg_mgr_dbg.h"
-#include "cfg_mgr_store.h"
+#include "store/cfg_mgr_store.h"
 #include "cfg_mgr_printf.h"
 
 #include <cstring> // strcmp
