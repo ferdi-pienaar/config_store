@@ -1,5 +1,4 @@
-#ifndef CFG_MGR_JSON_LOADER_H
-#define CFG_MGR_JSON_LOADER_H
+#pragma once
 
 #include <stdint.h> // uint8_t, etc
 #include <string>
@@ -50,5 +49,3 @@ private:
     Nvram * m_nvram;
 };
 }
-#endif // CFG_MGR_JSON_LOADER_H
-

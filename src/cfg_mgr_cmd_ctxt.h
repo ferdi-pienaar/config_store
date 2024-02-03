@@ -1,5 +1,4 @@
-#ifndef CFG_MGR_CMD_CTXT_H
-#define CFG_MGR_CMD_CTXT_H
+#pragma once
 
 #include <stdint.h> // uint8_t, etc
 #include <string>
@@ -49,4 +48,3 @@ private:
 };
 
 }
-#endif // CFG_MGR_CMD_CTXT_H

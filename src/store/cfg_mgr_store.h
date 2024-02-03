@@ -1,5 +1,4 @@
-#ifndef CFG_MGR_STORE_H
-#define CFG_MGR_STORE_H
+#pragma once
 
 #include <stdint.h> // uint8_t, etc
 #include "cfg_mgr_metadata.h"
@@ -46,5 +45,3 @@ protected:
 
 };
 }
-#endif // CFG_MGR_STORE_H
-

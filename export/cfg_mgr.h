@@ -1,5 +1,4 @@
-#ifndef CFG_MGRH
-#define CFG_MGR_H
+#pragma once
 
 namespace cfg_mgr
 {
@@ -32,4 +31,3 @@ private:
 };
 
 }
-#endif // CFG_MGR_H

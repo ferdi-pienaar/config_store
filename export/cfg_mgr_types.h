@@ -1,7 +1,7 @@
 // Common types needed in all files
 // xxx This differs from config_manager.h in that... It's not for export?
-#ifndef CFG_MGR_TYPES_H
-#define CFG_MGR_TYPES_H
+#pragma once
+
 #include <stdint.h> // uint8_t, etc
 
 namespace cfg_mgr
@@ -27,5 +27,3 @@ typedef enum
 } result_t;
 
 }
-#endif // CFG_MGR_TYPES_H
-

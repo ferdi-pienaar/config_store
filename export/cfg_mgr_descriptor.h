@@ -1,6 +1,5 @@
 
-#ifndef CFG_MGR_DESCRIPTOR_H
-#define CFG_MGR_DESCRIPTOR_H
+#pragma once
 
 #include <stdint.h> // uint8_t, etc
 #include "cfg_mgr_types.h"
@@ -75,4 +74,3 @@ public:
 };
 
 }
-#endif // CFG_MGR_DESCRIPTOR_H

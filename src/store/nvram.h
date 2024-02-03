@@ -4,8 +4,7 @@
 // are done from the current offset, and advance the offset by the number of bytes
 // read or written.
 //
-#ifndef NVRAM_H
-#define NVRAM_H
+#pragma once
 
 #include <stdint.h> // uint8_t, etc
 #include <stdio.h> // FILE
@@ -31,5 +30,3 @@ private:
     FILE * m_fp;
 };
 }
-#endif // NVRAM_H
-

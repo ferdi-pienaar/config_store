@@ -1,5 +1,4 @@
-#ifndef CFG_MGR_JSON_CTXT_H
-#define CFG_MGR_JSON_CTXT_H
+#pragma once
 
 #include "cfg_mgr_json_common.h"
 
@@ -55,4 +54,3 @@ private:
     unsigned m_index;
 };
 }
-#endif // CFG_MGR_JSON_CTXT_H

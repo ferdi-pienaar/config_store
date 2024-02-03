@@ -1,6 +1,5 @@
 
-#ifndef CFG_MGR_STRTOK_H
-#define CFG_MGR_STRTOK_H
+#pragma once
 
 #include <iostream>
 
@@ -47,5 +46,3 @@ private:
 };
 
 }
-
-#endif // CFG_MGR_STRTOK_H

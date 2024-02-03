@@ -1,5 +1,4 @@
-#ifndef CFG_MGR_TLV_STORE_H
-#define CFG_MGR_TLV_STORE_H
+#pragma once
 
 #include <stdint.h> // uint8_t, etc
 #include "store/cfg_mgr_store.h"
@@ -13,7 +12,7 @@ namespace cfg_mgr
 // Access to TLV persistent storage via the abstract interface represented by Store:
 // it's a ConcreteStrategy of the Strategy Store.
 // This class implements the adapter pattern, adapting the interface provided
-// by the TLV class to the needs of the client.
+// by classes TlvWriter and TlvLoader to the needs of the client.
 class Tlv_store : public Store
 {
 public:
@@ -36,6 +35,3 @@ private:
 
 };
 }
-
-#endif // CFG_MGR_TLV_STORE_H
-

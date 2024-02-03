@@ -1,6 +1,5 @@
 
-#ifndef CFG_MGR_COMPOSITE_DESCRIPTOR_H
-#define CFG_MGR_COMPOSITE_DESCRIPTOR_H
+#pragma once
 
 #include <stdint.h> // uint8_t, etc
 #include "cfg_mgr_descriptor.h" // parent class
@@ -67,4 +66,3 @@ private:
 };
 
 }
-#endif // CFG_MGR_COMPOSITE_DESCRIPTOR_H

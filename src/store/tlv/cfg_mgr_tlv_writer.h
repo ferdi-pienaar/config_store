@@ -1,5 +1,4 @@
-#ifndef CFG_MGR_TLV_WRITER_H
-#define CFG_MGR_TLV_WRITER_H
+#pragma once
 
 #include <stdint.h> // uint8_t, etc
 #include "store/nvram.h"
@@ -38,5 +37,3 @@ private:
     CompositeWriteContext m_writeStack[STACK_DEPTH];
 };
 }
-#endif // CFG_MGR_TLV_WRITER_H
-

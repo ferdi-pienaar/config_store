@@ -5,8 +5,7 @@
 // a class object is ROMable, are very restrictive).
 // This comes at the cost of having an additional level of indirection.
 
-#ifndef CFG_MGR_METADATA_H
-#define CFG_MGR_METADATA_H
+#pragma once
 
 #include <stdint.h> // uint8_t, etc
 #include <string>
@@ -68,4 +67,3 @@ struct Aggregate_data
 };
 
 }
-#endif // CFG_MGR_METADATA_H

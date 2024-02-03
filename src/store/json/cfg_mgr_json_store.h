@@ -1,5 +1,4 @@
-#ifndef CFG_MGR_JSON_STORE_H
-#define CFG_MGR_JSON_STORE_H
+#pragma once
 
 #include <stdint.h> // uint8_t, etc
 #include "store/cfg_mgr_store.h"
@@ -14,7 +13,7 @@ namespace cfg_mgr
 // Access to JSON persistent storage via the abstract interface represented by
 // class Store: it's a ConcreteStrategy of the Strategy Store.
 // This class implements the Adapter pattern, adapting the interface provided
-// by class Json to the needs of the client.
+// by classes JsonWriter and JsonLoader to the needs of the client.
 class Json_store : public Store
 {
 public:
@@ -42,5 +41,3 @@ private:
 };
 
 }
-#endif // CFG_MGR_JSON_STORE_H
-

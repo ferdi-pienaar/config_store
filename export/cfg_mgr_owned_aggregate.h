@@ -1,6 +1,5 @@
 
-#ifndef CFG_MGR_OWNED_AGGREGATE_H
-#define CFG_MGR_OWNED_AGGREGATE_H
+#pragma once
 
 #include <stdint.h> // uint8_t, etc
 #include "cfg_mgr_aggregate.h" // parent class
@@ -29,7 +28,7 @@ class Contained_aggregate;
 
 ////////////////////////////////////////////////////////////////////////////////
 /// In an owned aggregate, component items are owned but not contained
-/// by the composite. The item memory is allocated by an 'add' operation
+/// within the composite. The item memory is allocated by an 'add' operation
 /// and freed by a 'del' operation.  By default, the number of items is 0.
 class Owned_aggregate : public Aggregate
 {
@@ -56,4 +55,3 @@ private:
 };
 
 }
-#endif // CFG_MGR_OWNED_AGGREGATE_H

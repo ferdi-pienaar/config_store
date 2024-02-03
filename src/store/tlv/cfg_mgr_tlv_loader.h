@@ -1,5 +1,4 @@
-#ifndef CFG_MGR_TLV_LOADER_H
-#define CFG_MGR_TLV_LOADER_H
+#pragma once
 
 #include <stdint.h> // uint8_t, etc
 #include "store/nvram.h"
@@ -40,5 +39,3 @@ private:
     CompositeLoadContext  m_loadStack[STACK_DEPTH];
 };
 }
-#endif // CFG_MGR_TLV_LOADER_H
-

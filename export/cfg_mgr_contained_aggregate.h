@@ -1,6 +1,5 @@
 
-#ifndef CFG_MGR_CONTAINED_AGGREGATE_H
-#define CFG_MGR_CONTAINED_AGGREGATE_H
+#pragma once
 
 #include <stdint.h> // uint8_t, etc
 #include <assert.h>
@@ -19,7 +18,8 @@ class Store;
 ////////////////////////////////////////////////////////////////////////////////
 /// In a contained aggregate, component items are contained within the composite.
 /// The item memory is allocated along with that of the composite item, and the
-/// 'add' and 'del' operations can't be applied to the component.
+/// 'add' and 'del' operations can't be applied to the component, since the
+/// number of contained items is fixed.
 class Contained_aggregate : public Aggregate
 {
 public:
@@ -59,4 +59,3 @@ private:
 };
 
 }
-#endif // CFG_MGR_CONTAINED_AGGREGATE_H

@@ -1,6 +1,5 @@
 
-#ifndef CFG_MGR_AGGREGATE_H
-#define CFG_MGR_AGGREGATE_H
+#pragma once
 
 #include <stdint.h> // uint8_t, etc
 #include "cfg_mgr_types.h"
@@ -23,7 +22,7 @@ class Store;
 ///   structure as the composite) or owned (memory allocated separately
 ///   from that of the composite, and just referenced by the composite).
 /// - The number of component instances (i.e. single item or an array of items).
-/// - Location: offset, of the item array itself (if embedded) or of a pointer
+/// - Location: offset, of the item array itself (if contained) or of a pointer
 ///   to the array (if owned)
 // xxx we could embed this class in Composite_descriptor, but then
 // client could not create component lists at init.  The constructor for this
@@ -76,5 +75,3 @@ private:
 };
 
 }
-
-#endif // CFG_MGR_AGGREGATE_H

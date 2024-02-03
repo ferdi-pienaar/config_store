@@ -1,6 +1,5 @@
 
-#ifndef CFG_MGR_IMPLEMENT_H
-#define CFG_MGR_IMPLEMENT_H
+#pragma once
 
 #include <stdint.h> // uint8_t, etc
 #include <iostream>
@@ -47,4 +46,3 @@ private:
 };
 
 }
-#endif // CFG_MGR_IMPLEMENT_H

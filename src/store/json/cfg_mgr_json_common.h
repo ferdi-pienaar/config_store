@@ -1,5 +1,4 @@
-#ifndef CFG_MGR_JSON_COMMON_H
-#define CFG_MGR_JSON_COMMON_H
+#pragma once
 
 namespace cfg_mgr
 {
@@ -11,4 +10,3 @@ enum ValueType
 };
 
 }
-#endif // CFG_MGR_JSON_COMMON_H

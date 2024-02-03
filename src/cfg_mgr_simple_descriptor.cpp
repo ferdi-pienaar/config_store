@@ -14,7 +14,7 @@ namespace cfg_mgr
 {
 
 // An item does not print its own name, since
-// it may be preceded by an index, which is known
+// it may be followed by an index, which is known
 // to the item's composite but not to the item.
 void Simple_descriptor::print(const uint8_t * pItem, string prefix, bool show_state) const
 {

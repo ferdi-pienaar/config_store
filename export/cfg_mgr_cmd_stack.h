@@ -1,5 +1,4 @@
-#ifndef CFG_MGR_CMD_STACK_H
-#define CFG_MGR_CMD_STACK_H
+#pragma once
 
 namespace cfg_mgr
 {
@@ -41,4 +40,3 @@ private:
     char ** m_tokenPtr;
 };
 }
-#endif // CFG_MGR_CMD_STACK_H

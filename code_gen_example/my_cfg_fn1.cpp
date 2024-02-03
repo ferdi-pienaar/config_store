@@ -16,17 +16,20 @@
 using namespace std;
 using namespace cfg_mgr;
 
-// convert temperature to internal integer representation
+// Convert temperature to internal integer representation.
+// Max temp 191.99609375 is represented as 32767.
+// Min temp -64 is represented as -32768.
 static long int d2internal(double t)
 {
-    return round((t - 50) * 250);
+    return round((t - 64.0) * 256.0);
 }
 
-// convert internal short int to temperature
-// The range is 2^16/250 = 262.144 degrees.
-static float internal2t(short int i)
+// Convert internal short int representation to temperature.
+// The range is 2^16/256 = 256 degrees, -64 to 191.99, in steps
+// of 1/256 = 0.00390625 degrees.
+static double internal2t(short int i)
 {
-    return i/250.0 + 50;
+    return i/256.0 + 64.0;
 }
 
 // Use short to represent temperatures

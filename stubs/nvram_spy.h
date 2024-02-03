@@ -1,6 +1,5 @@
 // The spy interface includes the basic interface, and additional methods.
-#ifndef NVRAM_SPY_H
-#define NVRAM_SPY_H
+#pragma once
 
 #include "store/nvram.h"
 
@@ -28,8 +27,3 @@ private:
     unsigned m_bytesWritten; // max number of bytes written, i.e. the file size
     unsigned m_offset; // position in file for writing or reading.
 };
-
-
-
-#endif // NVRAM_SPY_H
-
