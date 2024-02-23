@@ -36,6 +36,11 @@ public:
     {
         return m_data->c.len;
     }
+    virtual bool hasContent(const uint8_t *pItem) const
+    {
+        (void)pItem;
+        return true;
+    }
     void print(const uint8_t * pItem, std::string prefix, bool include_state) const;
     bool set(uint8_t * pItem, std::string val) const;
     void setDefault(uint8_t * pItem) const;

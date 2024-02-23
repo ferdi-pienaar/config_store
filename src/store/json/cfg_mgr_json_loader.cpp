@@ -107,7 +107,10 @@ result_t JsonLoader::startLoadComposite(const char * name, ValueType t)
     }
     if (!isNextRead((t == OBJECT) ? "{" : "[", 1))
     {
-        DBG_PRT("%s missing '%s'\n", __PRETTY_FUNCTION__, (t == OBJECT) ? "{" : "[");
+        DBG_PRT("%s: %s '%s' missing opening '%s'\n", __PRETTY_FUNCTION__,
+                (t == OBJECT) ? "object" : "array",
+                name,
+                (t == OBJECT) ? "{" : "[");
         return CM_INCOHERENT_DATA;
     }
     m_context.push(t);

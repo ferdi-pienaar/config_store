@@ -66,6 +66,7 @@ public:
     virtual result_t startLoad(Store * store) const = 0;
     virtual result_t endLoad(uint8_t * pItem, Store * store) const = 0;
     virtual item_len_t getLen() const = 0;
+    virtual bool hasContent(const uint8_t *pItem) const = 0;
     virtual void print(const uint8_t * pItem, std::string prefix, bool include_state) const = 0;
     virtual void setDefault(uint8_t * pItem) const = 0;
     virtual void help(const uint8_t * pItem) const = 0;

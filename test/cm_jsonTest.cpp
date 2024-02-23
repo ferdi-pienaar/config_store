@@ -359,7 +359,7 @@ TEST_F(JsonTest, loadSkipUnwantedArray)
 }
 
 // How should this fail? endLoadSimple should return an error if it sees
-// something that is not a valid value, i.e. stars with '{'.
+// something that is not a valid value, i.e. starts with '{'.
 TEST_F(JsonTest, DISABLED_loadSimpleForObject)
 {
     uint8_t    nvSet[] = {"\"compo\": {\n"

@@ -35,6 +35,7 @@ public:
     {
         return m_data->c.len;
     }
+    virtual bool hasContent(const uint8_t *pItem) const;
     bool handleCmd(Command_stack * cmd, uint8_t * pItem, Cmd_context * candidate, bool & setCtxt) const;
     void print(const uint8_t * pItem, std::string prefix, bool include_state) const;
     void setDefault(uint8_t * pItem) const;

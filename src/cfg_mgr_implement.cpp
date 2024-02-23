@@ -119,7 +119,7 @@ void Config_manager_implement::load(Command_stack *cmd)
     }
     if (res != CM_SUCCESS)
     {
-        cm_printf("Load failed: defaults restored.\n");
+        cm_printf("Load failed error %u: defaults restored.\n", res);
         m_baseDesc->setDefault(m_ramBase);
     }
     m_store->endLoad();

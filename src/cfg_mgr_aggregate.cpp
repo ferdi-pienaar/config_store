@@ -136,6 +136,12 @@ void Aggregate::save(const uint8_t *pItem, Store * store) const
         return;
     }
 
+    if (!hasContent(pItem))
+    {
+        // Aggregate has no content in RAM, so nothing to write.
+        return;
+    }
+
     if (m_data->maxCount > 1)
     {
         store->startWriteArray(m_data->pDesc->getName());
@@ -219,6 +225,19 @@ result_t Aggregate::loadItem(uint8_t * pParentItem, unsigned idx, Store * store)
     }
     // We have memory to load the item into, so complete the load.
     return m_data->pDesc->endLoad(pItem, store);
+}
+
+// Aggregate has content iff one of its items does.
+bool Aggregate::hasContent(const uint8_t * pParentItem) const
+{
+    for (unsigned i = 0; i < getCount(pParentItem); i++)
+    {
+        if (m_data->pDesc->hasContent(getItemAtIndex(pParentItem, i)))
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 }
