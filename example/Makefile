@@ -8,7 +8,7 @@ CXXFLAGS += -MMD
 #CPPFLAGS += -D DEBUG_PRINT
 VPATH = $(CFG_MGR_SRC_DIR) # so make can find the library
 
-OBJS = my_cfg.o my_cfg_fn.o \
+OBJS = test_cfg_mgr.o my_cfg.o my_cfg_fn.o \
 $(CFG_MGR_UTIL_DIR)cfg_mgr_set_int.o \
 $(CFG_MGR_UTIL_DIR)cfg_mgr_prt_int.o \
 $(CFG_MGR_UTIL_DIR)cfg_mgr_set_str.o \
@@ -17,6 +17,10 @@ $(CFG_MGR_UTIL_DIR)cfg_mgr_strtok.o \
 $(CFG_MGR_UTIL_DIR)cfg_mgr_setdef_null.o
 
 test_cfg_mgr: $(OBJS) -lCfgMgr
+	$(CXX) $^ -o $@
+
+test_cfg_mgr_json: $(OBJS) -lCfgMgrJson
+	$(CXX) $^ -o $@
 
 .PHONY: clean
 clean:

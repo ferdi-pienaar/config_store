@@ -17,8 +17,8 @@ class Nvram
 public:
     Nvram(): m_fp(nullptr) {}
     virtual ~Nvram() {}
-    virtual bool initForWrite();
-    virtual bool initForRead();
+    virtual bool initForWrite(const char * filename);
+    virtual bool initForRead(const char * filename);
     virtual void accessComplete();
     virtual bool write(const uint8_t * d, unsigned int len);
     virtual bool read(uint8_t * d, unsigned int len);

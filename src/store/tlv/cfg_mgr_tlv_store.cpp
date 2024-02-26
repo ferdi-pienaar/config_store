@@ -13,6 +13,11 @@ using namespace std;
 namespace cfg_mgr
 {
 
+Store * createStorex(Nvram * nvram)
+{
+    return new Tlv_store(nvram);
+}
+
 Tlv_store::Tlv_store(Nvram * nvram) : Store(nvram)
 {
     m_tlv_writer = new TlvWriter(m_nvram);
@@ -27,43 +32,43 @@ Tlv_store::~Tlv_store()
 }
 
 
-result_t Tlv_store::startLoad()
+result_t Tlv_store::startLoad() const
 {
     m_tlv_loader->reset();
     return Store::startLoad();
 }
 
 
-bool Tlv_store::startWrite()
+bool Tlv_store::startWrite() const
 {
     m_tlv_writer->reset();
     return Store::startWrite();
 }
 
 
-void Tlv_store::writeSimple(const Simple_metadata * data, const uint8_t * v)
+void Tlv_store::writeSimple(const Simple_metadata * data, const uint8_t * v) const
 {
     m_tlv_writer->writeSimple(data->c.id, data->c.len, v);
 }
 
 
-void Tlv_store::startWriteComposite(const Composite_metadata * data)
+void Tlv_store::startWriteComposite(const Composite_metadata * data) const
 {
     m_tlv_writer->startWriteComposite(data->c.id);
 }
 
 
-void Tlv_store::endWriteComposite()
+void Tlv_store::endWriteComposite() const
 {
     m_tlv_writer->endWriteComposite();
 }
 
-result_t Tlv_store::startLoadSimple(const Simple_metadata * data)
+result_t Tlv_store::startLoadSimple(const Simple_metadata * data) const
 {
     return m_tlv_loader->startLoadSimple(data->c.id);
 }
 
-result_t Tlv_store::endLoadSimple(uint8_t * pRam, const Simple_metadata * data)
+result_t Tlv_store::endLoadSimple(uint8_t * pRam, const Simple_metadata * data) const
 {
     item_len_t len = data->c.len;
     result_t ret = m_tlv_loader->endLoadSimple(&len, pRam);
@@ -76,12 +81,12 @@ result_t Tlv_store::endLoadSimple(uint8_t * pRam, const Simple_metadata * data)
     return ret;
 }
 
-result_t Tlv_store::startLoadComposite(const Composite_metadata * data)
+result_t Tlv_store::startLoadComposite(const Composite_metadata * data) const
 {
     return m_tlv_loader->startLoadComposite(data->c.id);
 }
 
-result_t Tlv_store::endLoadComposite()
+result_t Tlv_store::endLoadComposite() const
 {
     return m_tlv_loader->endLoadComposite();
 }

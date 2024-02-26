@@ -9,6 +9,9 @@
 
 namespace cfg_mgr
 {
+
+Store * createStorex(Nvram * nvram);
+
 // Access to TLV persistent storage via the abstract interface represented by Store:
 // it's a ConcreteStrategy of the Strategy Store.
 // This class implements the adapter pattern, adapting the interface provided
@@ -18,16 +21,19 @@ class Tlv_store : public Store
 public:
     Tlv_store(Nvram * nvram);
     ~Tlv_store();
-
-    result_t startLoad();
-    bool startWrite();
-    void writeSimple(const Simple_metadata * data, const uint8_t * v);
-    void startWriteComposite(const Composite_metadata * data);
-    void endWriteComposite();
-    result_t startLoadSimple(const Simple_metadata * data);
-    result_t endLoadSimple(uint8_t * pRam, const Simple_metadata * data);
-    result_t startLoadComposite(const Composite_metadata * data);
-    result_t endLoadComposite();
+    const char * getFileName() const
+    {
+        return "cfg.bin";
+    }
+    result_t startLoad() const override;
+    bool startWrite() const override;
+    void writeSimple(const Simple_metadata * data, const uint8_t * v) const override;
+    void startWriteComposite(const Composite_metadata * data) const override;
+    void endWriteComposite() const override;
+    result_t startLoadSimple(const Simple_metadata * data) const override;
+    result_t endLoadSimple(uint8_t * pRam, const Simple_metadata * data) const override;
+    result_t startLoadComposite(const Composite_metadata * data) const override;
+    result_t endLoadComposite() const override;
 
 private:
     TlvWriter * m_tlv_writer;

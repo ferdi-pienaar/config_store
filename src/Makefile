@@ -1,13 +1,11 @@
 CXXFLAGS = -Wall -g -I . -I ../export
 # Include some C99 macros that are not part of the C++ standard
 CPPFLAGS += -D __STDC_LIMIT_MACROS
-CPPFLAGS += -D M_DEFINED_STORE_TYPE=TLV_STORE
-#CPPFLAGS += -D M_DEFINED_STORE_TYPE=JSON_STORE
 #CXXFLAGS += -save-temps
 #CPPFLAGS += -D DEBUG_PRINT
 # Generate the .d files when generating objects
 CXXFLAGS += -MMD
-OBJS = cfg_mgr_implement.o \
+CORE_OBJS = cfg_mgr_implement.o \
 cfg_mgr.o \
 cfg_mgr_prt_hexstr.o \
 store/cfg_mgr_store.o \
@@ -21,15 +19,17 @@ cfg_mgr_owned_aggregate.o \
 cfg_mgr_cmd_stack.o \
 cfg_mgr_cmd_ctxt.o
 
-OBJS += store/tlv/cfg_mgr_tlv_store.o store/tlv/cfg_mgr_tlv_writer.o store/tlv/cfg_mgr_tlv_loader.o
-
-OBJS += store/json/cfg_mgr_json_store.o store/json/cfg_mgr_json_writer.o store/json/cfg_mgr_json_loader.o store/json/cfg_mgr_json_ctxt.o
+TLV_OBJS = store/tlv/cfg_mgr_tlv_store.o store/tlv/cfg_mgr_tlv_writer.o store/tlv/cfg_mgr_tlv_loader.o
+JSON_OBJS = store/json/cfg_mgr_json_store.o store/json/cfg_mgr_json_writer.o store/json/cfg_mgr_json_loader.o store/json/cfg_mgr_json_ctxt.o
 
 # -cr means
 #  c: create the archive (without this option, if archive doesn't exist, there's a warning)
 #  r: insert the files into archive (with replacement)
 # We only pass newer prerequisites to the command ($? instead of $^)
-libCfgMgr.a: $(OBJS)
+libCfgMgr.a: $(CORE_OBJS) $(TLV_OBJS)
+	ar cr $@ $?
+
+libCfgMgrJson.a: $(CORE_OBJS) $(JSON_OBJS)
 	ar cr $@ $?
 
 .PHONY: clean

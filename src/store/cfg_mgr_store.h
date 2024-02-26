@@ -17,24 +17,25 @@ class Store
 public:
     Store(Nvram * nvram) : m_nvram(nvram) {}
     virtual ~Store() {}
-    virtual bool startWrite();
-    virtual void endWrite();
-    virtual result_t startLoad();
-    virtual result_t endLoad();
-    virtual void writeSimple(const Simple_metadata * data, const uint8_t * v) = 0;
-    virtual void startWriteComposite(const Composite_metadata * data) = 0;
-    virtual void endWriteComposite() = 0;
-    virtual void startWriteArray(const char * name) {}
-    virtual void endWriteArray() {}
-    virtual result_t startLoadSimple(const Simple_metadata * data) = 0;
-    virtual result_t endLoadSimple(uint8_t * pRam, const Simple_metadata * data) = 0;
-    virtual result_t startLoadComposite(const Composite_metadata * data) = 0;
-    virtual result_t endLoadComposite() = 0;
-    virtual result_t startLoadArray(const char * name)
+    virtual const char * getFileName() const = 0;
+    virtual bool startWrite() const;
+    virtual void endWrite() const;
+    virtual result_t startLoad() const;
+    virtual result_t endLoad() const;
+    virtual void writeSimple(const Simple_metadata * data, const uint8_t * v) const = 0;
+    virtual void startWriteComposite(const Composite_metadata * data) const = 0;
+    virtual void endWriteComposite() const = 0;
+    virtual void startWriteArray(const char * name) const {}
+    virtual void endWriteArray() const {}
+    virtual result_t startLoadSimple(const Simple_metadata * data) const = 0;
+    virtual result_t endLoadSimple(uint8_t * pRam, const Simple_metadata * data) const = 0;
+    virtual result_t startLoadComposite(const Composite_metadata * data) const = 0;
+    virtual result_t endLoadComposite() const  = 0;
+    virtual result_t startLoadArray(const char * name) const
     {
         return CM_SUCCESS;
     }
-    virtual result_t endLoadArray()
+    virtual result_t endLoadArray() const
     {
         return CM_SUCCESS;
     }

@@ -10,37 +10,28 @@ using namespace std;
 namespace cfg_mgr
 {
 
-enum CM_PERSISTENT_STORE_TYPE
-{
-    TLV_STORE,
-    JSON_STORE
-};
-
 Store * Store::createStore(Nvram * nvram)
 {
-    if (M_DEFINED_STORE_TYPE == TLV_STORE)
-        return new Tlv_store(nvram);
-    else
-        return new Json_store(nvram);
+    return createStorex(nvram);
 }
 
-result_t Store::startLoad()
+result_t Store::startLoad() const
 {
-    return m_nvram->initForRead() ? CM_SUCCESS : CM_FAIL;
+    return m_nvram->initForRead(getFileName()) ? CM_SUCCESS : CM_FAIL;
 }
 
-result_t Store::endLoad()
+result_t Store::endLoad() const
 {
     m_nvram->accessComplete();
     return CM_SUCCESS;
 }
 
-bool Store::startWrite()
+bool Store::startWrite() const
 {
-    return m_nvram->initForWrite();
+    return m_nvram->initForWrite(getFileName());
 }
 
-void Store::endWrite()
+void Store::endWrite() const
 {
     m_nvram->accessComplete();
 }

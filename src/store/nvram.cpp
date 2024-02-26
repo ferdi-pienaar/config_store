@@ -3,21 +3,19 @@
 
 #include "nvram.h"
 
-#define CFG_FILE_NAME "cfg.bin"
-
 namespace cfg_mgr
 {
 
-bool Nvram::initForWrite()
+bool Nvram::initForWrite(const char * filename)
 {
-    m_fp = fopen(CFG_FILE_NAME, "wb");  // open file for binary write
+    m_fp = fopen(filename, "wb");  // open file for binary write
     return m_fp != nullptr;
 }
 
 
-bool Nvram::initForRead()
+bool Nvram::initForRead(const char * filename)
 {
-    m_fp = fopen(CFG_FILE_NAME, "rb");  // open file for binary read
+    m_fp = fopen(filename, "rb");  // open file for binary read
     return m_fp != nullptr;
 }
 

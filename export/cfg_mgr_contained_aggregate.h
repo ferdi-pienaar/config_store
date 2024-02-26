@@ -25,37 +25,37 @@ class Contained_aggregate : public Aggregate
 public:
     Contained_aggregate(const Aggregate_data * d): Aggregate(d) {}
 
-    virtual unsigned getCount(const uint8_t * pParentItem) const;
-    void setCount(uint8_t * pParentItem, unsigned int) const
+    virtual unsigned getCount(const uint8_t * pParentItem) const override;
+    void setCount(uint8_t * pParentItem, unsigned int) const override
     {
         (void)pParentItem;
         assert(false); // not modifiable
     }
-    bool handleAdd(uint8_t * pItem) const;
-    bool handleDel(Command_stack * cmd, uint8_t * pItem) const;
-    uint8_t * add(uint8_t * pParentItem) const
+    bool handleAdd(uint8_t * pItem) const override;
+    bool handleDel(Command_stack * cmd, uint8_t * pItem) const override;
+    uint8_t * add(uint8_t * pParentItem) const override
     {
         (void)pParentItem;
         assert(false);
         return nullptr;
     }
-    void del(uint8_t * pParentItem, unsigned int itemIdx) const
+    void del(uint8_t * pParentItem, unsigned int itemIdx) const override
     {
         (void)pParentItem;
         (void)itemIdx;
         assert(false);
     }
-    uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const;
-    void help(const uint8_t * pItem) const;
+    uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const override;
+    void help(const uint8_t * pItem) const override;
 
 private:
-    uint8_t * getFirstItem(const uint8_t * pParentItem) const;
+    uint8_t * getFirstItem(const uint8_t * pParentItem) const override;
     // For contained items, the aggregate doesn't own the item memory, so frees nothing
-    void freeItems(uint8_t * pParentItem) const
+    void freeItems(uint8_t * pParentItem) const override
     {
         (void)pParentItem;
     }
-    uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const;
+    uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const override;
 };
 
 }

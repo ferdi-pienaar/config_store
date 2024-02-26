@@ -32,16 +32,17 @@ CPPFLAGS += -isystem $(GTEST_DIR)/include -I $(USER_DIR) -I $(STUB_DIR) -I $(UTI
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g -Wall -Wextra -pthread
 
+TESTS = testTag testTagJson
+
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS = testTag
-
 TEST_OBJS = cm_tlvTest.o \
  cm_simple_item_descriptorTest.o \
  cm_composite_item_descriptorTest.o \
  cfg_mgr_test.o \
- cm_jsonTest.o \
  strtok_test.o
+
+JSON_TEST_OBJS = cm_jsonTest.o
 
 MOCK_OBJS = $(STUB_DIR)/nvram_spy.o $(STUB_DIR)/cfg_mgr_printf_spy.o 
 UTIL_OBJS = $(UTIL_DIR)/cfg_mgr_set_int.o \
@@ -62,12 +63,15 @@ all : $(TESTS)
 
 clean :
 	rm -f $(TESTS) gtest.a gtest_main.a *.o $(STUB_DIR)/*.o $(UTIL_DIR)/*.o
-    
-    
+
 # Execute test iff executable is untested (or new) -- the tag file timestamps last test execution.
 testTag: cm_test
 	./cm_test --gtest_shuffle
-	touch testTag
+	touch $@
+
+testTagJson: cm_json_test
+	./cm_json_test --gtest_shuffle
+	touch $@
 
 # Builds gtest.a and gtest_main.a.
 
@@ -98,4 +102,7 @@ gtest_main.a : gtest-all.o gtest_main.o
 # function.
 
 cm_test : $(TEST_OBJS) $(MOCK_OBJS) $(UTIL_OBJS) gtest_main.a -lCfgMgr
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@
+
+cm_json_test : $(JSON_TEST_OBJS) $(MOCK_OBJS) $(UTIL_OBJS) gtest_main.a -lCfgMgrJson
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@

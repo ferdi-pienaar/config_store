@@ -23,27 +23,27 @@ public:
     Composite_descriptor(const Composite_metadata * pMeta):
         m_data(pMeta) {}
     ~Composite_descriptor() {};
-    const char * getName() const
+    const char * getName() const override
     {
         return m_data->c.name;
     }
-    virtual item_id_t getId() const
+    virtual item_id_t getId() const override
     {
         return m_data->c.id;
     }
-    virtual item_len_t getLen() const
+    virtual item_len_t getLen() const override
     {
         return m_data->c.len;
     }
-    virtual bool hasContent(const uint8_t *pItem) const;
-    bool handleCmd(Command_stack * cmd, uint8_t * pItem, Cmd_context * candidate, bool & setCtxt) const;
-    void print(const uint8_t * pItem, std::string prefix, bool include_state) const;
-    void setDefault(uint8_t * pItem) const;
-    virtual void help(const uint8_t * pItem) const;
-    void save(const uint8_t * pItem, Store * store) const;
-    result_t startLoad(Store * store) const;
-    result_t endLoad(uint8_t * pItem, Store * store) const;
-    bool isPersistent() const
+    virtual bool hasContent(const uint8_t *pItem) const override;
+    bool handleCmd(Command_stack * cmd, uint8_t * pItem, Cmd_context * candidate, bool & setCtxt) const override;
+    void print(const uint8_t * pItem, std::string prefix, bool include_state) const override;
+    void setDefault(uint8_t * pItem) const override;
+    virtual void help(const uint8_t * pItem) const override;
+    void save(const uint8_t * pItem, Store * store) const override;
+    result_t startLoad(Store * store) const override;
+    result_t endLoad(uint8_t * pItem, Store * store) const override;
+    bool isPersistent() const override
     {
         return m_data->c.persistent;
     }

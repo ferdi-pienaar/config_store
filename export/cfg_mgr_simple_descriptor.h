@@ -23,32 +23,32 @@ public:
     Simple_descriptor(const Simple_metadata * pMeta):
         m_data(pMeta) {}
     virtual ~Simple_descriptor() {}
-    bool handleCmd(Command_stack * cmd, uint8_t * pItem, Cmd_context * candidate, bool & setCtxt) const;
-    const char * getName() const
+    bool handleCmd(Command_stack * cmd, uint8_t * pItem, Cmd_context * candidate, bool & setCtxt) const override;
+    const char * getName() const override
     {
         return m_data->c.name;
     }
-    virtual item_id_t getId() const
+    virtual item_id_t getId() const override
     {
         return m_data->c.id;
     }
-    virtual item_len_t getLen() const
+    virtual item_len_t getLen() const override
     {
         return m_data->c.len;
     }
-    virtual bool hasContent(const uint8_t *pItem) const
+    virtual bool hasContent(const uint8_t *pItem) const override
     {
         (void)pItem;
         return true;
     }
-    void print(const uint8_t * pItem, std::string prefix, bool include_state) const;
+    void print(const uint8_t * pItem, std::string prefix, bool include_state) const override;
     bool set(uint8_t * pItem, std::string val) const;
-    void setDefault(uint8_t * pItem) const;
-    void help(const uint8_t * pItem) const;
-    virtual void save(const uint8_t * pItem, Store * store) const;
-    result_t startLoad(Store * store) const;
-    result_t endLoad(uint8_t * pItem, Store * store) const;
-    bool isPersistent() const
+    void setDefault(uint8_t * pItem) const override;
+    void help(const uint8_t * pItem) const override;
+    virtual void save(const uint8_t * pItem, Store * store) const override;
+    result_t startLoad(Store * store) const override;
+    result_t endLoad(uint8_t * pItem, Store * store) const override;
+    bool isPersistent() const override
     {
         return m_data->c.persistent;
     }
