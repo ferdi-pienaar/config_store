@@ -107,7 +107,15 @@ bool Nvram_spy::match(uint8_t * expected, unsigned len)
 {
     bool ret = true;
     int first_diff_offset = -1;
-    if (memcmp(expected, m_nvMem, len) != 0)
+    unsigned min_len = std::min(len, m_bytesWritten);
+
+    if (len != m_bytesWritten)
+    {
+        ret = false;
+        first_diff_offset = min_len;
+    }
+
+    if (memcmp(expected, m_nvMem, min_len) != 0)
     {
         ret = false;
         for (size_t i = 0; i < len; i++)
@@ -120,11 +128,6 @@ bool Nvram_spy::match(uint8_t * expected, unsigned len)
         }
     }
 
-    // The amount written is what's expected
-    if (len != m_bytesWritten)
-    {
-        ret = false;
-    }
     if (!ret)
     {
         cout << "actual and expected differ" << endl;

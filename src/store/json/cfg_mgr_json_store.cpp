@@ -73,6 +73,7 @@ result_t Json_store::endLoad() const
 
 void Json_store::writeSimple(const Simple_metadata * data, const uint8_t * v) const
 {
+    assert(data->pPrt != nullptr);
     m_json_writer->writeSimple(data->c.name, data->c.len, v, data->pPrt);
 }
 
@@ -105,6 +106,7 @@ result_t Json_store::startLoadSimple(const Simple_metadata * data) const
 
 result_t Json_store::endLoadSimple(uint8_t * pRam, const Simple_metadata * data) const
 {
+    assert(data->pSet != nullptr);
     item_len_t len = data->c.len;
     return m_json_loader->endLoadSimple(&len, pRam, data->pSet);
 }

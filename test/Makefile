@@ -40,9 +40,11 @@ TEST_OBJS = cm_tlvTest.o \
  cm_simple_item_descriptorTest.o \
  cm_composite_item_descriptorTest.o \
  cfg_mgr_test.o \
- strtok_test.o
+ strtok_test.o \
+ cfg_mgr_common_test.o
 
-JSON_TEST_OBJS = cm_jsonTest.o
+JSON_TEST_OBJS = cm_jsonTest.o \
+ cfg_mgr_common_test.o
 
 MOCK_OBJS = $(STUB_DIR)/nvram_spy.o $(STUB_DIR)/cfg_mgr_printf_spy.o 
 UTIL_OBJS = $(UTIL_DIR)/cfg_mgr_set_int.o \
