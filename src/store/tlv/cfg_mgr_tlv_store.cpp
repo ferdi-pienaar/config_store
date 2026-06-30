@@ -13,12 +13,12 @@ using namespace std;
 namespace cfg_mgr
 {
 
-Store * createStorex(Nvram * nvram)
+Store * createStorex(Nvram_itf * nvram)
 {
     return new Tlv_store(nvram);
 }
 
-Tlv_store::Tlv_store(Nvram * nvram) : Store(nvram)
+Tlv_store::Tlv_store(Nvram_itf * nvram) : Store(nvram)
 {
     m_tlv_writer = new TlvWriter(m_nvram);
     m_tlv_loader = new TlvLoader(m_nvram);

@@ -1,9 +1,14 @@
 #include "cfg_mgr.h"
 #include "cfg_mgr_implement.h"
+#include "cfg_mgr_printf.h"
 #include "store/nvram.h"
 
 namespace cfg_mgr
 {
+
+// This is installed locally, but can be overridden by tests or client apps.
+// xxx todo force client to register one at startup? Or just give them the option to do it?
+print_fn_t cm_printf = cm_printf_local;
 
 // Having this class inject Nvram reference to Config_manager_implement
 // simplifies testing, since it allows test to inject a spy

@@ -12,7 +12,7 @@ class TlvLoader
 public:
     static const unsigned int STACK_DEPTH = 8;
 
-    TlvLoader(Nvram * pNvram);
+    TlvLoader(Nvram_itf * pNvram);
     ~TlvLoader();
 
     void reset();
@@ -34,7 +34,7 @@ private:
     result_t findTypeInComposite(item_id_t t);
     result_t matchType(item_id_t t);
 
-    Nvram * m_nvram;
+    Nvram_itf * m_nvram;
     int m_stackIndex;  // write/load stack index; -1 means the current item is top-level, not part of a composite
     CompositeLoadContext  m_loadStack[STACK_DEPTH];
 };

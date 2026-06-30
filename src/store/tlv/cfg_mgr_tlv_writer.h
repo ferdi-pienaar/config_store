@@ -12,7 +12,7 @@ class TlvWriter
 public:
     static const unsigned int STACK_DEPTH = 8;
 
-    TlvWriter(Nvram * pNvram);
+    TlvWriter(Nvram_itf * pNvram);
     ~TlvWriter();
 
     void reset();
@@ -32,7 +32,7 @@ private:
 
     void addLengthToComposite(unsigned length);
 
-    Nvram * m_nvram;
+    Nvram_itf * m_nvram;
     int m_stackIndex;  // write/load stack index; -1 means the current item is top-level, not part of a composite
     CompositeWriteContext m_writeStack[STACK_DEPTH];
 };

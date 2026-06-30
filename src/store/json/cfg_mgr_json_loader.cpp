@@ -23,7 +23,7 @@ using namespace std;
 namespace cfg_mgr
 {
 
-JsonLoader::JsonLoader(Nvram * pNvram): m_nvram(pNvram)
+JsonLoader::JsonLoader(Nvram_itf * pNvram): m_nvram(pNvram)
 {
 }
 

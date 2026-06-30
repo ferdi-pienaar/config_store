@@ -12,7 +12,7 @@ namespace cfg_mgr
 {
 
 class Store;
-class Nvram;
+class Nvram_itf;
 class Command_stack;
 
 /// Configuration manager, managing all configurable items in the system.
@@ -21,7 +21,7 @@ class Command_stack;
 class Config_manager_implement
 {
 public:
-    Config_manager_implement(const Descriptor * pDesc, Nvram * nvram);
+    Config_manager_implement(const Descriptor * pDesc, Nvram_itf * nvram);
     ~Config_manager_implement();
     void handleCmd(int argc, char *argv[]);
     const char * getPromptString() const; ///< get context-dependent prompt string h file

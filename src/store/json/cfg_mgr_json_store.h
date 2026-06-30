@@ -10,7 +10,7 @@
 namespace cfg_mgr
 {
 
-Store * createStorex(Nvram * nvram);
+Store * createStorex(Nvram_itf * nvram);
 
 // Access to JSON persistent storage via the abstract interface represented by
 // class Store: it's a ConcreteStrategy of the Strategy Store.
@@ -19,7 +19,7 @@ Store * createStorex(Nvram * nvram);
 class Json_store : public Store
 {
 public:
-    Json_store(Nvram * nvram);
+    Json_store(Nvram_itf * nvram);
     ~Json_store();
     const char * getFileName() const
     {

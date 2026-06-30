@@ -1,6 +1,7 @@
 // Functions implemented by the application programmer, to extend
 // the features provided by the config_manager.
-//
+// xxx client should use same print function that they pass to
+// to cfg_mgr to do printing here; for now, it is just printf.
 
 #include <iostream>
 #include <stdlib.h> // strtod
@@ -9,7 +10,6 @@
 #include <math.h> // round
 #include "cfg_mgr_types.h"
 #include "my_cfg_fn1.h"
-#include "cfg_mgr_printf.h"
 #include <sstream>
 #include <assert.h>
 
@@ -66,19 +66,19 @@ bool set_temp(uint8_t *pItem, item_len_t len, string val)
     if (pEnd != c_string + strlen(c_string))
     {
         // Input string could not be fully converted to double
-        cm_printf("Not a valid temperature: %s.\n", c_string);
+        printf("Not a valid temperature: %s.\n", c_string);
         return false;
     }
 
     long int internal_representation = d2internal(t);
     if (internal_representation > SHRT_MAX)
     {
-        cm_printf("Limiting %f to max %.3f.\n", t, internal2t(SHRT_MAX));
+        printf("Limiting %f to max %.3f.\n", t, internal2t(SHRT_MAX));
         internal_representation = SHRT_MAX;
     }
     else if (internal_representation < SHRT_MIN)
     {
-        cm_printf("Limiting %f to min %.3f.\n", t, internal2t(SHRT_MIN));
+        printf("Limiting %f to min %.3f.\n", t, internal2t(SHRT_MIN));
         internal_representation = SHRT_MIN;
     }
     *((short *)pItem) = (short)internal_representation;

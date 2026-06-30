@@ -18,7 +18,7 @@ typedef std::string (*JSON_PRT_FPTR)(const uint8_t *pItem, item_len_t len);
 class JsonWriter
 {
 public:
-    JsonWriter(Nvram * pNvram);
+    JsonWriter(Nvram_itf * pNvram);
     ~JsonWriter();
 
     void startWrite();
@@ -38,6 +38,6 @@ private:
 
     ContextStack m_context;
     std::string m_singleIndent;
-    Nvram * m_nvram;
+    Nvram_itf * m_nvram;
 };
 }

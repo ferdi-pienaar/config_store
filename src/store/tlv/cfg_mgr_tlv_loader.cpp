@@ -29,7 +29,7 @@ using namespace std;
 namespace cfg_mgr
 {
 
-TlvLoader::TlvLoader(Nvram * pNvram): m_nvram(pNvram), m_stackIndex(-1)
+TlvLoader::TlvLoader(Nvram_itf * pNvram): m_nvram(pNvram), m_stackIndex(-1)
 {
 }
 

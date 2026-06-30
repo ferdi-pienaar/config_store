@@ -1,9 +1,9 @@
 // The spy interface includes the basic interface, and additional methods.
 #pragma once
 
-#include "store/nvram.h"
+#include "store/nvram_itf.h"
 
-class Nvram_spy : public cfg_mgr::Nvram
+class Nvram_spy : public cfg_mgr::Nvram_itf
 {
 public:
     Nvram_spy();

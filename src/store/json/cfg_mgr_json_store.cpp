@@ -13,12 +13,12 @@ using namespace std;
 namespace cfg_mgr
 {
 
-Store * createStorex(Nvram * nvram)
+Store * createStorex(Nvram_itf * nvram)
 {
     return new Json_store(nvram);
 }
 
-Json_store::Json_store(Nvram * nvram) : Store(nvram)
+Json_store::Json_store(Nvram_itf * nvram) : Store(nvram)
 {
     m_json_writer = new JsonWriter(m_nvram);
     m_json_loader = new JsonLoader(m_nvram);

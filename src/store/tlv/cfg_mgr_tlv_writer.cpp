@@ -27,7 +27,7 @@ using namespace std;
 namespace cfg_mgr
 {
 
-TlvWriter::TlvWriter(Nvram * pNvram): m_nvram(pNvram), m_stackIndex(-1)
+TlvWriter::TlvWriter(Nvram_itf * pNvram): m_nvram(pNvram), m_stackIndex(-1)
 {
 }
 

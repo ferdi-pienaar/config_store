@@ -8,23 +8,24 @@
 
 #include <stdint.h> // uint8_t, etc
 #include <stdio.h> // FILE
+#include "nvram_itf.h"
 
 namespace cfg_mgr
 {
 
-class Nvram
+class Nvram : public Nvram_itf
 {
 public:
     Nvram(): m_fp(nullptr) {}
-    virtual ~Nvram() {}
-    virtual bool initForWrite(const char * filename);
-    virtual bool initForRead(const char * filename);
-    virtual void accessComplete();
-    virtual bool write(const uint8_t * d, unsigned int len);
-    virtual bool read(uint8_t * d, unsigned int len);
-    virtual bool setOffset(unsigned int offset);
-    virtual unsigned int getOffset();
-    virtual bool adjustOffset(int i);
+    ~Nvram() {}
+    bool initForWrite(const char * filename) override;
+    bool initForRead(const char * filename) override;
+    void accessComplete() override;
+    bool write(const uint8_t * d, unsigned int len) override;
+    bool read(uint8_t * d, unsigned int len) override;
+    bool setOffset(unsigned int offset) override;
+    unsigned int getOffset() override;
+    bool adjustOffset(int i) override;
 
 private:
     FILE * m_fp;

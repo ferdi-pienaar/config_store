@@ -30,6 +30,8 @@ class SimpleDescriptor : public testing::Test
 protected:
     void SetUp()
     {
+        // xxx improve this: register the spy with the app when app API allows it, don't set the pointer directly.
+        cfg_mgr::cm_printf = cm_printf_spy;
         cm_printf_spy_init();
     }
 };

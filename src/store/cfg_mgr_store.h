@@ -15,7 +15,7 @@ namespace cfg_mgr
 class Store
 {
 public:
-    Store(Nvram * nvram) : m_nvram(nvram) {}
+    Store(Nvram_itf * nvram) : m_nvram(nvram) {}
     virtual ~Store() {}
     virtual const char * getFileName() const = 0;
     virtual bool startWrite() const;
@@ -39,10 +39,10 @@ public:
     {
         return CM_SUCCESS;
     }
-    static Store * createStore(Nvram * nvram);
+    static Store * createStore(Nvram_itf * nvram);
 
 protected:
-    Nvram * m_nvram;
+    Nvram_itf * m_nvram;
 
 };
 }

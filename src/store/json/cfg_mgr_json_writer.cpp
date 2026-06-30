@@ -24,7 +24,7 @@ using namespace std;
 namespace cfg_mgr
 {
 
-JsonWriter::JsonWriter(Nvram * pNvram): m_singleIndent(" "), m_nvram(pNvram)
+JsonWriter::JsonWriter(Nvram_itf * pNvram): m_singleIndent(" "), m_nvram(pNvram)
 {
 }
 

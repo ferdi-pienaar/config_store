@@ -4,7 +4,7 @@ namespace cfg_mgr
 {
 
 class Config_manager_implement;
-class Nvram;
+class Nvram_itf;
 class Descriptor;
 
 /// Interface class for configuration manager, managing all configurable items in the system.
@@ -27,7 +27,7 @@ public:
 
 private:
     Config_manager_implement * m_config_manager;
-    Nvram * m_nvram;
+    Nvram_itf * m_nvram;
 };
 
 }

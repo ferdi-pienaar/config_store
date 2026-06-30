@@ -4,6 +4,8 @@ and the .cpp file that implements the initialization of the metadata
 describing the contents of those structures.
 
 Usage: python yaml_code_gen.py [source YAML file]
+  This script tries to load a file called xxx_id.yaml, containing IDs,
+  and if it doesn't find it, generates new IDs.
 
 todo:
   Should we mark items in the ID file that are no longer present in the config file?

@@ -1,5 +1,6 @@
 /// This is used for all output to the user.
-//  Not using printf or cout directly facilitates replacing it with a spy for test purposes.
+//  Not using printf or cout directly facilitates replacing it with a spy for test purposes,
+//  or allowing client to supply its own implementation.
 //
 #include <stdarg.h>
 #include <stdio.h>
@@ -8,7 +9,7 @@
 namespace cfg_mgr
 {
 
-int cm_printf(const char * format, ...)
+int cm_printf_local(const char * format, ...)
 {
     va_list args;
     va_start (args, format);

@@ -18,7 +18,7 @@ typedef std::string (*JSON_PRT_FPTR)(const uint8_t *pItem, item_len_t len);
 class JsonLoader
 {
 public:
-    JsonLoader(Nvram * pNvram);
+    JsonLoader(Nvram_itf * pNvram);
     ~JsonLoader();
 
     result_t startLoad();
@@ -46,6 +46,6 @@ private:
     bool isws(char c);
 
     ContextStack m_context;
-    Nvram * m_nvram;
+    Nvram_itf * m_nvram;
 };
 }

@@ -10,7 +10,7 @@ using namespace std;
 namespace cfg_mgr
 {
 
-Store * Store::createStore(Nvram * nvram)
+Store * Store::createStore(Nvram_itf * nvram)
 {
     return createStorex(nvram);
 }

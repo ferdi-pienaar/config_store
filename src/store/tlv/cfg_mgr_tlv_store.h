@@ -10,7 +10,7 @@
 namespace cfg_mgr
 {
 
-Store * createStorex(Nvram * nvram);
+Store * createStorex(Nvram_itf * nvram);
 
 // Access to TLV persistent storage via the abstract interface represented by Store:
 // it's a ConcreteStrategy of the Strategy Store.
@@ -19,7 +19,7 @@ Store * createStorex(Nvram * nvram);
 class Tlv_store : public Store
 {
 public:
-    Tlv_store(Nvram * nvram);
+    Tlv_store(Nvram_itf * nvram);
     ~Tlv_store();
     const char * getFileName() const
     {

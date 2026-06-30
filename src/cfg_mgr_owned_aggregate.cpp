@@ -48,6 +48,7 @@ unsigned Owned_aggregate::getCount(const uint8_t * pParentItem) const
 
     default:
         assert(0);
+        return 0;
     }
 }
 
