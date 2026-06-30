@@ -36,7 +36,7 @@ bool cm_set_str(uint8_t *pItem, item_len_t len, string val)
     DBG_PRT("%s: write_bytes=%u\n", __PRETTY_FUNCTION__, write_bytes);
 
     // Write excluding the opening quote in the string.
-    snprintf((char *)pItem, write_bytes, val.c_str() + 1);
+    snprintf((char *)pItem, write_bytes, "%s", val.c_str() + 1);
     return true;
 }
 

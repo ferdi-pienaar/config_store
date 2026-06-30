@@ -18,18 +18,18 @@ namespace cfg_mgr
 // Array of command handlers, indexed by command ID.
 const Config_manager_implement::cmd_handler Config_manager_implement::handlers[] =
 {
-    Config_manager_implement::delegate, // CM_ADD
-    Config_manager_implement::delegate, // CM_DEL
-    Config_manager_implement::delegate, // CM_PRT
-    Config_manager_implement::delegate, // CM_PRT_CFG
-    Config_manager_implement::delegate, // CM_SET
-    Config_manager_implement::delegate, // CM_SETDEF
-    Config_manager_implement::load, // CM_LOAD
-    Config_manager_implement::save, // CM_SAVE
-    Config_manager_implement::delegate, // CM_HELP,
-    Config_manager_implement::resetCtxt, // CM_RESET_CTXT
-    Config_manager_implement::delegate, // CM_OP_NONE
-    Config_manager_implement::emptyCmd // CM_EMPTY
+    &Config_manager_implement::delegate, // CM_ADD
+    &Config_manager_implement::delegate, // CM_DEL
+    &Config_manager_implement::delegate, // CM_PRT
+    &Config_manager_implement::delegate, // CM_PRT_CFG
+    &Config_manager_implement::delegate, // CM_SET
+    &Config_manager_implement::delegate, // CM_SETDEF
+    &Config_manager_implement::load, // CM_LOAD
+    &Config_manager_implement::save, // CM_SAVE
+    &Config_manager_implement::delegate, // CM_HELP,
+    &Config_manager_implement::resetCtxt, // CM_RESET_CTXT
+    &Config_manager_implement::delegate, // CM_OP_NONE
+    &Config_manager_implement::emptyCmd // CM_EMPTY
 };
 
 Config_manager_implement::Config_manager_implement(const Descriptor * desc, Nvram * nvram): m_baseDesc(desc)
