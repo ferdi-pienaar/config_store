@@ -32,7 +32,9 @@ const Config_manager_implement::cmd_handler Config_manager_implement::handlers[]
     &Config_manager_implement::emptyCmd // CM_EMPTY
 };
 
-Config_manager_implement::Config_manager_implement(const Descriptor * desc, Nvram_itf * nvram): m_baseDesc(desc)
+Config_manager_implement::Config_manager_implement(const Descriptor * desc,
+    uint8_t ** ppRAM, Nvram_itf * nvram)
+    : m_baseDesc(desc)
 {
     m_ramBase = (uint8_t *)malloc(m_baseDesc->getLen());
     DBG_PRT("init: ramBase, %d at %p\n", m_baseDesc->getLen(), m_ramBase);
@@ -41,6 +43,7 @@ Config_manager_implement::Config_manager_implement(const Descriptor * desc, Nvra
     m_baseDesc->setDefault(m_ramBase);
     resetCtxt(nullptr);
     m_store = Store::createStore(nvram);
+    *ppRAM = m_ramBase;
 }
 
 Config_manager_implement::~Config_manager_implement()

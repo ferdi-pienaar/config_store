@@ -6,17 +6,17 @@
 namespace cfg_mgr
 {
 
-// This is installed locally, but can be overridden by tests or client apps.
-// xxx todo force client to register one at startup? Or just give them the option to do it?
-print_fn_t cm_printf = cm_printf_local;
+// This function is supplied by the client (or test).
+PRINTF_FN_TYPE cm_printf = nullptr;
 
 // Having this class inject Nvram reference to Config_manager_implement
 // simplifies testing, since it allows test to inject a spy
 // to Config_manager_implement.
-Config_manager::Config_manager(const Descriptor * pDesc)
+Config_manager::Config_manager(const Descriptor * pDesc, PRINTF_FN_TYPE printf_fn, uint8_t ** ppRAM)
 {
     m_nvram = new Nvram;
-    m_config_manager = new Config_manager_implement(pDesc, m_nvram);
+    cm_printf = printf_fn;
+    m_config_manager = new Config_manager_implement(pDesc, ppRAM, m_nvram);
 }
 
 Config_manager::~Config_manager()
@@ -33,11 +33,6 @@ void Config_manager::handleCmd(int argc, char *argv[])
 const char * Config_manager::getPromptString() const
 {
     return m_config_manager->getPromptString();
-}
-
-void * Config_manager::getConfig()
-{
-    return m_config_manager->getConfig();
 }
 
 }

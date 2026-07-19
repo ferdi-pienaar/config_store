@@ -18,10 +18,12 @@ using namespace std;
 static void * stats_thread(void * arg);
 static void handle_command(cfg_mgr::Config_manager & cm);
 
+tDevice * pCfg;
+
 int main()
 {
     // Initialize the config manager with the base descriptor it is to manage.
-    cfg_mgr::Config_manager cm(get_base_descriptor());
+    cfg_mgr::Config_manager cm(get_base_descriptor(), printf, (uint8_t **)&pCfg);
 
     pthread_t thread;
     int rc = pthread_create(&thread, NULL, stats_thread, &cm);
@@ -59,7 +61,6 @@ void handle_command(cfg_mgr::Config_manager & cm)
 void * stats_thread(void * arg)
 {
     cfg_mgr::Config_manager * cm = (cfg_mgr::Config_manager *)arg;
-    tDevice * pCfg = (tDevice *)cm->getConfig();
 
     for (;;)
     {

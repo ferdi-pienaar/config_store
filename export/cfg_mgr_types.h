@@ -6,6 +6,7 @@
 
 namespace cfg_mgr
 {
+using PRINTF_FN_TYPE = int(*)(const char* fmt, ...);
 
 // Number of bytes in an item; used in NVRAM
 // Because it determines the longest possible length of any item in NVRAM,

@@ -59,7 +59,7 @@ const Aggregate * const aggrList1[] = {&ca1, &ca2};
 const Composite_metadata c1_d = {{"c1", 1, sizeof(struct m), true}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
 const Composite_descriptor c1(&c1_d);
 
-#define GET_C1_CONFIG ((struct m *)cm->getConfig())
+struct m * C1_CONFIG = nullptr;
 
 class CfgMgrContained : public testing::Test
 {
@@ -71,7 +71,7 @@ protected:
     virtual void SetUp()
     {
         nvram = new Nvram_spy;
-        cm = new Config_manager_implement(&c1, nvram);
+        cm = new Config_manager_implement(&c1, (uint8_t **)&C1_CONFIG, nvram);
     }
 
     virtual void TearDown()
@@ -110,8 +110,8 @@ TEST_F(CfgMgrContained, load)
     char * commandWord[] = {(char *)"load"};
     cm->handleCmd(1, commandWord);
 
-    EXPECT_EQ(8, GET_C1_CONFIG->m1);
-    EXPECT_EQ(9, GET_C1_CONFIG->m2);
+    EXPECT_EQ(8, C1_CONFIG->m1);
+    EXPECT_EQ(9, C1_CONFIG->m2);
 }
 
 
@@ -130,8 +130,8 @@ TEST_F(CfgMgrContained, loadChangedSimpleLen)
     char * commandWord[] = {(char *)"load"};
     cm->handleCmd(1, commandWord);
 
-    EXPECT_EQ(0, GET_C1_CONFIG->m1); // Default
-    EXPECT_EQ(7, GET_C1_CONFIG->m2); // Default; not read from the file, because TLV's L is bad
+    EXPECT_EQ(0, C1_CONFIG->m1); // Default
+    EXPECT_EQ(7, C1_CONFIG->m2); // Default; not read from the file, because TLV's L is bad
 }
 
 
@@ -198,8 +198,8 @@ TEST_F(CfgMgrContained, loadTruncated)
     nvram->set(tlv, sizeof(tlv));
     char * commandWord[] = {(char *)"load"};
     cm->handleCmd(1, commandWord);
-    EXPECT_EQ(0, GET_C1_CONFIG->m1);
-    EXPECT_EQ(7, GET_C1_CONFIG->m2);
+    EXPECT_EQ(0, C1_CONFIG->m1);
+    EXPECT_EQ(7, C1_CONFIG->m2);
 }
 
 
@@ -216,8 +216,8 @@ TEST_F(CfgMgrContained, loadTruncated1)
     nvram->set(tlv, sizeof(tlv));
     char * commandWord[] = {(char *)"load"};
     cm->handleCmd(1, commandWord);
-    EXPECT_EQ(0, GET_C1_CONFIG->m1);
-    EXPECT_EQ(7, GET_C1_CONFIG->m2);
+    EXPECT_EQ(0, C1_CONFIG->m1);
+    EXPECT_EQ(7, C1_CONFIG->m2);
 }
 
 
@@ -233,8 +233,8 @@ TEST_F(CfgMgrContained, loadTruncated2)
     nvram->set(tlv, sizeof(tlv));
     char * commandWord[] = {(char *)"load"};
     cm->handleCmd(1, commandWord);
-    EXPECT_EQ(0, GET_C1_CONFIG->m1);
-    EXPECT_EQ(7, GET_C1_CONFIG->m2);
+    EXPECT_EQ(0, C1_CONFIG->m1);
+    EXPECT_EQ(7, C1_CONFIG->m2);
 }
 
 
@@ -252,8 +252,8 @@ TEST_F(CfgMgrContained, DISABLED_loadIncoherent)
     nvram->set(tlv, sizeof(tlv));
     char * commandWord[] = {(char *)"load"};
     cm->handleCmd(1, commandWord);
-    EXPECT_EQ(0, GET_C1_CONFIG->m1);
-    EXPECT_EQ(7, GET_C1_CONFIG->m2);
+    EXPECT_EQ(0, C1_CONFIG->m1);
+    EXPECT_EQ(7, C1_CONFIG->m2);
 }
 
 
@@ -271,8 +271,8 @@ TEST_F(CfgMgrContained, DISABLED_loadIncoherent1)
     nvram->set(tlv, sizeof(tlv));
     char * commandWord[] = {(char *)"load"};
     cm->handleCmd(1, commandWord);
-    EXPECT_EQ(0, GET_C1_CONFIG->m1);
-    EXPECT_EQ(7, GET_C1_CONFIG->m2);
+    EXPECT_EQ(0, C1_CONFIG->m1);
+    EXPECT_EQ(7, C1_CONFIG->m2);
 }
 
 
@@ -301,7 +301,7 @@ const Aggregate * const aggrList2[] = {&ca3, &oa4};
 const Composite_metadata c2_d = {{"c2", 1, sizeof(struct m2), true}, aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0])};
 const Composite_descriptor c2(&c2_d);
 
-#define GET_C2_CONFIG ((struct m2 *)cm->getConfig())
+struct m2 * C2_CONFIG = nullptr;
 
 class CfgMgrOwned : public testing::Test
 {
@@ -313,7 +313,7 @@ protected:
     virtual void SetUp()
     {
         nvram = new Nvram_spy;
-        cm = new Config_manager_implement(&c2, nvram);
+        cm = new Config_manager_implement(&c2, (uint8_t **)&C2_CONFIG, nvram);
     }
 
     virtual void TearDown()
@@ -334,10 +334,10 @@ TEST_F(CfgMgrOwned, load)
     nvram->set(tlv, sizeof(tlv));
     char * commandWord[] = {(char *)"load"};
     cm->handleCmd(1, commandWord);
-    EXPECT_EQ(2, GET_C2_CONFIG->cnt);
-    ASSERT_TRUE(GET_C2_CONFIG->owned != nullptr);
-    EXPECT_EQ(7, GET_C2_CONFIG->owned[0]);
-    EXPECT_EQ(8, GET_C2_CONFIG->owned[1]);
+    EXPECT_EQ(2, C2_CONFIG->cnt);
+    ASSERT_TRUE(C2_CONFIG->owned != nullptr);
+    EXPECT_EQ(7, C2_CONFIG->owned[0]);
+    EXPECT_EQ(8, C2_CONFIG->owned[1]);
 }
 
 
@@ -358,7 +358,7 @@ TEST_F(CfgMgrOwned, loadTooMany)
 
     char * commandWord[] = {(char *)"load"};
     cm->handleCmd(1, commandWord);
-    EXPECT_EQ(2, GET_C2_CONFIG->cnt);
+    EXPECT_EQ(2, C2_CONFIG->cnt);
 
     char * commandWord1[] = {(char *)"save"};
     cm->handleCmd(1, commandWord1);
@@ -382,9 +382,9 @@ TEST_F(CfgMgrOwned, loadNonPersistent)
     nvram->set(tlv, sizeof(tlv));
     char * commandWord[] = {(char *)"load"};
     cm->handleCmd(1, commandWord);
-    EXPECT_EQ(1, GET_C2_CONFIG->cnt);
-    ASSERT_TRUE(GET_C2_CONFIG->owned != nullptr);
-    EXPECT_EQ(5, GET_C2_CONFIG->owned[0]);
+    EXPECT_EQ(1, C2_CONFIG->cnt);
+    ASSERT_TRUE(C2_CONFIG->owned != nullptr);
+    EXPECT_EQ(5, C2_CONFIG->owned[0]);
 }
 
 
@@ -410,13 +410,13 @@ TEST_F(CfgMgrOwned, implicitAdd)
     { 1,0, 8,0, 4,0, 4,0, 0,0,0,0};
     /*T    L    T    L    V    */
 
-    EXPECT_EQ(0, GET_C2_CONFIG->cnt);
-    EXPECT_EQ(nullptr, GET_C2_CONFIG->owned);
+    EXPECT_EQ(0, C2_CONFIG->cnt);
+    EXPECT_EQ(nullptr, C2_CONFIG->owned);
 
     char * commandWord[] = {(char *)"owned", (char *)"0"}; // reference owned item 0, causing implicit add
     cm->handleCmd(2, commandWord);
 
-    EXPECT_EQ(1, GET_C2_CONFIG->cnt);
+    EXPECT_EQ(1, C2_CONFIG->cnt);
 
     char * commandWord2[] = {(char *)"save"};
     cm->handleCmd(1, commandWord2);
@@ -432,15 +432,15 @@ TEST_F(CfgMgrOwned, implicitAddnSet)
     { 1,0, 8,0, 4,0, 4,0, 7,0,0,0};
     /*T    L    T    L    V    */
 
-    EXPECT_EQ(0, GET_C2_CONFIG->cnt);
-    EXPECT_EQ(nullptr, GET_C2_CONFIG->owned);
+    EXPECT_EQ(0, C2_CONFIG->cnt);
+    EXPECT_EQ(nullptr, C2_CONFIG->owned);
 
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"=", (char *)"7"}; // set item 0, causing implicit add
     cm->handleCmd(4, commandWord);
 
-    EXPECT_EQ(1, GET_C2_CONFIG->cnt);
-    ASSERT_TRUE(GET_C2_CONFIG->owned != nullptr);
-    EXPECT_EQ(7, GET_C2_CONFIG->owned[0]);
+    EXPECT_EQ(1, C2_CONFIG->cnt);
+    ASSERT_TRUE(C2_CONFIG->owned != nullptr);
+    EXPECT_EQ(7, C2_CONFIG->owned[0]);
 
     char * commandWord2[] = {(char *)"save"};
     cm->handleCmd(1, commandWord2);
@@ -456,14 +456,14 @@ TEST_F(CfgMgrOwned, explicitAdd)
     { 1,0, 8,0, 4,0, 4,0, 0,0,0,0};
     /*T    L    T    L    V    */
 
-    EXPECT_EQ(0, GET_C2_CONFIG->cnt);
-    EXPECT_EQ(nullptr, GET_C2_CONFIG->owned);
+    EXPECT_EQ(0, C2_CONFIG->cnt);
+    EXPECT_EQ(nullptr, C2_CONFIG->owned);
 
     char * commandWord[] = {(char *)"add", (char *)"owned"};
     cm->handleCmd(2, commandWord);
 
-    EXPECT_EQ(1, GET_C2_CONFIG->cnt);
-    EXPECT_TRUE(GET_C2_CONFIG->owned != nullptr);
+    EXPECT_EQ(1, C2_CONFIG->cnt);
+    EXPECT_TRUE(C2_CONFIG->owned != nullptr);
 
     char * commandWord2[] = {(char *)"save"};
     cm->handleCmd(1, commandWord2);
@@ -489,15 +489,15 @@ TEST_F(CfgMgrOwned, del)
     nvram->set(tlv, sizeof(tlv));
     char * commandWord[] = {(char *)"load"};
     cm->handleCmd(1, commandWord);
-    EXPECT_EQ(1, GET_C2_CONFIG->cnt);
-    ASSERT_TRUE(GET_C2_CONFIG->owned != nullptr);
-    EXPECT_EQ(5, GET_C2_CONFIG->owned[0]);
+    EXPECT_EQ(1, C2_CONFIG->cnt);
+    ASSERT_TRUE(C2_CONFIG->owned != nullptr);
+    EXPECT_EQ(5, C2_CONFIG->owned[0]);
 
     char * commandWord2[] = {(char *)"del", (char *)"owned", (char *)"0"};
     cm->handleCmd(3, commandWord2);
 
-    EXPECT_EQ(0, GET_C2_CONFIG->cnt);
-    EXPECT_EQ(nullptr, GET_C2_CONFIG->owned);
+    EXPECT_EQ(0, C2_CONFIG->cnt);
+    EXPECT_EQ(nullptr, C2_CONFIG->owned);
 
     char * commandWord3[] = {(char *)"save"};
     cm->handleCmd(1, commandWord3);
@@ -526,7 +526,7 @@ const Aggregate * const aggrList3[] = {&ca5};
 const Composite_metadata c3_d = {{"c3", 1, sizeof(struct m3), true}, aggrList3, sizeof(aggrList3)/sizeof(aggrList3[0])};
 const Composite_descriptor c3(&c3_d);
 
-#define GET_C3_CONFIG ((struct m3 *)cm->getConfig())
+struct m3 * C3_CONFIG = nullptr;
 
 class CfgMgrContainedArray : public testing::Test
 {
@@ -538,7 +538,7 @@ protected:
     virtual void SetUp()
     {
         nvram = new Nvram_spy;
-        cm = new Config_manager_implement(&c3, nvram);
+        cm = new Config_manager_implement(&c3, (uint8_t **)&C3_CONFIG, nvram);
     }
 
     virtual void TearDown()
@@ -562,8 +562,8 @@ TEST_F(CfgMgrContainedArray, load)
     char * commandWord[] = {(char *)"load"};
     cm->handleCmd(1, commandWord);
 
-    EXPECT_EQ(7, GET_C3_CONFIG->m1[0]);
-    EXPECT_EQ(8, GET_C3_CONFIG->m1[1]);
+    EXPECT_EQ(7, C3_CONFIG->m1[0]);
+    EXPECT_EQ(8, C3_CONFIG->m1[1]);
 }
 
 
@@ -617,7 +617,7 @@ const Aggregate * const aggrList4[] = {&ca6, &ca7};
 const Composite_metadata c4_d = {{"c4", 1, sizeof(struct m6), true}, aggrList4, sizeof(aggrList4)/sizeof(aggrList4[0])};
 const Composite_descriptor c4(&c4_d);
 
-#define GET_C4_CONFIG ((struct m6 *)cm->getConfig())
+struct m6 * C4_CONFIG = nullptr;
 
 class CfgMgrContainedArrays : public testing::Test
 {
@@ -629,7 +629,7 @@ protected:
     virtual void SetUp()
     {
         nvram = new Nvram_spy;
-        cm = new Config_manager_implement(&c4, nvram);
+        cm = new Config_manager_implement(&c4, (uint8_t **)&C4_CONFIG, nvram);
     }
 
     virtual void TearDown()
@@ -650,9 +650,9 @@ TEST_F(CfgMgrContainedArrays, load)
     nvram->set(tlv, sizeof(tlv));
     char * commandWord[] = {(char *)"load"};
     cm->handleCmd(1, commandWord);
-    EXPECT_EQ(4, GET_C4_CONFIG->m1[0]);
-    EXPECT_EQ(5, GET_C4_CONFIG->m1[1]);
-    EXPECT_EQ(6, GET_C4_CONFIG->m2[0]);
-    EXPECT_EQ(7, GET_C4_CONFIG->m2[1]);
+    EXPECT_EQ(4, C4_CONFIG->m1[0]);
+    EXPECT_EQ(5, C4_CONFIG->m1[1]);
+    EXPECT_EQ(6, C4_CONFIG->m2[0]);
+    EXPECT_EQ(7, C4_CONFIG->m2[1]);
 }
 } // namespace

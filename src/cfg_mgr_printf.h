@@ -1,18 +1,13 @@
 /// This is used for all output to the user.
-//  Not using printf or cout directly facilitates replacing it with a spy for test purposes,
-//  or allowing client to supply its own implementation.
+//  Client supplies its own implementation, and tests can replace it with a spy.
 //
 #pragma once
-
+#include "cfg_mgr_types.h"
 #include <stdarg.h>
 
 namespace cfg_mgr
 {
 
-// Function pointer cm_printf points to the implementation: local or set by client or test.
-// xxx currently, the client API does not allow it to choose its own function.
-using print_fn_t = int(*)(const char* fmt, ...);
-extern print_fn_t cm_printf;
-
-int cm_printf_local(const char * format, ...);
+// Function pointer cm_printf points to the implementation: supplied by client (or test).
+extern PRINTF_FN_TYPE cm_printf;
 }

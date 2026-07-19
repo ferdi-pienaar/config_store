@@ -36,7 +36,6 @@ set(CFG_MGR_CORE_SRC
     src/cfg_mgr_implement.cpp
     src/cfg_mgr.cpp
     src/cfg_mgr_prt_hexstr.cpp
-    src/cfg_mgr_printf.cpp
     src/cfg_mgr_simple_descriptor.cpp
     src/cfg_mgr_composite_descriptor.cpp
     src/cfg_mgr_aggregate.cpp

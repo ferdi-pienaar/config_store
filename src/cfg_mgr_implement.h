@@ -21,14 +21,10 @@ class Command_stack;
 class Config_manager_implement
 {
 public:
-    Config_manager_implement(const Descriptor * pDesc, Nvram_itf * nvram);
+    Config_manager_implement(const Descriptor * pDesc, uint8_t ** ppRAM, Nvram_itf * nvram);
     ~Config_manager_implement();
     void handleCmd(int argc, char *argv[]);
     const char * getPromptString() const; ///< get context-dependent prompt string h file
-    void * getConfig()
-    {
-        return (void *)m_ramBase;
-    }
 
 private:
     typedef void (Config_manager_implement::*cmd_handler)(Command_stack *cmd);
