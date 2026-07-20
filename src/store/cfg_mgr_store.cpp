@@ -17,7 +17,7 @@ Store * Store::createStore(Nvram_itf * nvram)
 
 result_t Store::startLoad() const
 {
-    return m_nvram->initForRead(getFileName()) ? CM_SUCCESS : CM_FAIL;
+    return m_nvram->initForRead() ? CM_SUCCESS : CM_FAIL;
 }
 
 result_t Store::endLoad() const
@@ -28,7 +28,7 @@ result_t Store::endLoad() const
 
 bool Store::startWrite() const
 {
-    return m_nvram->initForWrite(getFileName());
+    return m_nvram->initForWrite();
 }
 
 void Store::endWrite() const

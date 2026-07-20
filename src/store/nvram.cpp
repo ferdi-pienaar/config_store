@@ -6,14 +6,14 @@
 namespace cfg_mgr
 {
 
-bool Nvram::initForWrite(const char * filename)
+bool Nvram::initForWrite()
 {
     m_fp = fopen(filename, "wb");  // open file for binary write
     return m_fp != nullptr;
 }
 
 
-bool Nvram::initForRead(const char * filename)
+bool Nvram::initForRead()
 {
     m_fp = fopen(filename, "rb");  // open file for binary read
     return m_fp != nullptr;

@@ -15,8 +15,8 @@ namespace cfg_mgr
 class Nvram_itf
 {
 public:
-    virtual bool initForWrite(const char * filename) = 0;
-    virtual bool initForRead(const char * filename) = 0;
+    virtual bool initForWrite() = 0;
+    virtual bool initForRead() = 0;
     virtual void accessComplete() = 0;
     virtual bool write(const uint8_t * d, unsigned int len) = 0;
     virtual bool read(uint8_t * d, unsigned int len) = 0;

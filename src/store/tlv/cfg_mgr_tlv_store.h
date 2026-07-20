@@ -21,10 +21,6 @@ class Tlv_store : public Store
 public:
     Tlv_store(Nvram_itf * nvram);
     ~Tlv_store();
-    const char * getFileName() const
-    {
-        return "cfg.bin";
-    }
     result_t startLoad() const override;
     bool startWrite() const override;
     void writeSimple(const Simple_metadata * data, const uint8_t * v) const override;

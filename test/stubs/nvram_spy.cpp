@@ -15,18 +15,16 @@ Nvram_spy::Nvram_spy() : m_bytesWritten(0), m_offset(0)
     memset(m_nvMem, 0, m_memSize);
 }
 
-bool Nvram_spy::initForWrite(const char * filename)
+bool Nvram_spy::initForWrite()
 {
-    (void)filename;
     m_offset = 0;
     m_bytesWritten = 0;
     return true;
 }
 
 
-bool Nvram_spy::initForRead(const char * filename)
+bool Nvram_spy::initForRead()
 {
-    (void)filename;
     m_offset = 0;
     return true;
 }

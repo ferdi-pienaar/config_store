@@ -8,8 +8,8 @@ class Nvram_spy : public cfg_mgr::Nvram_itf
 public:
     Nvram_spy();
     virtual ~Nvram_spy() {}
-    virtual bool initForWrite(const char * filename) override;
-    virtual bool initForRead(const char * filename) override;
+    virtual bool initForWrite() override;
+    virtual bool initForRead() override;
     virtual void accessComplete() override;
     virtual bool write(const uint8_t * d, unsigned int len) override;
     virtual bool read(uint8_t * d, unsigned int len) override;

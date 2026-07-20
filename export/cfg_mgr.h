@@ -20,7 +20,7 @@ class Descriptor;
 class Config_manager
 {
 public:
-    Config_manager(const Descriptor * pDesc, PRINTF_FN_TYPE printf_fn, uint8_t ** ppRAM);
+    Config_manager(const Descriptor * pDesc, const char * fname, PRINTF_FN_TYPE printf_fn, uint8_t ** ppRAM);
     ~Config_manager();
     void handleCmd(int argc, char *argv[]);
     const char * getPromptString() const; ///< get context-dependent prompt string h file

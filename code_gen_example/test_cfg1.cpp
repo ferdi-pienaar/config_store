@@ -22,10 +22,16 @@ static void handle_command(cfg_mgr::Config_manager & cm);
 
 t_device * pCfg = nullptr;
 
-int main()
+int main(int argc, char **argv)
 {
+    if (argc < 2)
+    {
+        printf("Name of config file is required.\n");
+        return 1;
+    }
+
     // Initialize the config manager with the base descriptor it is to manage.
-    cfg_mgr::Config_manager cm(get_base_descriptor(), printf, (uint8_t **)&pCfg);
+    cfg_mgr::Config_manager cm(get_base_descriptor(), argv[1], printf, (uint8_t **)&pCfg);
 
     pthread_t thread;
     int rc = pthread_create(&thread, NULL, stats_thread, &cm);
@@ -36,6 +42,7 @@ int main()
     {
         handle_command(cm);
     }
+    return 0;
 }
 
 // Get command from stdin and pass it to Config_manager.

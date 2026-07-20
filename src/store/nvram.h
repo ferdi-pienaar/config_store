@@ -16,10 +16,10 @@ namespace cfg_mgr
 class Nvram : public Nvram_itf
 {
 public:
-    Nvram(): m_fp(nullptr) {}
+    Nvram(const char * fname): filename(fname), m_fp(nullptr) {}
     ~Nvram() {}
-    bool initForWrite(const char * filename) override;
-    bool initForRead(const char * filename) override;
+    bool initForWrite() override;
+    bool initForRead() override;
     void accessComplete() override;
     bool write(const uint8_t * d, unsigned int len) override;
     bool read(uint8_t * d, unsigned int len) override;
@@ -28,6 +28,7 @@ public:
     bool adjustOffset(int i) override;
 
 private:
+    const char * filename = nullptr;
     FILE * m_fp;
 };
 }

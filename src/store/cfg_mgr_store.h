@@ -17,7 +17,6 @@ class Store
 public:
     Store(Nvram_itf * nvram) : m_nvram(nvram) {}
     virtual ~Store() {}
-    virtual const char * getFileName() const = 0;
     virtual bool startWrite() const;
     virtual void endWrite() const;
     virtual result_t startLoad() const;

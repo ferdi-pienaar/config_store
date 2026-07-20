@@ -21,10 +21,6 @@ class Json_store : public Store
 public:
     Json_store(Nvram_itf * nvram);
     ~Json_store();
-    const char * getFileName() const
-    {
-        return "cfg.json";
-    }
     bool startWrite() const override;
     void endWrite() const override;
     result_t startLoad() const override;
