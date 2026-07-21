@@ -37,24 +37,25 @@ add_custom_command(
 )
 
 foreach(BACKEND tlv json)
-    add_executable(cfg_mgr_code_gen_example_${BACKEND}
+    add_executable(config_store_code_gen_example_${BACKEND}
         test_cfg1.cpp
         my_cfg_fn1.cpp
         ${CFG_CPP}
     )
 
-    target_include_directories(cfg_mgr_code_gen_example_${BACKEND}
+    target_include_directories(config_store_code_gen_example_${BACKEND}
         PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}
             ${GENERATED_DIR}
     )
 
-    target_link_libraries(cfg_mgr_code_gen_example_${BACKEND}
+    target_link_libraries(config_store_code_gen_example_${BACKEND}
         PRIVATE
-            cfg_mgr_${BACKEND}
+            config_store_${BACKEND}
     )
 endforeach()
 
 #if(ENABLE_COVERAGE)
-#    enable_coverage(event_recorder_example)
+#    enable_coverage(config_store_code_gen_example_tlv)
+#    enable_coverage(config_store_code_gen_example_json)
 #endif()

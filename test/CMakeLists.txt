@@ -11,9 +11,9 @@ enable_testing()
 # -------------------------------------------------
 # Test support library (stubs + util)
 # -------------------------------------------------
-add_library(cfg_mgr_test_support STATIC)
+add_library(config_store_test_support STATIC)
 
-target_include_directories(cfg_mgr_test_support
+target_include_directories(config_store_test_support
     PUBLIC
         ${CMAKE_SOURCE_DIR}/export
         ${CMAKE_SOURCE_DIR}/export/util
@@ -21,7 +21,7 @@ target_include_directories(cfg_mgr_test_support
         ${CMAKE_CURRENT_SOURCE_DIR}/stubs
 )
 
-target_sources(cfg_mgr_test_support PRIVATE
+target_sources(config_store_test_support PRIVATE
     stubs/nvram_spy.cpp
     stubs/cfg_mgr_printf_spy.cpp
 
@@ -52,27 +52,27 @@ set(JSON_TEST_SOURCES
 # -------------------------------------------------
 # TLV tests
 # -------------------------------------------------
-add_executable(cm_test_tlv ${COMMON_TEST_SOURCES} ${TLV_TEST_SOURCES})
+add_executable(config_store_test_tlv ${COMMON_TEST_SOURCES} ${TLV_TEST_SOURCES})
 
-target_link_libraries(cm_test_tlv PRIVATE
-    cfg_mgr_tlv
-    cfg_mgr_test_support
+target_link_libraries(config_store_test_tlv PRIVATE
+    config_store_tlv
+    config_store_test_support
     GTest::gtest_main
     pthread
 )
 
-gtest_discover_tests(cm_test_tlv)
+gtest_discover_tests(config_store_test_tlv)
 
 # -------------------------------------------------
 # JSON tests
 # -------------------------------------------------
-add_executable(cm_test_json ${COMMON_TEST_SOURCES} ${JSON_TEST_SOURCES})
+add_executable(config_store_test_json ${COMMON_TEST_SOURCES} ${JSON_TEST_SOURCES})
 
-target_link_libraries(cm_test_json PRIVATE
-    cfg_mgr_json
-    cfg_mgr_test_support
+target_link_libraries(config_store_test_json PRIVATE
+    config_store_json
+    config_store_test_support
     GTest::gtest_main
     pthread
 )
 
-gtest_discover_tests(cm_test_json)
+gtest_discover_tests(config_store_test_json)

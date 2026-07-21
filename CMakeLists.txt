@@ -7,9 +7,9 @@ project(cfg_mgr
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_library(cfg_mgr_tlv)
+add_library(config_store_tlv)
 
-target_include_directories(cfg_mgr_tlv
+target_include_directories(config_store_tlv
     PUBLIC
         ${CMAKE_SOURCE_DIR}/export
         ${CMAKE_SOURCE_DIR}/export/util
@@ -18,9 +18,9 @@ target_include_directories(cfg_mgr_tlv
         ${CMAKE_SOURCE_DIR}/util
 )
 
-add_library(cfg_mgr_json)
+add_library(config_store_json)
 
-target_include_directories(cfg_mgr_json
+target_include_directories(config_store_json
     PUBLIC
         ${CMAKE_SOURCE_DIR}/export
         ${CMAKE_SOURCE_DIR}/export/util
@@ -69,9 +69,9 @@ set(CFG_MGR_JSON_STORE_SRC
     src/store/json/cfg_mgr_json_ctxt.cpp
 )
 
-target_sources(cfg_mgr_tlv PRIVATE ${CFG_MGR_CORE_SRC} ${CFG_MGR_TLV_STORE_SRC})
+target_sources(config_store_tlv PRIVATE ${CFG_MGR_CORE_SRC} ${CFG_MGR_TLV_STORE_SRC})
 
-target_sources(cfg_mgr_json PRIVATE ${CFG_MGR_CORE_SRC} ${CFG_MGR_JSON_STORE_SRC})
+target_sources(config_store_json PRIVATE ${CFG_MGR_CORE_SRC} ${CFG_MGR_JSON_STORE_SRC})
 
 add_subdirectory(example)
 add_subdirectory(code_gen_example)
