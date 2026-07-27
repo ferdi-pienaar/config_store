@@ -3,18 +3,18 @@
 # to the build system that makes the executable that also includes
 # the config manager library.
 ---
-constant: &nUsers
+const_max_users: &nUsers
     name: MAX_NUM_USERS
     type: unsigned short
     value: 3
-    
-constant: &nPorts
+
+const_num_ports: &nPorts
     name: NUM_PORTS
     type: unsigned short
     value: 4
 
 # Component item defined here to avoid too much indenting
-item: &user
+user_item: &user
     name: user
     persistent: true
     aggregate:
@@ -41,7 +41,7 @@ item: &user
         item:
             name: temp
             persistent: true
-            set: set_temp           
+            set: set_temp
             setdef: setdef_temp
             print: prt_temp
             type: short
@@ -54,7 +54,7 @@ item: &user
             type: unsigned
 
 # Component item defined here to avoid too much indenting
-item: &home
+home_item: &home
     name: home
     persistent: true
     aggregate:
@@ -105,7 +105,7 @@ item:
             set: cfg_mgr::cm_set_int
             setdef: cfg_mgr::cm_setdef_null
             print: cfg_mgr::cm_prt_int
-            type: unsigned short    
+            type: unsigned short
     -   &userCnt_aggr
         count: 1
         type: contained
