@@ -1,0 +1,66 @@
+# Use tool Yamale to validate YAML config files against this schema -- this is meta-metadata.
+# At the top level there may be pieces that are referenced in the base item, so at top-level
+# use non-strict to ignore them, e.g. on command line:
+#  yamale --no-strict -s cfg_schema.yaml <YAML config file>
+item: include('item-d', strict=True)
+---
+# Two kinds of item: simple and composite.
+item-d: any(include('simple_item'), include('composite_item'))
+
+simple_item:
+    type: str()
+    name: str()
+    persistent: bool()
+    print: str()
+    set: str(required=False)
+    setdef: str(required=False)
+
+composite_item:
+    aggregate: list(include('aggregate-d'), min=1)
+    name: str()
+    persistent: bool()
+
+# Two kinds of aggregate: contained and owned.
+aggregate-d: any(include('contained_aggregate'), include('owned_aggregate'))
+
+contained_aggregate:
+    type: str(equals="contained")
+    count: include('count_1_plus')
+    item: include('item-d')
+
+owned_aggregate:
+    any(include('owned_aggregate_1'), include('owned_aggregate_2_plus'))
+
+# Max 1 item, so counter is optional, since we can distinguish between 0 and 1 items as follows:
+# If there are 0 items, pointer to owned items is nullptr; if there is 1 item, the pointer non-null.
+owned_aggregate_1:
+    type: str(equals="owned")
+    count: include('count_1')
+    item: include('item-d')
+    counter: include('contained_aggregate', required=False)
+
+# There can be 0, 1 or more items, so a counter is required to distinguish between 1 or many.
+owned_aggregate_2_plus:
+    type: str(equals="owned")
+    count: include('count_2_plus')
+    item: include('item-d')
+    counter: include('contained_aggregate')
+
+# Max number of items is 1 or more.
+count_1_plus: any(include('count_1'), include('count_2_plus'))
+
+# Max number of items is exactly one.
+count_1: any(int(min=1, max=1), include('symbolic_count_1'))
+
+symbolic_count_1:
+    name: str()
+    type: str()
+    value: int(min=1, max=1)
+
+# Max number of items is 2 or more.
+count_2_plus: any(int(min=2), include('symbolic_count_2_plus'))
+
+symbolic_count_2_plus:
+    name: str()
+    type: str()
+    value: int(min=2)
