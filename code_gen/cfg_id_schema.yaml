@@ -1,0 +1,9 @@
+# Use tool Yamale to validate YAML config files against this schema -- this is meta-metadata.
+components: list(include('component-d'), required=False)
+id: int()
+name: str()
+---
+component-d:
+    id: int()
+    name: str()
+    components: list(include('component-d'), required=False)

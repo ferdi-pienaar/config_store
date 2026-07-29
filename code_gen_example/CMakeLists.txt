@@ -7,15 +7,16 @@
 # Code generation by custom tool.
 # Input YAML files.
 set(CFG_YAML ${CMAKE_CURRENT_SOURCE_DIR}/cfg.yaml)
-
-# Prefix comes from the YAML filename without extension.
-get_filename_component(CFG_NAME ${CFG_YAML} NAME_WE)
+set(CFG_ID_YAML ${CMAKE_CURRENT_SOURCE_DIR}/cfg_id.yaml)
 
 # Generated files. In future, create separate directory for generated code, like this:
 set(GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
 set(GENERATED_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-set(CFG_CPP ${GENERATED_DIR}/${CFG_NAME}.cpp)
-set(CFG_H   ${GENERATED_DIR}/${CFG_NAME}.h)
+set(CFG_CPP ${GENERATED_DIR}/cfg.cpp)
+set(CFG_H   ${GENERATED_DIR}/cfg.h)
+set(DEPENDENCY_H   ${CMAKE_CURRENT_SOURCE_DIR}/cfg_depend.h)
+set(SCHEMA_FILE ${CMAKE_CURRENT_SOURCE_DIR}/../code_gen/cfg_schema.yaml)
+set(ID_SCHEMA_FILE ${CMAKE_CURRENT_SOURCE_DIR}/../code_gen/cfg_id_schema.yaml)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
@@ -30,10 +31,16 @@ add_custom_command(
     COMMAND
         ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../code_gen/yaml_code_gen.py
         ${CFG_YAML}
+        ${CFG_ID_YAML}
+        ${CFG_H}
+        ${CFG_CPP}
+        ${DEPENDENCY_H}
+        ${SCHEMA_FILE}
+        ${ID_SCHEMA_FILE}
     DEPENDS
         ${CFG_YAML}
         ${CMAKE_CURRENT_SOURCE_DIR}/../code_gen/yaml_code_gen.py
-    COMMENT "Generating ${CFG_NAME}.cpp and ${CFG_NAME}.h from YAML"
+    COMMENT "Generating ${CFG_H} and ${CFG_CPP} from YAML"
 )
 
 foreach(BACKEND tlv json)

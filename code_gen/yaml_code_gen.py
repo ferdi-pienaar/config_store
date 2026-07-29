@@ -19,6 +19,7 @@ todo:
 """
 
 import yaml
+import yamale
 import sys
 import datetime
 import os
@@ -123,12 +124,6 @@ class SimpleItem(Item):
             self.is_string_type = True
             self.string_len = d['type'].split()[1]
 
-    def verify(self):
-        "Check item description in YAML file is valid and consistent."
-        # Not much to check here -- if the basics like 'name' and 'type' are absent, an exception is raised,
-        # maybe even before we get to this point.        
-        return True
-
     def get_init(self):
         "Return string containing initialization of the metadata"
         s = self.get_metadata_init()
@@ -142,19 +137,19 @@ class SimpleItem(Item):
         if 'set' in self.d:
             s += self.d['set']
         else:
-            s += "NULL"
+            s += "nullptr"
         s += ", // set\n"
         s += indent
         if 'setdef' in self.d:
             s += self.d['setdef']
         else:
-            s += "NULL"
+            s += "nullptr"
         s += ", // setdef\n"
         s += indent
         if 'print' in self.d:
             s += self.d['print']
         else:
-            s += "NULL"
+            s += "nullptr"
         s += ", // print\n};\n"
         return s
 
@@ -170,7 +165,7 @@ class SimpleItem(Item):
         if self.is_string_type:
             s += "[" + self.string_len + "]"
         return s
-        
+
     def get_size(self):
         s = "sizeof("
         if self.is_string_type:
@@ -205,12 +200,6 @@ class CompositeItem(Item):
             if old_id is not None:
                 component_id = get_value_from_dictionary_list(old_id['components'], a['item']['name'])
             self.aggregates.append(makeAggregate(a, self.id_gen, component_id, full_name))
-
-    def verify(self):
-        "Check item description in YAML file is valid and consistent."
-        for aggr in self.aggregates:
-            aggr.verify()
-        return True
 
     def get_component_ids(self):
         "Get list of component IDs in format used to generate the ID yaml file"
@@ -292,11 +281,7 @@ class Aggregate:
         self.d = d
         self.full_name = container_name + "_" + self.d['item']['name']
         self.item = makeItem(self.d['item'], id_gen, old_id, self.full_name)
-        
-    def verify(self):
-        "Check description in YAML file is valid and consistent."
-        return self.item.verify()       
-        
+
     def get_init(self, container_type_name, id_gen):
         "Return initialization string"
         s = self.item.get_init()
@@ -305,10 +290,10 @@ class Aggregate:
         s += ", offsetof(" + container_type_name + ", " + self.item.d['name'] + ")};\n"
         s += self.get_instantiate()       
         return s
-        
+
     def get_data_name(self):
         return self.full_name  + "_aggr_data"
-        
+
     def get_count_str(self):
         "Return a string representing the count: either a symbolic constant's name, or just a string of an integer."
         try:
@@ -342,29 +327,15 @@ class ContainedAggregate(Aggregate):
     def get_instantiate(self):
         s = "const cfg_mgr::Contained_aggregate " + self.full_name + "_aggr(&" + self.get_data_name() + ");\n\n"
         return s
-        
-        
+
+
 class OwnedAggregate(Aggregate):
     def __init__(self, d, id_gen, old_id, container_name):        
         Aggregate.__init__(self, d, id_gen, old_id, container_name)
         self.counter_name = ""
         if 'counter' in self.d:
             self.counter_name += container_name + "_" + self.d['counter']['item']['name']
-            
-    def verify(self):
-        "Check description in YAML file is valid and consistent."
-        self.verify_counter()
-        self.item.verify()
-        
-    def verify_counter(self):
-        "An owned aggregate that can contain more than one instance needs a counter"
-        if not 'counter' in self.d:
-            max_count = self.get_max_count()
-            if max_count > 1:
-                print("Warning: aggregate for {} has no counter, but max_count is {}".format(self.d['item']['name'], max_count))
-                return False
-        return True  
-        
+
     def get_instance_definition(self):
         s = self.item.get_type_and_name('owned') + "; // Pointer to item"
         if self.get_max_count() > 1:
@@ -379,7 +350,7 @@ class OwnedAggregate(Aggregate):
         if len(self.counter_name) > 0:
             s += ", &" + self.counter_name + "_aggr"
         else:
-            s += ", NULL"
+            s += ", nullptr"
         s += ");\n\n"
         return s
         
@@ -409,50 +380,60 @@ def makeAggregate(d, id_gen, old_id, container_name):
         return ContainedAggregate(d, id_gen, old_id, container_name)
 
 
-def loadCfgData(cfgFileName):
+def loadCfgData(script, cfgFileName):
     "Load configuration metadata from YAML config file"
     try:
         f = open(cfgFileName)
     except:
         print("Configuration file name not given.")
         return
-    print("Reading config file {}".format(cfgFileName))
+    print("{}: Reading config file {}".format(script, cfgFileName))
     data = f.read()
     f.close()
     return data
 
 
-def loadIdData(baseFileName):
+def validate_yaml(yaml_data, schema_file, script):
+    schema = yamale.make_schema(schema_file)
+    data = yamale.make_data(content=yaml_data)
+    try:
+        # To ignore validation failed only at the top level, due to anchors with unexpected keys.
+        yamale.validate(schema, data, strict=False)
+        print("{}: YAML validation success.".format(script))
+    except ValueError as e:
+        print("{}: Validation failed {}".format(script, str(e)))
+        sys.exit(1)
+
+def loadIdData(script, fname):
     "Read ID data file and return dictionary, or None if there's a problem with the input file"
-    fname = baseFileName + "_id.yaml"
     try:
         f = open(fname)
     except IOError:
-        print("Can't open ID file {}".format(fname))
+        print("{}: Can't open ID file {}".format(script, fname))
         return
-    print("Reading ID file {}".format(fname))
+    print("{}: Reading ID file {}".format(script, fname))
     data = f.read()
     f.close()
     return data
 
 
-def makeBaseItem(yaml_cfg_text, id_text):
+def makeBaseItem(script, yaml_cfg_text, id_text):
     "From the config file and the ID file, create objects to generate C++ code and a new ID file."
     try:
         cfg = yaml.load(yaml_cfg_text, Loader=yaml.SafeLoader)
     except:
-        print("config file can't be loaded as YAML")
+        print("{}: config file can't be loaded as YAML".format(script))
         return
     try:
         base_item_config = cfg['item']
     except:
-        print("Root element in configuration is not an item")
+        print("{}: Root element in configuration is not an item".format(script))
         return
     try:
         id_dict = yaml.load(id_text, Loader=yaml.SafeLoader)
     except:
         # This happens in the normal case where no ID file exists yet
-        print("ID file can't be loaded as YAML")
+        print("{}: ID file can't be loaded as YAML".format(script))
         return makeItem(base_item_config, Id_generator(None), None, base_item_config['name'])
     if id_dict['name'] != base_item_config['name']:
         # The ID data has no entry for the base item
@@ -461,7 +442,7 @@ def makeBaseItem(yaml_cfg_text, id_text):
     return makeItem(base_item_config, Id_generator(None), id_dict, base_item_config['name'])
 
 
-def saveIdData(baseFileName, old_id_text):
+def saveIdData(fname, old_id_text):
     "Save IDs to the ID file, including newly allocated ones and ones in the previous ID file."
     id_data = getIdData()
     # Compare the data, ignore the comments that are also part of the file text
@@ -470,7 +451,6 @@ def saveIdData(baseFileName, old_id_text):
         if id_data == old_id_data:
             # Don't overwrite file with same data, 'make' considers it a changed dependency
             return
-    fname = baseFileName + "_id.yaml"
     f = open(fname, "w")
     f.write(getIdHeader(sys.argv[0]))
     f.write(yaml.dump(id_data, default_flow_style=False))
@@ -487,24 +467,24 @@ def getIdData():
     return id_dict
 
 
-def saveDefinitionFile(baseFileName, baseItem):
+def saveDefinitionFile(fname, scriptFile, cfgFile, baseItem):
     "Make .h file containing type definitions"
-    fdecl = open(baseFileName + ".h", "w")
-    fdecl.write(getDeclHeader(sys.argv[0], sys.argv[1]))
+    fdecl = open(fname, "w")
+    fdecl.write(getDeclHeader(scriptFile, cfgFile))
     fdecl.write(baseItem.get_definition())
     fdecl.close()
 
 
-def saveInititializationFile(baseFileName, baseItem):
+def saveInititializationFile(fname, scriptFile, cfgFile, definitionFile, dependencyFile, baseItem):
     "Make .cpp file containing definitions and initializations"
-    finit = open(baseFileName + ".cpp", "w")
-    finit.write(getInitHeader(sys.argv[0], sys.argv[1]))
+    finit = open(fname, "w")
+    finit.write(getInitHeader(scriptFile, cfgFile))
     finit.write("#include \"cfg_mgr_simple_descriptor.h\" // from cfg_mgr library\n")
     finit.write("#include \"cfg_mgr_composite_descriptor.h\" // from cfg_mgr library\n")
     finit.write("#include \"cfg_mgr_contained_aggregate.h\" // from cfg_mgr library\n")
     finit.write("#include \"cfg_mgr_owned_aggregate.h\" // from cfg_mgr library\n")
-    finit.write("#include \"" + baseFileName + ".h\" // auto-generated\n")
-    finit.write("#include \"" + baseFileName + "_depend.h\" // supplied by application programmer\n\n")
+    finit.write("#include \"" + definitionFile + "\" // auto-generated\n")
+    finit.write("#include \"" + dependencyFile + "\" // supplied by application programmer\n\n")
     finit.write("namespace {\n")
     finit.write(baseItem.get_init())
     finit.write("}\n\n")
@@ -513,15 +493,30 @@ def saveInititializationFile(baseFileName, baseItem):
 
 
 if __name__ == "__main__":
-    baseFileName, extension = os.path.splitext(sys.argv[1])
-    cfg_text = loadCfgData(sys.argv[1])
+    scriptName = os.path.basename(sys.argv[0])
+    cfgFilePath = sys.argv[1]
+    idFilePath = sys.argv[2]
+    definitionFilePath = sys.argv[3]
+    initializationFilePath = sys.argv[4]
+    dependencyFileName = os.path.basename(sys.argv[5])
+    schemaFilePath = sys.argv[6]
+    idSchemaFilePath = sys.argv[7]
+
+    cfg_text = loadCfgData(scriptName, cfgFilePath)
     if cfg_text is None:
-        sys.exit()        
-    id_text = loadIdData(baseFileName)
-    baseItem = makeBaseItem(cfg_text, id_text)
+        sys.exit()
+    validate_yaml(cfg_text, schemaFilePath, scriptName)
+    id_text = loadIdData(scriptName, idFilePath)
+    validate_yaml(id_text, idSchemaFilePath, scriptName)
+    baseItem = makeBaseItem(scriptName, cfg_text, id_text)
     if baseItem is None:
         sys.exit()
-    baseItem.verify()
-    saveDefinitionFile(baseFileName, baseItem)
-    saveInititializationFile(baseFileName, baseItem)
-    saveIdData(baseFileName, id_text)
+
+    saveDefinitionFile(definitionFilePath, scriptName, cfgFilePath, baseItem)
+    saveInititializationFile(initializationFilePath,
+                            scriptName,
+                            cfgFilePath,
+                            os.path.basename(definitionFilePath),
+                            dependencyFileName,
+                            baseItem)
+    saveIdData(idFilePath, id_text)
