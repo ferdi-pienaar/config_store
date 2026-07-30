@@ -5,6 +5,13 @@ config-store is a small library that allows the user to create a schema for conf
 The metadata that describes the data schema can be implemented by the user as hand-written C++ code, or generated automatically by a Python script from a schema written in YAML.
 
 ```mermaid
+---
+config:
+  layout: elk
+  class:
+    hideEmptyMembersBox: true
+---
+
 flowchart LR
     subgraph Application
         APP-CMD[command interface]
@@ -75,6 +82,13 @@ A Contained Aggregate means the component items reside in the same block of memo
 A Owned Aggregate means the component items reside in a block of memory that is pointed to by the composite that owns them. The number of component items is variable, between 0 and Aggregate::maxCount.
 
 ```mermaid
+
+---
+config:
+  class:
+    hideEmptyMembersBox: true
+---
+
 classDiagram
     Descriptor
     Descriptor <|-- Simple Descriptor
@@ -125,3 +139,12 @@ Referencing an item results in its creation and that of all the owned/optional i
 
 # Thread safety
 There is currently no protection against concurrent access to the RAM data by a thread running the config-store library which modifies the RAM data, and a thread running the application core which reads configuration from the RAM data. This means that currently the library is most suitable for devices that are configured before being put into service, and taken out of service while they are re-configured, thus avoiding data races.
+
+# Migrating stored configuration to a new schema
+When the application developer changes the data schema, by adding or removing components in Composite Descriptors, data that is already saved in devices in the field can still be loaded and used. The rules to be followed and the limitations are described here. The case where data is saved in the TLV format is described first; rules for the JSON case are similar. We also explain how the code generator works, if the developer is using the option to generate code from a YAML schema definition.
+
+If the developer removes an obsolete component from a Composite, config-store will no longer load the corresponding data from the persistent TLV store.
+
+If the developer adds a component to a Composite, they should assign it a new type ID for use in the TLV store. This type ID should **not** be one that was used for a previously obsoleted component, since this would lead to incorrect loading from TLV store for units in the field still containing TLV data with the obsolete type ID. Software with the new schema can load older TLV stores where the new component is not present: config-store will assign a default value to the new component. The developer can specify default values for Simple components.
+
+For auto-generated code, the code generator creates a YAML file that associates each component with its type ID. This is used when auto-generating code, to ensure the IDs of components is not changed during their lifetime, and new components are assigned new IDs. This file should be kept under version control. Obsolete IDs may be deleted from this file only when it is certain that there is no unit in the field still containing a TLV store created by software using the old schema with the obsolete component.

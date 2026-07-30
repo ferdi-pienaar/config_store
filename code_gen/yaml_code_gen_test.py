@@ -10,13 +10,13 @@ class Test_Id_generator(unittest.TestCase):
         "From empty, ID returned is 0"
         g = yaml_code_gen.Id_generator(None)
         self.assertEqual('0', g.get_id("f"))
-    
+
     def test_add_id(self):
         "New ID is added to the dictionary"
         g = yaml_code_gen.Id_generator(None)
         g.get_id("f")
         self.assertEqual({'f':0}, g.get_ids())
-               
+
     def test_get_id_from_list0(self):
         "New ID is not one that's already in the dictionary"
         i = [
@@ -32,7 +32,7 @@ class Test_Id_generator(unittest.TestCase):
         ]
         g = yaml_code_gen.Id_generator(i)
         self.assertEqual({'home': 4}, g.get_ids())
-        
+
     def test_get_id_from_list01(self):
         "New ID is not one that's already in the dictionary"
         i = [
@@ -41,7 +41,7 @@ class Test_Id_generator(unittest.TestCase):
         ]
         g = yaml_code_gen.Id_generator(i)
         self.assertEqual('2', g.get_id("x"))
-        
+
     def test_get_id_from_list20(self):
         "New ID is the first one that's missing from the dictionary"
         i = [
@@ -57,13 +57,13 @@ class Test_simple_gen(unittest.TestCase):
     "  name: alf\n"
     "  persistent: true\n"
     "  type: int\n")
-    
+
     def test_init_with_id(self):
         "Check C++ init code produced from a YAML config descriptor and YAML ID file"
         id = \
         ("name: alf\n"
         "id: 55\n")
-        b = yaml_code_gen.makeBaseItem(self.cfg, id)
+        b = yaml_code_gen.makeBaseItem("script", self.cfg, id)
         expected_init = ('const cfg_mgr::Simple_metadata alf_data =\n'
         '{\n'
         '    {\n'
@@ -72,16 +72,16 @@ class Test_simple_gen(unittest.TestCase):
         '        sizeof(int), // size\n'
         '        true // persistent\n'
         '    },\n'
-        '    NULL, // set\n'
-        '    NULL, // setdef\n'
-        '    NULL, // print\n'
+        '    nullptr, // set\n'
+        '    nullptr, // setdef\n'
+        '    nullptr, // print\n'
         '};\n'
         'const cfg_mgr::Simple_descriptor alf(&alf_data);\n')
         self.assertEqual(expected_init, b.get_init())
-        
+
     def test_init_without_id(self):
         "Check C++ init code produced from a YAML config descriptor and YAML ID file"
-        b = yaml_code_gen.makeBaseItem(self.cfg, None)
+        b = yaml_code_gen.makeBaseItem("script", self.cfg, None)
         expected_init = ('const cfg_mgr::Simple_metadata alf_data =\n'
         '{\n'
         '    {\n'
@@ -90,13 +90,13 @@ class Test_simple_gen(unittest.TestCase):
         '        sizeof(int), // size\n'
         '        true // persistent\n'
         '    },\n'
-        '    NULL, // set\n'
-        '    NULL, // setdef\n'
-        '    NULL, // print\n'
+        '    nullptr, // set\n'
+        '    nullptr, // setdef\n'
+        '    nullptr, // print\n'
         '};\n'
         'const cfg_mgr::Simple_descriptor alf(&alf_data);\n')
-        self.assertEqual(expected_init, b.get_init())        
-        
+        self.assertEqual(expected_init, b.get_init())
+
 class Test_contained_array_gen(unittest.TestCase):
     id = """
     name: alf
@@ -117,19 +117,19 @@ class Test_contained_array_gen(unittest.TestCase):
           persistent: true
           type: unsigned long
     """
-    
+
     def test_contained_array_definition(self):
-        b = yaml_code_gen.makeBaseItem(self.cfg, self.id)
+        b = yaml_code_gen.makeBaseItem("script", self.cfg, self.id)
         expected_def = ('\n'
         'struct t_alf\n'
         '{\n'
         '    unsigned long ipaddr[2];\n'
         '};\n')
         self.assertEqual(expected_def, b.get_definition())
-        
+
     def test_contained_array_init(self):
-        b = yaml_code_gen.makeBaseItem(self.cfg, self.id)
+        b = yaml_code_gen.makeBaseItem("script", self.cfg, self.id)
         print(b.get_init())
-        
+
 if __name__ == "__main__":
     unittest.main()

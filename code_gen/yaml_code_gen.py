@@ -418,7 +418,7 @@ def loadIdData(script, fname):
 
 
 def makeBaseItem(script, yaml_cfg_text, id_text):
-    "From the config file and the ID file, create objects to generate C++ code and a new ID file."
+    "From the config file and the YAML ID data, create objects to generate C++ code and a new ID file."
     try:
         cfg = yaml.load(yaml_cfg_text, Loader=yaml.SafeLoader)
     except:

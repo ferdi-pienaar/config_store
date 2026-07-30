@@ -32,7 +32,7 @@ int main(int argc, char **argv)
     cfg_mgr::Config_manager cm(get_base_descriptor(), argv[1], printf, (uint8_t **)&pCfg);
 
     pthread_t thread;
-    int rc = pthread_create(&thread, NULL, stats_thread, &cm);
+    int rc = pthread_create(&thread, nullptr, stats_thread, &cm);
     assert(0 == rc);
 
     while (true)
@@ -51,7 +51,7 @@ void handle_command(cfg_mgr::Config_manager & cm)
     
     printf("%s> ", cm.getPromptString());
     
-    if (fgets(cmd, sizeof(cmd), stdin) == NULL)
+    if (fgets(cmd, sizeof(cmd), stdin) == nullptr)
     {
         return;
     }
@@ -81,5 +81,5 @@ void * stats_thread(void * arg)
             pCfg->users[userIdx].elapsed++;
         }
     }
-    return NULL;
+    return nullptr;
 }

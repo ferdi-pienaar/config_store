@@ -141,7 +141,7 @@ TEST_F(TlvTest, invalidEndLoadComposite)
 // Nothing should be written to clientRam.
 TEST_F(TlvTest, loadEmptyComposite)
 {
-    nvram->set(NULL, 0);
+    nvram->set(nullptr, 0);
 
     EXPECT_EQ(CM_READ_FAIL, tlv_loader->startLoadComposite(0));
 }

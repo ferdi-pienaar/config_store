@@ -100,8 +100,8 @@ const Simple_metadata userCnt_d =
         SIZEOF(tDevice, userCount),
         false // counter is not persistent
     },
-    NULL, // set: counter, so can't be set
-    NULL, // setdef: no setdef for a counter
+    nullptr, // set: counter, so can't be set
+    nullptr, // setdef: no setdef for a counter
     cm_prt_int
 };
 
@@ -195,8 +195,8 @@ const Simple_metadata user_elapsed_d =
         SIZEOF(tUser, elapsed),
         false
     },
-    NULL, // no set function, because statistics are set by application, not cfg_mgr
-    NULL, // setdef
+    nullptr, // no set function, because statistics are set by application, not cfg_mgr
+    nullptr, // setdef
     cm_prt_int
 };
 
@@ -260,7 +260,7 @@ const Simple_metadata home_addr_d =
 
 const Simple_descriptor home_addr(&home_addr_d);
 const Aggregate_data homeAddrAggr_d = {&home_addr, 1, offsetof(tHome, pAddr)};
-const Owned_aggregate homeAddrAggr(&homeAddrAggr_d, NULL); // NULL => no counter
+const Owned_aggregate homeAddrAggr(&homeAddrAggr_d, nullptr); // nullptr => no counter
 
 // Start of composite item home location
 enum
@@ -313,7 +313,7 @@ const Composite_metadata home_loc_d =
 
 const Composite_descriptor home_loc(&home_loc_d);
 const Aggregate_data homeLocAggr_d = {&home_loc, 1, offsetof(tHome, pLoc)};
-const Owned_aggregate homeLocAggr(&homeLocAggr_d, NULL); // NULL because the owned item has no counter
+const Owned_aggregate homeLocAggr(&homeLocAggr_d, nullptr); // nullptr because the owned item has no counter
 
 
 ////////////////////////////////////////////////////////////////////////////////

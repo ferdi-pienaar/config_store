@@ -34,7 +34,7 @@ int main(int argc, char **argv)
     cfg_mgr::Config_manager cm(get_base_descriptor(), argv[1], printf, (uint8_t **)&pCfg);
 
     pthread_t thread;
-    int rc = pthread_create(&thread, NULL, stats_thread, &cm);
+    int rc = pthread_create(&thread, nullptr, stats_thread, &cm);
     assert(0 == rc);
 
     // Read commands from stdin and give them to the config manager
@@ -85,5 +85,5 @@ void * stats_thread(void * arg)
             pCfg->user[userIdx].elapsed++;
         }
     }
-    return NULL;
+    return nullptr;
 }

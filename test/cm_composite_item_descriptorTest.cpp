@@ -36,7 +36,7 @@ namespace {
 
 TEST(Composite_descriptor, getLen)
 {
-    Composite_metadata d_d  = {{"c1", 1, 55, true}, NULL, 0};
+    Composite_metadata d_d  = {{"c1", 1, 55, true}, nullptr, 0};
     Composite_descriptor d(&d_d);
 
     EXPECT_EQ(55, d.getLen());
@@ -53,12 +53,12 @@ struct m
 };
 
 // test set 1 metadata
-const Simple_metadata s1_d = {{"name1", 1, sizeof(int), true}, NULL, NULL, NULL};
+const Simple_metadata s1_d = {{"name1", 1, sizeof(int), true}, nullptr, nullptr, nullptr};
 const Simple_descriptor s1(&s1_d);
 const Aggregate_data ca1_d = {&s1, 1, offsetof(struct m, m1)};
 const Contained_aggregate ca1(&ca1_d);
 
-const Simple_metadata s2_d = {{"name2", 2, sizeof(int), true}, NULL, NULL, NULL};
+const Simple_metadata s2_d = {{"name2", 2, sizeof(int), true}, nullptr, nullptr, nullptr};
 const Simple_descriptor s2(&s2_d);
 const Aggregate_data ca2_d = {&s2, 1, offsetof(struct m, m2)};
 const Contained_aggregate ca2(&ca2_d);
@@ -122,12 +122,12 @@ struct m2
 };
 
 // test set 2 metadata
-const Simple_metadata s3_d = {{"count", 1, sizeof(int), true}, NULL, NULL, NULL};
+const Simple_metadata s3_d = {{"count", 1, sizeof(int), true}, nullptr, nullptr, nullptr};
 const Simple_descriptor s3(&s3_d);
 const Aggregate_data ca3_d = {&s3, 1, offsetof(struct m2, cnt)};
 const Contained_aggregate ca3(&ca3_d);
 
-const Simple_metadata s4_d = {{"owned", 2, sizeof(int), true}, cm_set_int, setdef_spy, NULL};
+const Simple_metadata s4_d = {{"owned", 2, sizeof(int), true}, cm_set_int, setdef_spy, nullptr};
 const Simple_descriptor s4(&s4_d);
 const Aggregate_data oa4_d = {&s4, MAX_NUMBER_OWNED_SET2, offsetof(struct m2, owned)};
 const Owned_aggregate oa4(&oa4_d, &ca3);
@@ -196,9 +196,9 @@ TEST_F(CompositeOwned, addFirst)
 
     c2.handleCmd(&cmd, (uint8_t *)&mem, &candidateCtxt, setCtxt);
 
-    // Counter is incremented and ptr to owned item is no longer NULL
+    // Counter is incremented and ptr to owned item is no longer nullptr
     EXPECT_EQ(1, mem.cnt);
-    EXPECT_TRUE(mem.owned != NULL);
+    EXPECT_TRUE(mem.owned != nullptr);
 
     // Item initialized to "default default"
     EXPECT_EQ(0, mem.owned[0]);
@@ -214,9 +214,9 @@ TEST_F(CompositeOwned, addAnother)
     c2.handleCmd(&cmd1, (uint8_t *)&mem, &candidateCtxt, setCtxt);
     c2.handleCmd(&cmd2, (uint8_t *)&mem, &candidateCtxt, setCtxt);
 
-    // Counter is incremented and ptr to owned item is no longer NULL
+    // Counter is incremented and ptr to owned item is no longer nullptr
     EXPECT_EQ(2, mem.cnt);
-    EXPECT_TRUE(mem.owned != NULL);
+    EXPECT_TRUE(mem.owned != nullptr);
 
     // Items initialized to "default default"
     EXPECT_EQ(0, mem.owned[0]);
@@ -295,8 +295,8 @@ TEST_F(CompositeOwned, delSingle)
     // Counter is decremented to 0
     EXPECT_EQ(0, mem.cnt);
 
-    // And the pointer to owned is set to NULL after owned memory freed
-    EXPECT_EQ(NULL, mem.owned);
+    // And the pointer to owned is set to nullptr after owned memory freed
+    EXPECT_EQ(nullptr, mem.owned);
 }
 
 
@@ -308,9 +308,9 @@ TEST_F(CompositeOwned, implicitAdd)
 
     c2.handleCmd(&cmd, (uint8_t *)&mem, &candidateCtxt, setCtxt);
 
-    // Counter is incremented and ptr to owned item is no longer NULL
+    // Counter is incremented and ptr to owned item is no longer nullptr
     EXPECT_EQ(1, mem.cnt);
-    EXPECT_TRUE(mem.owned != NULL);
+    EXPECT_TRUE(mem.owned != nullptr);
     EXPECT_EQ(42, mem.owned[0]);
 }
 
@@ -323,9 +323,9 @@ TEST_F(CompositeOwned, implicitAddFail)
 
     c2.handleCmd(&cmd, (uint8_t *)&mem, &candidateCtxt, setCtxt);
 
-    // Counter is not incremented and ptr to owned item is NULL
+    // Counter is not incremented and ptr to owned item is nullptr
     EXPECT_EQ(0, mem.cnt);
-    EXPECT_EQ(NULL, mem.owned);
+    EXPECT_EQ(nullptr, mem.owned);
 }
 
 
@@ -342,15 +342,15 @@ TEST_F(CompositeOwned, setdef)
     c2.setDefault((uint8_t *)&mem);
 
     EXPECT_EQ(0, mem.cnt);
-    EXPECT_EQ(NULL, mem.owned);
+    EXPECT_EQ(nullptr, mem.owned);
     EXPECT_EQ(NUM_OWNED, setdef_spy_calls); // verify setdef of components is called
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// test set 4, OWNED with no counter => cntr for Owned_aggregate() is NULL
+// test set 4, OWNED with no counter => cntr for Owned_aggregate() is nullptr
 // (When the max number of owned items is 1, no counter is needed, since
-// the pointer to the owned data is either NULL or not.)
+// the pointer to the owned data is either nullptr or not.)
 // test set 4 data structure
 static const unsigned MAX_NUMBER_OWNED_SET4 = 1;
 struct m4
@@ -359,10 +359,10 @@ struct m4
 };
 
 // test set 4 metadata
-const Simple_metadata s7_d = {{"owned", 1, sizeof(int), true}, NULL, NULL, NULL};
+const Simple_metadata s7_d = {{"owned", 1, sizeof(int), true}, nullptr, nullptr, nullptr};
 const Simple_descriptor s7(&s7_d);
 const Aggregate_data oa7_d = {&s7, MAX_NUMBER_OWNED_SET4, offsetof(struct m4, owned)};
-const Owned_aggregate oa7(&oa7_d, NULL); // NULL => no counter
+const Owned_aggregate oa7(&oa7_d, nullptr); // nullptr => no counter
 
 const Aggregate * const aggrList4[] = {&oa7};
 const Composite_metadata c4_d = {{"c4", 1, sizeof(struct m4), true}, aggrList4, sizeof(aggrList4)/sizeof(aggrList4[0])};
@@ -396,7 +396,7 @@ TEST_F(CompositeOwnedWithoutCounter, addOnly)
     c4.handleCmd(&cmd, (uint8_t *)&mem, &candidateCtxt, setCtxt);
 
     // Pointer updated
-    EXPECT_TRUE(mem.owned != NULL);
+    EXPECT_TRUE(mem.owned != nullptr);
 
     // Item initialized to "default default"
     EXPECT_EQ(0, *(mem.owned));
@@ -414,7 +414,7 @@ TEST_F(CompositeOwnedWithoutCounter, delOnly)
 
     c4.handleCmd(&cmd, (uint8_t *)&mem, &candidateCtxt, setCtxt);
 
-    // And the pointer to owned is set to NULL after owned memory freed
-    EXPECT_EQ(NULL, mem.owned);
+    // And the pointer to owned is set to nullptr after owned memory freed
+    EXPECT_EQ(nullptr, mem.owned);
 }
 } // namespace
