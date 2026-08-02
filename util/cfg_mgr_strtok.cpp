@@ -22,7 +22,7 @@ char * Strtok::operator() (const char * word_delimiters,
         block_end = block_start;
     }
     State state = seek_token(word_delimiters, block_start, block_end);
-    if (state == FAIL)
+    if (state == State::FAIL)
     {
         return nullptr;
     }
@@ -39,15 +39,15 @@ Strtok::State Strtok::seek_token(const char * word_delimiters,
                                  const char * block_start,
                                  const char * block_end)
 {
-    State state = PREFIX;
-    for ( ; state < FOUND; m_str++)
+    State state = State::PREFIX;
+    for ( ; state < State::FOUND; m_str++)
     {
         TokenType type;
-        if (state == PREFIX)
+        if (state == State::PREFIX)
         {
             state = seek_start(word_delimiters, block_start, &type);
         }
-        else if (state == TOKEN)
+        else if (state == State::TOKEN)
         {
             state = seek_end(word_delimiters, block_end, type);
         }
@@ -70,22 +70,22 @@ Strtok::State Strtok::seek_start(const char * word_delimiters,
 {
     if (*m_str == 0)
     {
-        return FAIL;
+        return State::FAIL;
     }
     if (strchr(word_delimiters, *m_str))
     {
-        return PREFIX;
+        return State::PREFIX;
     }
     // After prefix (if any), start token of type WORD or BLOCK.
     m_start = m_str;
-    *type = WORD; // the default type is WORD.
+    *type = TokenType::WORD; // the default type is WORD.
     if (block_start && (strncmp(block_start, m_str, strlen(block_start)) == 0))
     {
-        *type = BLOCK;
+        *type = TokenType::BLOCK;
         // Start looking for block close AFTER block open.
         m_str += strlen(block_start);
     }
-    return TOKEN;
+    return State::TOKEN;
 }
 
 // Look for end of a token or the end of the string.
@@ -100,16 +100,16 @@ Strtok::State Strtok::seek_end(const char * word_delimiters,
                                const char * block_end,
                                TokenType type)
 {
-    if (type == BLOCK)
+    if (type == TokenType::BLOCK)
     {
         return seek_block_end(block_end);
     }
     // Word ends at string terminator or word delimiter.
     if ((*m_str == 0) || strchr(word_delimiters, *m_str))
     {
-        return FOUND;
+        return State::FOUND;
     }
-    return TOKEN;
+    return State::TOKEN;
 }
 
 Strtok::State Strtok::seek_block_end(const char * block_end)
@@ -117,16 +117,16 @@ Strtok::State Strtok::seek_block_end(const char * block_end)
     if (*m_str == 0)
     {
         // Reached string terminator without finding block end.
-        return FAIL;
+        return State::FAIL;
     }
     unsigned block_end_len = strlen(block_end);
     if (strncmp(block_end, m_str, block_end_len) == 0)
     {
         // Token ends AFTER block end -- string may terminate too.
         m_str += block_end_len;
-        return FOUND;
+        return State::FOUND;
     }
-    return TOKEN;
+    return State::TOKEN;
 }
 
 }

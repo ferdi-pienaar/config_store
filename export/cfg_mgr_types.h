@@ -18,13 +18,13 @@ typedef uint16_t item_len_t;
 typedef uint16_t item_id_t;
 
 //
-typedef enum
+enum class Result
 {
     CM_SUCCESS,
     CM_READ_FAIL,
     CM_INCOHERENT_DATA,
     CM_NOT_FOUND,
     CM_FAIL
-} result_t;
+};
 
 }

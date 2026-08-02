@@ -21,15 +21,15 @@ class Tlv_store : public Store
 public:
     Tlv_store(Nvram_itf * nvram);
     ~Tlv_store();
-    result_t startLoad() const override;
+    Result startLoad() const override;
     bool startWrite() const override;
     void writeSimple(const Simple_metadata * data, const uint8_t * v) const override;
     void startWriteComposite(const Composite_metadata * data) const override;
     void endWriteComposite() const override;
-    result_t startLoadSimple(const Simple_metadata * data) const override;
-    result_t endLoadSimple(uint8_t * pRam, const Simple_metadata * data) const override;
-    result_t startLoadComposite(const Composite_metadata * data) const override;
-    result_t endLoadComposite() const override;
+    Result startLoadSimple(const Simple_metadata * data) const override;
+    Result endLoadSimple(uint8_t * pRam, const Simple_metadata * data) const override;
+    Result startLoadComposite(const Composite_metadata * data) const override;
+    Result endLoadComposite() const override;
 
 private:
     TlvWriter * m_tlv_writer;

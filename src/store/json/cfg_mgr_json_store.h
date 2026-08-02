@@ -23,19 +23,19 @@ public:
     ~Json_store();
     bool startWrite() const override;
     void endWrite() const override;
-    result_t startLoad() const override;
-    result_t endLoad() const override;
+    Result startLoad() const override;
+    Result endLoad() const override;
     void writeSimple(const Simple_metadata * data, const uint8_t * v) const override;
     void startWriteComposite(const Composite_metadata * data) const override;
     void endWriteComposite() const override;
     void startWriteArray(const char * name) const override;
     void endWriteArray() const override;
-    result_t startLoadSimple(const Simple_metadata * data) const override;
-    result_t endLoadSimple(uint8_t * pRam, const Simple_metadata * data) const override;
-    result_t startLoadComposite(const Composite_metadata * data) const override;
-    result_t endLoadComposite() const override;
-    result_t startLoadArray(const char * name) const override;
-    result_t endLoadArray() const override;
+    Result startLoadSimple(const Simple_metadata * data) const override;
+    Result endLoadSimple(uint8_t * pRam, const Simple_metadata * data) const override;
+    Result startLoadComposite(const Composite_metadata * data) const override;
+    Result endLoadComposite() const override;
+    Result startLoadArray(const char * name) const override;
+    Result endLoadArray() const override;
 
 private:
     JsonWriter * m_json_writer;

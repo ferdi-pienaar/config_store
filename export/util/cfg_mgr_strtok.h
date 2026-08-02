@@ -16,14 +16,14 @@ public:
 
 private:
     // Type of token. In one string, we can find both types.
-    enum TokenType
+    enum class TokenType
     {
         WORD, // Token separated from others by word delimiters, e.g. spaces.
         BLOCK // Token from start-marker to end-marker, e.g. open-quote to close-quote.
     };
 
     // The state of the in-progress token search.
-    enum State
+    enum class State
     {
         PREFIX, // In prefix consisting of word-delimiters before token
         TOKEN, // Start of a token found but not end

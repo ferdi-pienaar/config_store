@@ -41,8 +41,8 @@ public:
     void setDefault(uint8_t * pItem) const override;
     virtual void help(const uint8_t * pItem) const override;
     void save(const uint8_t * pItem, Store * store) const override;
-    result_t startLoad(Store * store) const override;
-    result_t endLoad(uint8_t * pItem, Store * store) const override;
+    Result startLoad(Store * store) const override;
+    Result endLoad(uint8_t * pItem, Store * store) const override;
     bool isPersistent() const override
     {
         return m_data->c.persistent;

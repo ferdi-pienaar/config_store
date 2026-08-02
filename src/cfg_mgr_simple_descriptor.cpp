@@ -122,17 +122,17 @@ void Simple_descriptor::save(const uint8_t *pItem, Store * store) const
 
 
 // @param store
-result_t Simple_descriptor::startLoad(Store * store) const
+Result Simple_descriptor::startLoad(Store * store) const
 {
-    result_t ret = store->startLoadSimple(m_data);
+    Result ret = store->startLoadSimple(m_data);
     DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id, ret);
     return ret;
 }
 
 // @param pItem
-result_t Simple_descriptor::endLoad(uint8_t * pItem, Store * store) const
+Result Simple_descriptor::endLoad(uint8_t * pItem, Store * store) const
 {
-    result_t ret = store->endLoadSimple(pItem, m_data);
+    Result ret = store->endLoadSimple(pItem, m_data);
     DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id, ret);
     return ret;
 }
