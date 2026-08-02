@@ -165,11 +165,11 @@ void Aggregate::save(const uint8_t *pItem, Store * store) const
 // @return CM_SUCCESS if item successfully loaded from store (it may have
 //           been saved into RAM or dumped)
 //         else an indication of why store load failed
-result_t Aggregate::load(uint8_t * pParentItem, Store * store) const
+Result Aggregate::load(uint8_t * pParentItem, Store * store) const
 {
     if (!m_data->pDesc->isPersistent())
     {
-        return CM_SUCCESS;
+        return Result::CM_SUCCESS;
     }
     if (m_data->maxCount > 1)
     {
@@ -177,13 +177,13 @@ result_t Aggregate::load(uint8_t * pParentItem, Store * store) const
     }
     for (unsigned idx = 0; idx < m_data->maxCount; idx++)
     {
-        result_t res = loadItem(pParentItem, idx, store);
-        if (res == CM_NOT_FOUND)
+        Result res = loadItem(pParentItem, idx, store);
+        if (res == Result::CM_NOT_FOUND)
         {
             // Array in store contains < maxCount. This is normal, so exit this function normally.
             break;
         }
-        if (res != CM_SUCCESS)
+        if (res != Result::CM_SUCCESS)
         {
             // A 'real' error, so exit.
             return res;
@@ -193,7 +193,7 @@ result_t Aggregate::load(uint8_t * pParentItem, Store * store) const
     {
         store->endLoadArray();
     }
-    return CM_SUCCESS;
+    return Result::CM_SUCCESS;
 }
 
 
@@ -207,11 +207,11 @@ bool Aggregate::needIndex(const uint8_t * pParentItem) const
 
 // Load item from persistent store into RAM.
 // @param idx -- the offset in RAM.
-result_t Aggregate::loadItem(uint8_t * pParentItem, unsigned idx, Store * store) const
+Result Aggregate::loadItem(uint8_t * pParentItem, unsigned idx, Store * store) const
 {
     // This fails if there isn't an item in the store to load.
-    result_t res = m_data->pDesc->startLoad(store);
-    if (res != CM_SUCCESS)
+    Result res = m_data->pDesc->startLoad(store);
+    if (res != Result::CM_SUCCESS)
     {
         return res;
     }
@@ -221,7 +221,7 @@ result_t Aggregate::loadItem(uint8_t * pParentItem, unsigned idx, Store * store)
     if (pItem == nullptr)
     {
         // Memory couldn't be allocated for the item.
-        return CM_FAIL;
+        return Result::CM_FAIL;
     }
     // We have memory to load the item into, so complete the load.
     return m_data->pDesc->endLoad(pItem, store);

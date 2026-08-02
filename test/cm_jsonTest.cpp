@@ -157,7 +157,7 @@ TEST_F(JsonTest, loadString)
 
     nvram->set(nvSet, sizeof(nvSet));
 
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("thing"));
     json_loader->endLoadSimple(&length, clientRam, cm_set_str);
 
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
@@ -176,7 +176,7 @@ TEST_F(JsonTest, loadStringWithEscapedQuote)
 
     nvram->set(nvSet, sizeof(nvSet));
 
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("thing"));
     json_loader->endLoadSimple(&length, clientRam, cm_set_str);
 
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
@@ -195,7 +195,7 @@ TEST_F(JsonTest, loadNonString)
 
     nvram->set(nvSet, sizeof(nvSet));
 
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("thing"));
     json_loader->endLoadSimple(&length, clientRam, cm_set_int);
 
     EXPECT_TRUE(memcmp(&expected, clientRam, sizeof(expected)) == 0);
@@ -214,11 +214,11 @@ TEST_F(JsonTest, loadNotFound)
     // xxx set client RAM to bitpattern and verify only the expected section is modified
 
     nvram->set(nvSet, sizeof(nvSet));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadObject("compo"));
-    EXPECT_EQ(CM_NOT_FOUND, json_loader->startLoadSimple("bogus"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing1"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadObject());
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadObject("compo"));
+    EXPECT_EQ(Result::CM_NOT_FOUND, json_loader->startLoadSimple("bogus"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("thing1"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadObject());
 
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
@@ -237,10 +237,10 @@ TEST_F(JsonTest, loadSkipUnwantedString)
     // xxx set client RAM to bitpattern and verify only the expected section is modified
 
     nvram->set(nvSet, sizeof(nvSet));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadObject("compo"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing2"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadObject());
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadObject("compo"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("thing2"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadObject());
 
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
@@ -259,10 +259,10 @@ TEST_F(JsonTest, loadSkipUnwantedSuperstring)
     // xxx set client RAM to bitpattern and verify only the expected section is modified
 
     nvram->set(nvSet, sizeof(nvSet));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadObject("compo"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing2"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadObject());
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadObject("compo"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("thing2"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadObject());
 
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
@@ -281,10 +281,10 @@ TEST_F(JsonTest, loadSkipUnwantedObject)
     // xxx set client RAM to bitpattern and verify only the expected section is modified
 
     nvram->set(nvSet, sizeof(nvSet));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadObject("compo"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing2"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadObject());
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadObject("compo"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("thing2"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadObject());
 
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
@@ -306,10 +306,10 @@ TEST_F(JsonTest, loadSkipUnwantedObjectComplex)
     // xxx set client RAM to bitpattern and verify only the expected section is modified
 
     nvram->set(nvSet, sizeof(nvSet));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadObject("compo"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing2"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadObject());
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadObject("compo"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("thing2"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadObject());
 
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
@@ -328,10 +328,10 @@ TEST_F(JsonTest, loadSkipUnwantedObjectNested)
     // xxx set client RAM to bitpattern and verify only the expected section is modified
 
     nvram->set(nvSet, sizeof(nvSet));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadObject("compo"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing2"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadObject());
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadObject("compo"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("thing2"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadObject());
 
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
@@ -350,10 +350,10 @@ TEST_F(JsonTest, loadSkipUnwantedArray)
     // xxx set client RAM to bitpattern and verify only the expected section is modified
 
     nvram->set(nvSet, sizeof(nvSet));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadObject("compo"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing2"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadObject());
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadObject("compo"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("thing2"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadObject());
 
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
@@ -374,7 +374,7 @@ TEST_F(JsonTest, DISABLED_loadSimpleForObject)
 
     nvram->set(nvSet, sizeof(nvSet));
 
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("compo"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("compo"));
     json_loader->endLoadSimple(&length, clientRam, cm_set_str);
 
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
@@ -397,10 +397,10 @@ TEST_F(JsonTest, loadObject)
 
     nvram->set(nvSet, sizeof(nvSet));
 
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadObject("compo"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing1"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadObject("compo"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("thing1"));
     json_loader->endLoadSimple(&length, clientRam, cm_set_str);
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing2"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("thing2"));
     json_loader->endLoadSimple(&length, clientRam + length, cm_set_str);
     json_loader->endLoadObject();
 
@@ -426,14 +426,14 @@ TEST_F(JsonTest, loadEmbeddedObject)
 
     nvram->set(nvSet, sizeof(nvSet));
 
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadObject("compo"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadObject("compoInside"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing1"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing2"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam + length, cm_set_str));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadObject());
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadObject());
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadObject("compo"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadObject("compoInside"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("thing1"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("thing2"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam + length, cm_set_str));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadObject());
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadObject());
 
     EXPECT_TRUE(memcmp(&expected, clientRam, sizeof(expected)) == 0);
 }
@@ -454,10 +454,10 @@ TEST_F(JsonTest, loadArray)
 
     nvram->set(nvSet, sizeof(nvSet));
 
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadArray("array"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("array"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadArray("array"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("array"));
     json_loader->endLoadSimple(&length, clientRam, cm_set_str);
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("array"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("array"));
     json_loader->endLoadSimple(&length, clientRam + length, cm_set_str);
     json_loader->endLoadArray();
 
@@ -485,16 +485,16 @@ TEST_F(JsonTest, loadArrayExtra)
 
     nvram->set(nvSet, sizeof(nvSet));
 
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadObject("compo"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadArray("array1"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("array1"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadObject("compo"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadArray("array1"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("array1"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
     // Next array entry is not found.
-    EXPECT_EQ(CM_NOT_FOUND, json_loader->startLoadSimple("array1"));
+    EXPECT_EQ(Result::CM_NOT_FOUND, json_loader->startLoadSimple("array1"));
     // But load end array is OK.
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadArray());
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("simplename2"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam + length, cm_set_str));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadArray());
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("simplename2"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam + length, cm_set_str));
 
     EXPECT_TRUE(memcmp(&expected, clientRam, sizeof(expected)) == 0);
 }
@@ -523,20 +523,20 @@ TEST_F(JsonTest, loadArrayOfObject)
 
     nvram->set(nvSet, sizeof(nvSet));
 
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadArray("compo"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadObject("compo"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing1"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing2"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam + length, cm_set_str));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadObject());
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadObject("compo"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing1"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam + 2 * length, cm_set_str));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing2"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam + 3 * length, cm_set_str));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadObject());
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadArray());
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadArray("compo"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadObject("compo"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("thing1"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("thing2"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam + length, cm_set_str));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadObject());
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadObject("compo"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("thing1"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam + 2 * length, cm_set_str));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("thing2"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam + 3 * length, cm_set_str));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadObject());
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadArray());
 
     EXPECT_TRUE(memcmp(&expected, clientRam, sizeof(expected)) == 0);
 }
@@ -558,12 +558,12 @@ TEST_F(JsonTest, loadOutOfOrder)
     // xxx set client RAM to bitpattern and verify only the expected section is modified
 
     nvram->set(nvSet, sizeof(nvSet));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadObject("compo"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing2"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
-    EXPECT_EQ(CM_SUCCESS, json_loader->startLoadSimple("thing1"));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam + length, cm_set_str));
-    EXPECT_EQ(CM_SUCCESS, json_loader->endLoadObject());
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadObject("compo"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("thing2"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam, cm_set_str));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->startLoadSimple("thing1"));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadSimple(&length, clientRam + length, cm_set_str));
+    EXPECT_EQ(Result::CM_SUCCESS, json_loader->endLoadObject());
 
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }

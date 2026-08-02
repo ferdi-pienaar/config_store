@@ -32,31 +32,31 @@ JsonLoader::~JsonLoader()
 {
 }
 
-result_t JsonLoader::startLoad()
+Result JsonLoader::startLoad()
 {
     skipws();
     if (!isNextRead("{", 1))
     {
-        return CM_INCOHERENT_DATA;
+        return Result::CM_INCOHERENT_DATA;
     }
     DBG_PRT("%s OK\n", __PRETTY_FUNCTION__);
     m_context.init();
-    return CM_SUCCESS;
+    return Result::CM_SUCCESS;
 }
 
-result_t JsonLoader::endLoad()
+Result JsonLoader::endLoad()
 {
     skipws();
     if (!isNextRead("}", 1))
     {
-        return CM_INCOHERENT_DATA;
+        return Result::CM_INCOHERENT_DATA;
     }
     DBG_PRT("%s OK\n", __PRETTY_FUNCTION__);
-    return CM_SUCCESS;
+    return Result::CM_SUCCESS;
 }
 
 // Return success if name (in quotes) followed by ':' is next.
-result_t JsonLoader::startLoadSimple(const char * name)
+Result JsonLoader::startLoadSimple(const char * name)
 {
     DBG_PRT("%s name=%s stackIndex=%u\n", __PRETTY_FUNCTION__, name, m_context.getIndex());
     return startLoadMember(name);
@@ -64,7 +64,7 @@ result_t JsonLoader::startLoadSimple(const char * name)
 
 // Read the value from JSON in nvram, and convert to value in RAM if set function.
 // @param length - output.
-result_t JsonLoader::endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_FPTR set)
+Result JsonLoader::endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_FPTR set)
 {
     DBG_PRT("%s m_stackIndex=%u\n", __PRETTY_FUNCTION__, m_context.getIndex());
 
@@ -72,36 +72,36 @@ result_t JsonLoader::endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET
     DBG_PRT("%s value='%s'\n", __PRETTY_FUNCTION__, valstr.c_str());
     set(pRam, *length, valstr);
     m_context.setIsFirstMember(false);
-    return CM_SUCCESS;
+    return Result::CM_SUCCESS;
 }
 
-result_t JsonLoader::startLoadObject(const char * name)
+Result JsonLoader::startLoadObject(const char * name)
 {
     return startLoadComposite(name, OBJECT);
 }
 
-result_t JsonLoader::endLoadObject()
+Result JsonLoader::endLoadObject()
 {
     return endLoadComposite(OBJECT);
 }
 
-result_t JsonLoader::startLoadArray(const char * name)
+Result JsonLoader::startLoadArray(const char * name)
 {
     return startLoadComposite(name, ARRAY);
 }
 
-result_t JsonLoader::endLoadArray()
+Result JsonLoader::endLoadArray()
 {
     return endLoadComposite(ARRAY);
 }
 
 // Start loading of Object or Array.
-result_t JsonLoader::startLoadComposite(const char * name, ValueType t)
+Result JsonLoader::startLoadComposite(const char * name, ValueType t)
 {
     DBG_PRT("%s name=%s type=%d stackIndex=%u\n", __PRETTY_FUNCTION__, name, t, m_context.getIndex());
 
-    result_t ret = startLoadMember(name);
-    if (ret != CM_SUCCESS)
+    Result ret = startLoadMember(name);
+    if (ret != Result::CM_SUCCESS)
     {
         return ret;
     }
@@ -111,14 +111,14 @@ result_t JsonLoader::startLoadComposite(const char * name, ValueType t)
                 (t == OBJECT) ? "object" : "array",
                 name,
                 (t == OBJECT) ? "{" : "[");
-        return CM_INCOHERENT_DATA;
+        return Result::CM_INCOHERENT_DATA;
     }
     m_context.push(t);
-    return CM_SUCCESS;
+    return Result::CM_SUCCESS;
 }
 
 // End loading of Object or Array.
-result_t JsonLoader::endLoadComposite(ValueType t)
+Result JsonLoader::endLoadComposite(ValueType t)
 {
     DBG_PRT("%s type=%d, m_stackIndex=%u\n", __PRETTY_FUNCTION__, t, m_context.getIndex());
 
@@ -126,15 +126,15 @@ result_t JsonLoader::endLoadComposite(ValueType t)
     if (!isNextRead((t == OBJECT) ? "}" : "]", 1))
     {
         DBG_PRT("%s missing '%s'\n", __PRETTY_FUNCTION__, (t == OBJECT) ? "}" : "]");
-        return CM_INCOHERENT_DATA;
+        return Result::CM_INCOHERENT_DATA;
     }
     m_context.pop();
     m_context.setIsFirstMember(false);
-    return CM_SUCCESS;
+    return Result::CM_SUCCESS;
 }
 
 // Common start for simple, object, and array.
-result_t JsonLoader::startLoadMember(const char * name)
+Result JsonLoader::startLoadMember(const char * name)
 {
     skipws();
     if (!m_context.isFirstMember())
@@ -143,63 +143,63 @@ result_t JsonLoader::startLoadMember(const char * name)
         if (!isNextRead(",", 1))
         {
             DBG_PRT("%s missing ','\n", __PRETTY_FUNCTION__);
-            return CM_NOT_FOUND;
+            return Result::CM_NOT_FOUND;
         }
         skipws();
     }
     if (m_context.getType() == OBJECT)
     {
         // In an object, expect the member's name (but not in an array).
-        result_t ret = findName(name);
-        if (ret != CM_SUCCESS)
+        Result ret = findName(name);
+        if (ret != Result::CM_SUCCESS)
         {
             return ret;
         }
         skipws();
     }
-    return CM_SUCCESS;
+    return Result::CM_SUCCESS;
 }
 
 // Find name within the current object.
 // If not found, leave nvram offset unchanged so next find starts at same offset.
-result_t JsonLoader::findName(const char * name)
+Result JsonLoader::findName(const char * name)
 {
     unsigned int start_offset = m_nvram->getOffset();
     while (true)
     {
-        result_t res = readName(name);
-        if (res == CM_SUCCESS)
+        Result res = readName(name);
+        if (res == Result::CM_SUCCESS)
         {
             return res;
         }
-        if (res != CM_NOT_FOUND)
+        if (res != Result::CM_NOT_FOUND)
         {
             // Error: it doesn't even look like a name, e.g. no opening or closing quotes.
             return res;
         }
         // readName returned CM_NOT_FOUND (the expected name isn't there), so go to next name.
         res = toNextName();
-        if (res != CM_SUCCESS)
+        if (res != Result::CM_SUCCESS)
         {
             // There are no more names in the current context, or some other error.
             m_nvram->setOffset(start_offset);
             return res;
         }
     }
-    return CM_SUCCESS;
+    return Result::CM_SUCCESS;
 }
 
 // Advance nvram to name within the current context.
 // @pre nvram is after the ':' that follows a name within the current context.
 // @post
-result_t JsonLoader::toNextName()
+Result JsonLoader::toNextName()
 {
-    result_t ret = CM_SUCCESS;
+    Result ret = Result::CM_SUCCESS;
     skipws();
     char c;
     if (!m_nvram->read((uint8_t *)&c, 1))
     {
-        return CM_INCOHERENT_DATA;
+        return Result::CM_INCOHERENT_DATA;
     }
     switch (c)
     {
@@ -213,15 +213,15 @@ result_t JsonLoader::toNextName()
         ret = toStringEnd();
         break;
     }
-    if (ret != CM_SUCCESS)
+    if (ret !=Result::CM_SUCCESS)
     {
         DBG_PRT("%s unterminated '%c'\n", __PRETTY_FUNCTION__, c);
         return ret;
     }
-    if (toCloser(0, ',') != CM_SUCCESS)
+    if (toCloser(0, ',') != Result::CM_SUCCESS)
     {
         DBG_PRT("%s no ','\n", __PRETTY_FUNCTION__);
-        return CM_NOT_FOUND;
+        return Result::CM_NOT_FOUND;
     }
     skipws();
     return ret;
@@ -233,7 +233,7 @@ result_t JsonLoader::toNextName()
 // then the next 'close' represents the match we're looking for.
 // Ignore opening and closing markers that appear inside strings.
 // It seems this basic parsing is sufficient.
-result_t JsonLoader::toCloser(char open, char close)
+Result JsonLoader::toCloser(char open, char close)
 {
     unsigned depth = 0; // number of opens that are not closed.
     char c;
@@ -243,7 +243,7 @@ result_t JsonLoader::toCloser(char open, char close)
         {
             if (depth == 0)
             {
-                return CM_SUCCESS;
+                return Result::CM_SUCCESS;
             }
             depth--;
         }
@@ -256,14 +256,14 @@ result_t JsonLoader::toCloser(char open, char close)
             toStringEnd();
         }
     }
-    return CM_NOT_FOUND;
+    return Result::CM_NOT_FOUND;
 }
 
 // Advance nvram offset to character after closing quote of string.
 // @param - str in/out, append found characters to this string, if provided -- includes closing quote.
 // @return CM_SUCCESS, or CM_NOT_FOUND if NVRAM ends before we reach end of string.
 // @pre - opening quote of string has been read.
-result_t JsonLoader::toStringEnd(string *str)
+Result JsonLoader::toStringEnd(string *str)
 {
     bool escape = false; // are we in escape state because previous char was '\'?
     char c;
@@ -276,11 +276,11 @@ result_t JsonLoader::toStringEnd(string *str)
         }
         if (!escape && (c == '"'))
         {
-            return CM_SUCCESS;
+            return Result::CM_SUCCESS;
         }
         escape = (c == '\\');
     }
-    return CM_NOT_FOUND;
+    return Result::CM_NOT_FOUND;
 }
 
 
@@ -288,20 +288,20 @@ result_t JsonLoader::toStringEnd(string *str)
 //         CM_NOT_FOUND if a name is found, but not the name that we expected.
 //         CM_INCOHERENT_DATA if next in NVRAM is not a quoted string followed by ":".
 // @post if there is a name, nvram advanced to after following ":".
-result_t JsonLoader::readName(const char * name)
+Result JsonLoader::readName(const char * name)
 {
     if (!isNextRead("\"", 1))
     {
         DBG_PRT("%s missing open\n", __PRETTY_FUNCTION__);
-        return CM_INCOHERENT_DATA;
+        return Result::CM_INCOHERENT_DATA;
     }
 
     string foundName;
-    result_t res = toStringEnd(&foundName);
-    if (res != CM_SUCCESS)
+    Result res = toStringEnd(&foundName);
+    if (res != Result::CM_SUCCESS)
     {
         DBG_PRT("%s name string unclosed.\n", __PRETTY_FUNCTION__);
-        return CM_INCOHERENT_DATA;
+        return Result::CM_INCOHERENT_DATA;
     }
     size_t name_len = strlen(name);
     size_t found_len = foundName.length() - 1; // subtract 1 because foundName includes closing quote.
@@ -309,13 +309,13 @@ result_t JsonLoader::readName(const char * name)
     {
         // Wrong name, but we don't return, continue to check the format.
         DBG_PRT("%s '%s' doesn't match '%s'.\n", __PRETTY_FUNCTION__, foundName.c_str(), name);
-        res = CM_NOT_FOUND;
+        res = Result::CM_NOT_FOUND;
     }
     skipws();
     if (!isNextRead(":", 1))
     {
         DBG_PRT("%s missing ':'\n", __PRETTY_FUNCTION__);
-        return CM_INCOHERENT_DATA;
+        return Result::CM_INCOHERENT_DATA;
     }
     return res;
 }

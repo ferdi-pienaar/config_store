@@ -82,7 +82,6 @@ A Contained Aggregate means the component items reside in the same block of memo
 A Owned Aggregate means the component items reside in a block of memory that is pointed to by the composite that owns them. The number of component items is variable, between 0 and Aggregate::maxCount.
 
 ```mermaid
-
 ---
 config:
   class:

@@ -290,9 +290,9 @@ void Composite_descriptor::save(const uint8_t *pItem, Store * store) const
 // Prepare to load item from persistent storage -- check if it exists in store.
 //
 //
-result_t Composite_descriptor::startLoad(Store * store) const
+Result Composite_descriptor::startLoad(Store * store) const
 {
-    result_t ret = store->startLoadComposite(m_data);
+    Result ret = store->startLoadComposite(m_data);
     DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id, ret);
     return ret;
 }
@@ -306,12 +306,12 @@ result_t Composite_descriptor::startLoad(Store * store) const
 // @pre -- this items startLoad was successful, i.e. an unread instance of this
 //         remains in the store.
 //
-result_t Composite_descriptor::endLoad(uint8_t * pItem, Store * store) const
+Result Composite_descriptor::endLoad(uint8_t * pItem, Store * store) const
 {
     for (unsigned i = 0; i < getAggrCount(); i++)
     {
-        result_t ret = getAggrAtIndex(i)->load(pItem, store);
-        if (!((ret == CM_SUCCESS) || (ret == CM_NOT_FOUND)))
+        Result ret = getAggrAtIndex(i)->load(pItem, store);
+        if (!((ret == Result::CM_SUCCESS) || (ret == Result::CM_NOT_FOUND)))
         {
             // An unexpected error, such as unexpected end of store
             // or INCOHERENT (L of simple item in store did not match

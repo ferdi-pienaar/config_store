@@ -50,10 +50,10 @@ void Json_store::endWrite() const
 }
 
 
-result_t Json_store::startLoad() const
+Result Json_store::startLoad() const
 {
-    result_t ret = Store::startLoad();
-    if (ret != CM_SUCCESS)
+    Result ret = Store::startLoad();
+    if (ret != Result::CM_SUCCESS)
     {
         return ret;
     }
@@ -61,10 +61,10 @@ result_t Json_store::startLoad() const
 }
 
 
-result_t Json_store::endLoad() const
+Result Json_store::endLoad() const
 {
-    result_t ret = m_json_loader->endLoad();
-    if (ret != CM_SUCCESS)
+    Result ret = m_json_loader->endLoad();
+    if (ret != Result::CM_SUCCESS)
     {
         return ret;
     }
@@ -99,34 +99,34 @@ void Json_store::endWriteArray() const
     m_json_writer->endWriteArray();
 }
 
-result_t Json_store::startLoadSimple(const Simple_metadata * data) const
+Result Json_store::startLoadSimple(const Simple_metadata * data) const
 {
     return m_json_loader->startLoadSimple(data->c.name);
 }
 
-result_t Json_store::endLoadSimple(uint8_t * pRam, const Simple_metadata * data) const
+Result Json_store::endLoadSimple(uint8_t * pRam, const Simple_metadata * data) const
 {
     assert(data->pSet != nullptr);
     item_len_t len = data->c.len;
     return m_json_loader->endLoadSimple(&len, pRam, data->pSet);
 }
 
-result_t Json_store::startLoadComposite(const Composite_metadata * data) const
+Result Json_store::startLoadComposite(const Composite_metadata * data) const
 {
     return m_json_loader->startLoadObject(data->c.name);
 }
 
-result_t Json_store::endLoadComposite() const
+Result Json_store::endLoadComposite() const
 {
     return m_json_loader->endLoadObject();
 }
 
-result_t Json_store::startLoadArray(const char * name) const
+Result Json_store::startLoadArray(const char * name) const
 {
     return m_json_loader->startLoadArray(name);
 }
 
-result_t Json_store::endLoadArray() const
+Result Json_store::endLoadArray() const
 {
     return m_json_loader->endLoadArray();
 }

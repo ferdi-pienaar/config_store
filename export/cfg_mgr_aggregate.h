@@ -57,7 +57,7 @@ public:
                           Cmd_context * candidateCtxt) const;
     virtual uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const = 0;
     void save(const uint8_t *pItem, Store * store) const;
-    result_t load(uint8_t * pParentItem, Store * store) const;
+    Result load(uint8_t * pParentItem, Store * store) const;
     virtual void help(const uint8_t * pItem) const = 0;
     virtual bool hasContent(const uint8_t * pItem) const;
     const Aggregate_data * getData() const
@@ -70,7 +70,7 @@ private:
     virtual uint8_t * getFirstItem(const uint8_t * pParentItem) const = 0;
     virtual void freeItems(uint8_t * pParentItem) const = 0;
     virtual uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const = 0;
-    result_t loadItem(uint8_t * pParentItem, unsigned idx, Store * store) const;
+    Result loadItem(uint8_t * pParentItem, unsigned idx, Store * store) const;
 
     const Aggregate_data * const m_data;
 };

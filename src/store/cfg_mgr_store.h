@@ -19,24 +19,24 @@ public:
     virtual ~Store() {}
     virtual bool startWrite() const;
     virtual void endWrite() const;
-    virtual result_t startLoad() const;
-    virtual result_t endLoad() const;
+    virtual Result startLoad() const;
+    virtual Result endLoad() const;
     virtual void writeSimple(const Simple_metadata * data, const uint8_t * v) const = 0;
     virtual void startWriteComposite(const Composite_metadata * data) const = 0;
     virtual void endWriteComposite() const = 0;
     virtual void startWriteArray(const char * name) const {}
     virtual void endWriteArray() const {}
-    virtual result_t startLoadSimple(const Simple_metadata * data) const = 0;
-    virtual result_t endLoadSimple(uint8_t * pRam, const Simple_metadata * data) const = 0;
-    virtual result_t startLoadComposite(const Composite_metadata * data) const = 0;
-    virtual result_t endLoadComposite() const  = 0;
-    virtual result_t startLoadArray(const char * name) const
+    virtual Result startLoadSimple(const Simple_metadata * data) const = 0;
+    virtual Result endLoadSimple(uint8_t * pRam, const Simple_metadata * data) const = 0;
+    virtual Result startLoadComposite(const Composite_metadata * data) const = 0;
+    virtual Result endLoadComposite() const  = 0;
+    virtual Result startLoadArray(const char * name) const
     {
-        return CM_SUCCESS;
+        return Result::CM_SUCCESS;
     }
-    virtual result_t endLoadArray() const
+    virtual Result endLoadArray() const
     {
-        return CM_SUCCESS;
+        return Result::CM_SUCCESS;
     }
     static Store * createStore(Nvram_itf * nvram);
 

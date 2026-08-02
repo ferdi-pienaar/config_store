@@ -15,15 +15,15 @@ Store * Store::createStore(Nvram_itf * nvram)
     return createStorex(nvram);
 }
 
-result_t Store::startLoad() const
+Result Store::startLoad() const
 {
-    return m_nvram->initForRead() ? CM_SUCCESS : CM_FAIL;
+    return m_nvram->initForRead() ? Result::CM_SUCCESS : Result::CM_FAIL;
 }
 
-result_t Store::endLoad() const
+Result Store::endLoad() const
 {
     m_nvram->accessComplete();
-    return CM_SUCCESS;
+    return Result::CM_SUCCESS;
 }
 
 bool Store::startWrite() const

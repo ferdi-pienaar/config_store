@@ -21,24 +21,24 @@ public:
     JsonLoader(Nvram_itf * pNvram);
     ~JsonLoader();
 
-    result_t startLoad();
-    result_t endLoad();
-    result_t startLoadSimple(const char * name);
-    result_t endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_FPTR set);
-    result_t startLoadObject(const char * name);
-    result_t endLoadObject();
-    result_t startLoadArray(const char * name);
-    result_t endLoadArray();
+    Result startLoad();
+    Result endLoad();
+    Result startLoadSimple(const char * name);
+    Result endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_FPTR set);
+    Result startLoadObject(const char * name);
+    Result endLoadObject();
+    Result startLoadArray(const char * name);
+    Result endLoadArray();
 
 private:
-    result_t startLoadComposite(const char * name, ValueType t);
-    result_t endLoadComposite(ValueType t);
-    result_t startLoadMember(const char * name);
-    result_t findName(const char * name);
-    result_t toNextName();
-    result_t toCloser(char open, char close);
-    result_t toStringEnd(std::string *str = nullptr);
-    result_t readName(const char * name);
+    Result startLoadComposite(const char * name, ValueType t);
+    Result endLoadComposite(ValueType t);
+    Result startLoadMember(const char * name);
+    Result findName(const char * name);
+    Result toNextName();
+    Result toCloser(char open, char close);
+    Result toStringEnd(std::string *str = nullptr);
+    Result readName(const char * name);
     std::string loadValue();
     std::string finishLoadNonString();
     bool isNextRead(const char * b, unsigned len);

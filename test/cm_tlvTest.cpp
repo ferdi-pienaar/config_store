@@ -134,7 +134,7 @@ TEST_F(TlvTest, loadSimple)
 
 TEST_F(TlvTest, invalidEndLoadComposite)
 {
-    EXPECT_EQ(CM_INCOHERENT_DATA, tlv_loader->endLoadComposite());
+    EXPECT_EQ(Result::CM_INCOHERENT_DATA, tlv_loader->endLoadComposite());
 }
 
 // Client tries to load a composite when NVRAM is empty.
@@ -143,7 +143,7 @@ TEST_F(TlvTest, loadEmptyComposite)
 {
     nvram->set(nullptr, 0);
 
-    EXPECT_EQ(CM_READ_FAIL, tlv_loader->startLoadComposite(0));
+    EXPECT_EQ(Result::CM_READ_FAIL, tlv_loader->startLoadComposite(0));
 }
 
 //
@@ -167,7 +167,7 @@ TEST_F(TlvTest, loadComposite)
     tlv_loader->startLoadSimple(4);
     tlv_loader->endLoadSimple(&length, clientRam + length);
     EXPECT_EQ(2, length);
-    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
+    EXPECT_EQ(Result::CM_SUCCESS, tlv_loader->endLoadComposite());
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
@@ -193,7 +193,7 @@ TEST_F(TlvTest, DISABLED_loadCompositeOutOfOrder)
     tlv_loader->startLoadSimple(8);
     tlv_loader->endLoadSimple(&length, clientRam + length);
     EXPECT_EQ(2, length);
-    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
+    EXPECT_EQ(Result::CM_SUCCESS, tlv_loader->endLoadComposite());
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
@@ -214,7 +214,7 @@ TEST_F(TlvTest, partialLoadComposite)
     tlv_loader->startLoadSimple(0xDD);
     tlv_loader->endLoadSimple(&length, clientRam);
     EXPECT_EQ(2, length);
-    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
+    EXPECT_EQ(Result::CM_SUCCESS, tlv_loader->endLoadComposite());
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
@@ -233,8 +233,8 @@ TEST_F(TlvTest, findFailLoadComposite)
     tlv_loader->startLoadComposite(0xab);
 
     length = 2;
-    result_t ret = tlv_loader->startLoadSimple(0xdeff);
-    EXPECT_EQ(ret, CM_NOT_FOUND);
+    Result ret = tlv_loader->startLoadSimple(0xdeff);
+    EXPECT_EQ(ret, Result::CM_NOT_FOUND);
 
     length = 2;
     tlv_loader->startLoadSimple(4);
@@ -244,7 +244,7 @@ TEST_F(TlvTest, findFailLoadComposite)
     tlv_loader->startLoadSimple(4);
     tlv_loader->endLoadSimple(&length, clientRam + length);
     EXPECT_EQ(2, length);
-    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
+    EXPECT_EQ(Result::CM_SUCCESS, tlv_loader->endLoadComposite());
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
@@ -268,8 +268,8 @@ TEST_F(TlvTest, loadNestedComposite)
 
     tlv_loader->startLoadSimple(0xab);
     tlv_loader->endLoadSimple(&length, clientRam);
-    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
-    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
+    EXPECT_EQ(Result::CM_SUCCESS, tlv_loader->endLoadComposite());
+    EXPECT_EQ(Result::CM_SUCCESS, tlv_loader->endLoadComposite());
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
@@ -290,12 +290,12 @@ TEST_F(TlvTest, loadNestedCompositeAndSimple)
     length = 6;
     tlv_loader->startLoadSimple(0xab);
     tlv_loader->endLoadSimple(&length, clientRam);
-    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
+    EXPECT_EQ(Result::CM_SUCCESS, tlv_loader->endLoadComposite());
 
     length = 2;
     tlv_loader->startLoadSimple(0xbc);
     tlv_loader->endLoadSimple(&length, clientRam + 6);
-    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
+    EXPECT_EQ(Result::CM_SUCCESS, tlv_loader->endLoadComposite());
 
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
@@ -314,14 +314,14 @@ TEST_F(TlvTest, loadCompositeWithUnwantedComponentAndSimple)
     tlv_loader->startLoadComposite(0xab);
     tlv_loader->startLoadComposite(0xab);
     length = 6;
-    EXPECT_EQ(CM_NOT_FOUND, tlv_loader->startLoadSimple(0xd00d));
+    EXPECT_EQ(Result::CM_NOT_FOUND, tlv_loader->startLoadSimple(0xd00d));
     // not found, so client doesn't call endLoadSimple.
-    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
+    EXPECT_EQ(Result::CM_SUCCESS, tlv_loader->endLoadComposite());
 
     length = 2;
     tlv_loader->startLoadSimple(0xbc);
     tlv_loader->endLoadSimple(&length, clientRam);
-    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
+    EXPECT_EQ(Result::CM_SUCCESS, tlv_loader->endLoadComposite());
 
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
@@ -347,8 +347,8 @@ TEST_F(TlvTest, loadNestedCompositeOf2Simples)
     length = 2;
     tlv_loader->startLoadSimple(0xbc);
     tlv_loader->endLoadSimple(&length, clientRam + 6);
-    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
-    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
+    EXPECT_EQ(Result::CM_SUCCESS, tlv_loader->endLoadComposite());
+    EXPECT_EQ(Result::CM_SUCCESS, tlv_loader->endLoadComposite());
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
@@ -366,12 +366,12 @@ TEST_F(TlvTest, load2Composites)
     length = 2;
     tlv_loader->startLoadSimple(0x31);
     tlv_loader->endLoadSimple(&length, clientRam);
-    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
+    EXPECT_EQ(Result::CM_SUCCESS, tlv_loader->endLoadComposite());
 
     tlv_loader->startLoadComposite(0xda);
     tlv_loader->startLoadSimple(0xbc);
     tlv_loader->endLoadSimple(&length, clientRam + length);
-    EXPECT_EQ(CM_SUCCESS, tlv_loader->endLoadComposite());
+    EXPECT_EQ(Result::CM_SUCCESS, tlv_loader->endLoadComposite());
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
@@ -386,8 +386,8 @@ TEST_F(TlvTest, loadTruncatedSimple)
 
     length = 4;
     tlv_loader->startLoadSimple(0xab);
-    result_t res = tlv_loader->endLoadSimple(&length, clientRam);
-    EXPECT_EQ(CM_READ_FAIL, res);
+    Result res = tlv_loader->endLoadSimple(&length, clientRam);
+    EXPECT_EQ(Result::CM_READ_FAIL, res);
 }
 } // namespace
 

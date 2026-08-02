@@ -115,12 +115,12 @@ void Config_manager_implement::load(Command_stack *cmd)
 
     // Before loading, thus allocating new memory, call setDefault to free owned memory.
     m_baseDesc->setDefault(m_ramBase);
-    result_t res = m_baseDesc->startLoad(m_store);
-    if (res == CM_SUCCESS)
+    Result res = m_baseDesc->startLoad(m_store);
+    if (res == Result::CM_SUCCESS)
     {
         res = m_baseDesc->endLoad(m_ramBase, m_store);
     }
-    if (res != CM_SUCCESS)
+    if (res != Result::CM_SUCCESS)
     {
         cm_printf("Load failed error %u: defaults restored.\n", res);
         m_baseDesc->setDefault(m_ramBase);

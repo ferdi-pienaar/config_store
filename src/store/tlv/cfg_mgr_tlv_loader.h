@@ -16,10 +16,10 @@ public:
     ~TlvLoader();
 
     void reset();
-    result_t startLoadSimple(item_id_t t);
-    result_t endLoadSimple(item_len_t * length, uint8_t * pRam);
-    result_t startLoadComposite(item_id_t t);
-    result_t endLoadComposite();
+    Result startLoadSimple(item_id_t t);
+    Result endLoadSimple(item_len_t * length, uint8_t * pRam);
+    Result startLoadComposite(item_id_t t);
+    Result endLoadComposite();
 
 private:
     static const unsigned HDR_LENGTH = sizeof(item_id_t) + sizeof(item_len_t);
@@ -30,9 +30,9 @@ private:
         item_len_t length;       // length [bytes] in composite, read from NVRAM
     };
 
-    result_t findType(item_id_t t);
-    result_t findTypeInComposite(item_id_t t);
-    result_t matchType(item_id_t t);
+    Result findType(item_id_t t);
+    Result findTypeInComposite(item_id_t t);
+    Result matchType(item_id_t t);
 
     Nvram_itf * m_nvram;
     int m_stackIndex;  // write/load stack index; -1 means the current item is top-level, not part of a composite
