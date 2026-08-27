@@ -8,8 +8,6 @@ The metadata that describes the data schema can be implemented by the user as ha
 ---
 config:
   layout: elk
-  class:
-    hideEmptyMembersBox: true
 ---
 
 flowchart LR
