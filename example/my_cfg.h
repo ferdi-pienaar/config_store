@@ -21,45 +21,56 @@
 #define MAX_LEN_USER_NAME 16
 #define MAX_LEN_LOCATION_NAME 16
 
-typedef struct
+namespace device
+{
+
+namespace user
+{
+
+// device::user::tUser
+struct tUser
 {
     char           name[MAX_LEN_USER_NAME];
     unsigned long  id;
     short          temperature;
     unsigned       elapsed;
+};
 
-} tUser;
+} // namespace user
 
+namespace home
+{
 
-typedef struct
+// device::home::tLocation
+struct tLocation
 {
     char           name[MAX_LEN_LOCATION_NAME];
-
-} tLocation;
-
+};
 
 // Contains two optional ways of describing home location:
 // simple address or a location structure.
-typedef struct
+// device::home::tHome
+struct tHome
 {
     unsigned long * pAddr;
     tLocation     * pLoc;
+};
 
-} tHome;
+} // namespace home
 
-
-typedef struct
+// device::tDevice
+struct tDevice
 {
     unsigned long  addr;
     unsigned short cliPort[NUM_CLI_PORT];
 
     unsigned int   userCount;
-    tUser        * users;
-    tHome          home;
+    user::tUser  * users;
+    home::tHome    home;
+};
 
-} tDevice;
+const cfg_mgr::Descriptor *get_base_descriptor();
 
-const cfg_mgr::Descriptor * get_base_descriptor();
+} // namespace device
 
 #endif // MY_CFG_H
-

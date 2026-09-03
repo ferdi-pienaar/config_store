@@ -35,26 +35,29 @@
 
 using namespace cfg_mgr;
 
+namespace device
+{
 // Start of composite item device
 enum
 {
-    IPADDR  = 0,
-    CLIPORT = 1,
-    USERCOUNT = 2,
-    USER = 3,
-    HOME = 4,
+    ID_IPADDR  = 0,
+    ID_CLIPORT = 1,
+    ID_USERCOUNT = 2,
+    ID_USER = 3,
+    ID_HOME = 4,
 
 };
 
-
 ////////////////////////////////////////////////////////////////////////////////
-// ip_addr
+// device::ip_address
 ////////////////////////////////////////////////////////////////////////////////
-const Simple_metadata ip_address_d =
+namespace ip_address
+{
+const Simple_metadata data =
 {
     {
         "ipaddr",
-        IPADDR,
+        ID_IPADDR,
         SIZEOF(tDevice, addr),
         true
     },
@@ -63,19 +66,22 @@ const Simple_metadata ip_address_d =
     cm_prt_int
 };
 
-const Simple_descriptor ip_address(&ip_address_d);
-const Aggregate_data ipaddressAggr_d = {&ip_address, 1, offsetof(tDevice, addr)};
-const Contained_aggregate ipaddressAggr(&ipaddressAggr_d);
+const Simple_descriptor desc(&data);
+const Aggregate_data aggregate_data = {&desc, 1, offsetof(tDevice, addr)};
+const Contained_aggregate aggregate(&aggregate_data);
 
+} // namespace ip_address
 
 ////////////////////////////////////////////////////////////////////////////////
-// port
+// device::port
 ////////////////////////////////////////////////////////////////////////////////
-const Simple_metadata port_d =
+namespace port
+{
+const Simple_metadata data =
 {
     {
         "port",
-        CLIPORT,
+        ID_CLIPORT,
         SIZEOF(tDevice, cliPort[0]), // the number of elements in the array are taken into account in the aggregate below
         true
     },
@@ -84,19 +90,22 @@ const Simple_metadata port_d =
     cm_prt_int
 };
 
-const Simple_descriptor port(&port_d);
-const Aggregate_data portAggr_d = {&port, NUM_CLI_PORT, offsetof(tDevice, cliPort)};
-const Contained_aggregate portAggr(&portAggr_d);
+const Simple_descriptor desc(&data);
+const Aggregate_data aggregate_data = {&desc, 1, offsetof(tDevice, cliPort)};
+const Contained_aggregate aggregate(&aggregate_data);
 
+} // namespace port
 
 ////////////////////////////////////////////////////////////////////////////////
-// userCnt
+// device::userCnt
 ////////////////////////////////////////////////////////////////////////////////
-const Simple_metadata userCnt_d =
+namespace userCnt
+{
+const Simple_metadata data =
 {
     {
         "usercnt",
-        USERCOUNT,
+        ID_USERCOUNT,
         SIZEOF(tDevice, userCount),
         false // counter is not persistent
     },
@@ -105,30 +114,34 @@ const Simple_metadata userCnt_d =
     cm_prt_int
 };
 
-// A counter is volatile => last param = false
-const Simple_descriptor userCnt(&userCnt_d);
-const Aggregate_data userCntAggr_d = {&userCnt, 1, offsetof(tDevice, userCount)};
-const Contained_aggregate userCntAggr(&userCntAggr_d);
+const Simple_descriptor desc(&data);
+const Aggregate_data aggregate_data = {&desc, 1, offsetof(tDevice, userCount)};
+const Contained_aggregate aggregate(&aggregate_data);
 
+} // namespace userCnt
 
+namespace user
+{
 // Start of composite item user
 enum
 {
-    USER_NAME = 0,
-    USER_ID = 1,
-    USER_TEMP = 2,
-    USER_ELAPSED = 3,
+    ID_NAME = 0,
+    ID_ID = 1,
+    ID_TEMP = 2,
+    ID_ELAPSED = 3,
 };
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// user_name
+// device::user::name
 ////////////////////////////////////////////////////////////////////////////////
-const Simple_metadata user_name_d =
+namespace name
+{
+const Simple_metadata data =
 {
     {
         "name",
-        USER_NAME,
+        ID_NAME,
         SIZEOF(tUser, name),
         true
     },
@@ -137,19 +150,22 @@ const Simple_metadata user_name_d =
     cm_prt_str
 };
 
-const Simple_descriptor user_name(&user_name_d);
-const Aggregate_data userNameAggr_d = {&user_name, 1, offsetof(tUser, name)};
-const Contained_aggregate userNameAggr(&userNameAggr_d);
+const Simple_descriptor desc(&data);
+const Aggregate_data aggregate_data = {&desc, 1, offsetof(tUser, name)};
+const Contained_aggregate aggregate(&aggregate_data);
 
+} // namespace name
 
 ////////////////////////////////////////////////////////////////////////////////
-// user_id
+// device::user::id
 ////////////////////////////////////////////////////////////////////////////////
-const Simple_metadata user_id_d =
+namespace id
+{
+const Simple_metadata data =
 {
     {
         "id",
-        USER_ID,
+        ID_ID,
         SIZEOF(tUser, id),
         true
     },
@@ -158,19 +174,22 @@ const Simple_metadata user_id_d =
     cm_prt_int /* xxx unsigned */
 };
 
-const Simple_descriptor user_id(&user_id_d);
-const Aggregate_data userIdAggr_d = {&user_id, 1, offsetof(tUser, id)};
-const Contained_aggregate userIdAggr(&userIdAggr_d);
+const Simple_descriptor desc(&data);
+const Aggregate_data aggregate_data = {&desc, 1, offsetof(tUser, id)};
+const Contained_aggregate aggregate(&aggregate_data);
 
+} // namespace id
 
 ////////////////////////////////////////////////////////////////////////////////
-// user_temp
+// device::user::temp
 ////////////////////////////////////////////////////////////////////////////////
-const Simple_metadata user_temp_d =
+namespace temp
+{
+const Simple_metadata data =
 {
     {
         "temp",
-        USER_TEMP,
+        ID_TEMP,
         SIZEOF(tUser, temperature),
         true
     },
@@ -179,19 +198,22 @@ const Simple_metadata user_temp_d =
     cm_prt_int
 };
 
-const Simple_descriptor user_temp(&user_temp_d);
-const Aggregate_data userTempAggr_d = {&user_temp, 1, offsetof(tUser, temperature)};
-const Contained_aggregate userTempAggr(&userTempAggr_d);
+const Simple_descriptor desc(&data);
+const Aggregate_data aggregate_data = {&desc, 1, offsetof(tUser, temperature)};
+const Contained_aggregate aggregate(&aggregate_data);
 
+} // namespace temp
 
 ////////////////////////////////////////////////////////////////////////////////
-// user_elapsed: statistic, hence non-persistent
+// device::user::elapsed: statistic, hence non-persistent
 ////////////////////////////////////////////////////////////////////////////////
-const Simple_metadata user_elapsed_d =
+namespace elapsed
+{
+const Simple_metadata data =
 {
     {
         "elapsed",
-        USER_ELAPSED,
+        ID_ELAPSED,
         SIZEOF(tUser, elapsed),
         false
     },
@@ -200,56 +222,63 @@ const Simple_metadata user_elapsed_d =
     cm_prt_int
 };
 
-const Simple_descriptor user_elapsed(&user_elapsed_d);
-const Aggregate_data userElapsedAggr_d = {&user_elapsed, 1, offsetof(tUser, elapsed)};
-const Contained_aggregate userElapsedAggr(&userElapsedAggr_d);
+const Simple_descriptor desc(&data);
+const Aggregate_data aggregate_data = {&desc, 1, offsetof(tUser, elapsed)};
+const Contained_aggregate aggregate(&aggregate_data);
 
+} // namespace elapsed
 
 ////////////////////////////////////////////////////////////////////////////////
-// user
+// device::user
 ////////////////////////////////////////////////////////////////////////////////
 
 /* List of aggregates in user */
-const Aggregate * const userAggrList[] =
+const Aggregate * const aggrList[] =
 {
-    &userNameAggr,
-    &userIdAggr,
-    &userTempAggr,
-    &userElapsedAggr,
+    &name::aggregate,
+    &id::aggregate,
+    &temp::aggregate,
+    &elapsed::aggregate,
 };
 
-const Composite_metadata user_d =
+const Composite_metadata data =
 {
     {
         "user",
-        USER,
+        ID_USER,
         sizeof(tUser),
         true
     },
-    userAggrList,
-    sizeof(userAggrList)/sizeof(userAggrList[0])
+    aggrList,
+    sizeof(aggrList)/sizeof(aggrList[0])
 };
 
-const Composite_descriptor user(&user_d);
-const Aggregate_data userAggr_d = {&user, 3 /* xxx max number of users */, offsetof(tDevice, users)};
-const Owned_aggregate userAggr(&userAggr_d, &userCntAggr);
+const Composite_descriptor desc(&data);
+const Aggregate_data aggregate_data = {&desc, 3 /* xxx max number of users */, offsetof(tDevice, users)};
+const Owned_aggregate aggregate(&aggregate_data, &userCnt::aggregate);
 
+} // namespace user
+
+namespace home
+{
 // Start of composite item home
 enum
 {
-    HOME_ADDR = 0,
-    HOME_LOC = 1,
+    ID_ADDR = 0,
+    ID_LOC = 1,
 };
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// home_addr
+// device::home::addr
 ////////////////////////////////////////////////////////////////////////////////
-const Simple_metadata home_addr_d =
+namespace addr
+{
+const Simple_metadata data =
 {
     {
         "addr",
-        HOME_ADDR,
+        ID_ADDR,
         sizeof(unsigned long), // xxx
         true
     },
@@ -258,25 +287,29 @@ const Simple_metadata home_addr_d =
     cm_prt_int
 };
 
-const Simple_descriptor home_addr(&home_addr_d);
-const Aggregate_data homeAddrAggr_d = {&home_addr, 1, offsetof(tHome, pAddr)};
-const Owned_aggregate homeAddrAggr(&homeAddrAggr_d, nullptr); // nullptr => no counter
+const Simple_descriptor desc(&data);
+const Aggregate_data aggregate_data = {&desc, 1, offsetof(tHome, pAddr)};
+const Owned_aggregate aggregate(&aggregate_data, nullptr); // nullptr => no counter
 
-// Start of composite item home location
+} // namespace addr
+
+namespace location
+{
 enum
 {
-    HOME_LOC_NAME = 0,
+    ID_NAME = 0,
 };
 
-
 ////////////////////////////////////////////////////////////////////////////////
-// home_loc_name
+// device::home::location::name
 ////////////////////////////////////////////////////////////////////////////////
-const Simple_metadata home_loc_name_d =
+namespace name
+{
+const Simple_metadata data =
 {
     {
         "name",
-        HOME_LOC_NAME,
+        ID_NAME,
         MAX_LEN_LOCATION_NAME, // xxx
         true
     },
@@ -285,78 +318,80 @@ const Simple_metadata home_loc_name_d =
     cm_prt_str
 };
 
-const Simple_descriptor home_loc_name(&home_loc_name_d);
-const Aggregate_data homeLocNameAggr_d = {&home_loc_name, 1, offsetof(tLocation, name)};
-const Contained_aggregate homeLocNameAggr(&homeLocNameAggr_d);
+const Simple_descriptor desc(&data);
+const Aggregate_data aggregate_data = {&desc, 1, offsetof(tLocation, name)};
+const Contained_aggregate aggregate(&aggregate_data);
 
+} // namespace name
 
 ////////////////////////////////////////////////////////////////////////////////
-// home_loc
+// device::home::location
 ////////////////////////////////////////////////////////////////////////////////
-/* List of aggregates in home_loc */
-const Aggregate * const homeLocAggrList[] =
+const Aggregate * const aggrList[] =
 {
-    &homeLocNameAggr,
+    &name::aggregate,
 };
 
-const Composite_metadata home_loc_d =
+const Composite_metadata data =
 {
     {
         "loc",
-        HOME_LOC,
+        ID_LOC,
         sizeof(tLocation),
         true
     },
-    homeLocAggrList,
-    sizeof(homeLocAggrList)/sizeof(homeLocAggrList[0])
+    aggrList,
+    sizeof(aggrList)/sizeof(aggrList[0])
 };
 
-const Composite_descriptor home_loc(&home_loc_d);
-const Aggregate_data homeLocAggr_d = {&home_loc, 1, offsetof(tHome, pLoc)};
-const Owned_aggregate homeLocAggr(&homeLocAggr_d, nullptr); // nullptr because the owned item has no counter
+const Composite_descriptor desc(&data);
+const Aggregate_data aggregate_data = {&desc, 1, offsetof(tHome, pLoc)};
+const Owned_aggregate aggregate(&aggregate_data, nullptr); // nullptr because the owned item has no counter
 
+} // namespace location
 
 ////////////////////////////////////////////////////////////////////////////////
-// home
+// device::home
 ////////////////////////////////////////////////////////////////////////////////
 /* List of aggregates in home */
-const Aggregate * const homeAggrList[] =
+const Aggregate * const aggrList[] =
 {
-    &homeAddrAggr,
-    &homeLocAggr,
+    &addr::aggregate,
+    &location::aggregate,
 };
 
-const Composite_metadata home_d =
+const Composite_metadata data =
 {
     {
         "home",
-        HOME,
+        ID_HOME,
         sizeof(tHome),
         true
     },
-    homeAggrList,
-    sizeof(homeAggrList)/sizeof(homeAggrList[0])
+    aggrList,
+    sizeof(aggrList)/sizeof(aggrList[0])
 };
 
-const Composite_descriptor home(&home_d);
-const Aggregate_data homeAggr_d = {&home, 1, offsetof(tDevice, home)};
-const Contained_aggregate homeAggr(&homeAggr_d);
+const Composite_descriptor desc(&data);
+const Aggregate_data aggregate_data = {&desc, 1, offsetof(tDevice, home)};
+const Contained_aggregate aggregate(&aggregate_data);
 
+} // namespace home
 
 ////////////////////////////////////////////////////////////////////////////////
 // device (top level)
 ////////////////////////////////////////////////////////////////////////////////
 /* List of aggregates in device */
-const Aggregate * const deviceAggrList[] =
+const Aggregate * const aggrList[] =
 {
-    &ipaddressAggr,
-    &portAggr,
-    &userCntAggr, // Inserting the counter here is optional: if you do, it is printed with the others
-    &userAggr,
-    &homeAggr,
+    &ip_address::aggregate,
+    &port::aggregate,
+    &userCnt::aggregate, // Inserting the counter here is optional: if you do, it is printed with the others
+    &user::aggregate,
+    &home::aggregate,
 };
 
-const Composite_metadata device_d =
+const Composite_metadata data =
 {
     {
         "device",
@@ -364,13 +399,15 @@ const Composite_metadata device_d =
         sizeof(tDevice),
         true
     },
-    deviceAggrList,
-    sizeof(deviceAggrList)/sizeof(deviceAggrList[0])
+    aggrList,
+    sizeof(aggrList)/sizeof(aggrList[0])
 };
 
-const Composite_descriptor deviceDesc(&device_d);
+const Composite_descriptor desc(&data);
 
 const Descriptor * get_base_descriptor()
 {
-    return &deviceDesc;
+    return &desc;
 }
+
+} // namespace device

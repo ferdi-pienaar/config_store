@@ -12,6 +12,8 @@
 
 using namespace std;
 
+using namespace device;
+
 #define WORD_DELIMITERS " \n"
 #define BLOCK_DELIMITER "\""
 
