@@ -86,9 +86,6 @@ class Item:
             self.id = container_id_gen.get_id(d['name'])
             print("{} assigned new ID {}".format(d['name'], self.id))
 
-    def get_metadata_name(self):
-        return self.full_name + "_data"
-
     def get_common_metadata_init(self):
         "Return string representing initialization of the common metadata structure"
         s = indent + "{\n"
@@ -111,7 +108,7 @@ class Item:
         "Return string representing a fn to access the item."
         s = "const cfg_mgr::Descriptor * get_base_descriptor()\n"
         s += "{\n"
-        s += indent + "return &" + self.full_name + ";\n"
+        s += indent + "return &" + self.d['name'] + "::desc;\n"
         s += "}\n"
         return s
 
@@ -126,12 +123,13 @@ class SimpleItem(Item):
 
     def get_init(self):
         "Return string containing initialization of the metadata"
-        s = self.get_metadata_init()
-        s += "const cfg_mgr::Simple_descriptor " + self.full_name + "(&" + self.get_metadata_name() + ");\n"
+        s = "namespace " + self.d['name'] + " {\n"
+        s += self.get_metadata_init()
+        s += "const cfg_mgr::Simple_descriptor desc(&data);\n"
         return s
 
     def get_metadata_init(self):
-        s = "const cfg_mgr::Simple_metadata " + self.get_metadata_name() + " =\n{\n"
+        s = "const cfg_mgr::Simple_metadata data =\n{\n"
         s += self.get_common_metadata_init()
         s += indent
         if 'set' in self.d:
@@ -236,31 +234,28 @@ class CompositeItem(Item):
 
     def get_init(self):
         "Return string containing initialization of the metadata, including pre-pended initialization of included data"
-        s = ""
+        s = "namespace " + self.d['name'] + " {\n"
         for aggr in self.aggregates:
             s += aggr.get_init(self.get_type(), self.id_gen) 
         s += self.get_aggr_list_init()
         s += self.get_metadata_init()
-        s += "const cfg_mgr::Composite_descriptor " + self.full_name + "(&" + self.get_metadata_name() + ");\n"
+        s += "const cfg_mgr::Composite_descriptor desc(&data);\n"
         return s
 
     def get_aggr_list_init(self):
-        s = "const cfg_mgr::Aggregate * const " + self.get_aggr_list_name() + "[] =\n{\n"
+        s = "const cfg_mgr::Aggregate * const aggregate_list[] =\n{\n"
         for a in self.aggregates:
-            s += indent + "&" + a.full_name + "_aggr,\n"
+            s += indent + "&" + a.item.d['name'] + "::aggregate,\n"
         s += "\n};\n"
         return s
 
     def get_metadata_init(self):
-        s = "const cfg_mgr::Composite_metadata " + self.get_metadata_name() + " =\n{\n"
+        s = "const cfg_mgr::Composite_metadata data =\n{\n"
         s += self.get_common_metadata_init()
-        s += indent + self.get_aggr_list_name() + ",\n"
-        s += indent + "sizeof(" + self.get_aggr_list_name() + ")/sizeof(" + self.get_aggr_list_name() + "[0])\n"
+        s += indent + "aggregate_list,\n"
+        s += indent + "sizeof(aggregate_list)/sizeof(aggregate_list[0])\n"
         s += "};\n"
         return s
-
-    def get_aggr_list_name(self):
-        return self.full_name + "_aggr_list"
 
     def get_type(self):
         return "t_" + self.full_name
@@ -285,10 +280,10 @@ class Aggregate:
     def get_init(self, container_type_name, id_gen):
         "Return initialization string"
         s = self.item.get_init()
-        s += "const cfg_mgr::Aggregate_data " + self.get_data_name() + " = {&"
-        s += self.full_name + ", " + self.get_count_str()
+        s += "const cfg_mgr::Aggregate_data aggregate_data = {&desc, " + self.get_count_str()
         s += ", offsetof(" + container_type_name + ", " + self.item.d['name'] + ")};\n"
-        s += self.get_instantiate()       
+        s += self.get_instantiate()
+        s += "} // namespace " + self.item.d['name'] + "\n"
         return s
 
     def get_data_name(self):
@@ -325,16 +320,16 @@ class ContainedAggregate(Aggregate):
         return s + ";\n"
                 
     def get_instantiate(self):
-        s = "const cfg_mgr::Contained_aggregate " + self.full_name + "_aggr(&" + self.get_data_name() + ");\n\n"
+        s = "const cfg_mgr::Contained_aggregate aggregate(&aggregate_data);\n\n"
         return s
 
 
 class OwnedAggregate(Aggregate):
-    def __init__(self, d, id_gen, old_id, container_name):        
+    def __init__(self, d, id_gen, old_id, container_name):
         Aggregate.__init__(self, d, id_gen, old_id, container_name)
         self.counter_name = ""
         if 'counter' in self.d:
-            self.counter_name += container_name + "_" + self.d['counter']['item']['name']
+            self.counter_name = self.d['counter']['item']['name']
 
     def get_instance_definition(self):
         s = self.item.get_type_and_name('owned') + "; // Pointer to item"
@@ -346,9 +341,9 @@ class OwnedAggregate(Aggregate):
         return s
 
     def get_instantiate(self):
-        s = "const cfg_mgr::Owned_aggregate " + self.full_name + "_aggr(&" + self.get_data_name()
+        s = "const cfg_mgr::Owned_aggregate aggregate(&aggregate_data"
         if len(self.counter_name) > 0:
-            s += ", &" + self.counter_name + "_aggr"
+            s += ", &" + self.counter_name + "::aggregate"
         else:
             s += ", nullptr"
         s += ");\n\n"
@@ -485,7 +480,6 @@ def saveInititializationFile(fname, scriptFile, cfgFile, definitionFile, depende
     finit.write("#include \"cfg_mgr_owned_aggregate.h\" // from cfg_mgr library\n")
     finit.write("#include \"" + definitionFile + "\" // auto-generated\n")
     finit.write("#include \"" + dependencyFile + "\" // supplied by application programmer\n\n")
-    finit.write("namespace {\n")
     finit.write(baseItem.get_init())
     finit.write("}\n\n")
     finit.write(baseItem.get_access_fn())
