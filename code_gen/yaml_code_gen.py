@@ -112,6 +112,15 @@ class Item:
         s += "}\n"
         return s
 
+    def get_inner_namespace(self):
+        "Return the inner-most of the namespaces this item is in."
+        substr = "::"
+        i = self.full_namespace.rfind(substr)
+        if i > 0:
+            # substr found
+            return self.full_namespace[i + len(substr):]
+        else:
+            return self.full_namespace
 
 class SimpleItem(Item):
     def __init__(self, d, container_id_gen, old_id, full_namespace):
@@ -119,9 +128,10 @@ class SimpleItem(Item):
 
     def get_init(self):
         "Return string containing initialization of the metadata"
-        s = "namespace " + self.d['name'] + " {\n"
+        s = "namespace " + self.d['name'] + " { // Simple item initialization\n"
         s += self.get_metadata_init()
         s += "const cfg_mgr::Simple_descriptor desc(&data);\n"
+        s += "} // namespace " + self.d['name'] + ", simple item initialization\n"
         return s
 
     def get_metadata_init(self):
@@ -159,7 +169,7 @@ class SimpleItem(Item):
         if 'array' in self.d:
             try:
                 # Use the symbolic constant.
-                s += "[" + self.d['array']['count']['name'] + "]"
+                s += "[" + self.get_inner_namespace() + "::" + self.d['array']['count']['name'] + "]"
             except:
                 # Constant has no name, so just an integer.
                 s += "[" + str(self.d['array']['count']) + "]"
@@ -183,16 +193,12 @@ class SimpleItem(Item):
         "No struct def for simple"
         return ""
 
-    def contains_composite(self):
-        "Simple item contains no other items."
-        return False
-
     def get_constant_definition(self):
         "Return definition of constants representing the size of an array."
         s = ""
         try:
-            constant = self.d['array']['count']
-            s += constant['type'] + " " + constant['name'] + " = " + str(constant['value']) + ";\n"
+            c = self.d['array']['count']
+            s += c['type'] + " " + c['name'] + " = " + str(c['value']) + "; // Size of array '" + self.d['name'] + "'\n"
         except:
             # If no array count that includes type, name and value, then there are no constants
             pass
@@ -247,17 +253,21 @@ class CompositeItem(Item):
     def get_definition(self):
         "Return string representing struct definition, including pre-pended definitions of referenced structs"
         s = ""
-        if self.contains_composite():
-            s += "namespace " + self.d['name'] + " {\n"
+        pre_definitions = ""
         for aggr in self.aggregates:
-            s += aggr.get_constant_definition()
-            s += aggr.item.get_constant_definition()
-            s += aggr.item.get_definition()
-        if self.contains_composite():
-            s += "} // namespace " + self.d['name'] + "\n"
+            pre_definitions += aggr.get_constant_definition()
+            pre_definitions += aggr.item.get_constant_definition()
+            pre_definitions += aggr.item.get_definition()
+
+        # Pre-definitions, if they exist, go in a namespace.
+        if len(pre_definitions) > 0:
+            s += "namespace " + self.d['name'] + " \n{\n"
+            s += pre_definitions
+            s += "} // namespace " + self.d['name'] + "\n\n"
+
         if len(self.full_namespace) > 0:
-            s += "// namespace " + self.full_namespace
-        s += "\nstruct " + self.get_type() + "\n{\n"
+            s += "// Current namespace: " + self.full_namespace + "\n"
+        s += "struct " + self.get_type() + "\n{\n"
         for aggr in self.aggregates:
             s += indent
             if hasattr(aggr.item, 'aggregates'):
@@ -269,12 +279,13 @@ class CompositeItem(Item):
 
     def get_init(self):
         "Return string containing initialization of the metadata, including pre-pended initialization of included data"
-        s = "namespace " + self.d['name'] + " {\n"
+        s = "namespace " + self.d['name'] + " { // Composite item initialization\n"
         for aggr in self.aggregates:
             s += aggr.get_init(self.get_type(), self.id_gen) 
         s += self.get_aggr_list_init()
         s += self.get_metadata_init()
         s += "const cfg_mgr::Composite_descriptor desc(&data);\n"
+        s += "} // namespace " + self.d['name'] + ", composite item initialization\n"
         return s
 
     def get_aggr_list_init(self):
@@ -305,13 +316,6 @@ class CompositeItem(Item):
     def get_size(self):
         return "sizeof(" + self.get_type() + ")"
 
-    def contains_composite(self):
-        "True iff this contains a composite."
-        for aggr in self.aggregates:
-            if hasattr(aggr.item, 'aggregates'):
-                return True
-        return False
-
     def get_constant_definition(self):
         "Composite items don't define constants"
         return ""
@@ -324,10 +328,11 @@ class Aggregate:
     def get_init(self, container_type_name, id_gen):
         "Return initialization string"
         s = self.item.get_init()
+        s += "namespace " + self.item.d['name'] + " { // Aggregate initialization\n"
         s += "const cfg_mgr::Aggregate_data aggregate_data = {&desc, " + self.get_count_str(None)
         s += ", offsetof(" + container_type_name + ", " + self.item.d['name'] + ")};\n"
         s += self.get_instantiate()
-        s += "} // namespace " + self.item.d['name'] + "\n"
+        s += "} // namespace " + self.item.d['name'] + ", aggregate initialization\n"
         return s
 
     def get_count_str(self, parent_name):
@@ -346,8 +351,8 @@ class Aggregate:
         "Return string representing the symbolic constants used in the aggregate count"
         s = ""
         try:
-            constant = self.d['count']
-            s += constant['type'] + " " + constant['name'] + " = " + str(constant['value']) + ";\n"
+            c = self.d['count']
+            s += c['type'] + " " + c['name'] + " = " + str(c['value']) + "; // '" + self.item.d['name'] + "' count\n"
         except:
             # If no counter that includes type, name and value, then there are no constants
             pass
@@ -364,7 +369,7 @@ class ContainedAggregate(Aggregate):
         return s + ";\n"
                 
     def get_instantiate(self):
-        s = "const cfg_mgr::Contained_aggregate aggregate(&aggregate_data);\n\n"
+        s = "const cfg_mgr::Contained_aggregate aggregate(&aggregate_data);\n"
         return s
 
 
@@ -390,7 +395,7 @@ class OwnedAggregate(Aggregate):
             s += ", &" + self.counter_name + "::aggregate"
         else:
             s += ", nullptr"
-        s += ");\n\n"
+        s += ");\n"
         return s
         
     def get_max_count(self):
@@ -525,7 +530,6 @@ def saveInititializationFile(fname, scriptFile, cfgFile, definitionFile, depende
     finit.write("#include \"" + definitionFile + "\" // auto-generated\n")
     finit.write("#include \"" + dependencyFile + "\" // supplied by application programmer\n\n")
     finit.write(baseItem.get_init())
-    finit.write("}\n\n")
     finit.write(baseItem.get_access_fn())
     finit.close()    
 

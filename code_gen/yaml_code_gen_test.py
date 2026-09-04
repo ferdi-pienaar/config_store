@@ -64,7 +64,8 @@ class Test_simple_gen(unittest.TestCase):
         ("name: alf\n"
         "id: 55\n")
         b = yaml_code_gen.makeBaseItem("script", self.cfg, id)
-        expected_init = ('const cfg_mgr::Simple_metadata alf_data =\n'
+        expected_init = ('namespace alf { // Simple item initialization\n'
+        'const cfg_mgr::Simple_metadata data =\n'
         '{\n'
         '    {\n'
         '        "alf", // name\n'
@@ -76,13 +77,15 @@ class Test_simple_gen(unittest.TestCase):
         '    nullptr, // setdef\n'
         '    nullptr, // print\n'
         '};\n'
-        'const cfg_mgr::Simple_descriptor alf(&alf_data);\n')
+        'const cfg_mgr::Simple_descriptor desc(&data);\n'
+        '} // namespace alf, simple item initialization\n')
         self.assertEqual(expected_init, b.get_init())
 
     def test_init_without_id(self):
         "Check C++ init code produced from a YAML config descriptor and YAML ID file"
         b = yaml_code_gen.makeBaseItem("script", self.cfg, None)
-        expected_init = ('const cfg_mgr::Simple_metadata alf_data =\n'
+        expected_init = ('namespace alf { // Simple item initialization\n'
+        'const cfg_mgr::Simple_metadata data =\n'
         '{\n'
         '    {\n'
         '        "alf", // name\n'
@@ -94,7 +97,8 @@ class Test_simple_gen(unittest.TestCase):
         '    nullptr, // setdef\n'
         '    nullptr, // print\n'
         '};\n'
-        'const cfg_mgr::Simple_descriptor alf(&alf_data);\n')
+        'const cfg_mgr::Simple_descriptor desc(&data);\n'
+        '} // namespace alf, simple item initialization\n')
         self.assertEqual(expected_init, b.get_init())
 
 class Test_contained_array_gen(unittest.TestCase):
@@ -120,8 +124,7 @@ class Test_contained_array_gen(unittest.TestCase):
 
     def test_contained_array_definition(self):
         b = yaml_code_gen.makeBaseItem("script", self.cfg, self.id)
-        expected_def = ('\n'
-        'struct t_alf\n'
+        expected_def = ('struct t_alf\n'
         '{\n'
         '    unsigned long ipaddr[2];\n'
         '};\n')
