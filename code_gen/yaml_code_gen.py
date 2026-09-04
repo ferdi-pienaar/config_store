@@ -76,9 +76,9 @@ class Id_generator:
 
 
 class Item:
-    def __init__(self, d, container_id_gen, old_id, full_name):
+    def __init__(self, d, container_id_gen, old_id, full_namespace):
         self.d = d
-        self.full_name = full_name
+        self.full_namespace = full_namespace
         if old_id is not None:
             #print d['name'], "has old ID", old_id['id']
             self.id = str(old_id['id'])
@@ -114,8 +114,8 @@ class Item:
 
 
 class SimpleItem(Item):
-    def __init__(self, d, container_id_gen, old_id, full_name):
-        Item.__init__(self, d, container_id_gen, old_id, full_name)
+    def __init__(self, d, container_id_gen, old_id, full_namespace):
+        Item.__init__(self, d, container_id_gen, old_id, full_namespace)
         self.is_string_type = False # By default, items aren't strings
         if "string" in d['type']:
             self.is_string_type = True
@@ -176,6 +176,10 @@ class SimpleItem(Item):
         "No struct def for simple"
         return ""
 
+    def contains_composite(self):
+        "Simple item contains no other items."
+        return False
+
 
 def get_value_from_dictionary_list(dlist, key):
     "Helper function: from list of dictionaries, return the value of 1st dictionary with the desired 'name' entry(or None)"
@@ -185,19 +189,22 @@ def get_value_from_dictionary_list(dlist, key):
 
 
 class CompositeItem(Item):
-    def __init__(self, d, container_id_gen, old_id, full_name):
+    def __init__(self, d, container_id_gen, old_id, full_namespace):
         "prefix_string, from containing item, is prefixed to this item's name to give this item's structure name"
-        Item.__init__(self, d, container_id_gen, old_id, full_name)
+        Item.__init__(self, d, container_id_gen, old_id, full_namespace)
         if old_id is not None:
             self.id_gen = Id_generator(old_id['components'])
         else:
             self.id_gen = Id_generator(None)
         self.aggregates = []
+        if len(full_namespace) > 0:
+            full_namespace += "::"
+        full_namespace += self.d['name']
         for a in self.d['aggregate']:
             component_id = None
             if old_id is not None:
                 component_id = get_value_from_dictionary_list(old_id['components'], a['item']['name'])
-            self.aggregates.append(makeAggregate(a, self.id_gen, component_id, full_name))
+            self.aggregates.append(makeAggregate(a, self.id_gen, component_id, full_namespace))
 
     def get_component_ids(self):
         "Get list of component IDs in format used to generate the ID yaml file"
@@ -223,12 +230,22 @@ class CompositeItem(Item):
     def get_definition(self):
         "Return string representing struct definition, including pre-pended definitions of referenced structs"
         s = ""
+        if self.contains_composite():
+            s += "namespace " + self.d['name'] + " {\n"
         for aggr in self.aggregates:
             s += aggr.get_constant_definition()
             s += aggr.item.get_definition()
+        if self.contains_composite():
+            s += "} // namespace " + self.d['name'] + "\n"
+        if len(self.full_namespace) > 0:
+            s += "// namespace " + self.full_namespace
         s += "\nstruct " + self.get_type() + "\n{\n"
         for aggr in self.aggregates:
-            s += indent + aggr.get_instance_definition()
+            s += indent
+            if hasattr(aggr.item, 'aggregates'):
+                # The item is a composite, so its type is a struct in this item's namespace.
+                s += self.d['name'] + "::"
+            s += aggr.get_instance_definition(self.d['name'])
         s += "};\n"
         return s
 
@@ -258,7 +275,7 @@ class CompositeItem(Item):
         return s
 
     def get_type(self):
-        return "t_" + self.full_name
+        return "t_" + self.d['name']
 
     def get_type_and_name(self, aggrType):
         s = self.get_type() + " "
@@ -270,29 +287,36 @@ class CompositeItem(Item):
     def get_size(self):
         return "sizeof(" + self.get_type() + ")"
 
+    def contains_composite(self):
+        "True iff this contains a composite."
+        for aggr in self.aggregates:
+            if hasattr(aggr.item, 'aggregates'):
+                return True
+        return False
+
 
 class Aggregate:
     def __init__(self, d, id_gen, old_id, container_name):
         self.d = d
-        self.full_name = container_name + "_" + self.d['item']['name']
-        self.item = makeItem(self.d['item'], id_gen, old_id, self.full_name)
+        self.item = makeItem(self.d['item'], id_gen, old_id, container_name)
 
     def get_init(self, container_type_name, id_gen):
         "Return initialization string"
         s = self.item.get_init()
-        s += "const cfg_mgr::Aggregate_data aggregate_data = {&desc, " + self.get_count_str()
+        s += "const cfg_mgr::Aggregate_data aggregate_data = {&desc, " + self.get_count_str(None)
         s += ", offsetof(" + container_type_name + ", " + self.item.d['name'] + ")};\n"
         s += self.get_instantiate()
         s += "} // namespace " + self.item.d['name'] + "\n"
         return s
 
-    def get_data_name(self):
-        return self.full_name  + "_aggr_data"
-
-    def get_count_str(self):
+    def get_count_str(self, parent_name):
         "Return a string representing the count: either a symbolic constant's name, or just a string of an integer."
         try:
-            count = self.d['count']['name']
+            if parent_name is not None:
+                # Constant defined in parent's namespace.
+                count = parent_name + "::" + self.d['count']['name']
+            else:
+                count = self.d['count']['name']
         except:
             count = str(self.d['count'])
         return count
@@ -308,15 +332,14 @@ class Aggregate:
             pass
         return s
 
-
 class ContainedAggregate(Aggregate):
     def __init__(self, d, id_gen, old_id, container_name):
         Aggregate.__init__(self, d, id_gen, old_id, container_name)
 
-    def get_instance_definition(self):
+    def get_instance_definition(self, parent_name):
         s = self.item.get_type_and_name('contained')
         if self.d['count'] != 1:
-            s += "[" + self.get_count_str() + "]"
+            s += "[" + self.get_count_str(parent_name) + "]"
         return s + ";\n"
                 
     def get_instantiate(self):
@@ -331,10 +354,10 @@ class OwnedAggregate(Aggregate):
         if 'counter' in self.d:
             self.counter_name = self.d['counter']['item']['name']
 
-    def get_instance_definition(self):
+    def get_instance_definition(self, parent_name):
         s = self.item.get_type_and_name('owned') + "; // Pointer to item"
         if self.get_max_count() > 1:
-            s += " array, max entries is " + self.get_count_str()
+            s += " array, max entries is " + self.get_count_str(parent_name)
             if 'counter' in self.d:
                 s += ", counter is " + self.d['counter']['item']['name']
         s += ".\n"
@@ -359,12 +382,12 @@ class OwnedAggregate(Aggregate):
             return self.d['count']
 
 
-def makeItem(d, container_id_gen, old_id, full_name):
+def makeItem(d, container_id_gen, old_id, full_namespace):
     "Factory method returns an Item object of the requested class"
     if 'aggregate' in d: 
-        return CompositeItem(d, container_id_gen, old_id, full_name)
+        return CompositeItem(d, container_id_gen, old_id, full_namespace)
     else:
-        return SimpleItem(d, container_id_gen, old_id, full_name)
+        return SimpleItem(d, container_id_gen, old_id, full_namespace)
 
 
 def makeAggregate(d, id_gen, old_id, container_name):
@@ -429,12 +452,12 @@ def makeBaseItem(script, yaml_cfg_text, id_text):
     except:
         # This happens in the normal case where no ID file exists yet
         print("{}: ID file can't be loaded as YAML".format(script))
-        return makeItem(base_item_config, Id_generator(None), None, base_item_config['name'])
+        return makeItem(base_item_config, Id_generator(None), None, "")
     if id_dict['name'] != base_item_config['name']:
         # The ID data has no entry for the base item
         print("'{0}' in ID data file doesn't match '{1}' in config file: generating new IDs!".format(id_dict['name'], base_item_config['name']))
         id_dict = None
-    return makeItem(base_item_config, Id_generator(None), id_dict, base_item_config['name'])
+    return makeItem(base_item_config, Id_generator(None), id_dict, "")
 
 
 def saveIdData(fname, old_id_text):
