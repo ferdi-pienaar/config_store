@@ -116,10 +116,6 @@ class Item:
 class SimpleItem(Item):
     def __init__(self, d, container_id_gen, old_id, full_namespace):
         Item.__init__(self, d, container_id_gen, old_id, full_namespace)
-        self.is_string_type = False # By default, items aren't strings
-        if "string" in d['type']:
-            self.is_string_type = True
-            self.string_len = d['type'].split()[1]
 
     def get_init(self):
         "Return string containing initialization of the metadata"
@@ -153,23 +149,34 @@ class SimpleItem(Item):
 
     def get_type_and_name(self, aggrType):
         "Get the type and the name, part of the definition line"
-        if self.is_string_type:
-            s = "char "
+        if 'array' in self.d:
+            s = self.d['array']['type'] + " "
         else:
             s = self.d['type'] + " "
         if aggrType == 'owned':
             s += "* "
         s += self.d['name']
-        if self.is_string_type:
-            s += "[" + self.string_len + "]"
+        if 'array' in self.d:
+            try:
+                # Use the symbolic constant.
+                s += "[" + self.d['array']['count']['name'] + "]"
+            except:
+                # Constant has no name, so just an integer.
+                s += "[" + str(self.d['array']['count']) + "]"
         return s
 
     def get_size(self):
         s = "sizeof("
-        if self.is_string_type:
-            s += "char) * " + self.string_len
-        else:
+        if 'type' in self.d:
             s += self.d['type'] + ")"
+        elif 'array' in self.d:
+            s += self.d['array']['type'] + ") * "
+            try:
+                # A counter with a name, so use it.
+                s += str(self.d['array']['count']['name'])
+            except:
+                # No name, use the integer value directly.
+                s += str(self.d['array']['count'])
         return s
         
     def get_definition(self):
@@ -180,6 +187,16 @@ class SimpleItem(Item):
         "Simple item contains no other items."
         return False
 
+    def get_constant_definition(self):
+        "Return definition of constants representing the size of an array."
+        s = ""
+        try:
+            constant = self.d['array']['count']
+            s += constant['type'] + " " + constant['name'] + " = " + str(constant['value']) + ";\n"
+        except:
+            # If no array count that includes type, name and value, then there are no constants
+            pass
+        return s
 
 def get_value_from_dictionary_list(dlist, key):
     "Helper function: from list of dictionaries, return the value of 1st dictionary with the desired 'name' entry(or None)"
@@ -234,6 +251,7 @@ class CompositeItem(Item):
             s += "namespace " + self.d['name'] + " {\n"
         for aggr in self.aggregates:
             s += aggr.get_constant_definition()
+            s += aggr.item.get_constant_definition()
             s += aggr.item.get_definition()
         if self.contains_composite():
             s += "} // namespace " + self.d['name'] + "\n"
@@ -294,6 +312,9 @@ class CompositeItem(Item):
                 return True
         return False
 
+    def get_constant_definition(self):
+        "Composite items don't define constants"
+        return ""
 
 class Aggregate:
     def __init__(self, d, id_gen, old_id, container_name):
@@ -326,7 +347,7 @@ class Aggregate:
         s = ""
         try:
             constant = self.d['count']
-            s += "const " + constant['type'] + " " + constant['name'] + " = " + str(constant['value']) + ";\n"
+            s += constant['type'] + " " + constant['name'] + " = " + str(constant['value']) + ";\n"
         except:
             # If no counter that includes type, name and value, then there are no constants
             pass

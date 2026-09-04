@@ -5,13 +5,18 @@
 ---
 const_max_users: &nUsers
     name: MAX_NUM_USERS
-    type: unsigned short
+    type: const unsigned short
     value: 3
 
 const_num_ports: &nPorts
     name: NUM_PORTS
-    type: unsigned short
+    type: const unsigned short
     value: 4
+
+const_name_length: &nameLength
+    name: NAME_LEN
+    type: constexpr int
+    value: 16
 
 # Component item defined here to avoid too much indenting
 user_item: &user
@@ -26,7 +31,9 @@ user_item: &user
             set: cfg_mgr::cm_set_str
             setdef: cfg_mgr::cm_setdef_null
             print: cfg_mgr::cm_prt_str
-            type: cstring 16
+            array:
+                count: *nameLength
+                type: char
     -   count: 1
         type: contained
         item:
@@ -81,7 +88,9 @@ home_item: &home
                     set: cfg_mgr::cm_set_str
                     setdef: cfg_mgr::cm_setdef_null
                     print: cfg_mgr::cm_prt_str
-                    type: cstring 16
+                    array:
+                        count: *nameLength
+                        type: u_char
 
 # Parent item
 item:

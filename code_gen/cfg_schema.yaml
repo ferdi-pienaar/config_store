@@ -8,12 +8,27 @@ item: include('item-d', strict=True)
 item-d: any(include('simple_item'), include('composite_item'))
 
 simple_item:
+    any(include('simple_item_single'), include('simple_item_array'))
+
+simple_item_single:
     type: str()
     name: str()
     persistent: bool()
     print: str()
     set: str(required=False)
     setdef: str(required=False)
+
+simple_item_array:
+    name: str()
+    persistent: bool()
+    print: str()
+    set: str(required=False)
+    setdef: str(required=False)
+    array: include('array-d')
+
+array-d:
+    type: str()
+    count: include('count_1_plus')
 
 composite_item:
     aggregate: list(include('aggregate-d'), min=1)
