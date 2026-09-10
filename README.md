@@ -54,7 +54,7 @@ The metadata is designed to be resident in ROM on embedded microcontrollers.
 Clone project and enter the project directory. Then configure and build the library:
 ```sh
 git clone ...
-cd event_recorder
+cd config_store
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```

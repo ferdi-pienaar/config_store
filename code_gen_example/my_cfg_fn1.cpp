@@ -16,20 +16,22 @@
 using namespace std;
 using namespace cfg_mgr;
 
+constexpr double TEMP_MIN = -50;
+constexpr double TEMP_MAX = 160;
+constexpr double SCALE =  (SHRT_MAX - SHRT_MIN) / (TEMP_MAX - TEMP_MIN);
+
 // Convert temperature to internal integer representation.
-// Max temp 191.99609375 is represented as 32767.
-// Min temp -64 is represented as -32768.
+// TEMP_MAX is represented as 32767.
+// TEMP_MIN is represented as -32768.
 static long int d2internal(double t)
 {
-    return round((t - 64.0) * 256.0);
+    return round((t - TEMP_MIN) * SCALE + SHRT_MIN);
 }
 
 // Convert internal short int representation to temperature.
-// The range is 2^16/256 = 256 degrees, -64 to 191.99, in steps
-// of 1/256 = 0.00390625 degrees.
 static double internal2t(short int i)
 {
-    return i/256.0 + 64.0;
+    return ((i - SHRT_MIN) / SCALE + TEMP_MIN);
 }
 
 // Use short to represent temperatures
@@ -54,7 +56,6 @@ string prt_temp(const uint8_t *pItem, item_len_t len)
 }
 
 
-//
 // Use short to represent temperatures.
 // Using a double as an intermediate step makes it easier,
 // but maybe has some corner cases?
@@ -73,12 +74,12 @@ bool set_temp(uint8_t *pItem, item_len_t len, string val)
     long int internal_representation = d2internal(t);
     if (internal_representation > SHRT_MAX)
     {
-        printf("Limiting %f to max %.3f.\n", t, internal2t(SHRT_MAX));
+        printf("Limiting %f to max %.3f.\n", t, TEMP_MAX);
         internal_representation = SHRT_MAX;
     }
     else if (internal_representation < SHRT_MIN)
     {
-        printf("Limiting %f to min %.3f.\n", t, internal2t(SHRT_MIN));
+        printf("Limiting %f to min %.3f.\n", t, TEMP_MIN);
         internal_representation = SHRT_MIN;
     }
     *((short *)pItem) = (short)internal_representation;
