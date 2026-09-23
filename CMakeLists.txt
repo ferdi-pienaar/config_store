@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(cfg_mgr
+project(config_store
     VERSION 1.0
     LANGUAGES CXX)
 
@@ -11,22 +11,22 @@ add_library(config_store_tlv)
 
 target_include_directories(config_store_tlv
     PUBLIC
-        ${CMAKE_SOURCE_DIR}/include
-        ${CMAKE_SOURCE_DIR}/include/util
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include/util>
+        $<INSTALL_INTERFACE:include/config_store>
     PRIVATE
         ${CMAKE_SOURCE_DIR}/src
-        ${CMAKE_SOURCE_DIR}/util
 )
 
 add_library(config_store_json)
 
 target_include_directories(config_store_json
     PUBLIC
-        ${CMAKE_SOURCE_DIR}/include
-        ${CMAKE_SOURCE_DIR}/include/util
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include/util>
+        $<INSTALL_INTERFACE:include/config_store>
     PRIVATE
         ${CMAKE_SOURCE_DIR}/src
-        ${CMAKE_SOURCE_DIR}/util
 )
 
 # ============================================================
@@ -70,8 +70,31 @@ set(CFG_MGR_JSON_STORE_SRC
 )
 
 target_sources(config_store_tlv PRIVATE ${CFG_MGR_CORE_SRC} ${CFG_MGR_TLV_STORE_SRC})
-
 target_sources(config_store_json PRIVATE ${CFG_MGR_CORE_SRC} ${CFG_MGR_JSON_STORE_SRC})
+
+# Install the executable code-generation script.
+install(PROGRAMS code_gen/yaml_code_gen.py
+        DESTINATION bin
+        RENAME yaml_code_gen)
+# Install files used by the code-generation script to validate client YAML files.
+install(FILES
+        code_gen/cfg_schema.yaml
+        code_gen/cfg_id_schema.yaml
+        DESTINATION share/config_store)
+install(DIRECTORY include/ DESTINATION include/config_store)
+# Install the library and create package 'export set' descriptor.
+install(TARGETS
+        config_store_tlv
+        config_store_json
+        EXPORT config_storeTargets)
+# Write package 'export set' to a file. It allows clients to import the package.
+install(EXPORT config_storeTargets
+        FILE config_storeTargets.cmake
+        NAMESPACE config_store::
+        DESTINATION lib/cmake/config_store)
+# Write package configuration file; it allows clients to find the package descriptor file.
+install(FILES cmake/config_storeConfig.cmake
+        DESTINATION lib/cmake/config_store)
 
 add_subdirectory(example)
 add_subdirectory(code_gen_example)
