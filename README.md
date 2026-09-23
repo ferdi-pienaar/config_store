@@ -32,7 +32,7 @@ flowchart LR
 The use of this library has several parts:
 1. Define the metadata schema. This can be done in one of two ways:
    - Write the .cpp and .h files that define the metadata, or
-   - Write the metadata in YANG format, and use the Python script in directory `code_gen` to auto-generate the .cpp and .h files
+   - Write the metadata in YAML format, and use the Python script in directory `code_gen` to auto-generate the .cpp and .h files
 2. During application initialisation, pass the metadata descriptor to the config-store library for it to manage.
 3. During run-time, modify and print the configuration data in RAM using the config-store's command interface. The configuration can also be saved in TLV or JSON format to non-volatile memory.
 4. During run-time, the application uses the configuration data held in RAM.
@@ -40,7 +40,10 @@ The use of this library has several parts:
 # Examples included in this project
 `example` contains an example application with hand-written metadata in C++. There are two versions, one using TLV non-volatile store, and the other using JSON format.
 
-`code_gen_example` contains an example application with a data schema in a YANG file that's translated to C++. There are two versions, one using TLV non-volatile store, and the other using JSON format.
+`code_gen_example` contains an example application with a data schema in a YAML file that's translated to C++. There are two versions, one using TLV non-volatile store, and the other using JSON format.
+
+# External depencies
+The code generator requires at least Python3.7 (so dictionaries are ordered) and PyYAML and, optionally, Yamale. Yamale verifies that client YAML data descriptors comply with the required data schema.
 
 # Memory use
 ## Library is small

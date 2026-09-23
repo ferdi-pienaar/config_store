@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """ C++ code generator
 From YAML descriptor, generate .h file(s) containing user data structures
 and the .cpp file that implements the initialization of the metadata
@@ -25,7 +26,6 @@ import yamale
 import sys
 import datetime
 import os
-import collections
 
 indent = "    "
 
@@ -69,7 +69,7 @@ class Id_generator:
 
     def __make_id_dict(self, id_dlist):
         "From more complex data struct passed to constructor, generate a name:ID dictionary"
-        self.allocated_id = collections.OrderedDict()
+        self.allocated_id = {}
         if id_dlist is not None:
             for id in id_dlist:
                 # Each element in ids is a dictionary with keys 'name' and 'id'
@@ -551,7 +551,8 @@ if __name__ == "__main__":
         sys.exit()
     validate_yaml(cfg_text, schemaFilePath, scriptName)
     id_text = loadIdData(scriptName, idFilePath)
-    validate_yaml(id_text, idSchemaFilePath, scriptName)
+    if id_text is not None:
+        validate_yaml(id_text, idSchemaFilePath, scriptName)
     baseItem = makeBaseItem(scriptName, cfg_text, id_text)
     if baseItem is None:
         sys.exit()

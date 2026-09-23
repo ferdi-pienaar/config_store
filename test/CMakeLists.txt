@@ -6,8 +6,6 @@ cmake_minimum_required(VERSION 3.16)
 find_package(GTest REQUIRED)
 include(GoogleTest)
 
-enable_testing()
-
 # -------------------------------------------------
 # Test support library (stubs + util)
 # -------------------------------------------------
