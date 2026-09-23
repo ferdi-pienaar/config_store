@@ -13,8 +13,8 @@ add_library(config_store_test_support STATIC)
 
 target_include_directories(config_store_test_support
     PUBLIC
-        ${CMAKE_SOURCE_DIR}/export
-        ${CMAKE_SOURCE_DIR}/export/util
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/include/util
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/stubs
 )

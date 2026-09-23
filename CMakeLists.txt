@@ -11,8 +11,8 @@ add_library(config_store_tlv)
 
 target_include_directories(config_store_tlv
     PUBLIC
-        ${CMAKE_SOURCE_DIR}/export
-        ${CMAKE_SOURCE_DIR}/export/util
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/include/util
     PRIVATE
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/util
@@ -22,8 +22,8 @@ add_library(config_store_json)
 
 target_include_directories(config_store_json
     PUBLIC
-        ${CMAKE_SOURCE_DIR}/export
-        ${CMAKE_SOURCE_DIR}/export/util
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/include/util
     PRIVATE
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/util
