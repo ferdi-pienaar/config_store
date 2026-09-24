@@ -1,6 +1,5 @@
 /*
   Manual test framework that accepts inputs from stdin; CM produces output to stdout.
-
  */
 #include <iostream>
 #include "cfg_mgr.h"
@@ -34,7 +33,7 @@ int main(int argc, char **argv)
     cfg_mgr::Config_manager cm(get_base_descriptor(), argv[1], printf, (uint8_t **)&pCfg);
 
     pthread_t thread;
-    int rc = pthread_create(&thread, nullptr, stats_thread, &cm);
+    int rc = pthread_create(&thread, nullptr, stats_thread, nullptr);
     assert(0 == rc);
 
     // Read commands from stdin and give them to the config manager
@@ -72,8 +71,6 @@ void handle_command(cfg_mgr::Config_manager & cm)
 // it may not exist anymore.
 void * stats_thread(void * arg)
 {
-    cfg_mgr::Config_manager * cm = (cfg_mgr::Config_manager *)arg;
-
     for (;;)
     {
         sleep(5);

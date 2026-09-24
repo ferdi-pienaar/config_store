@@ -1,14 +1,7 @@
-# Possible improvement:
-# Do I want this to discover the name of a yaml and use that?
-# The code-generation script tries to load an ID YAML file, with a name derived from that of the main
-# YAML config file. I could assign that responsibility to this file instead.
-# Generated code should go in separate dir, for clarity.
-
 # Code generation by custom tool.
-# Input YAML files.
+set(CONFIG_STORE_CODE_GEN ${PROJECT_SOURCE_DIR}/code_gen/yaml_code_gen.py)
 set(CFG_YAML ${CMAKE_CURRENT_SOURCE_DIR}/config/cfg.yaml)
 set(CFG_ID_YAML ${CMAKE_CURRENT_SOURCE_DIR}/config/cfg_id.yaml)
-
 set(GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
 set(CFG_CPP ${GENERATED_DIR}/cfg.cpp)
 set(CFG_H   ${GENERATED_DIR}/cfg.h)
@@ -25,7 +18,7 @@ add_custom_command(
     COMMAND
         ${CMAKE_COMMAND} -E make_directory ${GENERATED_DIR}
     COMMAND
-        ${PROJECT_SOURCE_DIR}/code_gen/yaml_code_gen.py
+        ${CONFIG_STORE_CODE_GEN}
         ${CFG_YAML}
         ${CFG_ID_YAML}
         ${CFG_H}
@@ -36,7 +29,7 @@ add_custom_command(
     DEPENDS
         ${CFG_YAML}
         ${CFG_ID_YAML}
-        ${PROJECT_SOURCE_DIR}/code_gen/yaml_code_gen.py
+        ${CONFIG_STORE_CODE_GEN}
     COMMENT "Generating ${CFG_H} and ${CFG_CPP} from YAML"
 )
 

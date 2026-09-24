@@ -75,7 +75,7 @@ target_sources(config_store_json PRIVATE ${CFG_MGR_CORE_SRC} ${CFG_MGR_JSON_STOR
 # Install the executable code-generation script.
 install(PROGRAMS code_gen/yaml_code_gen.py
         DESTINATION bin
-        RENAME yaml_code_gen)
+        RENAME config_store_code_gen)
 # Install files used by the code-generation script to validate client YAML files.
 install(FILES
         code_gen/cfg_schema.yaml
