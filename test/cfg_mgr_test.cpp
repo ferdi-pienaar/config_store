@@ -16,6 +16,7 @@
 #include "cfg_mgr_set_int.h"  // Extensions to unit under test (generic "set" functions)
 #include "cfg_mgr_setdef_null.h" // generic setdef function
 #include "nvram_spy.h"
+#include "cfg_mgr_printf_spy.h"
 
 #include <string>
 #include <cstring> // memcmp, strncmp, etc
@@ -72,6 +73,7 @@ protected:
     {
         nvram = new Nvram_spy;
         cm = new Config_manager_implement(&c1, (uint8_t **)&C1_CONFIG, nvram);
+        cfg_mgr::cm_printf = cm_printf_spy;
     }
 
     virtual void TearDown()

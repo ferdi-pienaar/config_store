@@ -445,10 +445,11 @@ def validate_yaml(yaml_data, schema_file, script):
     try:
         # To ignore validation failed only at the top level, due to anchors with unexpected keys.
         yamale.validate(schema, data, strict=False)
-        print("{}: YAML validation success.".format(script))
     except ValueError as e:
         print("{}: Validation failed {}".format(script, str(e)))
-        sys.exit(1)
+        return False
+    print("{}: YAML validation success.".format(script))
+    return True
 
 def loadIdData(script, fname):
     "Read ID data file and return dictionary, or None if there's a problem with the input file"
@@ -549,10 +550,14 @@ if __name__ == "__main__":
     cfg_text = loadCfgData(scriptName, cfgFilePath)
     if cfg_text is None:
         sys.exit()
-    validate_yaml(cfg_text, schemaFilePath, scriptName)
+    if not validate_yaml(cfg_text, schemaFilePath, scriptName):
+        sys.exit("Invalid YAML config file {}".format(cfgFilePath))
+
     id_text = loadIdData(scriptName, idFilePath)
     if id_text is not None:
-        validate_yaml(id_text, idSchemaFilePath, scriptName)
+        if not validate_yaml(id_text, idSchemaFilePath, scriptName):
+            sys.exit("Invalid YAML ID file {}".format(idFilePath))
+
     baseItem = makeBaseItem(scriptName, cfg_text, id_text)
     if baseItem is None:
         sys.exit()

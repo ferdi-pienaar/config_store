@@ -75,6 +75,7 @@ protected:
     virtual void SetUp()
     {
         memset(&mem, 0, sizeof(mem));
+        cfg_mgr::cm_printf = cm_printf_spy;
         cm_printf_spy_init();
     }
 
@@ -145,6 +146,7 @@ protected:
     {
         memset(&mem, 0, sizeof(mem));
         setdef_spy_calls = 0;
+        cfg_mgr::cm_printf = cm_printf_spy;
         cm_printf_spy_init();
     }
 

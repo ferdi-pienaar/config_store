@@ -38,9 +38,12 @@ The use of this library has several parts:
 4. During run-time, the application uses the configuration data held in RAM.
 
 # Examples included in this project
-`example` contains an example application with hand-written metadata in C++. There are two versions, one using TLV non-volatile store, and the other using JSON format.
+Directory `example` contains an example application with hand-written metadata in C++. There are two versions, one using TLV non-volatile store, and the other using JSON format.
 
-`code_gen_example` contains an example application with a data schema in a YAML file that's translated to C++. There are two versions, one using TLV non-volatile store, and the other using JSON format.
+Directory `code_gen_example` contains an example application with a data schema in a YAML file that's translated to C++. There are two versions, one using TLV non-volatile store, and the other using JSON format.
+
+# Example of an application that uses this project
+Project [config_store-client](https://github.com/ferdi-pienaar/config_store-client) is a client of this project. It illustrates how to write a CMakeLists file that runs this project's code-generation script, after this project has been installed.
 
 # External depencies
 The code generator requires at least Python3.7 (so dictionaries are ordered) and PyYAML and, optionally, Yamale. Yamale verifies that client YAML data descriptors comply with the required data schema.
@@ -61,11 +64,11 @@ cd config_store
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
-To install the library: TBD
-
-# Use in CMake project
-
-TBD
+To install the library:
+```sh
+cmake --install build --prefix /path/to/staging/area
+```
+This installs the library, and also the code-generation script, and creates the variables needed to execute the code-generation script in the client's build environment.
 
 # Structure of managed data
 This diagram shows the relationships between the principal classes that define the metadata. Application of the _composite_ design pattern allows the creation of hierarchies of arbitrary complexity.

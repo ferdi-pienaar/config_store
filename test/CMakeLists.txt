@@ -74,3 +74,15 @@ target_link_libraries(config_store_test_json PRIVATE
 )
 
 gtest_discover_tests(config_store_test_json)
+
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
+add_test(NAME python_tests
+    COMMAND ${Python3_EXECUTABLE}
+            -m unittest discover ${CMAKE_CURRENT_SOURCE_DIR}/python
+)
+
+set_tests_properties(python_tests PROPERTIES
+    ENVIRONMENT
+        "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/../code_gen"
+)
