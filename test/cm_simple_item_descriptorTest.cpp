@@ -30,10 +30,11 @@ class SimpleDescriptor : public testing::Test
 protected:
     void SetUp()
     {
-        // xxx improve this: register the spy with the app when app API allows it, don't set the pointer directly.
-        cfg_mgr::cm_printf = cm_printf_spy;
         cm_printf_spy_init();
+        srv.m_print = cm_printf_spy;
     }
+
+    Mgr_service srv;
 };
 
 TEST_F(SimpleDescriptor, getLen)
@@ -52,6 +53,7 @@ TEST_F(SimpleDescriptor, print)
     Simple_metadata d_d = {{"d01", 1, sizeof(mem), true}, nullptr, nullptr, nullptr};
 
     Simple_descriptor d(&d_d);
+    d.mgrInit(&srv);
     d.print((uint8_t *)&mem, prefix, false);
     EXPECT_STREQ("= 07000000\n", cm_printf_spy_get());
 }

@@ -66,9 +66,9 @@ const Simple_metadata data =
     cm_prt_int
 };
 
-const Simple_descriptor desc(&data);
+Simple_descriptor desc(&data);
 const Aggregate_data aggregate_data = {&desc, 1, offsetof(tDevice, addr)};
-const Contained_aggregate aggregate(&aggregate_data);
+Contained_aggregate aggregate(&aggregate_data);
 
 } // namespace ip_address
 
@@ -90,9 +90,9 @@ const Simple_metadata data =
     cm_prt_int
 };
 
-const Simple_descriptor desc(&data);
-const Aggregate_data aggregate_data = {&desc, 1, offsetof(tDevice, cliPort)};
-const Contained_aggregate aggregate(&aggregate_data);
+Simple_descriptor desc(&data);
+const Aggregate_data aggregate_data = {&desc, NUM_CLI_PORT, offsetof(tDevice, cliPort)};
+Contained_aggregate aggregate(&aggregate_data);
 
 } // namespace port
 
@@ -114,9 +114,9 @@ const Simple_metadata data =
     cm_prt_int
 };
 
-const Simple_descriptor desc(&data);
+Simple_descriptor desc(&data);
 const Aggregate_data aggregate_data = {&desc, 1, offsetof(tDevice, userCount)};
-const Contained_aggregate aggregate(&aggregate_data);
+Contained_aggregate aggregate(&aggregate_data);
 
 } // namespace userCnt
 
@@ -150,9 +150,9 @@ const Simple_metadata data =
     cm_prt_str
 };
 
-const Simple_descriptor desc(&data);
+Simple_descriptor desc(&data);
 const Aggregate_data aggregate_data = {&desc, 1, offsetof(tUser, name)};
-const Contained_aggregate aggregate(&aggregate_data);
+Contained_aggregate aggregate(&aggregate_data);
 
 } // namespace name
 
@@ -174,9 +174,9 @@ const Simple_metadata data =
     cm_prt_int /* xxx unsigned */
 };
 
-const Simple_descriptor desc(&data);
+Simple_descriptor desc(&data);
 const Aggregate_data aggregate_data = {&desc, 1, offsetof(tUser, id)};
-const Contained_aggregate aggregate(&aggregate_data);
+Contained_aggregate aggregate(&aggregate_data);
 
 } // namespace id
 
@@ -198,9 +198,9 @@ const Simple_metadata data =
     cm_prt_int
 };
 
-const Simple_descriptor desc(&data);
+Simple_descriptor desc(&data);
 const Aggregate_data aggregate_data = {&desc, 1, offsetof(tUser, temperature)};
-const Contained_aggregate aggregate(&aggregate_data);
+Contained_aggregate aggregate(&aggregate_data);
 
 } // namespace temp
 
@@ -222,9 +222,9 @@ const Simple_metadata data =
     cm_prt_int
 };
 
-const Simple_descriptor desc(&data);
+Simple_descriptor desc(&data);
 const Aggregate_data aggregate_data = {&desc, 1, offsetof(tUser, elapsed)};
-const Contained_aggregate aggregate(&aggregate_data);
+Contained_aggregate aggregate(&aggregate_data);
 
 } // namespace elapsed
 
@@ -233,7 +233,7 @@ const Contained_aggregate aggregate(&aggregate_data);
 ////////////////////////////////////////////////////////////////////////////////
 
 /* List of aggregates in user */
-const Aggregate * const aggrList[] =
+Aggregate * const aggrList[] =
 {
     &name::aggregate,
     &id::aggregate,
@@ -253,9 +253,9 @@ const Composite_metadata data =
     sizeof(aggrList)/sizeof(aggrList[0])
 };
 
-const Composite_descriptor desc(&data);
+Composite_descriptor desc(&data);
 const Aggregate_data aggregate_data = {&desc, 3 /* xxx max number of users */, offsetof(tDevice, users)};
-const Owned_aggregate aggregate(&aggregate_data, &userCnt::aggregate);
+Owned_aggregate aggregate(&aggregate_data, &userCnt::aggregate);
 
 } // namespace user
 
@@ -287,9 +287,9 @@ const Simple_metadata data =
     cm_prt_int
 };
 
-const Simple_descriptor desc(&data);
+Simple_descriptor desc(&data);
 const Aggregate_data aggregate_data = {&desc, 1, offsetof(tHome, pAddr)};
-const Owned_aggregate aggregate(&aggregate_data, nullptr); // nullptr => no counter
+Owned_aggregate aggregate(&aggregate_data, nullptr); // nullptr => no counter
 
 } // namespace addr
 
@@ -318,16 +318,16 @@ const Simple_metadata data =
     cm_prt_str
 };
 
-const Simple_descriptor desc(&data);
+Simple_descriptor desc(&data);
 const Aggregate_data aggregate_data = {&desc, 1, offsetof(tLocation, name)};
-const Contained_aggregate aggregate(&aggregate_data);
+Contained_aggregate aggregate(&aggregate_data);
 
 } // namespace name
 
 ////////////////////////////////////////////////////////////////////////////////
 // device::home::location
 ////////////////////////////////////////////////////////////////////////////////
-const Aggregate * const aggrList[] =
+Aggregate * const aggrList[] =
 {
     &name::aggregate,
 };
@@ -344,9 +344,9 @@ const Composite_metadata data =
     sizeof(aggrList)/sizeof(aggrList[0])
 };
 
-const Composite_descriptor desc(&data);
+Composite_descriptor desc(&data);
 const Aggregate_data aggregate_data = {&desc, 1, offsetof(tHome, pLoc)};
-const Owned_aggregate aggregate(&aggregate_data, nullptr); // nullptr because the owned item has no counter
+Owned_aggregate aggregate(&aggregate_data, nullptr); // nullptr because the owned item has no counter
 
 } // namespace location
 
@@ -354,7 +354,7 @@ const Owned_aggregate aggregate(&aggregate_data, nullptr); // nullptr because th
 // device::home
 ////////////////////////////////////////////////////////////////////////////////
 /* List of aggregates in home */
-const Aggregate * const aggrList[] =
+Aggregate * const aggrList[] =
 {
     &addr::aggregate,
     &location::aggregate,
@@ -372,9 +372,9 @@ const Composite_metadata data =
     sizeof(aggrList)/sizeof(aggrList[0])
 };
 
-const Composite_descriptor desc(&data);
+Composite_descriptor desc(&data);
 const Aggregate_data aggregate_data = {&desc, 1, offsetof(tDevice, home)};
-const Contained_aggregate aggregate(&aggregate_data);
+Contained_aggregate aggregate(&aggregate_data);
 
 } // namespace home
 
@@ -382,7 +382,7 @@ const Contained_aggregate aggregate(&aggregate_data);
 // device (top level)
 ////////////////////////////////////////////////////////////////////////////////
 /* List of aggregates in device */
-const Aggregate * const aggrList[] =
+Aggregate * const aggrList[] =
 {
     &ip_address::aggregate,
     &port::aggregate,
@@ -403,9 +403,9 @@ const Composite_metadata data =
     sizeof(aggrList)/sizeof(aggrList[0])
 };
 
-const Composite_descriptor desc(&data);
+Composite_descriptor desc(&data);
 
-const Descriptor * get_base_descriptor()
+Descriptor * get_base_descriptor()
 {
     return &desc;
 }

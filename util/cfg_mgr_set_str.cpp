@@ -4,7 +4,6 @@
 //  for special types, such as IP or Ethernet addresses.
 
 #include "cfg_mgr_set_str.h"
-#include "cfg_mgr_printf.h"
 #include "cfg_mgr_dbg.h"
 #include <stdio.h> // snprintf
 
@@ -20,16 +19,22 @@ namespace cfg_mgr
 //
 // Note: truncate silently if input string is too long.
 //
-bool cm_set_str(uint8_t *pItem, item_len_t len, string val)
+bool cm_set_str(uint8_t *pItem, item_len_t len, string val, PRINTF_FN_TYPE print)
 {
     if (val[0] != '\"')
     {
-        cm_printf("String '%s' has no opening quote.\n", val.c_str());
+        if (print)
+        {
+            print("String '%s' has no opening quote.\n", val.c_str());
+        }
         return false;
     }
     if (val[val.length()-1] != '\"')
     {
-        cm_printf("String '%s' has no closing quote.\n", val.c_str());
+        if (print)
+        {
+            print("String '%s' has no closing quote.\n", val.c_str());
+        }
         return false;
     }
     item_len_t write_bytes = (val.length() - 1 > len) ? len : val.length() - 1;

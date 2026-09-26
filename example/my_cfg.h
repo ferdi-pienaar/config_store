@@ -69,7 +69,7 @@ struct tDevice
     home::tHome    home;
 };
 
-const cfg_mgr::Descriptor *get_base_descriptor();
+cfg_mgr::Descriptor *get_base_descriptor();
 
 } // namespace device
 

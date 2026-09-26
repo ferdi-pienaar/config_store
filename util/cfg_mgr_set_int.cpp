@@ -1,10 +1,8 @@
-/// This file contains an optional but useful extension
-//  to the config manager: set and print functions for
-//  basic data types.  The user can add similar implementations
-//  for special types, such as IP or Ethernet addresses.
+/// This file contains an optional but useful extension to the config manager: a set function
+// for a basic data type. The user can add similar implementations for special types,
+// such as IP or Ethernet addresses.
 
 #include "cfg_mgr_set_int.h"
-#include "cfg_mgr_printf.h"
 #include <assert.h>
 #include <limits.h>
 #include <stdlib.h> // strto...
@@ -26,7 +24,7 @@ namespace cfg_mgr
 // Integers are kept in the order prescribed by the given
 // system (little-endian or big-endian).
 //
-bool cm_set_int(uint8_t *pItem, item_len_t len, string val)
+bool cm_set_int(uint8_t *pItem, item_len_t len, string val, PRINTF_FN_TYPE print)
 {
     char * pEnd; // pointer to char after chars accepted by strtol
 
@@ -37,7 +35,10 @@ bool cm_set_int(uint8_t *pItem, item_len_t len, string val)
     // subsequent calls?
     if (pEnd == val.c_str())
     {
-        cm_printf("Not an integer.\n");
+        if (print)
+        {
+            print("Not an integer.\n");
+        }
         return false;
     }
 

@@ -24,9 +24,6 @@ class Store;
 /// - The number of component instances (i.e. single item or an array of items).
 /// - Location: offset, of the item array itself (if contained) or of a pointer
 ///   to the array (if owned)
-// xxx we could embed this class in Composite_descriptor, but then
-// client could not create component lists at init.  The constructor for this
-// class has to be exposed to the client programmer.
 // Perhaps all members should be private, with Composite_descriptor
 // as friend, since it has to read (but not write) them.
 //
@@ -38,6 +35,7 @@ class Aggregate
 public:
     Aggregate(const Aggregate_data * d): m_data(d) {};
     virtual ~Aggregate() {}
+    void mgrInit(const Mgr_service *);
     bool needIndex(const uint8_t * pParentItem) const;
     bool getIndex(Command_stack * cmd, unsigned int & itemIndex) const;
     uint8_t * getItemAtIndex(const uint8_t * pParentItem, unsigned idx) const;
@@ -56,8 +54,8 @@ public:
                           bool & added,
                           Cmd_context * candidateCtxt) const;
     virtual uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const = 0;
-    void save(const uint8_t *pItem, Store * store) const;
-    Result load(uint8_t * pParentItem, Store * store) const;
+    void save(const uint8_t *pItem) const;
+    Result load(uint8_t * pParentItem) const;
     virtual void help(const uint8_t * pItem) const = 0;
     virtual bool hasContent(const uint8_t * pItem) const;
     const Aggregate_data * getData() const
@@ -70,8 +68,9 @@ private:
     virtual uint8_t * getFirstItem(const uint8_t * pParentItem) const = 0;
     virtual void freeItems(uint8_t * pParentItem) const = 0;
     virtual uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const = 0;
-    Result loadItem(uint8_t * pParentItem, unsigned idx, Store * store) const;
+    Result loadItem(uint8_t * pParentItem, unsigned idx) const;
 
+protected:
     const Aggregate_data * const m_data;
 };
 

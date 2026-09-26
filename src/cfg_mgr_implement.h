@@ -21,7 +21,7 @@ class Command_stack;
 class Config_manager_implement
 {
 public:
-    Config_manager_implement(const Descriptor * pDesc, uint8_t ** ppRAM, Nvram_itf * nvram);
+    Config_manager_implement(Descriptor * pDesc, PRINTF_FN_TYPE, uint8_t ** ppRAM, Nvram_itf * nvram);
     ~Config_manager_implement();
     void handleCmd(int argc, char *argv[]);
     const char * getPromptString() const; ///< get context-dependent prompt string h file
@@ -34,11 +34,11 @@ private:
     void save(Command_stack *cmd);
     void load(Command_stack *cmd);
 
-    const Descriptor * m_baseDesc;
+    Descriptor * m_baseDesc;
     uint8_t *    m_ramBase;
     Cmd_context   m_currCtxt;      // current command-line context
-    Store * m_store;
     static const cmd_handler handlers[];
+    Mgr_service m_service; // The services used by the descriptors managed by this object.
 };
 
 }

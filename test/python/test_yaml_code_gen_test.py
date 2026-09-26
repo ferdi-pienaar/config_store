@@ -77,7 +77,7 @@ class Test_simple_gen(unittest.TestCase):
         '    nullptr, // setdef\n'
         '    nullptr, // print\n'
         '};\n'
-        'const cfg_mgr::Simple_descriptor desc(&data);\n'
+        'cfg_mgr::Simple_descriptor desc(&data);\n'
         '} // namespace alf, simple item initialization\n')
         self.assertEqual(expected_init, b.get_init())
 
@@ -97,7 +97,7 @@ class Test_simple_gen(unittest.TestCase):
         '    nullptr, // setdef\n'
         '    nullptr, // print\n'
         '};\n'
-        'const cfg_mgr::Simple_descriptor desc(&data);\n'
+        'cfg_mgr::Simple_descriptor desc(&data);\n'
         '} // namespace alf, simple item initialization\n')
         self.assertEqual(expected_init, b.get_init())
 

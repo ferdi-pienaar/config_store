@@ -8,6 +8,6 @@
 namespace cfg_mgr
 {
 
-bool cm_set_int(uint8_t *pItem, item_len_t len, std::string val);
+bool cm_set_int(uint8_t *pItem, item_len_t len, std::string val, PRINTF_FN_TYPE);
 
 }

@@ -3,7 +3,6 @@
 #include "cfg_mgr_cmd_stack.h"
 #include "cfg_mgr_cmd_ctxt.h"
 #include "cfg_mgr_dbg.h"
-#include "cfg_mgr_printf.h"
 #include "store/cfg_mgr_store.h"
 
 #include <stdlib.h> // malloc
@@ -14,6 +13,11 @@ using namespace std;
 namespace cfg_mgr
 {
 
+void Aggregate::mgrInit(const Mgr_service *serv)
+{
+    m_data->pDesc->mgrInit(serv);
+}
+
 // Utility method to extract an index from an array of command words
 // @return false if unable to extract a valid (in-range) index,
 //         true if returning a valid (in-range) index.
@@ -21,10 +25,9 @@ namespace cfg_mgr
 bool Aggregate::getIndex(Command_stack * cmd, unsigned int & itemIdx) const
 {
     if (cmd->popIndex(itemIdx)) return true;
-    cm_printf("'%s' needs index.\n", m_data->pDesc->getName());
+    m_data->pDesc->m_mgr_service->m_print("'%s' needs index.\n", m_data->pDesc->getName());
     return false;
 }
-
 
 // Return pointer to item, given parent item and index
 uint8_t * Aggregate::getItemAtIndex(const uint8_t * pParentItem, unsigned idx) const
@@ -51,7 +54,6 @@ void Aggregate::setDefault(uint8_t * pItem) const
     freeItems(pItem);
 }
 
-
 // Print, appending index to prefix (if necessary) and delegating to items
 // @param prefix string to be pre-pended to the value, representing its context
 void Aggregate::print(const uint8_t * pItem, std::string prefix, bool show_state) const
@@ -76,7 +78,6 @@ void Aggregate::print(const uint8_t * pItem, std::string prefix, bool show_state
                              show_state);
     }
 }
-
 
 // From remaining command-line words, find component item of this aggregate.
 // If the item does not exist, it is created in certain cases.
@@ -117,7 +118,7 @@ bool Aggregate::getComponentItem(Command_stack * cmd,
         // We may add a new RAM item, depending on index and aggregate type.
         if ((*ppItem = addImplicit(itemIdx, pParentItem)) == nullptr)
         {
-            cm_printf("Index %u out of range.\n", itemIdx);
+            m_data->pDesc->m_mgr_service->m_print("Index %u out of range.\n", itemIdx);
             return false;
         }
         added = true;
@@ -127,9 +128,8 @@ bool Aggregate::getComponentItem(Command_stack * cmd,
     return true;
 }
 
-
 // Save to persistent storage all elements in the array, if its metadata says it's a persistent item.
-void Aggregate::save(const uint8_t *pItem, Store * store) const
+void Aggregate::save(const uint8_t *pItem) const
 {
     if (!m_data->pDesc->isPersistent())
     {
@@ -144,18 +144,17 @@ void Aggregate::save(const uint8_t *pItem, Store * store) const
 
     if (m_data->maxCount > 1)
     {
-        store->startWriteArray(m_data->pDesc->getName());
+        m_data->pDesc->m_mgr_service->m_store->startWriteArray(m_data->pDesc->getName());
     }
     for (unsigned i = 0; i < getCount(pItem); i++)
     {
-        m_data->pDesc->save(getItemAtIndex(pItem, i), store);
+        m_data->pDesc->save(getItemAtIndex(pItem, i));
     }
     if (m_data->maxCount > 1)
     {
-        store->endWriteArray();
+        m_data->pDesc->m_mgr_service->m_store->endWriteArray();
     }
 }
-
 
 // Load an item (or array) from persistent storage into RAM, which may be
 // allocated (if owned) or retrieved (if contained, thus already allocated).
@@ -165,7 +164,7 @@ void Aggregate::save(const uint8_t *pItem, Store * store) const
 // @return CM_SUCCESS if item successfully loaded from store (it may have
 //           been saved into RAM or dumped)
 //         else an indication of why store load failed
-Result Aggregate::load(uint8_t * pParentItem, Store * store) const
+Result Aggregate::load(uint8_t * pParentItem) const
 {
     if (!m_data->pDesc->isPersistent())
     {
@@ -173,11 +172,11 @@ Result Aggregate::load(uint8_t * pParentItem, Store * store) const
     }
     if (m_data->maxCount > 1)
     {
-        store->startLoadArray(m_data->pDesc->getName());
+        m_data->pDesc->m_mgr_service->m_store->startLoadArray(m_data->pDesc->getName());
     }
     for (unsigned idx = 0; idx < m_data->maxCount; idx++)
     {
-        Result res = loadItem(pParentItem, idx, store);
+        Result res = loadItem(pParentItem, idx);
         if (res == Result::CM_NOT_FOUND)
         {
             // Array in store contains < maxCount. This is normal, so exit this function normally.
@@ -191,11 +190,10 @@ Result Aggregate::load(uint8_t * pParentItem, Store * store) const
     }
     if (m_data->maxCount > 1)
     {
-        store->endLoadArray();
+        m_data->pDesc->m_mgr_service->m_store->endLoadArray();
     }
     return Result::CM_SUCCESS;
 }
-
 
 // @return true if an index is necessary (when deleting an item on command line).
 // If there can be more than 1 item, an index identifies the target item.
@@ -204,13 +202,12 @@ bool Aggregate::needIndex(const uint8_t * pParentItem) const
     return m_data->maxCount > 1;
 }
 
-
 // Load item from persistent store into RAM.
 // @param idx -- the offset in RAM.
-Result Aggregate::loadItem(uint8_t * pParentItem, unsigned idx, Store * store) const
+Result Aggregate::loadItem(uint8_t * pParentItem, unsigned idx) const
 {
     // This fails if there isn't an item in the store to load.
-    Result res = m_data->pDesc->startLoad(store);
+    Result res = m_data->pDesc->startLoad();
     if (res != Result::CM_SUCCESS)
     {
         return res;
@@ -224,7 +221,7 @@ Result Aggregate::loadItem(uint8_t * pParentItem, unsigned idx, Store * store) c
         return Result::CM_FAIL;
     }
     // We have memory to load the item into, so complete the load.
-    return m_data->pDesc->endLoad(pItem, store);
+    return m_data->pDesc->endLoad(pItem);
 }
 
 // Aggregate has content iff one of its items does.

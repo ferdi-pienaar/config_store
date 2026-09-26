@@ -11,9 +11,7 @@ namespace cfg_mgr
 {
 
 // Function pointer to convert a string into data in RAM.
-typedef bool (*JSON_SET_FPTR)(uint8_t *pItem, item_len_t len, std::string val);
-// Function pointer to convert data in RAM into a string
-typedef std::string (*JSON_PRT_FPTR)(const uint8_t *pItem, item_len_t len);
+typedef bool (*JSON_SET_FPTR)(uint8_t *pItem, item_len_t len, std::string val, PRINTF_FN_TYPE);
 
 class JsonLoader
 {

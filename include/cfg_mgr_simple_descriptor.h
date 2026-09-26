@@ -23,6 +23,10 @@ public:
     Simple_descriptor(const Simple_metadata * pMeta):
         m_data(pMeta) {}
     virtual ~Simple_descriptor() {}
+    void mgrInit(const Mgr_service *serv) override
+    {
+        m_mgr_service = serv;
+    };
     bool handleCmd(Command_stack * cmd, uint8_t * pItem, Cmd_context * candidate, bool & setCtxt) const override;
     const char * getName() const override
     {
@@ -45,9 +49,9 @@ public:
     bool set(uint8_t * pItem, std::string val) const;
     void setDefault(uint8_t * pItem) const override;
     void help(const uint8_t * pItem) const override;
-    virtual void save(const uint8_t * pItem, Store * store) const override;
-    Result startLoad(Store * store) const override;
-    Result endLoad(uint8_t * pItem, Store * store) const override;
+    virtual void save(const uint8_t * pItem) const override;
+    Result startLoad() const override;
+    Result endLoad(uint8_t * pItem) const override;
     bool isPersistent() const override
     {
         return m_data->c.persistent;

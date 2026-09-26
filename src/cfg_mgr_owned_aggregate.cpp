@@ -4,7 +4,6 @@
 #include "cfg_mgr_cmd_stack.h"
 #include "cfg_mgr_cmd_ctxt.h"
 #include "cfg_mgr_dbg.h"
-#include "cfg_mgr_printf.h"
 #include <stdlib.h> // malloc
 #include <cstring> // memset, strcmp, memcpy
 
@@ -22,7 +21,6 @@ uint8_t * Owned_aggregate::getFirstItem(const uint8_t * pParentItem) const
 {
     return *(uint8_t **)(pParentItem + getData()->offset); // location is a pointer to the OWNED item
 }
-
 
 // Return the number of items in the component's array
 // xxx giving a fixed size to counters would simplify this, but
@@ -51,7 +49,6 @@ unsigned Owned_aggregate::getCount(const uint8_t * pParentItem) const
         return 0;
     }
 }
-
 
 // Set value in RAM that records the number of items in the array of items
 // xxx giving a fixed size to counters would simplify this, but
@@ -93,7 +90,6 @@ void Owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) const
     }
 }
 
-
 // Free memory of items, if any.  This is called when setting the parent
 // item to default -- the default for OWNed components is that there are none.
 //
@@ -116,19 +112,17 @@ void Owned_aggregate::freeItems(uint8_t * pParentItem) const
     setCount(pParentItem, 0);
 }
 
-
 // Handle command 'add' on command line
 // @return true iff OK.
 bool Owned_aggregate::handleAdd(uint8_t * pItem) const
 {
     if (getCount(pItem) >= getData()->maxCount)
     {
-        cm_printf("Can't add '%s' (max %u).\n", getData()->pDesc->getName(), getData()->maxCount);
+        m_data->pDesc->m_mgr_service->m_print("Can't add '%s' (max %u).\n", getData()->pDesc->getName(), getData()->maxCount);
         return false;
     }
     return add(pItem) != nullptr;
 }
-
 
 // Handle command 'del' on command line
 // @return true iff OK.
@@ -140,7 +134,7 @@ bool Owned_aggregate::handleDel(Command_stack * cmd, uint8_t * pItem) const
 
     if (cnt == 0)
     {
-        cm_printf("Currently no '%s'.\n", getData()->pDesc->getName());
+        m_data->pDesc->m_mgr_service->m_print("Currently no '%s'.\n", getData()->pDesc->getName());
         return false;
     }
 
@@ -156,13 +150,12 @@ bool Owned_aggregate::handleDel(Command_stack * cmd, uint8_t * pItem) const
 
     if (itemIdx >= cnt)
     {
-        cm_printf("Index %u out of range (0.. %u).\n", itemIdx, cnt-1);
+        m_data->pDesc->m_mgr_service->m_print("Index %u out of range (0.. %u).\n", itemIdx, cnt-1);
         return false;
     }
     del(pItem, itemIdx);
     return true;
 }
-
 
 // Add OWNED item in RAM.
 // @pre Counter is in range
@@ -183,7 +176,7 @@ uint8_t * Owned_aggregate::add(uint8_t * pParentItem) const
     uint8_t * pNewMem = (uint8_t *)realloc(*ppItems, (cnt + 1) * getData()->pDesc->getLen());
     if (pNewMem == nullptr)
     {
-        cm_printf("No %u for %s\n", getData()->pDesc->getLen(), getData()->pDesc->getName());
+        m_data->pDesc->m_mgr_service->m_print("No %u for %s\n", getData()->pDesc->getLen(), getData()->pDesc->getName());
         return nullptr;
     }
 
@@ -202,7 +195,6 @@ uint8_t * Owned_aggregate::add(uint8_t * pParentItem) const
     setCount(pParentItem, cnt + 1);
     return pNewItem;
 }
-
 
 // Del OWNED item.
 // This re-allocates the necessary memory, updates the counter if necessary,
@@ -235,7 +227,6 @@ void Owned_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
     setCount(pParentItem, cnt - 1);
 }
 
-
 // Implicit add a RAM item, i.e. add an item because it is referenced by
 // a command that is not an explicit 'add', or during load from NVRAM.
 // This allows the client to re-create
@@ -256,7 +247,6 @@ uint8_t * Owned_aggregate::addImplicit(unsigned int itemIdx, uint8_t * pParentIt
     return nullptr;
 }
 
-
 // From index, return the pointer to component item in this aggregate.
 // Because this function is called during loading, items are created as needed.
 //
@@ -271,11 +261,10 @@ uint8_t * Owned_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem)
     return addImplicit(idx, pParentItem);
 }
 
-
 // Give name, current count, and maxcount.
 void Owned_aggregate::help(const uint8_t * pItem) const
 {
-    cm_printf("%s [%u/%u]\n", getData()->pDesc->getName(), getCount(pItem), getData()->maxCount);
+    m_data->pDesc->m_mgr_service->m_print("%s [%u/%u]\n", getData()->pDesc->getName(), getCount(pItem), getData()->maxCount);
 }
 
 }

@@ -23,7 +23,6 @@ namespace cfg_mgr
 
 class Command_stack;
 class Cmd_context;
-class Store;
 class Contained_aggregate;
 
 ////////////////////////////////////////////////////////////////////////////////

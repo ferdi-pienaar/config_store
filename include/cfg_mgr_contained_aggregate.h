@@ -11,9 +11,6 @@ namespace cfg_mgr
 {
 
 class Command_stack;
-class Cmd_context;
-class Store;
-
 
 ////////////////////////////////////////////////////////////////////////////////
 /// In a contained aggregate, component items are contained within the composite.

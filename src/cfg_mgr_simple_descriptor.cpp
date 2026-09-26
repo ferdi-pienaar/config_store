@@ -4,7 +4,6 @@
 #include "cfg_mgr_prt_hexstr.h"
 #include "cfg_mgr_dbg.h"
 #include "store/cfg_mgr_store.h"
-#include "cfg_mgr_printf.h"
 
 #include <cstring> // strcmp
 
@@ -20,20 +19,19 @@ void Simple_descriptor::print(const uint8_t * pItem, string prefix, bool show_st
 {
     DBG_PRT("print simple %s len %d at %p show_state=%d\n", getName(), getLen(), pItem, show_state);
 
-    cm_printf("%s= ", prefix.c_str());
+    m_mgr_service->m_print("%s= ", prefix.c_str());
 
     if (m_data->pPrt == nullptr)
     {
         // No function installed so use default print function: hex chars
-        cm_printf("%s", cm_prt_hexstr(pItem, getLen()).c_str());
+        m_mgr_service->m_print("%s", cm_prt_hexstr(pItem, getLen()).c_str());
     }
     else
     {
-        cm_printf("%s", m_data->pPrt(pItem, getLen()).c_str());
+        m_mgr_service->m_print("%s", m_data->pPrt(pItem, getLen()).c_str());
     }
-    cm_printf("\n");
+    m_mgr_service->m_print("\n");
 }
-
 
 //
 // @param cmd - array of strings containing name elements
@@ -76,11 +74,10 @@ bool Simple_descriptor::handleCmd(Command_stack * cmd,
         return true; // true?
 
     default:
-        cm_printf("'%s' not in simple '%s'.\n", cmd->getTop(), getName());
+        m_mgr_service->m_print("'%s' not in simple '%s'.\n", cmd->getTop(), getName());
     }
     return false;
 }
-
 
 // Set item to a value input as string on command line
 bool Simple_descriptor::set(uint8_t * pItem, string val) const
@@ -89,12 +86,11 @@ bool Simple_descriptor::set(uint8_t * pItem, string val) const
 
     if (m_data->pSet != nullptr)
     {
-        return m_data->pSet(pItem, getLen(), val);
+        return m_data->pSet(pItem, getLen(), val, m_mgr_service->m_print);
     }
-    cm_printf("'%s' can't be set.\n", getName());
+    m_mgr_service->m_print("'%s' can't be set.\n", getName());
     return false;
 }
-
 
 // Set configurable item to its default value.
 void Simple_descriptor::setDefault(uint8_t * pItem) const
@@ -105,34 +101,30 @@ void Simple_descriptor::setDefault(uint8_t * pItem) const
     }
 }
 
-
 void Simple_descriptor::help(const uint8_t * pItem) const
 {
     (void)pItem;
-    cm_printf("len %u\n", getLen());
+    m_mgr_service->m_print("len %u\n", getLen());
 }
-
 
 /// Save item to persistent storage
-void Simple_descriptor::save(const uint8_t *pItem, Store * store) const
+void Simple_descriptor::save(const uint8_t *pItem) const
 {
     DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id);
-    store->writeSimple(m_data, pItem);
+    m_mgr_service->m_store->writeSimple(m_data, pItem);
 }
 
-
-// @param store
-Result Simple_descriptor::startLoad(Store * store) const
+Result Simple_descriptor::startLoad() const
 {
-    Result ret = store->startLoadSimple(m_data);
+    Result ret = m_mgr_service->m_store->startLoadSimple(m_data);
     DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id, ret);
     return ret;
 }
 
 // @param pItem
-Result Simple_descriptor::endLoad(uint8_t * pItem, Store * store) const
+Result Simple_descriptor::endLoad(uint8_t * pItem) const
 {
-    Result ret = store->endLoadSimple(pItem, m_data);
+    Result ret = m_mgr_service->m_store->endLoadSimple(pItem, m_data);
     DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id, ret);
     return ret;
 }

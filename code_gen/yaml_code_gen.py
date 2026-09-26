@@ -108,7 +108,7 @@ class Item:
 
     def get_access_fn(self):
         "Return string representing a fn to access the item."
-        s = "const cfg_mgr::Descriptor * get_base_descriptor()\n"
+        s = "cfg_mgr::Descriptor * get_base_descriptor()\n"
         s += "{\n"
         s += indent + "return &" + self.d['name'] + "::desc;\n"
         s += "}\n"
@@ -132,7 +132,7 @@ class SimpleItem(Item):
         "Return string containing initialization of the metadata"
         s = "namespace " + self.d['name'] + " { // Simple item initialization\n"
         s += self.get_metadata_init()
-        s += "const cfg_mgr::Simple_descriptor desc(&data);\n"
+        s += "cfg_mgr::Simple_descriptor desc(&data);\n"
         s += "} // namespace " + self.d['name'] + ", simple item initialization\n"
         return s
 
@@ -286,12 +286,12 @@ class CompositeItem(Item):
             s += aggr.get_init(self.get_type(), self.id_gen) 
         s += self.get_aggr_list_init()
         s += self.get_metadata_init()
-        s += "const cfg_mgr::Composite_descriptor desc(&data);\n"
+        s += "cfg_mgr::Composite_descriptor desc(&data);\n"
         s += "} // namespace " + self.d['name'] + ", composite item initialization\n"
         return s
 
     def get_aggr_list_init(self):
-        s = "const cfg_mgr::Aggregate * const aggregate_list[] =\n{\n"
+        s = "cfg_mgr::Aggregate * const aggregate_list[] =\n{\n"
         for a in self.aggregates:
             s += indent + "&" + a.item.d['name'] + "::aggregate,\n"
         s += "\n};\n"
@@ -371,7 +371,7 @@ class ContainedAggregate(Aggregate):
         return s + ";\n"
                 
     def get_instantiate(self):
-        s = "const cfg_mgr::Contained_aggregate aggregate(&aggregate_data);\n"
+        s = "cfg_mgr::Contained_aggregate aggregate(&aggregate_data);\n"
         return s
 
 
@@ -392,7 +392,7 @@ class OwnedAggregate(Aggregate):
         return s
 
     def get_instantiate(self):
-        s = "const cfg_mgr::Owned_aggregate aggregate(&aggregate_data"
+        s = "cfg_mgr::Owned_aggregate aggregate(&aggregate_data"
         if len(self.counter_name) > 0:
             s += ", &" + self.counter_name + "::aggregate"
         else:

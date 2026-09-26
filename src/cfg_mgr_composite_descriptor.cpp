@@ -5,7 +5,6 @@
 #include "cfg_mgr_prt_hexstr.h"
 #include "cfg_mgr_dbg.h"
 #include "store/cfg_mgr_store.h"
-#include "cfg_mgr_printf.h"
 #include <assert.h>
 #include <cstring> // strcmp
 
@@ -13,6 +12,16 @@ using namespace std;
 
 namespace cfg_mgr
 {
+
+// Update this and its components with a reference to services provided by the assigned manager.
+void Composite_descriptor::mgrInit(const Mgr_service *serv)
+{
+    m_mgr_service = serv;
+    for (unsigned i = 0; i < m_data->aggrCount; i++)
+    {
+        getAggrAtIndex(i)->mgrInit(serv);
+    }
+}
 
 // A composite has content iff any of its components do.
 bool Composite_descriptor::hasContent(const uint8_t *pItem) const
@@ -81,10 +90,9 @@ bool Composite_descriptor::handleCmd(Command_stack * cmd,
     default:
         break;
     }
-    cm_printf("Command '%s' not handled in composite item '%s'\n", cmd->getTop(), getName());
+    m_mgr_service->m_print("Command '%s' not handled in composite item '%s'\n", cmd->getTop(), getName());
     return false;
 }
-
 
 // Handle word in command string that's not a reserved command word,
 // hence presumably it identifies a component.
@@ -104,7 +112,7 @@ bool Composite_descriptor::handleIdWord(Command_stack * cmd,
     if (pAggr == nullptr)
     {
         // Unhandled word(s): not a command, and also doesn't identify a component
-        cm_printf("'%s' not in composite '%s'.\n", cmd->getTop(), getName());
+        m_mgr_service->m_print("'%s' not in composite '%s'.\n", cmd->getTop(), getName());
         return false;
     }
 
@@ -140,7 +148,6 @@ bool Composite_descriptor::handleIdWord(Command_stack * cmd,
     return true;
 }
 
-
 // Try to add a component named by cmd to a composite.
 // After verifying the operation is applicable, the item is added.
 // @return true if the operation was successful, false if it failed.
@@ -150,19 +157,18 @@ bool Composite_descriptor::handleAdd(Command_stack * cmd, uint8_t * pItem) const
 
     if (cmd->getCount() != 1)
     {
-        cm_printf("%u parameters for 'add'.\n", cmd->getCount());
+        m_mgr_service->m_print("%u parameters for 'add'.\n", cmd->getCount());
         return false;
     }
 
     const Aggregate * pAggr = getAggr(cmd->getTop());
     if (pAggr == nullptr)
     {
-        cm_printf("'%s' not in composite '%s'.\n", cmd->getTop(), getName());
+        m_mgr_service->m_print("'%s' not in composite '%s'.\n", cmd->getTop(), getName());
         return false;
     }
     return pAggr->handleAdd(pItem);
 }
-
 
 // Del an owned component named by cmd from a composite
 // @return true if the operation was successful, false if it failed.
@@ -173,7 +179,7 @@ bool Composite_descriptor::handleDel(Command_stack * cmd, uint8_t * pItem) const
     if (!((cmd->getCount() == 1) || (cmd->getCount() == 2)))
     {
         // Should provide item name and, optionally, index.
-        cm_printf("%u parameters for 'del'.\n", cmd->getCount());
+        m_mgr_service->m_print("%u parameters for 'del'.\n", cmd->getCount());
         return false;
     }
 
@@ -181,15 +187,13 @@ bool Composite_descriptor::handleDel(Command_stack * cmd, uint8_t * pItem) const
 
     if (pAggr == nullptr)
     {
-        cm_printf("'%s' not in composite '%s'.\n", cmd->getTop(), getName());
+        m_mgr_service->m_print("'%s' not in composite '%s'.\n", cmd->getTop(), getName());
         return false;
     }
     return pAggr->handleDel(cmd, pItem);
 }
 
-
 // Delegate print command to components
-//
 void Composite_descriptor::print(const uint8_t * pItem, string prefix, bool show_state) const
 {
     DBG_PRT("print composite %s len %d show_state=%d\n", getName(), getLen(), show_state);
@@ -205,7 +209,6 @@ void Composite_descriptor::print(const uint8_t * pItem, string prefix, bool show
         getAggrAtIndex(i)->print(pItem, prefix, show_state);
     }
 }
-
 
 // Delegate setDefault command to components
 //
@@ -225,7 +228,6 @@ void Composite_descriptor::setDefault(uint8_t * pItem) const
     }
 }
 
-
 // Give help for each component.
 void Composite_descriptor::help(const uint8_t * pItem) const
 {
@@ -234,7 +236,6 @@ void Composite_descriptor::help(const uint8_t * pItem) const
         getAggrAtIndex(i)->help(pItem);
     }
 }
-
 
 // Look for the aggregate whose component has a matching name.
 const Aggregate * Composite_descriptor::getAggr(const char * name) const
@@ -248,7 +249,6 @@ const Aggregate * Composite_descriptor::getAggr(const char * name) const
     }
     return nullptr;
 }
-
 
 // Look for the aggregate whose component has a matching ID.
 // @return aggregate, or nullptr if ID does not identify an aggregate in this context
@@ -264,10 +264,8 @@ const Aggregate * Composite_descriptor::getAggr(item_id_t id) const
     return nullptr;
 }
 
-
 /// Save item to persistent storage
-//
-void Composite_descriptor::save(const uint8_t *pItem, Store * store) const
+void Composite_descriptor::save(const uint8_t *pItem) const
 {
     DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id);
 
@@ -277,26 +275,22 @@ void Composite_descriptor::save(const uint8_t *pItem, Store * store) const
         return;
     }
 
-    store->startWriteComposite(m_data);
+    m_mgr_service->m_store->startWriteComposite(m_data);
 
     for (unsigned i = 0; i < getAggrCount(); i++)
     {
-        getAggrAtIndex(i)->save(pItem, store);
+        getAggrAtIndex(i)->save(pItem);
     }
-    store->endWriteComposite();
+    m_mgr_service->m_store->endWriteComposite();
 }
 
-
 // Prepare to load item from persistent storage -- check if it exists in store.
-//
-//
-Result Composite_descriptor::startLoad(Store * store) const
+Result Composite_descriptor::startLoad() const
 {
-    Result ret = store->startLoadComposite(m_data);
+    Result ret = m_mgr_service->m_store->startLoadComposite(m_data);
     DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id, ret);
     return ret;
 }
-
 
 // Load item from persistent storage.
 // For a composite item, this means loading the components, then closing.
@@ -306,11 +300,11 @@ Result Composite_descriptor::startLoad(Store * store) const
 // @pre -- this items startLoad was successful, i.e. an unread instance of this
 //         remains in the store.
 //
-Result Composite_descriptor::endLoad(uint8_t * pItem, Store * store) const
+Result Composite_descriptor::endLoad(uint8_t * pItem) const
 {
     for (unsigned i = 0; i < getAggrCount(); i++)
     {
-        Result ret = getAggrAtIndex(i)->load(pItem, store);
+        Result ret = getAggrAtIndex(i)->load(pItem);
         if (!((ret == Result::CM_SUCCESS) || (ret == Result::CM_NOT_FOUND)))
         {
             // An unexpected error, such as unexpected end of store
@@ -320,7 +314,7 @@ Result Composite_descriptor::endLoad(uint8_t * pItem, Store * store) const
         }
     }
     DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id);
-    return store->endLoadComposite();
+    return m_mgr_service->m_store->endLoadComposite();
 }
 
 }

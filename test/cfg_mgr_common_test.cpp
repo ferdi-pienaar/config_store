@@ -14,6 +14,7 @@
 #include "cfg_mgr_owned_aggregate.h"       // Unit under test
 #include "cfg_mgr_set_int.h"  // Extensions to unit under test (generic "set" functions)
 #include "cfg_mgr_prt_int.h"  // Extensions to unit under test (generic "print" functions)
+#include "cfg_mgr_printf_spy.h"
 #include "cfg_mgr_setdef_null.h" // generic setdef function
 #include "nvram_spy.h"
 #include <string>
@@ -45,18 +46,18 @@ void setdef_t1(uint8_t *pItem, item_len_t len)
 
 // test set 1 metadata
 const Simple_metadata s1_d = {{"name1", 1, sizeof(int), true}, cm_set_int, cm_setdef_null, cm_prt_int};
-const Simple_descriptor s1(&s1_d);
+Simple_descriptor s1(&s1_d);
 const Aggregate_data ca1_d = {&s1, 1, offsetof(struct m, m1)};
-const Contained_aggregate ca1(&ca1_d);
+Contained_aggregate ca1(&ca1_d);
 
 const Simple_metadata s2_d = {{"name2", 2, sizeof(int), true}, cm_set_int, setdef_t1, cm_prt_int};
-const Simple_descriptor s2(&s2_d);
+Simple_descriptor s2(&s2_d);
 const Aggregate_data ca2_d = {&s2, 1, offsetof(struct m, m2)};
-const Contained_aggregate ca2(&ca2_d);
+Contained_aggregate ca2(&ca2_d);
 
-const Aggregate * const aggrList1[] = {&ca1, &ca2};
+Aggregate * const aggrList1[] = {&ca1, &ca2};
 const Composite_metadata c1_d = {{"c1", 1, sizeof(struct m), true}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
-const Composite_descriptor c1(&c1_d);
+Composite_descriptor c1(&c1_d);
 
 struct m * C1_CONFIG = nullptr;
 
@@ -70,7 +71,7 @@ protected:
     virtual void SetUp()
     {
         nvram = new Nvram_spy;
-        cm = new Config_manager_implement(&c1, (uint8_t **)&C1_CONFIG, nvram);
+        cm = new Config_manager_implement(&c1, cm_printf_spy, (uint8_t **)&C1_CONFIG, nvram);
     }
 
     virtual void TearDown()

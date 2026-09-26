@@ -6,6 +6,9 @@
 
 namespace cfg_mgr
 {
+
+class Store;
+
 using PRINTF_FN_TYPE = int(*)(const char* fmt, ...);
 
 // Number of bytes in an item; used in NVRAM
@@ -25,6 +28,13 @@ enum class Result
     CM_INCOHERENT_DATA,
     CM_NOT_FOUND,
     CM_FAIL
+};
+
+// services that manager provides to the descriptors that it manages.
+struct Mgr_service
+{
+    PRINTF_FN_TYPE m_print;
+    Store * m_store;
 };
 
 }

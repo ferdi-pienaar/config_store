@@ -70,7 +70,7 @@ Result JsonLoader::endLoadSimple(item_len_t * length, uint8_t * pRam, JSON_SET_F
 
     string valstr = loadValue();
     DBG_PRT("%s value='%s'\n", __PRETTY_FUNCTION__, valstr.c_str());
-    set(pRam, *length, valstr);
+    set(pRam, *length, valstr, nullptr);
     m_context.setIsFirstMember(false);
     return Result::CM_SUCCESS;
 }

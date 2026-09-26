@@ -16,7 +16,7 @@ namespace cfg_mgr
 
 // Function pointers -- types registered by user when descriptor is created
 // Convert string into item of len bytes.
-typedef bool (*CM_SET_FPTR)(uint8_t *pItem, item_len_t len, std::string val);
+typedef bool (*CM_SET_FPTR)(uint8_t *pItem, item_len_t len, std::string val, PRINTF_FN_TYPE);
 // Set item of len bytes to a default value defined in the function.
 typedef void (*CM_SETDEF_FPTR)(uint8_t *pItem, item_len_t len);
 // Convert item of len bytes into a string.
@@ -49,11 +49,11 @@ class Aggregate;
 // class Composite_descriptor has a pointer to an object of this type.
 struct Composite_metadata
 {
-    const Common_metadata c;
+    Common_metadata c;
 
     // Information about the components of the composite
-    const Aggregate * const * const aggrList; // Array of pointers to aggregates (pointers, because abstract Aggregate can't be instantiated)
-    const unsigned short aggrCount; // Number of aggregates in the list (number of descriptors, not items)
+    Aggregate * const * aggrList; // Array of pointers to aggregates (pointers, because abstract Aggregate can't be instantiated)
+    unsigned short aggrCount; // Number of aggregates in the list (number of descriptors, not items)
 };
 
 class Descriptor;
@@ -61,7 +61,7 @@ class Descriptor;
 // class Aggregate has a pointer to an object of this type.
 struct Aggregate_data
 {
-    const Descriptor * const pDesc; ///< the component's descriptor
+    Descriptor * const pDesc; ///< the component's descriptor
     const unsigned short maxCount; ///< Max number of instances of the item
     const unsigned int offset; ///< Offset [bytes] of items, or pointer to items, within the composite item
 };

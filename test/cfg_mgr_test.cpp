@@ -47,18 +47,18 @@ void setdef_t1(uint8_t *pItem, item_len_t len)
 
 // test set 1 metadata
 const Simple_metadata s1_d = {{"name1", 1, sizeof(int), true}, nullptr, cm_setdef_null, nullptr};
-const Simple_descriptor s1(&s1_d);
+Simple_descriptor s1(&s1_d);
 const Aggregate_data ca1_d = {&s1, 1, offsetof(struct m, m1)};
-const Contained_aggregate ca1(&ca1_d);
+Contained_aggregate ca1(&ca1_d);
 
 const Simple_metadata s2_d = {{"name2", 2, sizeof(int), true}, nullptr, setdef_t1, nullptr};
-const Simple_descriptor s2(&s2_d);
+Simple_descriptor s2(&s2_d);
 const Aggregate_data ca2_d = {&s2, 1, offsetof(struct m, m2)};
-const Contained_aggregate ca2(&ca2_d);
+Contained_aggregate ca2(&ca2_d);
 
-const Aggregate * const aggrList1[] = {&ca1, &ca2};
+Aggregate * const aggrList1[] = {&ca1, &ca2};
 const Composite_metadata c1_d = {{"c1", 1, sizeof(struct m), true}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
-const Composite_descriptor c1(&c1_d);
+Composite_descriptor c1(&c1_d);
 
 struct m * C1_CONFIG = nullptr;
 
@@ -72,8 +72,7 @@ protected:
     virtual void SetUp()
     {
         nvram = new Nvram_spy;
-        cm = new Config_manager_implement(&c1, (uint8_t **)&C1_CONFIG, nvram);
-        cfg_mgr::cm_printf = cm_printf_spy;
+        cm = new Config_manager_implement(&c1, cm_printf_spy, (uint8_t **)&C1_CONFIG, nvram);
     }
 
     virtual void TearDown()
@@ -290,18 +289,18 @@ struct m2
 
 // test set 2 metadata
 const Simple_metadata s3_d = {{"count", 3, sizeof(unsigned), false}, nullptr, nullptr, nullptr};
-const Simple_descriptor s3(&s3_d);
+Simple_descriptor s3(&s3_d);
 const Aggregate_data ca3_d = {&s3, 1, offsetof(struct m2, cnt)};
-const Contained_aggregate ca3(&ca3_d);
+Contained_aggregate ca3(&ca3_d);
 
 const Simple_metadata s4_d = {{"owned", 4, sizeof(int), true}, cm_set_int, nullptr, nullptr};
-const Simple_descriptor s4(&s4_d);
+Simple_descriptor s4(&s4_d);
 const Aggregate_data ca4_d = {&s4, MAX_NUMBER_OWNED, offsetof(struct m2, owned)};
-const Owned_aggregate oa4(&ca4_d, &ca3);
+Owned_aggregate oa4(&ca4_d, &ca3);
 
-const Aggregate * const aggrList2[] = {&ca3, &oa4};
+Aggregate * const aggrList2[] = {&ca3, &oa4};
 const Composite_metadata c2_d = {{"c2", 1, sizeof(struct m2), true}, aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0])};
-const Composite_descriptor c2(&c2_d);
+Composite_descriptor c2(&c2_d);
 
 struct m2 * C2_CONFIG = nullptr;
 
@@ -315,7 +314,7 @@ protected:
     virtual void SetUp()
     {
         nvram = new Nvram_spy;
-        cm = new Config_manager_implement(&c2, (uint8_t **)&C2_CONFIG, nvram);
+        cm = new Config_manager_implement(&c2, cm_printf_spy, (uint8_t **)&C2_CONFIG, nvram);
     }
 
     virtual void TearDown()
@@ -520,13 +519,13 @@ struct m3
 
 // test set 3 metadata
 const Simple_metadata s5_d = {{"name1", 1, sizeof(short int), true}, nullptr, nullptr, nullptr};
-const Simple_descriptor s5(&s5_d);
+Simple_descriptor s5(&s5_d);
 const Aggregate_data ca5_d = {&s5, T3_ARRAY_SIZE, offsetof(struct m3, m1)};
-const Contained_aggregate ca5(&ca5_d);
+Contained_aggregate ca5(&ca5_d);
 
-const Aggregate * const aggrList3[] = {&ca5};
+Aggregate * const aggrList3[] = {&ca5};
 const Composite_metadata c3_d = {{"c3", 1, sizeof(struct m3), true}, aggrList3, sizeof(aggrList3)/sizeof(aggrList3[0])};
-const Composite_descriptor c3(&c3_d);
+Composite_descriptor c3(&c3_d);
 
 struct m3 * C3_CONFIG = nullptr;
 
@@ -540,7 +539,7 @@ protected:
     virtual void SetUp()
     {
         nvram = new Nvram_spy;
-        cm = new Config_manager_implement(&c3, (uint8_t **)&C3_CONFIG, nvram);
+        cm = new Config_manager_implement(&c3, cm_printf_spy, (uint8_t **)&C3_CONFIG, nvram);
     }
 
     virtual void TearDown()
@@ -606,18 +605,18 @@ struct m6
 
 // test set 4 metadata
 const Simple_metadata s6_d = {{"name1", 1, sizeof(short int), true}, nullptr, nullptr, nullptr};
-const Simple_descriptor s6(&s6_d);
+Simple_descriptor s6(&s6_d);
 const Aggregate_data ca6_d = {&s6, T6_ARRAY_SIZE, offsetof(struct m6, m1)};
-const Contained_aggregate ca6(&ca6_d);
+Contained_aggregate ca6(&ca6_d);
 
 const Simple_metadata s7_d = {{"name2", 2, sizeof(short int), true}, nullptr, nullptr, nullptr};
-const Simple_descriptor s7(&s7_d);
+Simple_descriptor s7(&s7_d);
 const Aggregate_data ca7_d = {&s7, T7_ARRAY_SIZE, offsetof(struct m6, m2)};
-const Contained_aggregate ca7(&ca7_d);
+Contained_aggregate ca7(&ca7_d);
 
-const Aggregate * const aggrList4[] = {&ca6, &ca7};
+Aggregate * const aggrList4[] = {&ca6, &ca7};
 const Composite_metadata c4_d = {{"c4", 1, sizeof(struct m6), true}, aggrList4, sizeof(aggrList4)/sizeof(aggrList4[0])};
-const Composite_descriptor c4(&c4_d);
+Composite_descriptor c4(&c4_d);
 
 struct m6 * C4_CONFIG = nullptr;
 
@@ -631,7 +630,7 @@ protected:
     virtual void SetUp()
     {
         nvram = new Nvram_spy;
-        cm = new Config_manager_implement(&c4, (uint8_t **)&C4_CONFIG, nvram);
+        cm = new Config_manager_implement(&c4, cm_printf_spy, (uint8_t **)&C4_CONFIG, nvram);
     }
 
     virtual void TearDown()

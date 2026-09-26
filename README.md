@@ -93,14 +93,6 @@ config:
 ---
 
 classDiagram
-    Descriptor
-    Descriptor <|-- Simple Descriptor
-    Descriptor <|-- Composite Descriptor
-    Aggregate
-    Aggregate <|-- Contained Aggregate
-    Aggregate <|-- Owned Aggregate
-    Aggregate "1" *--> "1" Descriptor
-    Composite Descriptor "1" *--> "*" Aggregate
     class Descriptor {
         string name
         unsigned id
@@ -111,6 +103,13 @@ classDiagram
         unsigned maxCount
         unsigned offset
     }
+    Descriptor <|-- Simple Descriptor
+    Descriptor <|-- Composite Descriptor
+    Aggregate <|-- Contained Aggregate
+    Aggregate <|-- Owned Aggregate
+    Aggregate "1" *--> "1" Descriptor
+    Composite Descriptor "1" *--> "*" Aggregate
+
 
 ```
 
@@ -142,6 +141,38 @@ Referencing an item results in its creation and that of all the owned/optional i
 
 # Thread safety
 There is currently no protection against concurrent access to the RAM data by a thread running the config-store library which modifies the RAM data, and a thread running the application core which reads configuration from the RAM data. This means that currently the library is most suitable for devices that are configured before being put into service, and taken out of service while they are re-configured, thus avoiding data races.
+
+# Design
+
+```mermaid
+---
+config:
+  class:
+    hideEmptyMembersBox: true
+---
+
+classDiagram
+    Config_manager *--> Config_manager_implement : m_config_manager
+    Config_manager *--> Nvram_itf : m_nvram
+    Config_manager_implement --> Descriptor : m_baseDesc
+    Config_manager_implement *--> Mgr_service : m_service
+
+    Descriptor <|-- Simple Descriptor
+    Descriptor <|-- Composite Descriptor
+    Descriptor --> Mgr_service
+    Aggregate "1" *--> "1" Descriptor
+    Composite Descriptor "1" *--> "*" Aggregate
+
+    Mgr_service *--> Store : m_store
+    Store <|-- Tlv_store
+    Store <|-- Json_store
+    Store --> Nvram_itf : m_nvram
+    Nvram_itf <|-- Nvram
+    Json_store *--> JsonWriter
+    Json_store *--> JsonLoader
+    Tlv_store *--> TlvWriter
+    Tlv_store *--> TlvLoader
+```
 
 # Migrating stored configuration to a new schema
 When the application developer changes the data schema, by adding or removing components in Composite Descriptors, data that is already saved in devices in the field can still be loaded and used. The rules to be followed and the limitations are described here. The case where data is saved in the TLV format is described first; rules for the JSON case are similar. We also explain how the code generator works, if the developer is using the option to generate code from a YAML schema definition.

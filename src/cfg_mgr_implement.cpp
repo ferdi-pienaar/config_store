@@ -2,9 +2,7 @@
 #include "cfg_mgr_descriptor.h"
 #include "cfg_mgr_dbg.h"
 #include "store/cfg_mgr_store.h"
-#include "cfg_mgr_printf.h"
 #include "cfg_mgr_cmd_stack.h"
-
 #include <stdlib.h> // malloc
 #include <cstring> // memset
 #include <stdint.h> // UINT8_MAX, etc
@@ -32,24 +30,26 @@ const Config_manager_implement::cmd_handler Config_manager_implement::handlers[]
     &Config_manager_implement::emptyCmd // CM_EMPTY
 };
 
-Config_manager_implement::Config_manager_implement(const Descriptor * desc,
-    uint8_t ** ppRAM, Nvram_itf * nvram)
+Config_manager_implement::Config_manager_implement(Descriptor * desc,
+    PRINTF_FN_TYPE printf_fn, uint8_t ** ppRAM, Nvram_itf * nvram)
     : m_baseDesc(desc)
 {
+    m_service.m_print = printf_fn;
+    m_baseDesc->mgrInit(&m_service);
     m_ramBase = (uint8_t *)malloc(m_baseDesc->getLen());
     DBG_PRT("init: ramBase, %d at %p\n", m_baseDesc->getLen(), m_ramBase);
     assert(m_ramBase != nullptr);
     memset(m_ramBase, 0, m_baseDesc->getLen());
     m_baseDesc->setDefault(m_ramBase);
     resetCtxt(nullptr);
-    m_store = Store::createStore(nvram);
+    m_service.m_store = Store::createStore(nvram);
     *ppRAM = m_ramBase;
 }
 
 Config_manager_implement::~Config_manager_implement()
 {
     free(m_ramBase);
-    delete m_store; // xxx is this clean, is delete the obvious pair to createStore (in Config_manager_implement constructor)?
+    delete m_service.m_store; // xxx is this clean, is delete the obvious pair to createStore (in Config_manager_implement constructor)?
 }
 
 /// Execute command words entered by client (via CLI).
@@ -92,7 +92,7 @@ void Config_manager_implement::resetCtxt(Command_stack * cmd)
 // Handle empty command stack.
 void Config_manager_implement::emptyCmd(Command_stack * cmd)
 {
-    cm_printf("Enter a command.\n");
+    m_service.m_print("Enter a command.\n");
 }
 
 // Save data in RAM to persistent storage.
@@ -102,30 +102,30 @@ void Config_manager_implement::save(Command_stack * cmd)
     {
         return;
     }
-    m_store->startWrite();
-    m_baseDesc->save(m_ramBase, m_store);
-    m_store->endWrite();
+    m_service.m_store->startWrite();
+    m_baseDesc->save(m_ramBase);
+    m_service.m_store->endWrite();
 }
 
 // Load data in persistent storage, to configurable items in RAM.
 // Resets context, since a reload re-allocates memory and makes current context invalid.
 void Config_manager_implement::load(Command_stack *cmd)
 {
-    m_store->startLoad();
+    m_service.m_store->startLoad();
 
     // Before loading, thus allocating new memory, call setDefault to free owned memory.
     m_baseDesc->setDefault(m_ramBase);
-    Result res = m_baseDesc->startLoad(m_store);
+    Result res = m_baseDesc->startLoad();
     if (res == Result::CM_SUCCESS)
     {
-        res = m_baseDesc->endLoad(m_ramBase, m_store);
+        res = m_baseDesc->endLoad(m_ramBase);
     }
     if (res != Result::CM_SUCCESS)
     {
-        cm_printf("Load failed error %u: defaults restored.\n", res);
+        m_service.m_print("Load failed error %u: defaults restored.\n", res);
         m_baseDesc->setDefault(m_ramBase);
     }
-    m_store->endLoad();
+    m_service.m_store->endLoad();
     resetCtxt(nullptr);
 }
 

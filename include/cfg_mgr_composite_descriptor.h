@@ -11,7 +11,6 @@ namespace cfg_mgr
 
 class Command_stack;
 class Cmd_context;
-class Store;
 
 ////////////////////////////////////////////////////////////////////////////////
 /// A composite descriptor consists of components, linked to the composite via
@@ -23,6 +22,7 @@ public:
     Composite_descriptor(const Composite_metadata * pMeta):
         m_data(pMeta) {}
     ~Composite_descriptor() {};
+    void mgrInit(const Mgr_service *serv) override;
     const char * getName() const override
     {
         return m_data->c.name;
@@ -40,9 +40,9 @@ public:
     void print(const uint8_t * pItem, std::string prefix, bool include_state) const override;
     void setDefault(uint8_t * pItem) const override;
     virtual void help(const uint8_t * pItem) const override;
-    void save(const uint8_t * pItem, Store * store) const override;
-    Result startLoad(Store * store) const override;
-    Result endLoad(uint8_t * pItem, Store * store) const override;
+    void save(const uint8_t * pItem) const override;
+    Result startLoad() const override;
+    Result endLoad(uint8_t * pItem) const override;
     bool isPersistent() const override
     {
         return m_data->c.persistent;
@@ -56,7 +56,7 @@ private:
     {
         return m_data->aggrCount;
     }
-    virtual const Aggregate * getAggrAtIndex(unsigned int i) const
+    virtual Aggregate * getAggrAtIndex(unsigned int i) const
     {
         return m_data->aggrList[i];
     }

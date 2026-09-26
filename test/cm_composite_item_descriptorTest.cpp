@@ -54,18 +54,18 @@ struct m
 
 // test set 1 metadata
 const Simple_metadata s1_d = {{"name1", 1, sizeof(int), true}, nullptr, nullptr, nullptr};
-const Simple_descriptor s1(&s1_d);
+Simple_descriptor s1(&s1_d);
 const Aggregate_data ca1_d = {&s1, 1, offsetof(struct m, m1)};
-const Contained_aggregate ca1(&ca1_d);
+Contained_aggregate ca1(&ca1_d);
 
 const Simple_metadata s2_d = {{"name2", 2, sizeof(int), true}, nullptr, nullptr, nullptr};
-const Simple_descriptor s2(&s2_d);
+Simple_descriptor s2(&s2_d);
 const Aggregate_data ca2_d = {&s2, 1, offsetof(struct m, m2)};
-const Contained_aggregate ca2(&ca2_d);
+Contained_aggregate ca2(&ca2_d);
 
-const Aggregate * const aggrList1[] = {&ca1, &ca2};
+Aggregate * const aggrList1[] = {&ca1, &ca2};
 const Composite_metadata c1_d = {{"c1", 1, sizeof(struct m), true}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
-const Composite_descriptor c1(&c1_d);
+Composite_descriptor c1(&c1_d);
 
 class CompositeContained : public testing::Test
 {
@@ -75,14 +75,17 @@ protected:
     virtual void SetUp()
     {
         memset(&mem, 0, sizeof(mem));
-        cfg_mgr::cm_printf = cm_printf_spy;
         cm_printf_spy_init();
+        srv.m_print = cm_printf_spy;
+        c1.mgrInit(&srv);
     }
 
     virtual void TearDown()
     {
         //clean up steps are executed after each TEST
     }
+
+    Mgr_service srv;
 };
 
 
@@ -124,18 +127,18 @@ struct m2
 
 // test set 2 metadata
 const Simple_metadata s3_d = {{"count", 1, sizeof(int), true}, nullptr, nullptr, nullptr};
-const Simple_descriptor s3(&s3_d);
+Simple_descriptor s3(&s3_d);
 const Aggregate_data ca3_d = {&s3, 1, offsetof(struct m2, cnt)};
-const Contained_aggregate ca3(&ca3_d);
+Contained_aggregate ca3(&ca3_d);
 
 const Simple_metadata s4_d = {{"owned", 2, sizeof(int), true}, cm_set_int, setdef_spy, nullptr};
-const Simple_descriptor s4(&s4_d);
+Simple_descriptor s4(&s4_d);
 const Aggregate_data oa4_d = {&s4, MAX_NUMBER_OWNED_SET2, offsetof(struct m2, owned)};
-const Owned_aggregate oa4(&oa4_d, &ca3);
+Owned_aggregate oa4(&oa4_d, &ca3);
 
-const Aggregate * const aggrList2[] = {&ca3, &oa4};
+Aggregate * const aggrList2[] = {&ca3, &oa4};
 const Composite_metadata c2_d = {{"c2", 1, sizeof(struct m2), true}, aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0])};
-const Composite_descriptor c2(&c2_d);
+Composite_descriptor c2(&c2_d);
 
 class CompositeOwned : public testing::Test
 {
@@ -146,8 +149,9 @@ protected:
     {
         memset(&mem, 0, sizeof(mem));
         setdef_spy_calls = 0;
-        cfg_mgr::cm_printf = cm_printf_spy;
         cm_printf_spy_init();
+        srv.m_print = cm_printf_spy;
+        c2.mgrInit(&srv);
     }
 
     virtual void TearDown()
@@ -157,6 +161,7 @@ protected:
 
     Cmd_context candidateCtxt;
     bool setCtxt;
+    Mgr_service srv;
 };
 
 
@@ -362,13 +367,13 @@ struct m4
 
 // test set 4 metadata
 const Simple_metadata s7_d = {{"owned", 1, sizeof(int), true}, nullptr, nullptr, nullptr};
-const Simple_descriptor s7(&s7_d);
+Simple_descriptor s7(&s7_d);
 const Aggregate_data oa7_d = {&s7, MAX_NUMBER_OWNED_SET4, offsetof(struct m4, owned)};
-const Owned_aggregate oa7(&oa7_d, nullptr); // nullptr => no counter
+Owned_aggregate oa7(&oa7_d, nullptr); // nullptr => no counter
 
-const Aggregate * const aggrList4[] = {&oa7};
+Aggregate * const aggrList4[] = {&oa7};
 const Composite_metadata c4_d = {{"c4", 1, sizeof(struct m4), true}, aggrList4, sizeof(aggrList4)/sizeof(aggrList4[0])};
-const Composite_descriptor c4(&c4_d);
+Composite_descriptor c4(&c4_d);
 
 class CompositeOwnedWithoutCounter : public testing::Test
 {

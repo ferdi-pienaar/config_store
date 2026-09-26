@@ -11,7 +11,7 @@
 
 using namespace std;
 
-const cfg_mgr::Descriptor * get_base_descriptor();
+cfg_mgr::Descriptor * get_base_descriptor();
 
 #define WORD_DELIMITERS " \n"
 #define BLOCK_DELIMITER "\""
