@@ -27,6 +27,7 @@ public:
     {
         m_mgr_service = serv;
     };
+    bool evalCmd(Command_stack * cmd, uint8_t * pItem, Command_stack::eCmOp &op) const override;
     bool handleCmd(Command_stack * cmd, uint8_t * pItem, Cmd_context * candidate, bool & setCtxt) const override;
     const char * getName() const override
     {
@@ -58,6 +59,7 @@ public:
     }
 
 private:
+    bool evalSet(uint8_t * pItem, std::string val) const;
     const Simple_metadata * const m_data;
 };
 

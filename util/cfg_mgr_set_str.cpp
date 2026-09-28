@@ -23,7 +23,7 @@ bool cm_set_str(uint8_t *pItem, item_len_t len, string val, PRINTF_FN_TYPE print
 {
     if (val[0] != '\"')
     {
-        if (print)
+        if (!pItem && print)
         {
             print("String '%s' has no opening quote.\n", val.c_str());
         }
@@ -31,17 +31,21 @@ bool cm_set_str(uint8_t *pItem, item_len_t len, string val, PRINTF_FN_TYPE print
     }
     if (val[val.length()-1] != '\"')
     {
-        if (print)
+        if (!pItem && print)
         {
             print("String '%s' has no closing quote.\n", val.c_str());
         }
         return false;
     }
-    item_len_t write_bytes = (val.length() - 1 > len) ? len : val.length() - 1;
-    DBG_PRT("%s: write_bytes=%u\n", __PRETTY_FUNCTION__, write_bytes);
 
-    // Write excluding the opening quote in the string.
-    snprintf((char *)pItem, write_bytes, "%s", val.c_str() + 1);
+    if (pItem)
+    {
+        item_len_t write_bytes = (val.length() - 1 > len) ? len : val.length() - 1;
+        DBG_PRT("%s: write_bytes=%u\n", __PRETTY_FUNCTION__, write_bytes);
+
+        // Write excluding the opening quote in the string.
+        snprintf((char *)pItem, write_bytes, "%s", val.c_str() + 1);
+    }
     return true;
 }
 

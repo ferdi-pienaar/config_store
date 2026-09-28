@@ -36,6 +36,40 @@ bool Composite_descriptor::hasContent(const uint8_t *pItem) const
     return false;
 }
 
+// Evaluate a command to determine if it should be executed.
+bool Composite_descriptor::evalCmd(Command_stack * cmd, uint8_t * pItem, Command_stack::eCmOp &op) const
+{
+    op = cmd->getTopOp();
+    DBG_PRT("%s: op %s item '%s' at %p\n", __PRETTY_FUNCTION__, Command_stack::OpString(op), getName(), pItem);
+
+    switch (cmd->getTopOp())
+    {
+    case Command_stack::CM_OP_NONE:
+        return evalIdWord(cmd, pItem, op);
+
+    case Command_stack::CM_ADD:
+        // Remove the word 'add' and pass the remainder to the method.
+        return evalAdd(&cmd->pop(), pItem);
+
+    case Command_stack::CM_DEL:
+        // Remove the word 'del' and pass the remainder to the method.
+        return evalDel(&cmd->pop(), pItem);
+
+    case Command_stack::CM_PRT:
+    case Command_stack::CM_PRT_CFG:
+    case Command_stack::CM_SETDEF:
+    case Command_stack::CM_HELP:
+    case Command_stack::CM_EMPTY: // context change.
+        // Valid in this context.
+        return true;
+
+    default:
+        DBG_PRT("%s: Invalid operation\n", __PRETTY_FUNCTION__);
+        break;
+    }
+    return false;
+}
+
 //
 // @param cmd - stack of strings containing name elements
 // @param pItem - pointer to RAM where item is located
@@ -46,15 +80,12 @@ bool Composite_descriptor::hasContent(const uint8_t *pItem) const
 //
 // @return true if command was handled
 //
-// xxx should free memory allocated as side-effect of a non-set or
-//     go-to-node command, not just an invalid command.
-//
 bool Composite_descriptor::handleCmd(Command_stack * cmd,
                                      uint8_t * pItem,
                                      Cmd_context * candidateContext,
                                      bool & updateCtxt) const
 {
-    DBG_PRT("composite::handleCmd: %s\n", cmd->getTop());
+    DBG_PRT("%s\n op %s", __PRETTY_FUNCTION__, Command_stack::OpString(cmd->getTopOp()));
 
     assert(pItem != nullptr);
 
@@ -64,12 +95,12 @@ bool Composite_descriptor::handleCmd(Command_stack * cmd,
         return handleIdWord(cmd, pItem, candidateContext, updateCtxt);
 
     case Command_stack::CM_ADD:
-        // Remove the word 'add' and pass the remainder to the method
-        return handleAdd(&cmd->pop(), pItem);
+        // Remove the word 'add' and call the component named in the next word.
+        return getAggr(cmd->pop().getTop())->handleAdd(pItem);
 
     case Command_stack::CM_DEL:
-        // Remove the word 'del' and pass the remainder to the method
-        return handleDel(&cmd->pop(), pItem);
+        // Remove the word 'del' and call the component named in the next word.
+        return getAggr(cmd->pop().getTop())->handleDel(cmd, pItem);
 
     case Command_stack::CM_PRT:
         print(pItem, "", true);
@@ -85,13 +116,36 @@ bool Composite_descriptor::handleCmd(Command_stack * cmd,
 
     case Command_stack::CM_HELP:
         help(pItem);
-        return true; // xxx true?
+        return true;
+
+    case Command_stack::CM_EMPTY:
+        // No more words, so the command is a context change to this item.
+        updateCtxt = true;
+        return true;
 
     default:
-        break;
+        assert(false && "Invalid operation");
     }
-    m_mgr_service->m_print("Command '%s' not handled in composite item '%s'\n", cmd->getTop(), getName());
     return false;
+}
+
+// Evaluate word in command string that's not a reserved command word,
+// hence presumably it identifies a component.
+// @pre cmd contains at least one word, but it's not a reserved command word.
+bool Composite_descriptor::evalIdWord(Command_stack * cmd, uint8_t * pItem, Command_stack::eCmOp &op) const
+{
+    DBG_PRT("%s: component '%s' item '%s' at %p\n", __PRETTY_FUNCTION__, cmd->getTop(), getName(), pItem);
+
+    const Aggregate * pAggr = getAggr(cmd->getTop()); // Component that is identified by cmd
+    if (pAggr == nullptr)
+    {
+        // Unhandled word(s): not a command, and also doesn't identify a component.
+        m_mgr_service->m_print("Invalid: '%s' not in composite '%s'.\n", cmd->getTop(), getName());
+        return false;
+    }
+
+    // The last parsed word identifies a component, so pass the remainder of the command to it.
+    return pAggr->evalCmd(&cmd->pop(), pItem, op);
 }
 
 // Handle word in command string that's not a reserved command word,
@@ -102,95 +156,21 @@ bool Composite_descriptor::handleCmd(Command_stack * cmd,
 // @param updateCtx - out, true if candidateContext should become
 //        the new context.
 // @return true if a word from cmd was parsed.
-//
+// @pre cmd contains at least one word, but it's not a reserved command word.
 bool Composite_descriptor::handleIdWord(Command_stack * cmd,
                                         uint8_t * pItem,
                                         Cmd_context * candidateCtxt,
                                         bool & updateCtxt) const
 {
     const Aggregate * pAggr = getAggr(cmd->getTop()); // Component that is identified by cmd
-    if (pAggr == nullptr)
-    {
-        // Unhandled word(s): not a command, and also doesn't identify a component
-        m_mgr_service->m_print("'%s' not in composite '%s'.\n", cmd->getTop(), getName());
-        return false;
-    }
+    assert(pAggr != nullptr); // cmd checked during eval phase.
 
     candidateCtxt->addToString(pAggr->getData()->pDesc->getName());
 
-    bool      added = false;   // Set true by getComponentItem if it creates a new item.
     uint8_t * pComponentItem;  // pointer to component RAM
-    if (!pAggr->getComponentItem(&cmd->pop(), pItem, &pComponentItem, added, candidateCtxt))
-    {
-        // Index problems are reported by the called fn.
-        return false;
-    }
-
-    // A component was found.
-    if (cmd->getCount() == 0)
-    {
-        // We found a component, and there are no more words in the command.
-        updateCtxt = true;
-        return true;
-    }
-
+    pAggr->getComponentItem(&cmd->pop(), pItem, &pComponentItem, candidateCtxt);
     // Pass the remainder of the command to the found component.
-    if (!pAggr->getData()->pDesc->handleCmd(cmd, pComponentItem, candidateCtxt, updateCtxt))
-    {
-        // Component says the command is invalid.
-        if (added)
-        {
-            // Free memory allocated by a command that turns out to be invalid.
-            pAggr->del(pItem, pAggr->getCount(pItem) - 1);
-        }
-        return false;
-    }
-    return true;
-}
-
-// Try to add a component named by cmd to a composite.
-// After verifying the operation is applicable, the item is added.
-// @return true if the operation was successful, false if it failed.
-bool Composite_descriptor::handleAdd(Command_stack * cmd, uint8_t * pItem) const
-{
-    DBG_PRT("handleAdd %s\n", cmd->getTop());
-
-    if (cmd->getCount() != 1)
-    {
-        m_mgr_service->m_print("%u parameters for 'add'.\n", cmd->getCount());
-        return false;
-    }
-
-    const Aggregate * pAggr = getAggr(cmd->getTop());
-    if (pAggr == nullptr)
-    {
-        m_mgr_service->m_print("'%s' not in composite '%s'.\n", cmd->getTop(), getName());
-        return false;
-    }
-    return pAggr->handleAdd(pItem);
-}
-
-// Del an owned component named by cmd from a composite
-// @return true if the operation was successful, false if it failed.
-bool Composite_descriptor::handleDel(Command_stack * cmd, uint8_t * pItem) const
-{
-    DBG_PRT("handleDel %s\n", cmd->getTop());
-
-    if (!((cmd->getCount() == 1) || (cmd->getCount() == 2)))
-    {
-        // Should provide item name and, optionally, index.
-        m_mgr_service->m_print("%u parameters for 'del'.\n", cmd->getCount());
-        return false;
-    }
-
-    const Aggregate * pAggr = getAggr(cmd->getTop());
-
-    if (pAggr == nullptr)
-    {
-        m_mgr_service->m_print("'%s' not in composite '%s'.\n", cmd->getTop(), getName());
-        return false;
-    }
-    return pAggr->handleDel(cmd, pItem);
+    return pAggr->getData()->pDesc->handleCmd(cmd, pComponentItem, candidateCtxt, updateCtxt);
 }
 
 // Delegate print command to components
@@ -250,20 +230,6 @@ const Aggregate * Composite_descriptor::getAggr(const char * name) const
     return nullptr;
 }
 
-// Look for the aggregate whose component has a matching ID.
-// @return aggregate, or nullptr if ID does not identify an aggregate in this context
-const Aggregate * Composite_descriptor::getAggr(item_id_t id) const
-{
-    for (unsigned i = 0; i < m_data->aggrCount; i++)
-    {
-        if (getAggrAtIndex(i)->getData()->pDesc->getId() == id)
-        {
-            return getAggrAtIndex(i);
-        }
-    }
-    return nullptr;
-}
-
 /// Save item to persistent storage
 void Composite_descriptor::save(const uint8_t *pItem) const
 {
@@ -288,7 +254,7 @@ void Composite_descriptor::save(const uint8_t *pItem) const
 Result Composite_descriptor::startLoad() const
 {
     Result ret = m_mgr_service->m_store->startLoadComposite(m_data);
-    DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id, ret);
+    DBG_PRT("%s: %s (%hx) res=%s\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id, ResultString(ret));
     return ret;
 }
 
@@ -315,6 +281,57 @@ Result Composite_descriptor::endLoad(uint8_t * pItem) const
     }
     DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id);
     return m_mgr_service->m_store->endLoadComposite();
+}
+
+// Evaluate add a component named by cmd to a composite.
+bool Composite_descriptor::evalAdd(Command_stack * cmd, uint8_t * pItem) const
+{
+    DBG_PRT("%s: add in '%s' at %p\n", __PRETTY_FUNCTION__, getName(), pItem);
+
+    if (cmd->getCount() != 1)
+    {
+        m_mgr_service->m_print("Invalid: %u parameters for 'add'.\n", cmd->getCount());
+        return false;
+    }
+
+    const Aggregate * pAggr = getAggr(cmd->getTop());
+    if (pAggr == nullptr)
+    {
+        m_mgr_service->m_print("Invalid: '%s' not in composite '%s'.\n", cmd->getTop(), getName());
+        return false;
+    }
+    if (pItem == nullptr)
+    {
+        m_mgr_service->m_print("Invalid: can't add '%s' in non-existent '%s'.\n", cmd->getTop(), getName());
+        return false;
+    }
+    return pAggr->evalAdd(pItem);
+}
+
+// Evaluate delete a component named by cmd from this composite.
+bool Composite_descriptor::evalDel(Command_stack * cmd, uint8_t * pItem) const
+{
+    DBG_PRT("%s: del in '%s' at %p\n", __PRETTY_FUNCTION__, getName(), pItem);
+
+    if (!((cmd->getCount() == 1) || (cmd->getCount() == 2)))
+    {
+        // Should provide item name and, optionally, index.
+        m_mgr_service->m_print("Invalid: %u parameters for 'del'.\n", cmd->getCount());
+        return false;
+    }
+
+    const Aggregate * pAggr = getAggr(cmd->getTop());
+    if (pAggr == nullptr)
+    {
+        m_mgr_service->m_print("Invalid: '%s' not in composite '%s'.\n", cmd->getTop(), getName());
+        return false;
+    }
+    if (pItem == nullptr)
+    {
+        m_mgr_service->m_print("Invalid: can't remove '%s' from non-existent '%s'.\n", cmd->getTop(), getName());
+        return false;
+    }
+    return pAggr->evalDel(cmd, pItem);
 }
 
 }

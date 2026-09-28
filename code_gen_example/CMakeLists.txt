@@ -50,4 +50,9 @@ foreach(BACKEND tlv json)
         PRIVATE
             config_store_${BACKEND}
     )
+
+    if(ENABLE_COVERAGE)
+        enable_coverage(config_store_code_gen_example_${BACKEND})
+    endif()
+
 endforeach()

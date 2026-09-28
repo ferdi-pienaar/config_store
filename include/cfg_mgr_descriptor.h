@@ -3,6 +3,7 @@
 
 #include <stdint.h> // uint8_t, etc
 #include "cfg_mgr_types.h"
+#include "cfg_mgr_cmd_stack.h"
 #include <string>
 
 /*
@@ -58,6 +59,7 @@ public:
     virtual ~Descriptor() {}
 
     virtual void mgrInit(const Mgr_service *) = 0;
+    virtual bool evalCmd(Command_stack * cmd, uint8_t * pItem, Command_stack::eCmOp &op) const = 0;
     virtual bool handleCmd(Command_stack * cmd, uint8_t * pItem, Cmd_context * candidate, bool & setCtxt) const = 0;
     virtual const char * getName() const = 0;
     virtual item_id_t getId() const = 0;

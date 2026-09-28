@@ -30,6 +30,16 @@ enum class Result
     CM_FAIL
 };
 
+static inline const char * ResultString(Result r)
+{
+    if (r == Result::CM_SUCCESS) return "CM_SUCCESS";
+    if (r == Result::CM_READ_FAIL) return "CM_READ_FAIL";
+    if (r == Result::CM_INCOHERENT_DATA) return "CM_INCOHERENT_DATA";
+    if (r == Result::CM_NOT_FOUND) return "CM_NOT_FOUND";
+    if (r == Result::CM_FAIL) return "CM_FAIL";
+    return "Invalid result value!";
+}
+
 // services that manager provides to the descriptors that it manages.
 struct Mgr_service
 {

@@ -3,7 +3,7 @@
 // 1. Input: character strings passed to Config_manager_implement::handleCmd
 // 2. Input/output: the binary file containing TLV data used by Config_manager_implement
 //    for non-volatile storage
-//
+// 3. Output to the operator via the print function passed by the test, cm_printf_spy.
 // xxx how many of these tests belong in cm_tlvTest.cpp?
 //
 
@@ -13,6 +13,7 @@
 #include "cfg_mgr_composite_descriptor.h"       // Unit under test
 #include "cfg_mgr_contained_aggregate.h"       // Unit under test
 #include "cfg_mgr_owned_aggregate.h"       // Unit under test
+#include "cfg_mgr_prt_int.h"  // Extensions to unit under test (generic "print" functions)
 #include "cfg_mgr_set_int.h"  // Extensions to unit under test (generic "set" functions)
 #include "cfg_mgr_setdef_null.h" // generic setdef function
 #include "nvram_spy.h"
@@ -51,7 +52,7 @@ Simple_descriptor s1(&s1_d);
 const Aggregate_data ca1_d = {&s1, 1, offsetof(struct m, m1)};
 Contained_aggregate ca1(&ca1_d);
 
-const Simple_metadata s2_d = {{"name2", 2, sizeof(int), true}, nullptr, setdef_t1, nullptr};
+const Simple_metadata s2_d = {{"name2", 2, sizeof(int), true}, cm_set_int, setdef_t1, cm_prt_int};
 Simple_descriptor s2(&s2_d);
 const Aggregate_data ca2_d = {&s2, 1, offsetof(struct m, m2)};
 Contained_aggregate ca2(&ca2_d);
@@ -73,6 +74,7 @@ protected:
     {
         nvram = new Nvram_spy;
         cm = new Config_manager_implement(&c1, cm_printf_spy, (uint8_t **)&C1_CONFIG, nvram);
+        cm_printf_spy_init();
     }
 
     virtual void TearDown()
@@ -82,6 +84,81 @@ protected:
     }
 };
 
+// An item whose descriptor doesn't have an assigned set function: command to set it is invalid.
+TEST_F(CfgMgrContained, set_item_with_no_set_fn)
+{
+    char * commandWord[] = {(char *)"name1", (char *)"=", (char *)"71"};
+    cm->handleCmd(3, commandWord);
+
+    // The output to the user starts with "Invalid".
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
+// Verify data set with cmd '=' is printed to spy on cmd 'prt'.
+TEST_F(CfgMgrContained, set_simple_and_print)
+{
+    char * commandWord[] = {(char *)"name2", (char *)"=", (char *)"71"};
+    cm->handleCmd(3, commandWord);
+    // Change context.
+    cm->handleCmd(1, commandWord);
+    char * commandPrt[] = {(char *)"prt"};
+    cm->handleCmd(1, commandPrt);
+
+    EXPECT_STREQ("= 71\n", cm_printf_spy_get());
+}
+
+// Invalid incomplete cmd.
+TEST_F(CfgMgrContained, set_simple_without_value)
+{
+    char * commandWord[] = {(char *)"name2", (char *)"="};
+    cm->handleCmd(2, commandWord);
+
+    //std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
+// Verify cmd with invalid word (neither an operation nor a component's name) is rejected.
+TEST_F(CfgMgrContained, invalid_cmd_word)
+{
+    char * commandWord[] = {(char *)"name3", (char *)"=", (char *)"71"};
+    cm->handleCmd(3, commandWord);
+
+    // The output to the user starts with "Invalid".
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
+// Use command setdef and print to verify that values are from the installed setdef functions.
+TEST_F(CfgMgrContained, setdef)
+{
+    char * commandWord[] = {(char *)"setdef"};
+    cm->handleCmd(1, commandWord);
+    char * commandPrt[] = {(char *)"prt"};
+    cm->handleCmd(1, commandPrt);
+
+    EXPECT_STREQ("name1 = 00000000\nname2 = 7\n", cm_printf_spy_get());
+}
+
+// Use command setdef directly on simple component.
+TEST_F(CfgMgrContained, setdef_simple)
+{
+    char * commandWord[] = {(char *)"name2", (char *)"=", (char *)"71"};
+    cm->handleCmd(3, commandWord);
+    EXPECT_EQ(71, C1_CONFIG->m2);
+
+    char * commandSetdef[] = {(char *)"name2", (char *)"setdef"};
+    cm->handleCmd(2, commandSetdef);
+
+    EXPECT_EQ(7, C1_CONFIG->m2);
+}
+
+// Use command prtc directly on simple component.
+TEST_F(CfgMgrContained, print_config_simple)
+{
+    char * commandPrtc[] = {(char *)"name2", (char *)"prtc"};
+    cm->handleCmd(2, commandPrtc);
+
+    EXPECT_STREQ("= 7\n", cm_printf_spy_get());
+}
 
 // Verify data saved to TLV, with default data in RAM as input to the test.
 TEST_F(CfgMgrContained, save)
@@ -288,12 +365,12 @@ struct m2
 };
 
 // test set 2 metadata
-const Simple_metadata s3_d = {{"count", 3, sizeof(unsigned), false}, nullptr, nullptr, nullptr};
+const Simple_metadata s3_d = {{"count", 3, sizeof(unsigned), false}, nullptr, nullptr, cm_prt_int};
 Simple_descriptor s3(&s3_d);
 const Aggregate_data ca3_d = {&s3, 1, offsetof(struct m2, cnt)};
 Contained_aggregate ca3(&ca3_d);
 
-const Simple_metadata s4_d = {{"owned", 4, sizeof(int), true}, cm_set_int, nullptr, nullptr};
+const Simple_metadata s4_d = {{"owned", 4, sizeof(int), true}, cm_set_int, nullptr, cm_prt_int};
 Simple_descriptor s4(&s4_d);
 const Aggregate_data ca4_d = {&s4, MAX_NUMBER_OWNED, offsetof(struct m2, owned)};
 Owned_aggregate oa4(&ca4_d, &ca3);
@@ -315,6 +392,7 @@ protected:
     {
         nvram = new Nvram_spy;
         cm = new Config_manager_implement(&c2, cm_printf_spy, (uint8_t **)&C2_CONFIG, nvram);
+        cm_printf_spy_init();
     }
 
     virtual void TearDown()
@@ -323,6 +401,140 @@ protected:
         delete nvram;
     }
 };
+
+// Set up data (with implicit add) and print the composite.
+TEST_F(CfgMgrOwned, set_and_print)
+{
+    char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"=", (char *)"73"};
+    cm->handleCmd(4, commandWord);
+    char * commandPrt[] = {(char *)"prt"};
+    cm->handleCmd(1, commandPrt);
+
+    EXPECT_STREQ("count = 1\nowned 0 = 73\n", cm_printf_spy_get());
+}
+
+// Set cmd invalid; index larger than max.
+TEST_F(CfgMgrOwned, set_index_too_big)
+{
+    char * commandWord[] = {(char *)"owned", (char *)"9", (char *)"=", (char *)"73"};
+    cm->handleCmd(4, commandWord);
+
+    //std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
+// Set cmd invalid; index not provided.
+TEST_F(CfgMgrOwned, set_missing_index)
+{
+    char * commandWord[] = {(char *)"owned", (char *)"=", (char *)"73"};
+    cm->handleCmd(3, commandWord);
+
+    //std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
+// Set cmd invalid: add beyond count limit.
+TEST_F(CfgMgrOwned, add_too_many)
+{
+    char * commandAdd[] = {(char *)"add", (char *)"owned"};
+    for (int i = 0; i < MAX_NUMBER_OWNED + 1; i++)
+    {
+        cm->handleCmd(2, commandAdd);
+    }
+
+    //std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
+// del cmd invalid: must give index since the max number owned is more than 1.
+TEST_F(CfgMgrOwned, del_without_index)
+{
+    char * commandAdd[] = {(char *)"add", (char *)"owned"};
+    cm->handleCmd(2, commandAdd);
+    char * commandDel[] = {(char *)"del", (char *)"owned"};
+    cm->handleCmd(2, commandDel);
+
+    //std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
+// del cmd invalid: item not created.
+TEST_F(CfgMgrOwned, del_non_existent_item)
+{
+    char * commandAdd[] = {(char *)"add", (char *)"owned"};
+    cm->handleCmd(2, commandAdd);
+    // Only 0th item exists; try to delete 1th.
+    char * commandDel[] = {(char *)"del", (char *)"owned", (char *)"1"};
+    cm->handleCmd(3, commandDel);
+
+    //std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
+// Set cmd valid: create 2 owned items, set the first one (a set without implicit add)
+TEST_F(CfgMgrOwned, set_index_less_than_count)
+{
+    char * commandAdd[] = {(char *)"add", (char *)"owned"};
+    cm->handleCmd(2, commandAdd);
+    cm->handleCmd(2, commandAdd);
+
+    char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"=", (char *)"13"};
+    cm->handleCmd(4, commandWord);
+
+    EXPECT_EQ(13, C2_CONFIG->owned[0]);
+    EXPECT_EQ(0, C2_CONFIG->owned[1]);
+}
+
+// Set up data (with implicit add) and print the config, which excludes 'count', as it has persistent=false.
+TEST_F(CfgMgrOwned, set_and_print_config)
+{
+    char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"=", (char *)"73"};
+    cm->handleCmd(4, commandWord);
+    char * commandPrt[] = {(char *)"prtc"};
+    cm->handleCmd(1, commandPrt);
+
+    EXPECT_STREQ("owned 0 = 73\n", cm_printf_spy_get());
+}
+
+// cmd 'add' without the name of the component to add is invalid
+TEST_F(CfgMgrOwned, add_without_param)
+{
+    char * commandWord[] = {(char *)"add"};
+    cm->handleCmd(1, commandWord);
+
+    // The output to the user starts with "Invalid".
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
+// cmd 'add' with incorrect the name of the component to add is invalid
+TEST_F(CfgMgrOwned, add_with_invalid_component)
+{
+    char * commandWord[] = {(char *)"add", (char *)"owoooo"};
+    cm->handleCmd(2, commandWord);
+
+    // The output to the user starts with "Invalid".
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
+// cmd 'del' without the name of the component to remove is invalid
+TEST_F(CfgMgrOwned, del_without_param)
+{
+    char * commandWord[] = {(char *)"del"};
+    cm->handleCmd(1, commandWord);
+
+    // The output to the user starts with "Invalid".
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
+// cmd 'del' with incorrect the name of the component to remove is invalid
+TEST_F(CfgMgrOwned, del_with_invalid_component)
+{
+    char * commandWord[] = {(char *)"del", (char *)"owoooo"};
+    cm->handleCmd(2, commandWord);
+
+    // The output to the user starts with "Invalid".
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
 
 // Verify what's loaded into memory, given TLV file that's read on startup.
 TEST_F(CfgMgrOwned, load)
@@ -403,31 +615,19 @@ TEST_F(CfgMgrOwned, save)
     EXPECT_TRUE(nvram->match(expectedTlv, sizeof(expectedTlv)));
 }
 
-
-// From default RAM start, do implicit add and check what's saved to TLV
-TEST_F(CfgMgrOwned, implicitAdd)
+// A command that references (without setting) a non-existent owned item, is invalid.
+TEST_F(CfgMgrOwned, refNonExistentItemFail)
 {
-    uint8_t expectedTlv [12] =
-    { 1,0, 8,0, 4,0, 4,0, 0,0,0,0};
-    /*T    L    T    L    V    */
 
-    EXPECT_EQ(0, C2_CONFIG->cnt);
-    EXPECT_EQ(nullptr, C2_CONFIG->owned);
-
-    char * commandWord[] = {(char *)"owned", (char *)"0"}; // reference owned item 0, causing implicit add
+    char * commandWord[] = {(char *)"owned", (char *)"0"}; // reference owned item 0
     cm->handleCmd(2, commandWord);
 
-    EXPECT_EQ(1, C2_CONFIG->cnt);
-
-    char * commandWord2[] = {(char *)"save"};
-    cm->handleCmd(1, commandWord2);
-
-    EXPECT_TRUE(nvram->match(expectedTlv, sizeof(expectedTlv)));
+    // The output to the user starts with "Invalid".
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
 }
 
-
 // From default RAM start, do implicit add and set and check what's saved to TLV
-TEST_F(CfgMgrOwned, implicitAddnSet)
+TEST_F(CfgMgrOwned, implicitAdd)
 {
     uint8_t expectedTlv [12] =
     { 1,0, 8,0, 4,0, 4,0, 7,0,0,0};
@@ -540,6 +740,7 @@ protected:
     {
         nvram = new Nvram_spy;
         cm = new Config_manager_implement(&c3, cm_printf_spy, (uint8_t **)&C3_CONFIG, nvram);
+        cm_printf_spy_init();
     }
 
     virtual void TearDown()
@@ -549,6 +750,48 @@ protected:
     }
 };
 
+// Set cmd is invalid.
+TEST_F(CfgMgrContainedArray, set_index_too_big)
+{
+    char * commandWord[] = {(char *)"name1", (char *)"11", (char *)"=", (char *)"71"};
+    cm->handleCmd(4, commandWord);
+
+    // The output to the user starts with "Invalid".
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
+// Set cmd is invalid.
+TEST_F(CfgMgrContainedArray, set_missing_index)
+{
+    char * commandWord[] = {(char *)"name1", (char *)"=", (char *)"71"};
+    cm->handleCmd(3, commandWord);
+
+    // The output to the user starts with "Invalid".
+    //std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
+// 'add' cmd is invalid for contained array.
+TEST_F(CfgMgrContainedArray, add)
+{
+    char * commandWord[] = {(char *)"add", (char *)"name1"};
+    cm->handleCmd(2, commandWord);
+
+    // The output to the user starts with "Invalid".
+    //std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
+// 'del' cmd is invalid for contained array.
+TEST_F(CfgMgrContainedArray, del)
+{
+    char * commandWord[] = {(char *)"del", (char *)"name1", (char *)"0"};
+    cm->handleCmd(3, commandWord);
+
+    // The output to the user starts with "Invalid".
+    //std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
 
 // Verify what's loaded into memory, given TLV file that's read on startup.
 TEST_F(CfgMgrContainedArray, load)

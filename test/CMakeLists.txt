@@ -75,6 +75,13 @@ target_link_libraries(config_store_test_json PRIVATE
 
 gtest_discover_tests(config_store_test_json)
 
+if(ENABLE_COVERAGE)
+    enable_coverage(config_store_tlv)
+    enable_coverage(config_store_json)
+    enable_coverage(config_store_test_tlv)
+    enable_coverage(config_store_test_json)
+endif()
+
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 add_test(NAME python_tests

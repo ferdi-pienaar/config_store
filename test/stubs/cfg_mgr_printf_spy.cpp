@@ -29,9 +29,7 @@ void cm_printf_spy_init(void)
     offset = 0;
 }
 
-
 const char * cm_printf_spy_get(void)
 {
     return buf;
 }
-

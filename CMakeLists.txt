@@ -72,6 +72,23 @@ set(CFG_MGR_JSON_STORE_SRC
 target_sources(config_store_tlv PRIVATE ${CFG_MGR_CORE_SRC} ${CFG_MGR_TLV_STORE_SRC})
 target_sources(config_store_json PRIVATE ${CFG_MGR_CORE_SRC} ${CFG_MGR_JSON_STORE_SRC})
 
+option(DEBUG_PRINT_ENABLE "Enable debug printing" OFF)
+
+if(DEBUG_PRINT_ENABLE)
+    target_compile_definitions(config_store_tlv PRIVATE DEBUG_PRINT)
+endif()
+
+if(DEBUG_PRINT_ENABLE)
+    target_compile_definitions(config_store_json PRIVATE DEBUG_PRINT)
+endif()
+
+option(ENABLE_COVERAGE "Enable coverage reporting" OFF)
+
+function(enable_coverage target)
+    target_compile_options(${target} PRIVATE --coverage)
+    target_link_options(${target} PRIVATE --coverage)
+endfunction()
+
 # Install the executable code-generation script.
 install(PROGRAMS code_gen/yaml_code_gen.py
         DESTINATION bin

@@ -4,6 +4,7 @@
 #include <stdint.h> // uint8_t, etc
 #include "cfg_mgr_types.h"
 #include "cfg_mgr_metadata.h"
+#include "cfg_mgr_cmd_stack.h"
 
 namespace cfg_mgr
 {
@@ -36,11 +37,13 @@ public:
     Aggregate(const Aggregate_data * d): m_data(d) {};
     virtual ~Aggregate() {}
     void mgrInit(const Mgr_service *);
-    bool needIndex(const uint8_t * pParentItem) const;
     bool getIndex(Command_stack * cmd, unsigned int & itemIndex) const;
     uint8_t * getItemAtIndex(const uint8_t * pParentItem, unsigned idx) const;
+    virtual bool evalCmd(Command_stack * cmd, uint8_t * pParentItem, Command_stack::eCmOp &op) const = 0;
     /// returns number of items currently in the aggregate
     virtual unsigned getCount(const uint8_t * pParentItem) const = 0;
+    virtual bool evalAdd(uint8_t * pItem) const = 0;
+    virtual bool evalDel(Command_stack * cmd, uint8_t * pItem) const = 0;
     virtual bool handleAdd(uint8_t * pItem) const = 0;
     virtual bool handleDel(Command_stack * cmd, uint8_t * pItem) const = 0;
     virtual void setCount(uint8_t * pParentItem, unsigned int) const = 0;
@@ -51,7 +54,6 @@ public:
     bool getComponentItem(Command_stack * cmd,
                           uint8_t * pParentItem,
                           uint8_t ** ppItem,
-                          bool & added,
                           Cmd_context * candidateCtxt) const;
     virtual uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const = 0;
     void save(const uint8_t *pItem) const;
@@ -67,7 +69,6 @@ private:
     /// returns address of the first item in the array
     virtual uint8_t * getFirstItem(const uint8_t * pParentItem) const = 0;
     virtual void freeItems(uint8_t * pParentItem) const = 0;
-    virtual uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const = 0;
     Result loadItem(uint8_t * pParentItem, unsigned idx) const;
 
 protected:

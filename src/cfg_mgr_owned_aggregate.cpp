@@ -112,37 +112,111 @@ void Owned_aggregate::freeItems(uint8_t * pParentItem) const
     setCount(pParentItem, 0);
 }
 
+// Evaluate a command: the parent composite removed the cmd word that identifies this component,
+// here we pop the index if necessary and hand over to component descriptor.
+bool Owned_aggregate::evalCmd(Command_stack * cmd, uint8_t * pParentItem, Command_stack::eCmOp &op) const
+{
+    DBG_PRT("%s: item '%s'\n", __PRETTY_FUNCTION__, m_data->pDesc->getName());
+
+    unsigned int itemIdx = 0; // If no index from user is needed, we use offset 0.
+    if ((m_data->maxCount > 1) && !getIndex(cmd, itemIdx))
+    {
+        // There can be more than one item, so we need an explicit index, but operator didn't provide it.
+        return false;
+    }
+
+    unsigned count = 0;
+    if (pParentItem != nullptr)
+    {
+        // Memory exists, so current count may be more than 0.
+        count = getCount(pParentItem);
+    }
+
+    if (itemIdx > count)
+    {
+        m_data->pDesc->m_mgr_service->m_print("Invalid: index %u for owned '%s' > max %u.\n",
+                                              itemIdx, m_data->pDesc->getName(), count);
+        return false;
+    }
+
+    uint8_t * pItem = nullptr;
+    if (pParentItem != nullptr)
+    {
+        // Our parent item is not implicitly added, so this item's memory may exist.
+        pItem = getItemAtIndex(pParentItem, itemIdx);
+    }
+
+    if (!m_data->pDesc->evalCmd(cmd, pItem, op))
+    {
+        DBG_PRT("%s: item '%s': invalid by component.\n", __PRETTY_FUNCTION__, m_data->pDesc->getName());
+        return false;
+    }
+
+    // Component found cmd valid, now check if this implicit add.
+    if (itemIdx < count)
+    {
+        DBG_PRT("%s: item '%s': valid index %u.\n", __PRETTY_FUNCTION__, m_data->pDesc->getName(), itemIdx);
+        return true;
+    }
+
+    // Here itemIdx == count, so it may be implicit add due to Command_stack::CM_SET.
+    if (op == Command_stack::CM_SET)
+    {
+        DBG_PRT("%s: item '%s': implict add for index %u.\n", __PRETTY_FUNCTION__, m_data->pDesc->getName(), itemIdx);
+        return true;
+    }
+
+    m_data->pDesc->m_mgr_service->m_print("Invalid: index %u for owned '%s' for op %s (%u).\n",
+                                          itemIdx, m_data->pDesc->getName(), Command_stack::OpString(op), op);
+    return false;
+}
+
+// Evaluate add command.
+// @pre pItem != nullptr
+bool Owned_aggregate::evalAdd(uint8_t * pItem) const
+{
+    DBG_PRT("%s: item '%s' at %p\n", __PRETTY_FUNCTION__, getData()->pDesc->getName(), pItem);
+
+    assert(pItem != nullptr);
+
+    if (getCount(pItem) >= getData()->maxCount)
+    {
+        m_data->pDesc->m_mgr_service->m_print("Invalid: can't add '%s' (max %u).\n", getData()->pDesc->getName(), getData()->maxCount);
+        return false;
+    }
+    return true;
+}
+
 // Handle command 'add' on command line
 // @return true iff OK.
 bool Owned_aggregate::handleAdd(uint8_t * pItem) const
 {
-    if (getCount(pItem) >= getData()->maxCount)
-    {
-        m_data->pDesc->m_mgr_service->m_print("Can't add '%s' (max %u).\n", getData()->pDesc->getName(), getData()->maxCount);
-        return false;
-    }
     return add(pItem) != nullptr;
 }
 
-// Handle command 'del' on command line
-// @return true iff OK.
-bool Owned_aggregate::handleDel(Command_stack * cmd, uint8_t * pItem) const
+// Evaluate command 'del' on command line.
+// @pre pItem != nullptr
+bool Owned_aggregate::evalDel(Command_stack * cmd, uint8_t * pItem) const
 {
+    DBG_PRT("%s: item '%s' at %p\n", __PRETTY_FUNCTION__, getData()->pDesc->getName(), pItem);
+
+    assert(pItem != nullptr);
+
     unsigned int cnt = getCount(pItem); // number of items currently in array
 
     DBG_PRT("%s: count=%u\n", __PRETTY_FUNCTION__, cnt);
 
     if (cnt == 0)
     {
-        m_data->pDesc->m_mgr_service->m_print("Currently no '%s'.\n", getData()->pDesc->getName());
+        m_data->pDesc->m_mgr_service->m_print("Invalid: currently no '%s'.\n", getData()->pDesc->getName());
         return false;
     }
 
     unsigned int itemIdx = 0; // If no explicit index is needed, use 0 offset
-
-    if (needIndex(pItem) && !getIndex(&cmd->pop(), itemIdx))
+    if ((m_data->maxCount > 1) && !getIndex(&cmd->pop(), itemIdx))
     {
         // An index is needed but couldn't be extracted from the command
+        m_data->pDesc->m_mgr_service->m_print("Invalid: no index provided for item '%s' to delete.\n", getData()->pDesc->getName());
         return false;
     }
 
@@ -150,8 +224,21 @@ bool Owned_aggregate::handleDel(Command_stack * cmd, uint8_t * pItem) const
 
     if (itemIdx >= cnt)
     {
-        m_data->pDesc->m_mgr_service->m_print("Index %u out of range (0.. %u).\n", itemIdx, cnt-1);
+        m_data->pDesc->m_mgr_service->m_print("Invalid: index %u out of range (0.. %u).\n", itemIdx, cnt-1);
         return false;
+    }
+    return true;
+}
+
+// Handle command 'del' on command line
+// @return true iff OK.
+bool Owned_aggregate::handleDel(Command_stack * cmd, uint8_t * pItem) const
+{
+    unsigned int itemIdx = 0;
+    if (m_data->maxCount > 1)
+    {
+        // If there can be more than 1 instance, a valid command has an index.
+        getIndex(&cmd->pop(), itemIdx);
     }
     del(pItem, itemIdx);
     return true;
@@ -227,26 +314,6 @@ void Owned_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
     setCount(pParentItem, cnt - 1);
 }
 
-// Implicit add a RAM item, i.e. add an item because it is referenced by
-// a command that is not an explicit 'add', or during load from NVRAM.
-// This allows the client to re-create
-// configuration by "playing back" the output from command "prt".
-// @return a pointer to the new item, if the index is one larger than the current
-// largest item index, and in-range; else nullptr.
-//
-uint8_t * Owned_aggregate::addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const
-{
-    DBG_PRT("%s: %s idx=%d cnt=%d\n",
-            __PRETTY_FUNCTION__, getData()->pDesc->getName(), itemIdx, getCount(pParentItem));
-
-    if ((itemIdx == getCount(pParentItem)) && (itemIdx < getData()->maxCount))
-    {
-        // Index refers to an item to create
-        return add(pParentItem);
-    }
-    return nullptr;
-}
-
 // From index, return the pointer to component item in this aggregate.
 // Because this function is called during loading, items are created as needed.
 //
@@ -258,7 +325,7 @@ uint8_t * Owned_aggregate::addImplicit(unsigned int itemIdx, uint8_t * pParentIt
 //
 uint8_t * Owned_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem) const
 {
-    return addImplicit(idx, pParentItem);
+    return add(pParentItem);
 }
 
 // Give name, current count, and maxcount.

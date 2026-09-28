@@ -91,15 +91,6 @@ bool Nvram_spy::read(uint8_t * d, unsigned int len)
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-// xxx can I obsolete this?
-void Nvram_spy::init()
-{
-    // Set pattern in nvMem
-    memset(m_nvMem, 0xfa, m_memSize);
-    m_bytesWritten = 0;
-}
-
-
 // Compare expected contents and length of NVRAM to what has been written to it.
 bool Nvram_spy::match(uint8_t * expected, unsigned len)
 {

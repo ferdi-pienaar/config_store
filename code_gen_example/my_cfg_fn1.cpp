@@ -64,9 +64,10 @@ bool set_temp(uint8_t *pItem, item_len_t len, string val, PRINTF_FN_TYPE print)
     if (pEnd != c_string + strlen(c_string))
     {
         // Input string could not be fully converted to double
-        if (print)
+        if (!pItem && print)
         {
-            print("Not a valid temperature: %s.\n", c_string);
+            // In eval phase, tell user why config is invalid.
+            print("Invalid: '%s' is not a temperature.\n", c_string);
         }
         return false;
     }
@@ -88,6 +89,9 @@ bool set_temp(uint8_t *pItem, item_len_t len, string val, PRINTF_FN_TYPE print)
         }
         internal_representation = SHRT_MIN;
     }
-    *((short *)pItem) = (short)internal_representation;
+    if (pItem)
+    {
+        *((short *)pItem) = (short)internal_representation;
+    }
     return true;
 }

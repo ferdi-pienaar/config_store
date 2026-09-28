@@ -162,6 +162,7 @@ protected:
     Cmd_context candidateCtxt;
     bool setCtxt;
     Mgr_service srv;
+    Command_stack::eCmOp op;
 };
 
 
@@ -230,16 +231,14 @@ TEST_F(CompositeOwned, addAnother)
     EXPECT_EQ(0, mem.owned[1]);
 }
 
-
+// Invalid commend: delete an owned component that doesn't exist.
+// Verify that it is rejected in eval phase.
 TEST_F(CompositeOwned, delNull)
 {
     char * commandWord[] = {(char *)"del", (char *)"owned", (char *)"1"};
     Command_stack cmd(3, commandWord);
 
-    c2.handleCmd(&cmd, (uint8_t *)&mem, &candidateCtxt, setCtxt);
-
-    // The command does nothing since there's nothing to delete; verify count remains unchanged
-    EXPECT_EQ(0, mem.cnt);
+    EXPECT_FALSE(c2.evalCmd(&cmd, (uint8_t *)&mem, op));
 }
 
 
@@ -321,18 +320,13 @@ TEST_F(CompositeOwned, implicitAdd)
     EXPECT_EQ(42, mem.owned[0]);
 }
 
-
-// Do not (permanently) allocate memory as side-effect of executing invalid command
+// Invalid command is rejected in the eval phase.
 TEST_F(CompositeOwned, implicitAddFail)
 {
     char * commandWord[] = {(char *)"owned", (char *)"0", (char *)"blabla"};
     Command_stack cmd(3, commandWord);
 
-    c2.handleCmd(&cmd, (uint8_t *)&mem, &candidateCtxt, setCtxt);
-
-    // Counter is not incremented and ptr to owned item is nullptr
-    EXPECT_EQ(0, mem.cnt);
-    EXPECT_EQ(nullptr, mem.owned);
+    EXPECT_FALSE(c2.evalCmd(&cmd, (uint8_t *)&mem, op));
 }
 
 

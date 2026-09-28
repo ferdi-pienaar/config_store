@@ -4,16 +4,14 @@
 #include "cfg_mgr_prt_hexstr.h"
 #include "cfg_mgr_dbg.h"
 #include "store/cfg_mgr_store.h"
-
-#include <cstring> // strcmp
+#include <cassert>
 
 using namespace std;
 
 namespace cfg_mgr
 {
 
-// An item does not print its own name, since
-// it may be followed by an index, which is known
+// An item does not print its own name, since it may be followed by an index, which is known
 // to the item's composite but not to the item.
 void Simple_descriptor::print(const uint8_t * pItem, string prefix, bool show_state) const
 {
@@ -33,6 +31,37 @@ void Simple_descriptor::print(const uint8_t * pItem, string prefix, bool show_st
     m_mgr_service->m_print("\n");
 }
 
+// Evaluate cmd for simple item.
+bool Simple_descriptor::evalCmd(Command_stack * cmd, uint8_t * pItem, Command_stack::eCmOp &op) const
+{
+    op = cmd->getTopOp();
+    DBG_PRT("%s: item '%s' op %s (%u) at %p\n", __PRETTY_FUNCTION__, getName(), Command_stack::OpString(op), op, pItem);
+
+    switch (op)
+    {
+    case Command_stack::CM_PRT:
+    case Command_stack::CM_PRT_CFG:
+    case Command_stack::CM_SETDEF:
+    case Command_stack::CM_HELP:
+    case Command_stack::CM_EMPTY: // No futher words: context change.
+        // These commands succeed on a simple item.
+        return true;
+
+    case Command_stack::CM_SET:
+        if (cmd->pop().getCount() != 1)
+        {
+            m_mgr_service->m_print("Invalid: give exactly one value for item '%s'.\n", getName());
+            return false;
+        }
+        return evalSet(pItem, cmd->getTop());
+
+    default:
+        DBG_PRT("%s: Invalid operation\n", __PRETTY_FUNCTION__);
+        break;
+    }
+    return false;
+}
+
 //
 // @param cmd - array of strings containing name elements
 // @param pItem - pointer to RAM where item is located
@@ -40,13 +69,12 @@ void Simple_descriptor::print(const uint8_t * pItem, string prefix, bool show_st
 //        context build up while interpreting cmd stack.
 // @param updateCtx - out, true if candidateContext should become
 //        the new context.
-//
 bool Simple_descriptor::handleCmd(Command_stack * cmd,
                                   uint8_t * pItem,
                                   Cmd_context *candidateCtxt,
                                   bool & updateCtxt) const
 {
-    DBG_PRT("simple cmd at %p\n", pItem);
+    DBG_PRT("%s: item %p\n", __PRETTY_FUNCTION__, pItem);
 
     switch (cmd->getTopOp())
     {
@@ -71,15 +99,34 @@ bool Simple_descriptor::handleCmd(Command_stack * cmd,
 
     case Command_stack::CM_HELP:
         help(pItem);
-        return true; // true?
+        return true;
+
+    case Command_stack::CM_EMPTY: // No futher words: context change.
+        updateCtxt = true;
+        return true;
 
     default:
-        m_mgr_service->m_print("'%s' not in simple '%s'.\n", cmd->getTop(), getName());
+        assert(false && "Invalid operation");
     }
     return false;
 }
 
-// Set item to a value input as string on command line
+// Evaluate set item to a value input as string on command line.
+bool Simple_descriptor::evalSet(uint8_t * pItem, string val) const
+{
+    DBG_PRT("%s: item '%s' at %p to '%s'\n", __PRETTY_FUNCTION__, getName(), pItem, val.c_str());
+
+    if (m_data->pSet != nullptr)
+    {
+        // Call with item=nullptr, i.e. evaluate only.
+        return m_data->pSet(nullptr, getLen(), val, m_mgr_service->m_print);
+    }
+    // No set function provided.
+    m_mgr_service->m_print("Invalid: '%s' can't be set.\n", getName());
+    return false;
+}
+
+// Set item to a value input as string on command line.
 bool Simple_descriptor::set(uint8_t * pItem, string val) const
 {
     DBG_PRT("set simple %s at %p to '%s'\n", getName(), pItem, val.c_str());
@@ -88,7 +135,6 @@ bool Simple_descriptor::set(uint8_t * pItem, string val) const
     {
         return m_data->pSet(pItem, getLen(), val, m_mgr_service->m_print);
     }
-    m_mgr_service->m_print("'%s' can't be set.\n", getName());
     return false;
 }
 
@@ -117,7 +163,7 @@ void Simple_descriptor::save(const uint8_t *pItem) const
 Result Simple_descriptor::startLoad() const
 {
     Result ret = m_mgr_service->m_store->startLoadSimple(m_data);
-    DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id, ret);
+    DBG_PRT("%s: %s (%hx) res=%s\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id, ResultString(ret));
     return ret;
 }
 
@@ -125,7 +171,7 @@ Result Simple_descriptor::startLoad() const
 Result Simple_descriptor::endLoad(uint8_t * pItem) const
 {
     Result ret = m_mgr_service->m_store->endLoadSimple(pItem, m_data);
-    DBG_PRT("%s: %s (%hx) res=%d\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id, ret);
+    DBG_PRT("%s: %s (%hx) res=%s\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id, ResultString(ret));
     return ret;
 }
 

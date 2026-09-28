@@ -11,12 +11,10 @@
 // a component counter has to precede an OWNED component array.
 // Solution: during init, for an OWNED component, give a pointer
 // to the descriptor of its counter, which must be a member of the same
-// composite.  Hence, the offset (and size) is available, and the counter can be accessed
-// (in RAM).  This also forces the application programmer to
+// composite. Hence, the offset (and size) is available, and the counter can be accessed
+// (in RAM). This also forces the application programmer to
 // supply a counter reference (or explicitly give nullptr if it's an array with max size 1),
 // i.e. the API guides him.
-// xxx Is there something we can do to verify, maybe at run-time, that the correct thing
-// has been done?
 
 namespace cfg_mgr
 {
@@ -37,6 +35,9 @@ public:
         Aggregate(d), m_counterAggr(cntAggr) {}
 
     virtual unsigned getCount(const uint8_t * pParentItem) const override;
+    bool evalCmd(Command_stack * cmd, uint8_t * pParentItem, Command_stack::eCmOp &op) const override;
+    bool evalAdd(uint8_t * pItem) const override;
+    bool evalDel(Command_stack * cmd, uint8_t * pItem) const override;
     bool handleAdd(uint8_t * pItem) const override;
     bool handleDel(Command_stack * cmd, uint8_t * pItem) const override;
     void setCount(uint8_t * pParentItem, unsigned int) const override;
@@ -48,7 +49,6 @@ public:
 private:
     uint8_t * getFirstItem(const uint8_t * pParentItem) const override;
     void freeItems(uint8_t * pParentItem) const override;
-    uint8_t * addImplicit(unsigned int itemIdx, uint8_t * pParentItem) const override;
 
     const Contained_aggregate * const m_counterAggr; // the counter for this owned component
 };

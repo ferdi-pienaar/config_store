@@ -72,6 +72,15 @@ const char * Config_manager_implement::getPromptString() const
 // Pass command that doesn't apply to CM as a whole, to current context for handling.
 void Config_manager_implement::delegate(Command_stack * cmd)
 {
+    // Evaluate a local copy of the cmd.
+    Command_stack eval_cmd(*cmd);
+    Command_stack::eCmOp op;
+    if (not m_currCtxt.getDesc()->evalCmd(&eval_cmd, m_currCtxt.getItem(), op))
+    {
+        m_service.m_print("Invalid command not executed.\n");
+        return;
+    }
+
     // The candidate context starts as a copy of the current context.
     Cmd_context candidateCtxt(m_currCtxt);
     bool updateCtxt = false;

@@ -22,7 +22,23 @@ public:
         CM_HELP,       //
         CM_RESET_CTXT, // return context to top level
         CM_OP_NONE, // not a keyword
-        CM_EMPTY // client passed an empty command stack.
+        CM_EMPTY // no words remain in the command stack.
+    };
+
+    static const char * OpString(eCmOp op)
+    {
+        if (op == CM_ADD) return "'add'";
+        if (op == CM_DEL) return "'del'";
+        if (op == CM_PRT) return "'prt'";
+        if (op == CM_PRT_CFG) return "'prtc'";
+        if (op == CM_SETDEF) return "'setdef'";
+        if (op == CM_LOAD) return "'load'";
+        if (op == CM_SAVE) return "'save'";
+        if (op == CM_HELP) return "'?'";
+        if (op == CM_RESET_CTXT) return "'<'";
+        if (op == CM_OP_NONE) return "none";
+        if (op == CM_EMPTY) return "empty";
+        return "unthinkable";
     };
 
     Command_stack(int argc, char ** argv) : m_count(argc), m_tokenPtr(argv) {}

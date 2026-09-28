@@ -4,8 +4,8 @@
 #include "cfg_mgr_cmd_ctxt.h"
 #include "cfg_mgr_dbg.h"
 #include "store/cfg_mgr_store.h"
-
 #include <stdlib.h> // malloc
+#include <cassert>
 #include <cstring> // memset, strcmp, memcpy
 
 using namespace std;
@@ -19,13 +19,12 @@ void Aggregate::mgrInit(const Mgr_service *serv)
 }
 
 // Utility method to extract an index from an array of command words
-// @return false if unable to extract a valid (in-range) index,
-//         true if returning a valid (in-range) index.
-//
+// @return true iff returning an index.
 bool Aggregate::getIndex(Command_stack * cmd, unsigned int & itemIdx) const
 {
+
     if (cmd->popIndex(itemIdx)) return true;
-    m_data->pDesc->m_mgr_service->m_print("'%s' needs index.\n", m_data->pDesc->getName());
+    m_data->pDesc->m_mgr_service->m_print("Invalid: '%s' needs index.\n", m_data->pDesc->getName());
     return false;
 }
 
@@ -38,7 +37,6 @@ uint8_t * Aggregate::getItemAtIndex(const uint8_t * pParentItem, unsigned idx) c
     }
     return getFirstItem(pParentItem) + idx * m_data->pDesc->getLen();
 }
-
 
 // Set items to default (and free the memory they occupied, if OWNed)
 // @param pItem - item this aggregate belongs to
@@ -86,44 +84,33 @@ void Aggregate::print(const uint8_t * pItem, std::string prefix, bool show_state
 // @param cmd - command string stack
 // @param pParentItem: (in) the owning item
 // @param ppItem: (out) the wanted item
-// @param added: (out) set 'true' if this function allocated memory for the item.
 //
-// @return true if item is returned, false if no index, or index out of range
-//
+// @return true, invalid cmd is handled during eval phase.
 bool Aggregate::getComponentItem(Command_stack * cmd,
                                  uint8_t * pParentItem,
                                  uint8_t ** ppItem,
-                                 bool & added,
                                  Cmd_context * candidateCtxt) const
 {
     unsigned int itemIdx = 0; // If no index is needed, we'll use offset 0.
-
     if (m_data->maxCount > 1)
     {
-        // There can be more than one instance, so we need an explicit index.
-        if (!getIndex(cmd, itemIdx))
-        {
-            // The necessary index was not in the command.
-            return false;
-        }
-        // Index is available: add it to the context string.
+        getIndex(cmd, itemIdx);
         candidateCtxt->addToString(itemIdx);
     }
 
-    DBG_PRT("getComponentItem %p offset %d idx %d cnt %d len %d\n",
-            *ppItem, m_data->offset, itemIdx, getCount(pParentItem), m_data->pDesc->getLen());
+    DBG_PRT("%s: %p offset %d idx %d cnt %d len %d\n",
+            __PRETTY_FUNCTION__, *ppItem, m_data->offset, itemIdx, getCount(pParentItem), m_data->pDesc->getLen());
 
-    if (itemIdx >= getCount(pParentItem))
+    if (itemIdx == getCount(pParentItem))
     {
-        // We may add a new RAM item, depending on index and aggregate type.
-        if ((*ppItem = addImplicit(itemIdx, pParentItem)) == nullptr)
-        {
-            m_data->pDesc->m_mgr_service->m_print("Index %u out of range.\n", itemIdx);
-            return false;
-        }
-        added = true;
+        // Add a new RAM item.
+        *ppItem = add(pParentItem);
     }
-    *ppItem = getItemAtIndex(pParentItem, itemIdx);
+    else
+    {
+        *ppItem = getItemAtIndex(pParentItem, itemIdx);
+    }
+    assert(*ppItem != nullptr); // Operator input is verified during eval phase.
     candidateCtxt->setItem(m_data->pDesc, *ppItem);
     return true;
 }
@@ -193,13 +180,6 @@ Result Aggregate::load(uint8_t * pParentItem) const
         m_data->pDesc->m_mgr_service->m_store->endLoadArray();
     }
     return Result::CM_SUCCESS;
-}
-
-// @return true if an index is necessary (when deleting an item on command line).
-// If there can be more than 1 item, an index identifies the target item.
-bool Aggregate::needIndex(const uint8_t * pParentItem) const
-{
-    return m_data->maxCount > 1;
 }
 
 // Load item from persistent store into RAM.

@@ -36,6 +36,7 @@ public:
         return m_data->c.len;
     }
     virtual bool hasContent(const uint8_t *pItem) const override;
+    bool evalCmd(Command_stack * cmd, uint8_t * pItem, Command_stack::eCmOp &op) const override;
     bool handleCmd(Command_stack * cmd, uint8_t * pItem, Cmd_context * candidate, bool & setCtxt) const override;
     void print(const uint8_t * pItem, std::string prefix, bool include_state) const override;
     void setDefault(uint8_t * pItem) const override;
@@ -49,8 +50,9 @@ public:
     }
 
 private:
-    bool handleAdd(Command_stack * cmd, uint8_t * pItem) const;
-    bool handleDel(Command_stack * cmd, uint8_t * pItem) const;
+    bool evalAdd(Command_stack * cmd, uint8_t * pItem) const;
+    bool evalDel(Command_stack * cmd, uint8_t * pItem) const;
+    bool evalIdWord(Command_stack * cmd, uint8_t * pItem, Command_stack::eCmOp &op) const;
     bool handleIdWord(Command_stack * cmd, uint8_t * pItem, Cmd_context * candidate, bool & setCtxt) const;
     virtual unsigned short getAggrCount() const
     {
@@ -61,7 +63,6 @@ private:
         return m_data->aggrList[i];
     }
     const Aggregate * getAggr(const char * name) const;
-    const Aggregate * getAggr(item_id_t id) const;
 
     const Composite_metadata * const m_data;
 };

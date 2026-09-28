@@ -13,6 +13,26 @@ using namespace std;
 namespace cfg_mgr
 {
 
+static bool set_int(void *dest, long long v, size_t len, long long max, long long min, PRINTF_FN_TYPE print)
+{
+    if ((v > max) || (v < min))
+    {
+        if (!dest && print)
+        {
+            // This is evaluation, and we have the means to give user feedback.
+            print("Out-of-range value for int len %ll bytes\n", len);
+        }
+        // Invalid set.
+        return false;
+    }
+    if (dest)
+    {
+        memcpy(dest, &v, len);
+    }
+    // Valid set.
+    return true;
+}
+
 // signed int
 // pItem - pointer to memory to write an integer to.
 // len - number of bytes the integer consists of
@@ -31,13 +51,13 @@ bool cm_set_int(uint8_t *pItem, item_len_t len, string val, PRINTF_FN_TYPE print
     long long int v = strtoll(val.c_str(), &pEnd, 0);
 
     // Just return if v not initialized, i.e. if nothing read.
-    // Can I rely on val.c_str returning the same address on
-    // subsequent calls?
+    // Can I rely on val.c_str returning the same address on subsequent calls?
     if (pEnd == val.c_str())
     {
-        if (print)
+        if (!pItem && print)
         {
-            print("Not an integer.\n");
+            // This is evaluation, and we have the means to give user feedback.
+            print("Invalid: '%s' is not an integer.\n", val.c_str());
         }
         return false;
     }
@@ -45,36 +65,16 @@ bool cm_set_int(uint8_t *pItem, item_len_t len, string val, PRINTF_FN_TYPE print
     switch (len)
     {
     case sizeof(int8_t):
-        if ((v > INT8_MAX) || (v < INT8_MIN))
-        {
-            return false;
-        }
-        memcpy(pItem, (int8_t *)&v, sizeof(int8_t));
-        return true;
+        return set_int(pItem, v, len, INT8_MAX, INT8_MIN, print);
 
     case sizeof(int16_t):
-        if ((v > INT16_MAX) || (v < INT16_MIN))
-        {
-            return false;
-        }
-        memcpy(pItem, (int16_t *)&v, sizeof(int16_t));
-        return true;
+        return set_int(pItem, v, len, INT16_MAX, INT16_MIN, print);
 
     case sizeof(int32_t):
-        if ((v > INT32_MAX) || (v < INT32_MIN))
-        {
-            return false;
-        }
-        memcpy(pItem, (int32_t *)&v, sizeof(int32_t));
-        return true;
+        return set_int(pItem, v, len, INT32_MAX, INT32_MIN, print);
 
     case sizeof(int64_t):
-        if ((v > INT64_MAX) || (v < INT64_MIN))
-        {
-            return false;
-        }
-        memcpy(pItem, (int64_t *)&v, sizeof(int64_t));
-        return true;
+        return set_int(pItem, v, len, INT64_MAX, INT64_MIN, print);
 
     default:
         assert("Unexpected input integer len."==0);

@@ -14,5 +14,3 @@ void setdef_temp(uint8_t *pItem, item_len_t len)
 
     *((short *)pItem) = 39;
 }
-
-

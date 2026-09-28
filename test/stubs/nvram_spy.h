@@ -17,7 +17,6 @@ public:
     virtual unsigned int getOffset() override;
     virtual bool adjustOffset(int i) override;
     // spy methods follow.
-    void init();
     bool match(uint8_t * expected, unsigned len);
     void set(uint8_t * d, unsigned len);
 
