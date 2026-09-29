@@ -1,4 +1,4 @@
-# This file is both input to and output from ../code_gen/yaml_code_gen.py.
+# This file is both input to and output from ../../code_gen/yaml_code_gen.py.
 # It 'remembers' the ID that's used to identify each item in NVRAM, for interoperability
 # between different versions of the user-defined configurable item hierarchy.
 # It may be modified, typically to remove an item whose ID may be re-allocated because it
@@ -21,6 +21,8 @@ components:
     name: elapsed
   - id: 45
     name: boso
+  - id: 4
+    name: tempCnt
   id: 3
   name: user
 - components:
