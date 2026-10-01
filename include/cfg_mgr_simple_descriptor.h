@@ -41,10 +41,10 @@ public:
     {
         return m_data->c.len;
     }
-    virtual bool hasContent(const uint8_t *pItem) const override
+    virtual bool hasPersistentContent(const uint8_t *pItem) const override
     {
         (void)pItem;
-        return true;
+        return m_data->c.persistent;
     }
     void print(const uint8_t * pItem, std::string prefix, bool include_state) const override;
     bool set(uint8_t * pItem, std::string val) const;

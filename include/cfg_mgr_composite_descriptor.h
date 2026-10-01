@@ -35,7 +35,7 @@ public:
     {
         return m_data->c.len;
     }
-    virtual bool hasContent(const uint8_t *pItem) const override;
+    virtual bool hasPersistentContent(const uint8_t *pItem) const override;
     bool evalCmd(Command_stack * cmd, uint8_t * pItem, Command_stack::eCmOp &op) const override;
     bool handleCmd(Command_stack * cmd, uint8_t * pItem, Cmd_context * candidate, bool & setCtxt) const override;
     void print(const uint8_t * pItem, std::string prefix, bool include_state) const override;

@@ -123,7 +123,7 @@ void Aggregate::save(const uint8_t *pItem) const
         return;
     }
 
-    if (!hasContent(pItem))
+    if (!hasPersistentContent(pItem))
     {
         // Aggregate has no content in RAM, so nothing to write.
         return;
@@ -205,11 +205,11 @@ Result Aggregate::loadItem(uint8_t * pParentItem, unsigned idx) const
 }
 
 // Aggregate has content iff one of its items does.
-bool Aggregate::hasContent(const uint8_t * pParentItem) const
+bool Aggregate::hasPersistentContent(const uint8_t * pParentItem) const
 {
     for (unsigned i = 0; i < getCount(pParentItem); i++)
     {
-        if (m_data->pDesc->hasContent(getItemAtIndex(pParentItem, i)))
+        if (m_data->pDesc->hasPersistentContent(getItemAtIndex(pParentItem, i)))
         {
             return true;
         }

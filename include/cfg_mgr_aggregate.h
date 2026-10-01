@@ -59,7 +59,7 @@ public:
     void save(const uint8_t *pItem) const;
     Result load(uint8_t * pParentItem) const;
     virtual void help(const uint8_t * pItem) const = 0;
-    virtual bool hasContent(const uint8_t * pItem) const;
+    virtual bool hasPersistentContent(const uint8_t * pItem) const;
     const Aggregate_data * getData() const
     {
         return m_data;

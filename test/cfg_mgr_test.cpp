@@ -899,4 +899,104 @@ TEST_F(CfgMgrContainedArrays, load)
     EXPECT_EQ(6, C4_CONFIG->m2[0]);
     EXPECT_EQ(7, C4_CONFIG->m2[1]);
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+// test set 5, OWNED in OWNED.
+namespace test_set_5 {
+struct m1
+{
+    int * pint;
+};
+
+struct m2
+{
+    m1 * pm1;
+};
+
+// test set 5 metadata
+const Simple_metadata s1_d = {{"pint", 1, sizeof(int), false}, cm_set_int, nullptr, cm_prt_int};
+Simple_descriptor s1(&s1_d);
+const Aggregate_data oa1_d = {&s1, 1, offsetof(struct m1, pint)};
+Owned_aggregate oa1(&oa1_d, nullptr); // no counter ref for single
+
+Aggregate * const aggrList1[] = {&oa1};
+const Composite_metadata c1_d = {{"m1", 1, sizeof(struct m1), false}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
+Composite_descriptor c1(&c1_d);
+const Aggregate_data oa2_d = {&c1, 1, offsetof(struct m2, pm1)};
+Owned_aggregate oa2(&oa2_d, nullptr); // no counter ref for single
+
+Aggregate * const aggrList2[] = {&oa2};
+const Composite_metadata c2_d = {{"m2", 1, sizeof(struct m2), false}, aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0])};
+Composite_descriptor c2(&c2_d);
+
+struct m2 * CONFIG = nullptr;
+} // namespace
+
+class CfgMgrContainedContained : public testing::Test
+{
+protected:
+    Nvram_spy * nvram;
+    Config_manager_implement * cm;
+
+    //Define data accessible to test group members here.
+    virtual void SetUp()
+    {
+        nvram = new Nvram_spy;
+        cm = new Config_manager_implement(&test_set_5::c2, cm_printf_spy, (uint8_t **)&test_set_5::CONFIG, nvram);
+        cm_printf_spy_init();
+    }
+
+    virtual void TearDown()
+    {
+        delete cm;
+        delete nvram;
+    }
+};
+
+// Can't add to a composite that hasn't been created.
+TEST_F(CfgMgrContainedContained, invalid_add)
+{
+    char * commandWord[] = {(char *)"m1", (char *)"add", (char *)"pint"};
+    cm->handleCmd(3, commandWord);
+
+    //std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
+// Can't delete from composite that hasn't been created.
+TEST_F(CfgMgrContainedContained, invalid_del)
+{
+    char * commandWord[] = {(char *)"m1", (char *)"del", (char *)"pint"};
+    cm->handleCmd(3, commandWord);
+
+    //std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
+// Add a contained item and change context to it.
+TEST_F(CfgMgrContainedContained, change_context)
+{
+    char * commandWord[] = {(char *)"add", (char *)"m1"};
+    cm->handleCmd(2, commandWord);
+    char * commandContex[] = {(char *)"m1"};
+    cm->handleCmd(1, commandContex);
+
+    EXPECT_STREQ("m1 ", cm->getPromptString());
+}
+
+// Print config skips this non-persitent composite, although it has content
+TEST_F(CfgMgrContainedContained, print_config_non_persistent_composite)
+{
+    char * commandWord[] = {(char *)"m1", (char *)"pint", (char *)"=", (char *)"441"};
+    cm->handleCmd(4, commandWord);
+    char * commandPrtc[] = {(char *)"prtc"};
+    cm->handleCmd(1, commandPrtc);
+    EXPECT_STREQ("", cm_printf_spy_get());
+
+    char * commandPrt[] = {(char *)"prt"};
+    cm->handleCmd(1, commandPrt);
+    EXPECT_STREQ("m1 pint = 441\n", cm_printf_spy_get());
+}
+
 } // namespace

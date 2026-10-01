@@ -84,25 +84,13 @@ void TlvWriter::endWriteComposite()
     // switch to context of owning composite (or set to -1 if we're exiting the final composite)
     m_stackIndex--;
 
-#if 1 // Do I really need this? Start composite shouldn't be called for an empty composite.
-    if (context.length == 0)
-    {
-        // Empty composite: write nothing, and set offset to beginning of composite
-        assert(endOffset >= HDR_LENGTH);
-        endOffset -= HDR_LENGTH;
-    }
-    else
-    {
-#endif
-        // Non-empty composite: write its header
-        m_nvram->setOffset(context.headerOffset);
-        m_nvram->write((uint8_t *)&(context.id), sizeof(context.id));
-        m_nvram->write((uint8_t *)&(context.length), sizeof(context.length));
+    assert(context.length > 0); // startWriteComposite/endWriteComposite not called if empty.
 
-        addLengthToComposite(context.length);
-#if 1
-    }
-#endif
+    // Write composite header
+    m_nvram->setOffset(context.headerOffset);
+    m_nvram->write((uint8_t *)&(context.id), sizeof(context.id));
+    m_nvram->write((uint8_t *)&(context.length), sizeof(context.length));
+    addLengthToComposite(context.length);
 
     if (m_stackIndex >= 0)
     {

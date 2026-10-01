@@ -24,11 +24,11 @@ void Composite_descriptor::mgrInit(const Mgr_service *serv)
 }
 
 // A composite has content iff any of its components do.
-bool Composite_descriptor::hasContent(const uint8_t *pItem) const
+bool Composite_descriptor::hasPersistentContent(const uint8_t *pItem) const
 {
     for (unsigned i = 0; i < m_data->aggrCount; i++)
     {
-        if (getAggrAtIndex(i)->hasContent(pItem))
+        if (getAggrAtIndex(i)->hasPersistentContent(pItem))
         {
             return true;
         }
@@ -235,7 +235,7 @@ void Composite_descriptor::save(const uint8_t *pItem) const
 {
     DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id);
 
-    if (!hasContent(pItem))
+    if (!hasPersistentContent(pItem))
     {
         // This composite has no items in RAM, so write nothing.
         return;

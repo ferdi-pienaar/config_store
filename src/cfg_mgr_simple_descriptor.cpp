@@ -87,11 +87,7 @@ bool Simple_descriptor::handleCmd(Command_stack * cmd,
         return true;
 
     case Command_stack::CM_SET:
-        if (cmd->pop().getCount() == 1)
-        {
-            return set(pItem, cmd->getTop());
-        }
-        break;
+        return set(pItem, cmd->pop().getTop());
 
     case Command_stack::CM_SETDEF:
         setDefault(pItem);
