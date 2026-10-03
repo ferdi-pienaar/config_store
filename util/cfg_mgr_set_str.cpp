@@ -25,7 +25,7 @@ bool cm_set_str(uint8_t *pItem, item_len_t len, string val, PRINTF_FN_TYPE print
     {
         if (!pItem && print)
         {
-            print("String '%s' has no opening quote.\n", val.c_str());
+            print("Invalid: string '%s' has no opening quote.\n", val.c_str());
         }
         return false;
     }
@@ -33,7 +33,7 @@ bool cm_set_str(uint8_t *pItem, item_len_t len, string val, PRINTF_FN_TYPE print
     {
         if (!pItem && print)
         {
-            print("String '%s' has no closing quote.\n", val.c_str());
+            print("Invalid: string '%s' has no closing quote.\n", val.c_str());
         }
         return false;
     }

@@ -23,8 +23,7 @@ uint8_t * Owned_aggregate::getFirstItem(const uint8_t * pParentItem) const
 }
 
 // Return the number of items in the component's array
-// xxx giving a fixed size to counters would simplify this, but
-// would restrict the application developer.
+// xxx we should use a fixed-size integer for the return value?
 unsigned Owned_aggregate::getCount(const uint8_t * pParentItem) const
 {
     if (m_counterAggr == nullptr)
@@ -32,33 +31,20 @@ unsigned Owned_aggregate::getCount(const uint8_t * pParentItem) const
         // If there's no counter, then count is just 0 (absence) or 1 (presence)
         return (getFirstItem(pParentItem) == nullptr) ? 0 : 1;
     }
-
-    switch (m_counterAggr->getData()->pDesc->getLen())
-    {
-    case sizeof(uint8_t):
-        return (unsigned)(*(pParentItem + m_counterAggr->getData()->offset));
-
-    case sizeof(uint16_t):
-        return (unsigned)(*((uint16_t *)(pParentItem + m_counterAggr->getData()->offset)));
-
-    case sizeof(uint32_t):
-        return (unsigned)(*((uint32_t *)(pParentItem + m_counterAggr->getData()->offset)));
-
-    default:
-        assert(0);
-        return 0;
-    }
+    unsigned count;
+    memcpy(&count, pParentItem + m_counterAggr->getData()->offset, m_counterAggr->getData()->pDesc->getLen());
+    return count;
 }
 
 // Set value in RAM that records the number of items in the array of items
-// xxx giving a fixed size to counters would simplify this, but
-// would restrict the application developer.
+// xxx we should use a fixed-size integer for 'count' arg?
 void Owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) const
 {
     if (m_counterAggr == nullptr)
     {
-        // There is no counter -- it's optional if maxCount == 1
-        // xxx what happens if there's no counter but maxCount > 1?
+        // There is no counter, which is mandatory if maxCount > 1.
+        // Auto-generated configs comply with this.
+        assert(getData()->maxCount == 1);
         return;
     }
 
@@ -66,28 +52,27 @@ void Owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) const
             __PRETTY_FUNCTION__, getData()->pDesc->getName(), count,
             m_counterAggr->getData()->pDesc->getLen(), pParentItem + m_counterAggr->getData()->offset);
 
+    // This limit is checked before creating owned items, enforce it here.
     assert(count <= getData()->maxCount);
 
     switch (m_counterAggr->getData()->pDesc->getLen())
     {
     case sizeof(uint8_t):
         assert(count <= UINT8_MAX);
-        memcpy(pParentItem + m_counterAggr->getData()->offset, (uint8_t *)&count, sizeof(uint8_t));
         break;
 
     case sizeof(uint16_t):
         assert(count <= UINT16_MAX);
-        memcpy(pParentItem + m_counterAggr->getData()->offset, (uint16_t *)&count, sizeof(uint16_t));
         break;
 
     case sizeof(uint32_t):
         assert(count <= UINT32_MAX);
-        memcpy(pParentItem + m_counterAggr->getData()->offset, (uint32_t *)&count, sizeof(uint32_t));
         break;
 
     default:
         assert(0);
     }
+    memcpy(pParentItem + m_counterAggr->getData()->offset, &count, m_counterAggr->getData()->pDesc->getLen());
 }
 
 // Free memory of items, if any.  This is called when setting the parent

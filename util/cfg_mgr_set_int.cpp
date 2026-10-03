@@ -20,7 +20,7 @@ static bool set_int(void *dest, long long v, size_t len, long long max, long lon
         if (!dest && print)
         {
             // This is evaluation, and we have the means to give user feedback.
-            print("Out-of-range value for int len %ll bytes\n", len);
+            print("Invalid: out-of-range value for int len %u bytes\n", len);
         }
         // Invalid set.
         return false;

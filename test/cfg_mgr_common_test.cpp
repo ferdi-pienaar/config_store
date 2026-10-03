@@ -1,7 +1,9 @@
 // Unit test using open-source unit test framework
 // These tests the config manager as a whole, using the following interfaces:
-// 1. Input: character strings passed to Config_manager_implement::handleCmd
-// xxx
+// Input: character strings passed to Config_manager_implement::handleCmd
+// Output:
+//  Data stored in RAM.
+//  Out to printf_spy, i.e. capture output to operator from cfg_mgr (not currently used)
 // These tests are called 'common' because they test regardless of the format
 // of the underlying store: TLV or JSON.
 //
@@ -14,6 +16,8 @@
 #include "cfg_mgr_owned_aggregate.h"       // Unit under test
 #include "cfg_mgr_set_int.h"  // Extensions to unit under test (generic "set" functions)
 #include "cfg_mgr_prt_int.h"  // Extensions to unit under test (generic "print" functions)
+#include "cfg_mgr_set_str.h"  // Extensions to unit under test (generic "set" functions)
+#include "cfg_mgr_prt_str.h"  // Extensions to unit under test (generic "print" functions)
 #include "cfg_mgr_printf_spy.h"
 #include "cfg_mgr_setdef_null.h" // generic setdef function
 #include "nvram_spy.h"
@@ -28,31 +32,33 @@ namespace {
 ////////////////////////////////////////////////////////////////////////////////
 // test set 1, CONTAINED
 // test set 1 data structure
+static constexpr unsigned STRING_ARRAY_LEN = 8;
+static constexpr unsigned ARRAY_LEN = 2;
 struct m
 {
-    int m1;
-    int m2;
+    char m1[STRING_ARRAY_LEN]; // String is represented as an array, with metadata: size=len, and 1 instance in aggregate data.
+    short int m2[ARRAY_LEN];
 };
 
 // test set 1 user-defined functions
 void setdef_t1(uint8_t *pItem, item_len_t len)
 {
     // Sanity check
-    assert(len == sizeof(int));
+    assert(len == sizeof(short int));
 
-    *((int *)pItem) = 7;
+    *((short int *)pItem) = 7;
 }
 
 
 // test set 1 metadata
-const Simple_metadata s1_d = {{"name1", 1, sizeof(int), true}, cm_set_int, cm_setdef_null, cm_prt_int};
+const Simple_metadata s1_d = {{"name1", 1, sizeof(char) * STRING_ARRAY_LEN, true}, cm_set_str, cm_setdef_null, cm_prt_str};
 Simple_descriptor s1(&s1_d);
 const Aggregate_data ca1_d = {&s1, 1, offsetof(struct m, m1)};
 Contained_aggregate ca1(&ca1_d);
 
-const Simple_metadata s2_d = {{"name2", 2, sizeof(int), true}, cm_set_int, setdef_t1, cm_prt_int};
+const Simple_metadata s2_d = {{"name2", 2, sizeof(short int), true}, cm_set_int, setdef_t1, cm_prt_int};
 Simple_descriptor s2(&s2_d);
-const Aggregate_data ca2_d = {&s2, 1, offsetof(struct m, m2)};
+const Aggregate_data ca2_d = {&s2, ARRAY_LEN, offsetof(struct m, m2)};
 Contained_aggregate ca2(&ca2_d);
 
 Aggregate * const aggrList1[] = {&ca1, &ca2};
@@ -72,6 +78,7 @@ protected:
     {
         nvram = new Nvram_spy;
         cm = new Config_manager_implement(&c1, cm_printf_spy, (uint8_t **)&C1_CONFIG, nvram);
+        cm_printf_spy_init();
     }
 
     virtual void TearDown()
@@ -85,35 +92,78 @@ protected:
 // Verify default value (from function in metadata) is in RAM.
 TEST_F(CfgMgrContainedCommon, default_value)
 {
-    EXPECT_EQ(7, C1_CONFIG->m2);
+    EXPECT_EQ(7, C1_CONFIG->m2[0]);
+    EXPECT_EQ(7, C1_CONFIG->m2[1]);
 }
 
 // Verify value modified by command is in RAM.
 TEST_F(CfgMgrContainedCommon, modify)
 {
-    std::vector<char *> command = {(char *)"name2", (char *)"=", (char *)"11"};
+    std::vector<char *> command = {(char *)"name1", (char *)"=", (char *)"\"fred\""};
     cm->handleCmd(command.size(), command.data());
-    EXPECT_EQ(11, C1_CONFIG->m2);
+
+    //std::cout << cm_printf_spy_get();
+    EXPECT_STREQ("fred", C1_CONFIG->m1);
+}
+
+// String variables must be surrounded by quotes in cmd.
+TEST_F(CfgMgrContainedCommon, set_str_invalid_start)
+{
+    std::vector<char *> command = {(char *)"name1", (char *)"=", (char *)"fred"};
+    cm->handleCmd(command.size(), command.data());
+
+    //std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
+// String variables must be surrounded by quotes in cmd.
+TEST_F(CfgMgrContainedCommon, set_str_invalid_end)
+{
+    std::vector<char *> command = {(char *)"name1", (char *)"=", (char *)"\"fred"};
+    cm->handleCmd(command.size(), command.data());
+
+    //std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
 }
 
 // Verify modified value is restored after save, modify, and restore operations.
 TEST_F(CfgMgrContainedCommon, save_modify_and_restore)
 {
     // Check default value, set by constructor of Config_manager_implement.
-    std::vector<char *> command0 = {(char *)"name2", (char *)"=", (char *)"11"};
+    std::vector<char *> command0 = {(char *)"name2", (char *)"0", (char *)"=", (char *)"11"};
     cm->handleCmd(command0.size(), command0.data());
-    EXPECT_EQ(11, C1_CONFIG->m2);
+    EXPECT_EQ(11, C1_CONFIG->m2[0]);
 
     std::vector<char *> command = {(char *)"save"};
     cm->handleCmd(command.size(), command.data());
 
-    std::vector<char *> command2 = {(char *)"name2", (char *)"=", (char *)"115"};
+    std::vector<char *> command2 = {(char *)"name2", (char *)"0", (char *)"=", (char *)"115"};
     cm->handleCmd(command2.size(), command2.data());
-    EXPECT_EQ(115, C1_CONFIG->m2);
+    EXPECT_EQ(115, C1_CONFIG->m2[0]);
 
     std::vector<char *> command3 = {(char *)"load"};
     cm->handleCmd(command3.size(), command3.data());
-    EXPECT_EQ(11, C1_CONFIG->m2);
+    EXPECT_EQ(11, C1_CONFIG->m2[0]);
+}
+
+TEST_F(CfgMgrContainedCommon, set_integer_out_of_range)
+{
+    std::vector<char *> command = {(char *)"name2", (char *)"0",  (char *)"=", (char *)"0x10000"};
+    cm->handleCmd(command.size(), command.data());
+
+    //std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+    EXPECT_EQ(7, C1_CONFIG->m2[0]);
+}
+
+TEST_F(CfgMgrContainedCommon, set_integer_not_an_integer)
+{
+    std::vector<char *> command = {(char *)"name2", (char *)"0",  (char *)"=", (char *)"siete"};
+    cm->handleCmd(command.size(), command.data());
+
+    //std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+    EXPECT_EQ(7, C1_CONFIG->m2[0]);
 }
 
 } // namespace

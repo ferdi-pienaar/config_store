@@ -906,7 +906,7 @@ TEST_F(CfgMgrContainedArrays, load)
 namespace test_set_5 {
 struct m1
 {
-    int * pint;
+    long long int * pint;
 };
 
 struct m2
@@ -915,7 +915,7 @@ struct m2
 };
 
 // test set 5 metadata
-const Simple_metadata s1_d = {{"pint", 1, sizeof(int), false}, cm_set_int, nullptr, cm_prt_int};
+const Simple_metadata s1_d = {{"pint", 1, sizeof(long long int), false}, cm_set_int, nullptr, cm_prt_int};
 Simple_descriptor s1(&s1_d);
 const Aggregate_data oa1_d = {&s1, 1, offsetof(struct m1, pint)};
 Owned_aggregate oa1(&oa1_d, nullptr); // no counter ref for single
