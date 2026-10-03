@@ -39,13 +39,14 @@ Command_stack::eCmOp Command_stack::getTopOp() const
     if (strcmp(getTop(), "save") == 0)    return CM_SAVE;
     if (strcmp(getTop(), "<") == 0)       return CM_RESET_CTXT;
     if (strcmp(getTop(), "?") == 0)       return CM_HELP;
+    if (strcmp(getTop(), "depth") == 0)   return CM_DEPTH;
     return CM_OP_NONE;
 }
 
 
 // Pop an integer (representing an index).
 // @return true iff there's an integer at stack top.
-bool Command_stack::popIndex(unsigned int & itemIdx)
+bool Command_stack::popUnsignedInt(unsigned int & itemIdx)
 {
     if (m_count == 0) return false;
 

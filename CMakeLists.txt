@@ -69,8 +69,22 @@ set(CFG_MGR_JSON_STORE_SRC
     src/store/json/cfg_mgr_json_ctxt.cpp
 )
 
-target_sources(config_store_tlv PRIVATE ${CFG_MGR_CORE_SRC} ${CFG_MGR_TLV_STORE_SRC})
-target_sources(config_store_json PRIVATE ${CFG_MGR_CORE_SRC} ${CFG_MGR_JSON_STORE_SRC})
+option(HELP_ENABLE "Enable help on target" OFF)
+
+if(HELP_ENABLE)
+    set(CFG_MGR_HELP_SRC
+        src/composite_descriptor_help.cpp
+        src/simple_descriptor_help.cpp
+        src/contained_aggregate_help.cpp
+        src/owned_aggregate_help.cpp)
+else()
+    set(CFG_MGR_HELP_SRC src/null_help.cpp)
+endif()
+
+target_sources(config_store_tlv PRIVATE
+    ${CFG_MGR_CORE_SRC} ${CFG_MGR_TLV_STORE_SRC} ${CFG_MGR_HELP_SRC})
+target_sources(config_store_json PRIVATE
+    ${CFG_MGR_CORE_SRC} ${CFG_MGR_JSON_STORE_SRC} ${CFG_MGR_HELP_SRC})
 
 option(DEBUG_PRINT_ENABLE "Enable debug printing" OFF)
 

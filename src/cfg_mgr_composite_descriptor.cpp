@@ -58,7 +58,6 @@ bool Composite_descriptor::evalCmd(Command_stack * cmd, uint8_t * pItem, Command
     case Command_stack::CM_PRT:
     case Command_stack::CM_PRT_CFG:
     case Command_stack::CM_SETDEF:
-    case Command_stack::CM_HELP:
     case Command_stack::CM_EMPTY: // context change.
         // Valid in this context.
         return true;
@@ -112,10 +111,6 @@ bool Composite_descriptor::handleCmd(Command_stack * cmd,
 
     case Command_stack::CM_SETDEF:
         setDefault(pItem);
-        return true;
-
-    case Command_stack::CM_HELP:
-        help(pItem);
         return true;
 
     case Command_stack::CM_EMPTY:
@@ -205,15 +200,6 @@ void Composite_descriptor::setDefault(uint8_t * pItem) const
     for (unsigned i = 0; i < m_data->aggrCount; i++)
     {
         getAggrAtIndex(i)->setDefault(pItem);
-    }
-}
-
-// Give help for each component.
-void Composite_descriptor::help(const uint8_t * pItem) const
-{
-    for (unsigned i = 0; i < m_data->aggrCount; i++)
-    {
-        getAggrAtIndex(i)->help(pItem);
     }
 }
 

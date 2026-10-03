@@ -23,7 +23,7 @@ void Aggregate::mgrInit(const Mgr_service *serv)
 bool Aggregate::getIndex(Command_stack * cmd, unsigned int & itemIdx) const
 {
 
-    if (cmd->popIndex(itemIdx)) return true;
+    if (cmd->popUnsignedInt(itemIdx)) return true;
     m_data->pDesc->m_mgr_service->m_print("Invalid: '%s' needs index.\n", m_data->pDesc->getName());
     return false;
 }

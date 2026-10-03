@@ -29,6 +29,7 @@ public:
 private:
     typedef void (Config_manager_implement::*cmd_handler)(Command_stack *cmd);
     void delegate(Command_stack *cmd);
+    void help(Command_stack *cmd);
     void resetCtxt(Command_stack *cmd);
     void emptyCmd(Command_stack *cmd);
     void save(Command_stack *cmd);

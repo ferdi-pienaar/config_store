@@ -20,6 +20,7 @@ public:
         CM_LOAD,
         CM_SAVE,
         CM_HELP,       //
+        CM_DEPTH,      // depth of recursion
         CM_RESET_CTXT, // return context to top level
         CM_OP_NONE, // not a keyword
         CM_EMPTY // no words remain in the command stack.
@@ -35,6 +36,7 @@ public:
         if (op == CM_LOAD) return "'load'";
         if (op == CM_SAVE) return "'save'";
         if (op == CM_HELP) return "'?'";
+        if (op == CM_DEPTH) return "'depth'";
         if (op == CM_RESET_CTXT) return "'<'";
         if (op == CM_OP_NONE) return "none";
         if (op == CM_EMPTY) return "empty";
@@ -49,7 +51,7 @@ public:
         return m_count;
     }
     eCmOp getTopOp() const;
-    bool popIndex(unsigned int & itemIdx);
+    bool popUnsignedInt(unsigned int & itemIdx);
 
 private:
     int     m_count;

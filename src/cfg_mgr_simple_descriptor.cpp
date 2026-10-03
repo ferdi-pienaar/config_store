@@ -42,7 +42,6 @@ bool Simple_descriptor::evalCmd(Command_stack * cmd, uint8_t * pItem, Command_st
     case Command_stack::CM_PRT:
     case Command_stack::CM_PRT_CFG:
     case Command_stack::CM_SETDEF:
-    case Command_stack::CM_HELP:
     case Command_stack::CM_EMPTY: // No futher words: context change.
         // These commands succeed on a simple item.
         return true;
@@ -93,10 +92,6 @@ bool Simple_descriptor::handleCmd(Command_stack * cmd,
         setDefault(pItem);
         return true;
 
-    case Command_stack::CM_HELP:
-        help(pItem);
-        return true;
-
     case Command_stack::CM_EMPTY: // No futher words: context change.
         updateCtxt = true;
         return true;
@@ -141,12 +136,6 @@ void Simple_descriptor::setDefault(uint8_t * pItem) const
     {
         m_data->pSetDefault(pItem, getLen());
     }
-}
-
-void Simple_descriptor::help(const uint8_t * pItem) const
-{
-    (void)pItem;
-    m_mgr_service->m_print("len %u\n", getLen());
 }
 
 /// Save item to persistent storage

@@ -982,7 +982,7 @@ TEST_F(CfgMgrContainedContained, change_context)
     char * commandContex[] = {(char *)"m1"};
     cm->handleCmd(1, commandContex);
 
-    EXPECT_STREQ("m1 ", cm->getPromptString());
+    EXPECT_STREQ("m2 m1 ", cm->getPromptString());
 }
 
 // Print config skips this non-persitent composite, although it has content

@@ -58,7 +58,7 @@ public:
     virtual uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const = 0;
     void save(const uint8_t *pItem) const;
     Result load(uint8_t * pParentItem) const;
-    virtual void help(const uint8_t * pItem) const = 0;
+    virtual void help(std::string &prefix, unsigned depth) const = 0;
     virtual bool hasPersistentContent(const uint8_t * pItem) const;
     const Aggregate_data * getData() const
     {

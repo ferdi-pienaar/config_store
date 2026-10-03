@@ -313,10 +313,4 @@ uint8_t * Owned_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem)
     return add(pParentItem);
 }
 
-// Give name, current count, and maxcount.
-void Owned_aggregate::help(const uint8_t * pItem) const
-{
-    m_data->pDesc->m_mgr_service->m_print("%s [%u/%u]\n", getData()->pDesc->getName(), getCount(pItem), getData()->maxCount);
-}
-
 }

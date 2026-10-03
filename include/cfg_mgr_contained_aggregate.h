@@ -46,7 +46,7 @@ public:
         assert(false);
     }
     uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const override;
-    void help(const uint8_t * pItem) const override;
+    void help(std::string &prefix, unsigned depth) const override;
 
 private:
     uint8_t * getFirstItem(const uint8_t * pParentItem) const override;

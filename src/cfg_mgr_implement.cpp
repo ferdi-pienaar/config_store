@@ -24,7 +24,8 @@ const Config_manager_implement::cmd_handler Config_manager_implement::handlers[]
     &Config_manager_implement::delegate, // CM_SETDEF
     &Config_manager_implement::load, // CM_LOAD
     &Config_manager_implement::save, // CM_SAVE
-    &Config_manager_implement::delegate, // CM_HELP,
+    &Config_manager_implement::help, // CM_HELP
+    &Config_manager_implement::emptyCmd, // CM_DEPTH
     &Config_manager_implement::resetCtxt, // CM_RESET_CTXT
     &Config_manager_implement::delegate, // CM_OP_NONE
     &Config_manager_implement::emptyCmd // CM_EMPTY
@@ -91,11 +92,18 @@ void Config_manager_implement::delegate(Command_stack * cmd)
     }
 }
 
+// Pass help command to current context for handling.
+void Config_manager_implement::help(Command_stack * cmd)
+{
+    // pop help command and handle the remainder of the command stack.
+    m_currCtxt.getDesc()->handleHelp(&cmd->pop());
+}
+
 // Set context back to base.
 void Config_manager_implement::resetCtxt(Command_stack * cmd)
 {
     DBG_PRT("resetCtxt\n");
-    m_currCtxt = Cmd_context("", m_baseDesc, m_ramBase); // temp context with base properties
+    m_currCtxt = Cmd_context(m_baseDesc->getName() + string(" "), m_baseDesc, m_ramBase); // temp context with base properties
 }
 
 // Handle empty command stack.
