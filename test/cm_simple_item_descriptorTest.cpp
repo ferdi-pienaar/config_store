@@ -7,6 +7,7 @@
 #include "gtest/gtest.h"
 #include "cfg_mgr_simple_descriptor.h"  // Unit under test
 #include "cfg_mgr_set_int.h"     // Extensions to unit under test (generic "set" functions)
+#include "cfg_mgr_prt_hexstr.h"  // Extensions to unit under test (generic "print" functions)
 #include "cfg_mgr_printf_spy.h"
 #include <cstring> // strncmp
 
@@ -50,7 +51,7 @@ TEST_F(SimpleDescriptor, print)
 {
     string prefix = "";
     unsigned mem = 7;
-    Simple_metadata d_d = {{"d01", 1, sizeof(mem), true}, nullptr, nullptr, nullptr};
+    Simple_metadata d_d = {{"d01", 1, sizeof(mem), true}, nullptr, nullptr, cm_prt_hexstr};
 
     Simple_descriptor d(&d_d);
     d.mgrInit(&srv);

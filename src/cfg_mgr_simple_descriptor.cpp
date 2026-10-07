@@ -1,7 +1,6 @@
 #include "cfg_mgr_simple_descriptor.h"
 #include "cfg_mgr_cmd_stack.h"
 #include "cfg_mgr_cmd_ctxt.h"
-#include "cfg_mgr_prt_hexstr.h"
 #include "cfg_mgr_dbg.h"
 #include "store/cfg_mgr_store.h"
 #include <cassert>
@@ -17,18 +16,7 @@ void Simple_descriptor::print(const uint8_t * pItem, string prefix, bool show_st
 {
     DBG_PRT("print simple %s len %d at %p show_state=%d\n", getName(), getLen(), pItem, show_state);
 
-    m_mgr_service->m_print("%s= ", prefix.c_str());
-
-    if (m_data->pPrt == nullptr)
-    {
-        // No function installed so use default print function: hex chars
-        m_mgr_service->m_print("%s", cm_prt_hexstr(pItem, getLen()).c_str());
-    }
-    else
-    {
-        m_mgr_service->m_print("%s", m_data->pPrt(pItem, getLen()).c_str());
-    }
-    m_mgr_service->m_print("\n");
+    m_mgr_service->m_print("%s= %s\n", prefix.c_str(), m_data->pPrt(pItem, getLen()).c_str());
 }
 
 // Evaluate cmd for simple item.
@@ -41,18 +29,20 @@ bool Simple_descriptor::evalCmd(Command_stack * cmd, uint8_t * pItem, Command_st
     {
     case Command_stack::CM_PRT:
     case Command_stack::CM_PRT_CFG:
+        if (m_data->pPrt == nullptr)
+        {
+            m_mgr_service->m_print("Invalid: '%s' can't be printed.\n", getName());
+            return false;
+        }
+        return true;
+
     case Command_stack::CM_SETDEF:
     case Command_stack::CM_EMPTY: // No futher words: context change.
         // These commands succeed on a simple item.
         return true;
 
     case Command_stack::CM_SET:
-        if (cmd->pop().getCount() != 1)
-        {
-            m_mgr_service->m_print("Invalid: give exactly one value for item '%s'.\n", getName());
-            return false;
-        }
-        return evalSet(pItem, cmd->getTop());
+        return evalSet(&cmd->pop(), pItem);
 
     default:
         DBG_PRT("%s: Invalid operation\n", __PRETTY_FUNCTION__);
@@ -103,14 +93,20 @@ bool Simple_descriptor::handleCmd(Command_stack * cmd,
 }
 
 // Evaluate set item to a value input as string on command line.
-bool Simple_descriptor::evalSet(uint8_t * pItem, string val) const
+bool Simple_descriptor::evalSet(Command_stack * cmd, uint8_t * pItem) const
 {
-    DBG_PRT("%s: item '%s' at %p to '%s'\n", __PRETTY_FUNCTION__, getName(), pItem, val.c_str());
+    DBG_PRT("%s: item '%s' at %p\n", __PRETTY_FUNCTION__, getName(), pItem);
+
+    if (cmd->getCount() != 1)
+    {
+        m_mgr_service->m_print("Invalid: give exactly one value for item '%s'.\n", getName());
+        return false;
+    }
 
     if (m_data->pSet != nullptr)
     {
         // Call with item=nullptr, i.e. evaluate only.
-        return m_data->pSet(nullptr, getLen(), val, m_mgr_service->m_print);
+        return m_data->pSet(nullptr, getLen(), cmd->getTop(), m_mgr_service->m_print);
     }
     // No set function provided.
     m_mgr_service->m_print("Invalid: '%s' can't be set.\n", getName());
@@ -118,15 +114,12 @@ bool Simple_descriptor::evalSet(uint8_t * pItem, string val) const
 }
 
 // Set item to a value input as string on command line.
+// @pre eval function determined the set function exists.
 bool Simple_descriptor::set(uint8_t * pItem, string val) const
 {
-    DBG_PRT("set simple %s at %p to '%s'\n", getName(), pItem, val.c_str());
+    DBG_PRT("%s: item '%s' at %p to '%s'\n", __PRETTY_FUNCTION__, getName(), pItem, val.c_str());
 
-    if (m_data->pSet != nullptr)
-    {
-        return m_data->pSet(pItem, getLen(), val, m_mgr_service->m_print);
-    }
-    return false;
+    return m_data->pSet(pItem, getLen(), val, m_mgr_service->m_print);
 }
 
 // Set configurable item to its default value.

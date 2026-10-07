@@ -60,7 +60,7 @@ public:
     }
 
 private:
-    bool evalSet(uint8_t * pItem, std::string val) const;
+    bool evalSet(Command_stack * cmd, uint8_t * pItem) const;
     const Simple_metadata * const m_data;
 };
 

@@ -14,6 +14,7 @@
 #include "cfg_mgr_contained_aggregate.h"       // Unit under test
 #include "cfg_mgr_owned_aggregate.h"       // Unit under test
 #include "cfg_mgr_prt_int.h"  // Extensions to unit under test (generic "print" functions)
+#include "cfg_mgr_prt_hexstr.h"  // Extensions to unit under test (generic "print" functions)
 #include "cfg_mgr_set_int.h"  // Extensions to unit under test (generic "set" functions)
 #include "cfg_mgr_setdef_null.h" // generic setdef function
 #include "nvram_spy.h"
@@ -47,7 +48,7 @@ void setdef_t1(uint8_t *pItem, item_len_t len)
 
 
 // test set 1 metadata
-const Simple_metadata s1_d = {{"name1", 1, sizeof(int), true}, nullptr, cm_setdef_null, nullptr};
+const Simple_metadata s1_d = {{"name1", 1, sizeof(int), true}, nullptr, cm_setdef_null, cm_prt_hexstr};
 Simple_descriptor s1(&s1_d);
 const Aggregate_data ca1_d = {&s1, 1, offsetof(struct m, m1)};
 Contained_aggregate ca1(&ca1_d);

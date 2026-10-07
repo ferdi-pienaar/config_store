@@ -35,7 +35,6 @@ target_include_directories(config_store_json
 set(CFG_MGR_CORE_SRC
     src/cfg_mgr_implement.cpp
     src/cfg_mgr.cpp
-    src/cfg_mgr_prt_hexstr.cpp
     src/cfg_mgr_simple_descriptor.cpp
     src/cfg_mgr_composite_descriptor.cpp
     src/cfg_mgr_aggregate.cpp
@@ -43,7 +42,6 @@ set(CFG_MGR_CORE_SRC
     src/cfg_mgr_owned_aggregate.cpp
     src/cfg_mgr_cmd_stack.cpp
     src/cfg_mgr_cmd_ctxt.cpp
-
     src/store/cfg_mgr_store.cpp
     src/store/nvram.cpp
 
@@ -52,6 +50,7 @@ set(CFG_MGR_CORE_SRC
     util/cfg_mgr_set_str.cpp
     util/cfg_mgr_prt_int.cpp
     util/cfg_mgr_prt_str.cpp
+    util/cfg_mgr_prt_hexstr.cpp
     util/cfg_mgr_setdef_null.cpp
     util/cfg_mgr_strtok.cpp
 )

@@ -12,6 +12,7 @@
 #include "cfg_mgr_cmd_ctxt.h"       // Unit under test
 #include "cfg_mgr_cmd_stack.h"       // Unit under test
 #include "cfg_mgr_set_int.h"  // Extensions to unit under test (generic "set" functions)
+#include "cfg_mgr_prt_hexstr.h"  // Extensions to unit under test (generic "print" functions)
 #include "cfg_mgr_printf_spy.h"
 
 #include <string>
@@ -53,12 +54,12 @@ struct m
 };
 
 // test set 1 metadata
-const Simple_metadata s1_d = {{"name1", 1, sizeof(int), true}, nullptr, nullptr, nullptr};
+const Simple_metadata s1_d = {{"name1", 1, sizeof(int), true}, nullptr, nullptr, cm_prt_hexstr};
 Simple_descriptor s1(&s1_d);
 const Aggregate_data ca1_d = {&s1, 1, offsetof(struct m, m1)};
 Contained_aggregate ca1(&ca1_d);
 
-const Simple_metadata s2_d = {{"name2", 2, sizeof(int), true}, nullptr, nullptr, nullptr};
+const Simple_metadata s2_d = {{"name2", 2, sizeof(int), true}, nullptr, nullptr, cm_prt_hexstr};
 Simple_descriptor s2(&s2_d);
 const Aggregate_data ca2_d = {&s2, 1, offsetof(struct m, m2)};
 Contained_aggregate ca2(&ca2_d);
@@ -126,12 +127,12 @@ struct m2
 };
 
 // test set 2 metadata
-const Simple_metadata s3_d = {{"count", 1, sizeof(int), true}, nullptr, nullptr, nullptr};
+const Simple_metadata s3_d = {{"count", 1, sizeof(int), true}, nullptr, nullptr, cm_prt_hexstr};
 Simple_descriptor s3(&s3_d);
 const Aggregate_data ca3_d = {&s3, 1, offsetof(struct m2, cnt)};
 Contained_aggregate ca3(&ca3_d);
 
-const Simple_metadata s4_d = {{"owned", 2, sizeof(int), true}, cm_set_int, setdef_spy, nullptr};
+const Simple_metadata s4_d = {{"owned", 2, sizeof(int), true}, cm_set_int, setdef_spy, cm_prt_hexstr};
 Simple_descriptor s4(&s4_d);
 const Aggregate_data oa4_d = {&s4, MAX_NUMBER_OWNED_SET2, offsetof(struct m2, owned)};
 Owned_aggregate oa4(&oa4_d, &ca3);
