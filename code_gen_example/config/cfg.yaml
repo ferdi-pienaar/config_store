@@ -3,103 +3,6 @@
 # to the build system that makes the executable that also includes
 # the config manager library.
 ---
-const_max_users: &nUsers
-    name: MAX_NUM_USERS
-    type: const unsigned short
-    value: 3
-
-const_num_ports: &nPorts
-    name: NUM_PORTS
-    type: const unsigned short
-    value: 4
-
-const_name_length: &nameLength
-    name: NAME_LEN
-    type: constexpr int
-    value: 16
-
-# Component item defined here to avoid too much indenting
-user_item: &user
-    name: user
-    persistent: true
-    aggregate:
-    -   count: 1
-        type: contained
-        item:
-            name: name
-            persistent: true
-            set: cfg_mgr::cm_set_str
-            setdef: cfg_mgr::cm_setdef_null
-            print: cfg_mgr::cm_prt_str
-            array:
-                count: *nameLength
-                type: char
-    -   count: 1
-        type: contained
-        item:
-            name: id
-            persistent: true
-            set: cfg_mgr::cm_set_int
-            setdef: cfg_mgr::cm_setdef_null
-            print: cfg_mgr::cm_prt_int
-            type: unsigned long
-    -   &tempCnt_aggr
-        count: 1
-        type: contained # Counter of owned item named 'temp' is contained.
-        item:
-            name: tempCnt
-            persistent: false # no need to save counter to NVRAM
-            print: cfg_mgr::cm_prt_int
-            type: unsigned short
-    -   count: 3
-        type: owned
-        counter: *tempCnt_aggr
-        item:
-            name: temp
-            persistent: true
-            set: set_temp
-            setdef: setdef_temp
-            print: prt_temp
-            type: short
-    -   count: 1
-        type: contained
-        item:
-            name: elapsed
-            persistent: false
-            print: cfg_mgr::cm_prt_int
-            type: unsigned
-
-# Component item defined here to avoid too much indenting
-home_item: &home
-    name: home
-    persistent: true
-    aggregate:
-    -   count: 1
-        type: owned
-        item:
-            name: addr
-            persistent: true
-            set: cfg_mgr::cm_set_int
-            setdef: cfg_mgr::cm_setdef_null
-            print: cfg_mgr::cm_prt_int
-            type: unsigned
-    -   count: 1
-        type: owned
-        item:
-            name: location
-            persistent: true
-            aggregate:
-            -   count: 1
-                type: contained
-                item:
-                    name: name
-                    persistent: true
-                    set: cfg_mgr::cm_set_str
-                    setdef: cfg_mgr::cm_setdef_null
-                    print: cfg_mgr::cm_prt_str
-                    array:
-                        count: *nameLength
-                        type: u_char
 
 # Parent item
 item:
@@ -115,7 +18,10 @@ item:
             setdef: cfg_mgr::cm_setdef_null
             print: cfg_mgr::cm_prt_int
             type: unsigned long
-    -   count: *nPorts
+    -   count:
+            name: NUM_PORTS
+            type: const unsigned short
+            value: 4
         type: contained
         item:
             name: port
@@ -124,18 +30,102 @@ item:
             setdef: cfg_mgr::cm_setdef_null
             print: cfg_mgr::cm_prt_int
             type: unsigned short
-    -   &userCnt_aggr
-        count: 1
+    -   count: 1
         type: contained
         item:
             name: userCnt
             persistent: false
             print: cfg_mgr::cm_prt_int
             type: unsigned short
-    -   count: *nUsers
+    -   count:
+            name: MAX_NUM_USERS
+            type: const unsigned short
+            value: 3
         type: owned
-        counter: *userCnt_aggr
-        item: *user
+        counter: userCnt
+        item:
+            name: user
+            persistent: true
+            aggregate:
+            -   count: 1
+                type: contained
+                item:
+                    name: name
+                    persistent: true
+                    set: cfg_mgr::cm_set_str
+                    setdef: cfg_mgr::cm_setdef_null
+                    print: cfg_mgr::cm_prt_str
+                    array:
+                        count:
+                            name: NAME_LEN
+                            type: constexpr int
+                            value: 16
+                        type: char
+            -   count: 1
+                type: contained
+                item:
+                    name: id
+                    persistent: true
+                    set: cfg_mgr::cm_set_int
+                    setdef: cfg_mgr::cm_setdef_null
+                    print: cfg_mgr::cm_prt_int
+                    type: unsigned long
+                count: 1
+                type: contained # Counter of owned item named 'temp' is contained.
+                item:
+                    name: tempCnt
+                    persistent: false # no need to save counter to NVRAM
+                    print: cfg_mgr::cm_prt_int
+                    type: unsigned short
+            -   count: 3
+                type: owned
+                counter: tempCnt
+                item:
+                    name: temp
+                    persistent: true
+                    set: set_temp
+                    setdef: setdef_temp
+                    print: prt_temp
+                    type: short
+            -   count: 1
+                type: contained
+                item:
+                    name: elapsed
+                    persistent: false
+                    print: cfg_mgr::cm_prt_int
+                    type: unsigned
     -   count: 1
         type: contained
-        item: *home
+        item:
+            name: home
+            persistent: true
+            aggregate:
+            -   count: 1
+                type: owned
+                item:
+                    name: addr
+                    persistent: true
+                    set: cfg_mgr::cm_set_int
+                    setdef: cfg_mgr::cm_setdef_null
+                    print: cfg_mgr::cm_prt_int
+                    type: unsigned
+            -   count: 1
+                type: owned
+                item:
+                    name: location
+                    persistent: true
+                    aggregate:
+                    -   count: 1
+                        type: contained
+                        item:
+                            name: name
+                            persistent: true
+                            set: cfg_mgr::cm_set_str
+                            setdef: cfg_mgr::cm_setdef_null
+                            print: cfg_mgr::cm_prt_str
+                            array:
+                                count:
+                                    name: NAME_LEN
+                                    type: constexpr int
+                                    value: 16
+                                type: u_char

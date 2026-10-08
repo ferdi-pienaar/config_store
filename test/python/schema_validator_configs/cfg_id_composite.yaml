@@ -1,0 +1,7 @@
+components:
+- id: 0
+  name: ipaddr
+- id: 1
+  name: port
+id: 47792
+name: device

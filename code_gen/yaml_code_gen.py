@@ -378,23 +378,20 @@ class ContainedAggregate(Aggregate):
 class OwnedAggregate(Aggregate):
     def __init__(self, d, id_gen, old_id, container_name):
         Aggregate.__init__(self, d, id_gen, old_id, container_name)
-        self.counter_name = ""
-        if 'counter' in self.d:
-            self.counter_name = self.d['counter']['item']['name']
 
     def get_instance_definition(self, parent_name):
         s = self.item.get_type_and_name('owned') + "; // Pointer to item"
         if self.get_max_count() > 1:
             s += " array, max entries is " + self.get_count_str(parent_name)
             if 'counter' in self.d:
-                s += ", counter is " + self.d['counter']['item']['name']
+                s += ", counter is " + self.d['counter']
         s += ".\n"
         return s
 
     def get_instantiate(self):
         s = "cfg_mgr::Owned_aggregate aggregate(&aggregate_data"
-        if len(self.counter_name) > 0:
-            s += ", &" + self.counter_name + "::aggregate"
+        if 'counter' in self.d:
+            s += ", &" + self.d['counter'] + "::aggregate"
         else:
             s += ", nullptr"
         s += ");\n"
@@ -443,8 +440,7 @@ def validate_yaml(yaml_data, schema_file, script):
     schema = yamale.make_schema(schema_file)
     data = yamale.make_data(content=yaml_data)
     try:
-        # To ignore validation failed only at the top level, due to anchors with unexpected keys.
-        yamale.validate(schema, data, strict=False)
+        yamale.validate(schema, data)
     except ValueError as e:
         print("{}: Validation failed {}".format(script, str(e)))
         return False

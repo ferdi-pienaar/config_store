@@ -1,0 +1,9 @@
+
+item:
+    name: device
+    persistent: true
+    type: int
+    print: printf
+    set: setint
+    setdef: pnk
+

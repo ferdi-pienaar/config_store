@@ -1,0 +1,17 @@
+
+item:
+    name: device
+    persistent: true
+    aggregate:
+    -   count:
+            name: MAX_NUM_USERS
+            type: unsigned short
+            value: 3
+        type: contained
+        item:
+            name: ipaddr
+            persistent: true
+            set: cfg_mgr::cm_set_int
+            setdef: cfg_mgr::cm_setdef_null
+            print: cfg_mgr::cm_prt_int
+            type: unsigned long

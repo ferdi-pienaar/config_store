@@ -1,0 +1,22 @@
+
+item:
+    name: device
+    persistent: true
+    aggregate:
+    -   count: 1
+        type: contained
+        item:
+            name: addrCnt
+            persistent: false
+            print: cfg_mgr::cm_prt_int
+            type: unsigned long
+    -   count: 2
+        type: owned
+        counter: addrCnt
+        item:
+            name: ipaddr
+            persistent: true
+            set: cfg_mgr::cm_set_int
+            setdef: cfg_mgr::cm_setdef_null
+            print: cfg_mgr::cm_prt_int
+            type: unsigned long
