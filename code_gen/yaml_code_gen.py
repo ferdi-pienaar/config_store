@@ -206,12 +206,15 @@ class SimpleItem(Item):
             pass
         return s
 
+    def validate(self):
+        "Validation of simple item is OK."
+        return True
+
 def get_value_from_dictionary_list(dlist, key):
     "Helper function: from list of dictionaries, return the value of 1st dictionary with the desired 'name' entry(or None)"
     for d in dlist:
         if d['name'] == key:
             return d
-
 
 class CompositeItem(Item):
     def __init__(self, d, container_id_gen, old_id, full_namespace):
@@ -322,6 +325,32 @@ class CompositeItem(Item):
         "Composite items don't define constants"
         return ""
 
+    def validate(self):
+        "Validate self and recursively validate components."
+        for aggr in self.aggregates:
+            #print("check aggregate {} in {}".format(aggr.item.d['name'], self.d['name']))
+            counter_aggr = None
+            if 'counter' in aggr.d:
+                #print("aggregate {} has counter {}".format(aggr.item.d['name'], aggr.d['counter']))
+                # aggregate refers to a counter, so find and check that counter.
+                for ca in self.aggregates:
+                    if ca.item.d['name'] == aggr.d['counter']:
+                        counter_aggr = ca
+                        break
+                if counter_aggr is None:
+                    print("counter {} not in composite {}".format(aggr.d['counter'], self.d['name']))
+                    return False
+                # The counter aggregate exists in this composite, so validate it.
+                valid, msg = counter_aggr.validate_counter()
+                if not valid:
+                    print("counter {} in {} invalid: {}".format(aggr.d['counter'], self.d['name'], msg))
+                    return False
+            # aggr is valid, next validate its item.
+            if not aggr.item.validate():
+                return False
+        return True
+
+
 class Aggregate:
     def __init__(self, d, id_gen, old_id, container_name):
         self.d = d
@@ -359,6 +388,17 @@ class Aggregate:
             # If no counter that includes type, name and value, then there are no constants
             pass
         return s
+
+    def validate_counter(self):
+        "This aggregate is a counter for an owned component, check it meets requirements."
+        #print("found counter")
+        if self.d['type'] != "contained":
+            return False, "not contained"
+        if self.d['count'] != 1:
+            return False, "{} instances".format(self.d['count'])
+        if 'setdef' in self.item.d:
+            return False, "has setdef"
+        return True, ""
 
 class ContainedAggregate(Aggregate):
     def __init__(self, d, id_gen, old_id, container_name):
@@ -437,6 +477,7 @@ def loadCfgData(script, cfgFileName):
 
 
 def validate_yaml(yaml_data, schema_file, script):
+    "Validate YAML data using Yamale schema file -- these are basic validations."
     schema = yamale.make_schema(schema_file)
     data = yamale.make_data(content=yaml_data)
     try:
@@ -557,6 +598,9 @@ if __name__ == "__main__":
     baseItem = makeBaseItem(scriptName, cfg_text, id_text)
     if baseItem is None:
         sys.exit()
+
+    if not baseItem.validate():
+        sys.exit("Validation failed.")
 
     saveDefinitionFile(definitionFilePath, scriptName, cfgFilePath, baseItem)
     saveInititializationFile(initializationFilePath,

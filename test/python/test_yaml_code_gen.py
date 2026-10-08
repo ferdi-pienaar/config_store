@@ -4,6 +4,16 @@
 import yaml_code_gen
 import yaml
 import unittest
+from pathlib import Path
+
+TEST_DIR = Path(__file__).resolve().parent
+TEST_CONFIG_DIR = TEST_DIR/"schema_validator_configs"
+
+# Helper function opens file and returns its data
+def get_file_data(file_path):
+    with open(file_path) as f:
+        data = f.read()
+    return data
 
 class Test_Id_generator(unittest.TestCase):
     def test_get_id(self):
@@ -132,7 +142,32 @@ class Test_contained_array_gen(unittest.TestCase):
 
     def test_contained_array_init(self):
         b = yaml_code_gen.makeBaseItem("script", self.cfg, self.id)
-        print(b.get_init())
+        #print(b.get_init())
+
+class Test_invalid_config(unittest.TestCase):
+    def setUp(self):
+        # Code executed before each test
+        self.id = get_file_data(TEST_CONFIG_DIR/"cfg_id_counter.yaml")
+
+    def test_invalid_owned_counter_ref(self):
+        cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_owned_counter_ref.yaml")
+        b = yaml_code_gen.makeBaseItem("script", cfg, self.id)
+        self.assertFalse(b.validate())
+
+    def test_invalid_owned_counter_multiple(self):
+        cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_owned_counter_multiple.yaml")
+        b = yaml_code_gen.makeBaseItem("script", cfg, self.id)
+        self.assertFalse(b.validate())
+
+    def test_invalid_owned_counter_owned(self):
+        cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_owned_counter_owned.yaml")
+        b = yaml_code_gen.makeBaseItem("script", cfg, self.id)
+        self.assertFalse(b.validate())
+
+    def test_invalid_owned_counter_setdef(self):
+        cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_owned_counter_setdef.yaml")
+        b = yaml_code_gen.makeBaseItem("script", cfg, self.id)
+        self.assertFalse(b.validate())
 
 if __name__ == "__main__":
     unittest.main()

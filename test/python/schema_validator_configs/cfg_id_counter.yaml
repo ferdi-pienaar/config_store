@@ -1,0 +1,7 @@
+name: device
+id: 0
+components:
+- name: addrCnt
+  id: 0
+- name: ipaddr
+  id: 1
