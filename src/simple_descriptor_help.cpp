@@ -12,7 +12,7 @@ void Simple_descriptor::handleHelp(Command_stack * cmd) const
     help(empty, empty, 0);
 }
 
-void Simple_descriptor::help(string &prefix, const string &aggr_info, unsigned depth) const
+void Simple_descriptor::help(string prefix, const string &aggr_info, unsigned depth) const
 {
     m_mgr_service->m_print("%s%s %slen %u\n", prefix.c_str(), getName(), aggr_info.c_str(), getLen());
 }

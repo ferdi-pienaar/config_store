@@ -70,7 +70,7 @@ item:
                     setdef: cfg_mgr::cm_setdef_null
                     print: cfg_mgr::cm_prt_int
                     type: unsigned long
-                count: 1
+            -   count: 1
                 type: contained # Counter of owned item named 'temp' is contained.
                 item:
                     name: tempCnt

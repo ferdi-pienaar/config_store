@@ -50,7 +50,7 @@ public:
     bool set(uint8_t * pItem, std::string val) const;
     void setDefault(uint8_t * pItem) const override;
     void handleHelp(Command_stack * cmd) const override;
-    void help(std::string &prefix, const std::string &aggr_info, unsigned depth) const override;
+    void help(std::string prefix, const std::string &aggr_info, unsigned depth) const override;
     virtual void save(const uint8_t * pItem) const override;
     Result startLoad() const override;
     Result endLoad(uint8_t * pItem) const override;

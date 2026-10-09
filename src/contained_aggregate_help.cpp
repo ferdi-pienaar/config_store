@@ -8,7 +8,7 @@ namespace cfg_mgr
 {
 
 // Give name, count
-void Contained_aggregate::help(string &prefix, unsigned depth) const
+void Contained_aggregate::help(string prefix, unsigned depth) const
 {
     string info = "[" + to_string(getData()->maxCount) + "] ";
     m_data->pDesc->help(prefix, info, depth);

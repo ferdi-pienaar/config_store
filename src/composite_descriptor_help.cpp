@@ -14,8 +14,6 @@ void Composite_descriptor::handleHelp(Command_stack * cmd) const
 {
     DBG_PRT("%s\n op %s\n", __PRETTY_FUNCTION__, Command_stack::OpString(cmd->getTopOp()));
 
-    string empty;
-
     switch (cmd->getTopOp())
     {
     case Command_stack::CM_OP_NONE:
@@ -30,7 +28,7 @@ void Composite_descriptor::handleHelp(Command_stack * cmd) const
 
     case Command_stack::CM_EMPTY:
         // No more words, so the command is help for this item. depth=0 means unlimited.
-        help(empty, empty, 0);
+        help("", "", 0);
         return;
 
     default:
@@ -63,13 +61,12 @@ void Composite_descriptor::helpDepth(Command_stack * cmd) const
         // xxx msg
         return;
     }
-    string empty;
-    help(empty, empty, depth);
+    help("", "", depth);
 }
 
 // Give help for each component.
 // If depth is 0, iterate to leaf; if 1, print this level and return; else decrement and pass to aggregate.
-void Composite_descriptor::help(string &prefix, const string &aggr_info, unsigned depth) const
+void Composite_descriptor::help(string prefix, const string &aggr_info, unsigned depth) const
 {
     m_mgr_service->m_print("%s%s %slen %u\n", prefix.c_str(), getName(), aggr_info.c_str(), getLen());
 
@@ -81,10 +78,9 @@ void Composite_descriptor::help(string &prefix, const string &aggr_info, unsigne
         }
     }
 
-    prefix += " ";
     for (unsigned i = 0; i < m_data->aggrCount; i++)
     {
-        getAggrAtIndex(i)->help(prefix, depth);
+        getAggrAtIndex(i)->help(prefix + "  ", depth);
     }
 }
 

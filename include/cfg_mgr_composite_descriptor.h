@@ -41,7 +41,7 @@ public:
     void print(const uint8_t * pItem, std::string prefix, bool include_state) const override;
     void setDefault(uint8_t * pItem) const override;
     void handleHelp(Command_stack * cmd) const override;
-    void help(std::string &prefix, const std::string &aggr_info, unsigned depth) const override;
+    void help(std::string prefix, const std::string &aggr_info, unsigned depth) const override;
     void save(const uint8_t * pItem) const override;
     Result startLoad() const override;
     Result endLoad(uint8_t * pItem) const override;

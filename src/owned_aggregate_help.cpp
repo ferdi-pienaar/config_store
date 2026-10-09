@@ -10,7 +10,7 @@ namespace cfg_mgr
 
 // Give name, current count, and maxcount.
 // xxx todo if there's no counter, give a warning if one is necessary, i.e. if maxCount > 1.
-void Owned_aggregate::help(string &prefix, unsigned depth) const
+void Owned_aggregate::help(string prefix, unsigned depth) const
 {
     string info = "=> [" + to_string(getData()->maxCount) + "] ";
     if (m_counterAggr != nullptr)

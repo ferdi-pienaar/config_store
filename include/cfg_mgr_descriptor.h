@@ -71,7 +71,7 @@ public:
     virtual void print(const uint8_t * pItem, std::string prefix, bool include_state) const = 0;
     virtual void setDefault(uint8_t * pItem) const = 0;
     virtual void handleHelp(Command_stack * cmd) const = 0;
-    virtual void help(std::string &prefix, const std::string &aggr_info, unsigned depth) const = 0;
+    virtual void help(std::string prefix, const std::string &aggr_info, unsigned depth) const = 0;
     virtual bool isPersistent() const = 0;
 
 protected:
