@@ -51,7 +51,7 @@ void setdef_t1(uint8_t *pItem, item_len_t len)
 
 
 // test set 1 metadata
-const Simple_metadata s1_d = {{"name1", 1, sizeof(char) * STRING_ARRAY_LEN, true}, cm_set_str, cm_setdef_null, cm_prt_str};
+const Simple_metadata s1_d = {{"name1", 1, sizeof(char) * STRING_ARRAY_LEN, true}, cm_set_str, cm_setdef_null, nullptr};
 Simple_descriptor s1(&s1_d);
 const Aggregate_data ca1_d = {&s1, 1, offsetof(struct m, m1)};
 Contained_aggregate ca1(&ca1_d);
@@ -164,6 +164,15 @@ TEST_F(CfgMgrContainedCommon, set_integer_not_an_integer)
     //std::cout << cm_printf_spy_get();
     EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
     EXPECT_EQ(7, C1_CONFIG->m2[0]);
+}
+
+// The components with prt functions print, and those without prt function don't print.
+TEST_F(CfgMgrContainedCommon, print_composite_with_unprintable_component)
+{
+    std::vector<char *> command = {(char *)"prt"};
+    cm->handleCmd(command.size(), command.data());
+
+    EXPECT_STREQ("name2 0 = 7\nname2 1 = 7\n", cm_printf_spy_get());
 }
 
 } // namespace

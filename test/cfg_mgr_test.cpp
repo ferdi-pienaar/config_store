@@ -934,7 +934,7 @@ Composite_descriptor c2(&c2_d);
 struct m2 * CONFIG = nullptr;
 } // namespace
 
-class CfgMgrContainedContained : public testing::Test
+class CfgMgrOwnedOwned : public testing::Test
 {
 protected:
     Nvram_spy * nvram;
@@ -956,7 +956,7 @@ protected:
 };
 
 // Can't add to a composite that hasn't been created.
-TEST_F(CfgMgrContainedContained, invalid_add)
+TEST_F(CfgMgrOwnedOwned, invalid_add)
 {
     char * commandWord[] = {(char *)"m1", (char *)"add", (char *)"pint"};
     cm->handleCmd(3, commandWord);
@@ -966,7 +966,7 @@ TEST_F(CfgMgrContainedContained, invalid_add)
 }
 
 // Can't delete from composite that hasn't been created.
-TEST_F(CfgMgrContainedContained, invalid_del)
+TEST_F(CfgMgrOwnedOwned, invalid_del)
 {
     char * commandWord[] = {(char *)"m1", (char *)"del", (char *)"pint"};
     cm->handleCmd(3, commandWord);
@@ -976,7 +976,7 @@ TEST_F(CfgMgrContainedContained, invalid_del)
 }
 
 // Add a contained item and change context to it.
-TEST_F(CfgMgrContainedContained, change_context)
+TEST_F(CfgMgrOwnedOwned, change_context)
 {
     char * commandWord[] = {(char *)"add", (char *)"m1"};
     cm->handleCmd(2, commandWord);
@@ -987,7 +987,7 @@ TEST_F(CfgMgrContainedContained, change_context)
 }
 
 // Print config skips this non-persitent composite, although it has content
-TEST_F(CfgMgrContainedContained, print_config_non_persistent_composite)
+TEST_F(CfgMgrOwnedOwned, print_config_non_persistent_composite)
 {
     char * commandWord[] = {(char *)"m1", (char *)"pint", (char *)"=", (char *)"441"};
     cm->handleCmd(4, commandWord);

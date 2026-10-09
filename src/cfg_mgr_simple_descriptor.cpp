@@ -16,7 +16,10 @@ void Simple_descriptor::print(const uint8_t * pItem, string prefix, bool show_st
 {
     DBG_PRT("print simple %s len %d at %p show_state=%d\n", getName(), getLen(), pItem, show_state);
 
-    m_mgr_service->m_print("%s= %s\n", prefix.c_str(), m_data->pPrt(pItem, getLen()).c_str());
+    if (m_data->pPrt != nullptr)
+    {
+        m_mgr_service->m_print("%s= %s\n", prefix.c_str(), m_data->pPrt(pItem, getLen()).c_str());
+    }
 }
 
 // Evaluate cmd for simple item.
