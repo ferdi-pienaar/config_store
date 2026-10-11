@@ -51,7 +51,7 @@ void setdef_t1(uint8_t *pItem, item_len_t len)
 
 
 // test set 1 metadata
-const Simple_metadata s1_d = {{"name1", 1, sizeof(char) * STRING_ARRAY_LEN, true}, cm_set_str, cm_setdef_null, nullptr};
+const Simple_metadata s1_d = {{"name1", 1, sizeof(char) * STRING_ARRAY_LEN, false}, cm_set_str, cm_setdef_null, nullptr};
 Simple_descriptor s1(&s1_d);
 const Aggregate_data ca1_d = {&s1, 1, offsetof(struct m, m1)};
 Contained_aggregate ca1(&ca1_d);

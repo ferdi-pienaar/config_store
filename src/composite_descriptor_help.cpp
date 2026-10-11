@@ -58,7 +58,7 @@ void Composite_descriptor::helpDepth(Command_stack * cmd) const
     unsigned depth = 0;
     if (!cmd->popUnsignedInt(depth))
     {
-        // xxx msg
+        m_mgr_service->m_print("Invalid: 'depth' needs a non-negative integer.\n", cmd->getTop(), getName());
         return;
     }
     help("", "", depth);
@@ -68,7 +68,8 @@ void Composite_descriptor::helpDepth(Command_stack * cmd) const
 // If depth is 0, iterate to leaf; if 1, print this level and return; else decrement and pass to aggregate.
 void Composite_descriptor::help(string prefix, const string &aggr_info, unsigned depth) const
 {
-    m_mgr_service->m_print("%s%s %slen %u\n", prefix.c_str(), getName(), aggr_info.c_str(), getLen());
+    m_mgr_service->m_print("%s%s %slen %u %spersistent\n",
+        prefix.c_str(), getName(), aggr_info.c_str(), getLen(), m_data->c.persistent ? "" : "not ");
 
     if (depth > 0)
     {

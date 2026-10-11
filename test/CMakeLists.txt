@@ -31,9 +31,11 @@ target_sources(config_store_test_support PRIVATE
     ../util/cfg_mgr_strtok.cpp
 )
 
-set(COMMON_TEST_SOURCES
-    cfg_mgr_common_test.cpp
-)
+if(HELP_ENABLE)
+set(COMMON_TEST_SOURCES cfg_mgr_common_test.cpp cfg_mgr_help_test.cpp)
+else()
+set(COMMON_TEST_SOURCES cfg_mgr_common_test.cpp)
+endif()
 
 set(TLV_TEST_SOURCES
     cm_tlvTest.cpp

@@ -88,6 +88,7 @@ A Owned Aggregate means the component items reside in a block of memory that is 
 ```mermaid
 ---
 config:
+  layout: elk
   class:
     hideEmptyMembersBox: true
 ---
@@ -147,6 +148,7 @@ There is currently no protection against concurrent access to the RAM data by a 
 ```mermaid
 ---
 config:
+  layout: elk
   class:
     hideEmptyMembersBox: true
 ---
