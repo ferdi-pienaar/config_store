@@ -2,6 +2,7 @@
 // xxx This differs from config_manager.h in that... It's not for export?
 #pragma once
 
+#include <memory>
 #include <stdint.h> // uint8_t, etc
 
 namespace cfg_mgr
@@ -44,7 +45,7 @@ static inline const char * ResultString(Result r)
 struct Mgr_service
 {
     PRINTF_FN_TYPE m_print;
-    Store * m_store;
+    std::unique_ptr<Store> m_store;
 };
 
 }

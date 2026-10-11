@@ -20,24 +20,16 @@ static uint8_t clientRam[1024];
 namespace {
 class JsonTest : public testing::Test {
 protected:
-    Nvram_spy * nvram;
-    JsonWriter * json_writer;
-    JsonLoader * json_loader;
+    unique_ptr<Nvram_spy> nvram;
+    unique_ptr<JsonWriter> json_writer;
+    unique_ptr<JsonLoader> json_loader;
 
     virtual void SetUp()
     {
-        nvram = new Nvram_spy;
-        json_writer = new JsonWriter(nvram);
-        json_loader = new JsonLoader(nvram);
+        nvram = make_unique<Nvram_spy>();
+        json_writer = make_unique<JsonWriter>(nvram.get());
+        json_loader =  make_unique<JsonLoader>(nvram.get());
         memset(clientRam, 0, sizeof(clientRam));
-    }
-
-    virtual void TearDown()
-    {
-        //clean up steps are executed after each TEST
-        delete json_writer;
-        delete json_loader;
-        delete nvram;
     }
 };
 

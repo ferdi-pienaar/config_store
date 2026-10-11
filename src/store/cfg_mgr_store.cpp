@@ -10,9 +10,9 @@ using namespace std;
 namespace cfg_mgr
 {
 
-Store * Store::createStore(Nvram_itf * nvram)
+unique_ptr<Store> Store::createStore(Nvram_itf * nvram)
 {
-    return createStorex(nvram);
+    return createStoreSpecific(nvram);
 }
 
 Result Store::startLoad() const

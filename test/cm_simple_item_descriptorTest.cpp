@@ -6,6 +6,7 @@
 
 #include "gtest/gtest.h"
 #include "cfg_mgr_simple_descriptor.h"  // Unit under test
+#include "store/cfg_mgr_store.h"
 #include "cfg_mgr_set_int.h"     // Extensions to unit under test (generic "set" functions)
 #include "cfg_mgr_prt_hexstr.h"  // Extensions to unit under test (generic "print" functions)
 #include "cfg_mgr_printf_spy.h"

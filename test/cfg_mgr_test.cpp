@@ -67,21 +67,15 @@ struct m * C1_CONFIG = nullptr;
 class CfgMgrContained : public testing::Test
 {
 protected:
-    Nvram_spy * nvram;
-    Config_manager_implement * cm;
-
     //Define data accessible to test group members here.
+    unique_ptr<Nvram_spy> nvram;
+    unique_ptr<Config_manager_implement> cm;
+
     virtual void SetUp()
     {
-        nvram = new Nvram_spy;
-        cm = new Config_manager_implement(&c1, cm_printf_spy, (uint8_t **)&C1_CONFIG, nvram);
+        nvram = make_unique<Nvram_spy>();
+        cm = make_unique<Config_manager_implement>(&c1, cm_printf_spy, (uint8_t **)&C1_CONFIG, nvram.get());
         cm_printf_spy_init();
-    }
-
-    virtual void TearDown()
-    {
-        delete cm;
-        delete nvram;
     }
 };
 
@@ -175,7 +169,6 @@ TEST_F(CfgMgrContained, save)
     EXPECT_TRUE(nvram->match(expectedTlv, sizeof(expectedTlv)));
 }
 
-
 // Load TLV file and verify what CUT saves in RAM.
 TEST_F(CfgMgrContained, load)
 {
@@ -192,7 +185,6 @@ TEST_F(CfgMgrContained, load)
     EXPECT_EQ(8, C1_CONFIG->m1);
     EXPECT_EQ(9, C1_CONFIG->m2);
 }
-
 
 // Verify what's loaded into memory, given TLV file with L of 2nd simple
 // component that doesn't match the item descriptor.
@@ -212,7 +204,6 @@ TEST_F(CfgMgrContained, loadChangedSimpleLen)
     EXPECT_EQ(0, C1_CONFIG->m1); // Default
     EXPECT_EQ(7, C1_CONFIG->m2); // Default; not read from the file, because TLV's L is bad
 }
-
 
 // Verify what's loaded into memory, given a TLV file that's read on startup that contains
 // an unknown Type value.
@@ -239,7 +230,6 @@ TEST_F(CfgMgrContained, loadUnknown)
     EXPECT_TRUE(nvram->match(expectedTlv, sizeof(expectedTlv)));
 }
 
-
 // Verify what's saved to TLV, given a TLV file that's read on startup that's
 // missing an element of a structure.
 // The element m1 that's not in the TLV is saved to TLV, populated with default value.
@@ -264,7 +254,6 @@ TEST_F(CfgMgrContained, loadMissing)
     EXPECT_TRUE(nvram->match(expectedTlv, sizeof(expectedTlv)));
 }
 
-
 // Load file with last item missing from CONTAINED composite
 // Load fails, so defaults are set.
 TEST_F(CfgMgrContained, loadTruncated)
@@ -280,7 +269,6 @@ TEST_F(CfgMgrContained, loadTruncated)
     EXPECT_EQ(0, C1_CONFIG->m1);
     EXPECT_EQ(7, C1_CONFIG->m2);
 }
-
 
 // Load file with partial last item in CONTAINED composite
 // Load fails, so defaults are set.
@@ -299,7 +287,6 @@ TEST_F(CfgMgrContained, loadTruncated1)
     EXPECT_EQ(7, C1_CONFIG->m2);
 }
 
-
 // Load file with partial last item in CONTAINED composite
 // Load fails, so defaults are set.
 TEST_F(CfgMgrContained, loadTruncated2)
@@ -315,7 +302,6 @@ TEST_F(CfgMgrContained, loadTruncated2)
     EXPECT_EQ(0, C1_CONFIG->m1);
     EXPECT_EQ(7, C1_CONFIG->m2);
 }
-
 
 // Load file with incoherent CONTAINED composite (sum of the sizes
 // of components is larger than the size of the composite).
@@ -334,7 +320,6 @@ TEST_F(CfgMgrContained, DISABLED_loadIncoherent)
     EXPECT_EQ(0, C1_CONFIG->m1);
     EXPECT_EQ(7, C1_CONFIG->m2);
 }
-
 
 // Load file with incoherent CONTAINED composite (sum of the sizes
 // of components is smaller than the size of the composite).
@@ -385,21 +370,15 @@ struct m2 * C2_CONFIG = nullptr;
 class CfgMgrOwned : public testing::Test
 {
 protected:
-    Nvram_spy * nvram;
-    Config_manager_implement * cm;
-
     //Define data accessible to test group members here.
+    unique_ptr<Nvram_spy> nvram;
+    unique_ptr<Config_manager_implement> cm;
+
     virtual void SetUp()
     {
-        nvram = new Nvram_spy;
-        cm = new Config_manager_implement(&c2, cm_printf_spy, (uint8_t **)&C2_CONFIG, nvram);
+        nvram = make_unique<Nvram_spy>();
+        cm = make_unique<Config_manager_implement>(&c2, cm_printf_spy, (uint8_t **)&C2_CONFIG, nvram.get());
         cm_printf_spy_init();
-    }
-
-    virtual void TearDown()
-    {
-        delete cm;
-        delete nvram;
     }
 };
 
@@ -601,7 +580,6 @@ TEST_F(CfgMgrOwned, loadNonPersistent)
     EXPECT_EQ(5, C2_CONFIG->owned[0]);
 }
 
-
 // Verify data saved to TLV, with default data in RAM as input to the test.
 // The contained component is not saved because it is not persistent,
 // and there is no owned component by default, so nothing is saved.
@@ -650,7 +628,6 @@ TEST_F(CfgMgrOwned, implicitAdd)
     EXPECT_TRUE(nvram->match(expectedTlv, sizeof(expectedTlv)));
 }
 
-
 // From default RAM start, do explicit add and check what's saved to TLV
 TEST_F(CfgMgrOwned, explicitAdd)
 {
@@ -672,7 +649,6 @@ TEST_F(CfgMgrOwned, explicitAdd)
 
     EXPECT_TRUE(nvram->match(expectedTlv, sizeof(expectedTlv)));
 }
-
 
 // Verify what's saved to TLV, given a TLV file that's read on startup,
 // and a delete operation.
@@ -733,21 +709,15 @@ struct m3 * C3_CONFIG = nullptr;
 class CfgMgrContainedArray : public testing::Test
 {
 protected:
-    Nvram_spy * nvram;
-    Config_manager_implement * cm;
-
     //Define data accessible to test group members here.
+    unique_ptr<Nvram_spy> nvram;
+    unique_ptr<Config_manager_implement> cm;
+
     virtual void SetUp()
     {
-        nvram = new Nvram_spy;
-        cm = new Config_manager_implement(&c3, cm_printf_spy, (uint8_t **)&C3_CONFIG, nvram);
+        nvram = make_unique<Nvram_spy>();
+        cm = make_unique<Config_manager_implement>(&c3, cm_printf_spy, (uint8_t **)&C3_CONFIG, nvram.get());
         cm_printf_spy_init();
-    }
-
-    virtual void TearDown()
-    {
-        delete cm;
-        delete nvram;
     }
 };
 
@@ -811,7 +781,6 @@ TEST_F(CfgMgrContainedArray, load)
     EXPECT_EQ(8, C3_CONFIG->m1[1]);
 }
 
-
 // Verify what's saved to TLV, given a TLV file that's read on startup that
 // has more than the max number of a CONTAINED component.
 //
@@ -867,20 +836,15 @@ struct m6 * C4_CONFIG = nullptr;
 class CfgMgrContainedArrays : public testing::Test
 {
 protected:
-    Nvram_spy * nvram;
-    Config_manager_implement * cm;
-
     //Define data accessible to test group members here.
+    unique_ptr<Nvram_spy> nvram;
+    unique_ptr<Config_manager_implement> cm;
+
     virtual void SetUp()
     {
-        nvram = new Nvram_spy;
-        cm = new Config_manager_implement(&c4, cm_printf_spy, (uint8_t **)&C4_CONFIG, nvram);
-    }
-
-    virtual void TearDown()
-    {
-        delete cm;
-        delete nvram;
+        nvram = make_unique<Nvram_spy>();
+        cm = make_unique<Config_manager_implement>(&c4, cm_printf_spy, (uint8_t **)&C4_CONFIG, nvram.get());
+        cm_printf_spy_init();
     }
 };
 
@@ -937,21 +901,15 @@ struct m2 * CONFIG = nullptr;
 class CfgMgrOwnedOwned : public testing::Test
 {
 protected:
-    Nvram_spy * nvram;
-    Config_manager_implement * cm;
-
     //Define data accessible to test group members here.
+    unique_ptr<Nvram_spy> nvram;
+    unique_ptr<Config_manager_implement> cm;
+
     virtual void SetUp()
     {
-        nvram = new Nvram_spy;
-        cm = new Config_manager_implement(&test_set_5::c2, cm_printf_spy, (uint8_t **)&test_set_5::CONFIG, nvram);
+        nvram = make_unique<Nvram_spy>();
+        cm = make_unique<Config_manager_implement>(&test_set_5::c2, cm_printf_spy, (uint8_t **)&test_set_5::CONFIG, nvram.get());
         cm_printf_spy_init();
-    }
-
-    virtual void TearDown()
-    {
-        delete cm;
-        delete nvram;
     }
 };
 

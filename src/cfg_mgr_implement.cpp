@@ -50,7 +50,6 @@ Config_manager_implement::Config_manager_implement(Descriptor * desc,
 Config_manager_implement::~Config_manager_implement()
 {
     free(m_ramBase);
-    delete m_service.m_store; // xxx is this clean, is delete the obvious pair to createStore (in Config_manager_implement constructor)?
 }
 
 /// Execute command words entered by client (via CLI).

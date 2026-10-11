@@ -13,15 +13,13 @@ PRINTF_FN_TYPE cm_printf = nullptr;
 // to Config_manager_implement.
 Config_manager::Config_manager(Descriptor * pDesc, const char * fname, PRINTF_FN_TYPE printf_fn, uint8_t ** ppRAM)
 {
-    m_nvram = new Nvram(fname);
+    m_nvram = std::make_unique<Nvram>(fname);
     cm_printf = printf_fn;
-    m_config_manager = new Config_manager_implement(pDesc, printf_fn, ppRAM, m_nvram);
+    m_config_manager = std::make_unique<Config_manager_implement>(pDesc, printf_fn, ppRAM, m_nvram.get());
 }
 
 Config_manager::~Config_manager()
 {
-    delete m_config_manager;
-    delete m_nvram;
 }
 
 void Config_manager::handleCmd(int argc, char *argv[])

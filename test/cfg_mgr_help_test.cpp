@@ -69,21 +69,15 @@ struct m * C1_CONFIG = nullptr;
 class CfgMgrContainedHelp : public testing::Test
 {
 protected:
-    Nvram_spy * nvram;
-    Config_manager_implement * cm;
-
     //Define data accessible to test group members here.
+    unique_ptr<Nvram_spy> nvram;
+    unique_ptr<Config_manager_implement> cm;
+
     virtual void SetUp()
     {
-        nvram = new Nvram_spy;
-        cm = new Config_manager_implement(&c1, cm_printf_spy, (uint8_t **)&C1_CONFIG, nvram);
+        nvram = make_unique<Nvram_spy>();
+        cm = make_unique<Config_manager_implement>(&c1, cm_printf_spy, (uint8_t **)&C1_CONFIG, nvram.get());
         cm_printf_spy_init();
-    }
-
-    virtual void TearDown()
-    {
-        delete cm;
-        delete nvram;
     }
 };
 

@@ -18,26 +18,17 @@ static uint8_t clientRam[1024];
 namespace {
 class TlvTest : public testing::Test {
 protected:
-    Nvram_spy * nvram;
-    TlvWriter * tlv_writer;
-    TlvLoader * tlv_loader;
+    unique_ptr<Nvram_spy> nvram;
+    unique_ptr<TlvWriter> tlv_writer;
+    unique_ptr<TlvLoader> tlv_loader;
 
     virtual void SetUp()
     {
-        nvram = new Nvram_spy;
-        tlv_writer = new TlvWriter(nvram);
-        tlv_loader = new TlvLoader(nvram);
-    }
-
-    virtual void TearDown()
-    {
-        //clean up steps are executed after each TEST
-        delete tlv_writer;
-        delete tlv_loader;
-        delete nvram;
+        nvram = make_unique<Nvram_spy>();
+        tlv_writer = make_unique<TlvWriter>(nvram.get());
+        tlv_loader = make_unique<TlvLoader>(nvram.get());
     }
 };
-
 
 //
 TEST_F(TlvTest, writeSimple)
@@ -52,7 +43,6 @@ TEST_F(TlvTest, writeSimple)
 
     EXPECT_TRUE(nvram->match(expected, sizeof(expected)));
 }
-
 
 //
 TEST_F(TlvTest, writeComposite)
@@ -75,7 +65,6 @@ TEST_F(TlvTest, writeComposite)
     EXPECT_TRUE(nvram->match(expected, sizeof(expected)));
 }
 
-
 //
 TEST_F(TlvTest, writeNestedComposite)
 {
@@ -94,7 +83,6 @@ TEST_F(TlvTest, writeNestedComposite)
     EXPECT_TRUE(nvram->match(expected, sizeof(expected)));
 }
 
-
 //
 TEST_F(TlvTest, writeNestedCompositeAndSimple)
 {
@@ -112,7 +100,6 @@ TEST_F(TlvTest, writeNestedCompositeAndSimple)
 
     EXPECT_TRUE(nvram->match(expected, sizeof(expected)));
 }
-
 
 //
 TEST_F(TlvTest, loadSimple)
@@ -273,7 +260,6 @@ TEST_F(TlvTest, loadNestedComposite)
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
-
 //
 TEST_F(TlvTest, loadNestedCompositeAndSimple)
 {
@@ -375,7 +361,6 @@ TEST_F(TlvTest, load2Composites)
     EXPECT_TRUE(memcmp(expected, clientRam, sizeof(expected)) == 0);
 }
 
-
 TEST_F(TlvTest, loadTruncatedSimple)
 {
     //                 T       L     V ...
@@ -389,5 +374,5 @@ TEST_F(TlvTest, loadTruncatedSimple)
     Result res = tlv_loader->endLoadSimple(&length, clientRam);
     EXPECT_EQ(Result::CM_READ_FAIL, res);
 }
-} // namespace
 
+} // namespace

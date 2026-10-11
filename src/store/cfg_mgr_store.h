@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h> // uint8_t, etc
+#include <memory>
 #include "cfg_mgr_metadata.h"
 #include "nvram.h"
 
@@ -16,7 +17,7 @@ class Store
 {
 public:
     Store(Nvram_itf * nvram) : m_nvram(nvram) {}
-    virtual ~Store() {}
+    virtual ~Store() = default;
     virtual bool startWrite() const;
     virtual void endWrite() const;
     virtual Result startLoad() const;
@@ -38,7 +39,7 @@ public:
     {
         return Result::CM_SUCCESS;
     }
-    static Store * createStore(Nvram_itf * nvram);
+    static std::unique_ptr<Store> createStore(Nvram_itf * nvram);
 
 protected:
     Nvram_itf * m_nvram;

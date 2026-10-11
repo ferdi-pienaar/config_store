@@ -6,11 +6,12 @@
 #include "store/tlv/cfg_mgr_tlv_writer.h"
 #include "store/tlv/cfg_mgr_tlv_loader.h"
 #include "store/nvram.h"
+#include <memory>
 
 namespace cfg_mgr
 {
 
-Store * createStorex(Nvram_itf * nvram);
+std::unique_ptr<Store> createStoreSpecific(Nvram_itf * nvram);
 
 // Access to TLV persistent storage via the abstract interface represented by Store:
 // it's a ConcreteStrategy of the Strategy Store.
@@ -20,7 +21,7 @@ class Tlv_store : public Store
 {
 public:
     Tlv_store(Nvram_itf * nvram);
-    ~Tlv_store();
+    ~Tlv_store() = default;
     Result startLoad() const override;
     bool startWrite() const override;
     void writeSimple(const Simple_metadata * data, const uint8_t * v) const override;
@@ -32,8 +33,8 @@ public:
     Result endLoadComposite() const override;
 
 private:
-    TlvWriter * m_tlv_writer;
-    TlvLoader * m_tlv_loader;
+    std::unique_ptr<TlvWriter> m_tlv_writer;
+    std::unique_ptr<TlvLoader> m_tlv_loader;
 
 };
 }

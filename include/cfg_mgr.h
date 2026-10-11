@@ -1,5 +1,6 @@
 #pragma once
 #include "cfg_mgr_types.h"
+#include <memory>
 
 namespace cfg_mgr
 {
@@ -26,8 +27,8 @@ public:
     const char * getPromptString() const; ///< get context-dependent prompt string h file
 
 private:
-    Config_manager_implement * m_config_manager;
-    Nvram_itf * m_nvram;
+    std::unique_ptr<Config_manager_implement> m_config_manager;
+    std::unique_ptr<Nvram_itf> m_nvram;
 };
 
 }

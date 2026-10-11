@@ -13,24 +13,16 @@ using namespace std;
 namespace cfg_mgr
 {
 
-Store * createStorex(Nvram_itf * nvram)
+unique_ptr<Store> createStoreSpecific(Nvram_itf * nvram)
 {
-    return new Tlv_store(nvram);
+    return make_unique<Tlv_store>(nvram);
 }
 
 Tlv_store::Tlv_store(Nvram_itf * nvram) : Store(nvram)
 {
-    m_tlv_writer = new TlvWriter(m_nvram);
-    m_tlv_loader = new TlvLoader(m_nvram);
+    m_tlv_writer = make_unique<TlvWriter>(m_nvram);
+    m_tlv_loader = make_unique<TlvLoader>(m_nvram);
 }
-
-
-Tlv_store::~Tlv_store()
-{
-    delete m_tlv_writer;
-    delete m_tlv_loader;
-}
-
 
 Result Tlv_store::startLoad() const
 {

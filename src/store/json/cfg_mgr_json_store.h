@@ -6,11 +6,12 @@
 #include "store/json/cfg_mgr_json_writer.h"
 #include "store/json/cfg_mgr_json_loader.h"
 #include "store/nvram.h"
+#include <memory>
 
 namespace cfg_mgr
 {
 
-Store * createStorex(Nvram_itf * nvram);
+std::unique_ptr<Store> createStoreSpecific(Nvram_itf * nvram);
 
 // Access to JSON persistent storage via the abstract interface represented by
 // class Store: it's a ConcreteStrategy of the Strategy Store.
@@ -20,7 +21,7 @@ class Json_store : public Store
 {
 public:
     Json_store(Nvram_itf * nvram);
-    ~Json_store();
+    ~Json_store() = default;
     bool startWrite() const override;
     void endWrite() const override;
     Result startLoad() const override;
@@ -38,8 +39,8 @@ public:
     Result endLoadArray() const override;
 
 private:
-    JsonWriter * m_json_writer;
-    JsonLoader * m_json_loader;
+    std::unique_ptr<JsonWriter> m_json_writer;
+    std::unique_ptr<JsonLoader> m_json_loader;
 };
 
 }
