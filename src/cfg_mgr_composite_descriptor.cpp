@@ -84,7 +84,7 @@ bool Composite_descriptor::handleCmd(Command_stack * cmd,
                                      Cmd_context * candidateContext,
                                      bool & updateCtxt) const
 {
-    DBG_PRT("%s\n op %s", __PRETTY_FUNCTION__, Command_stack::OpString(cmd->getTopOp()));
+    DBG_PRT("%s: op %s", __PRETTY_FUNCTION__, Command_stack::OpString(cmd->getTopOp()));
 
     assert(pItem != nullptr);
 

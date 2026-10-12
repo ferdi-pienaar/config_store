@@ -12,7 +12,7 @@ namespace cfg_mgr
 //
 void Composite_descriptor::handleHelp(Command_stack * cmd) const
 {
-    DBG_PRT("%s\n op %s\n", __PRETTY_FUNCTION__, Command_stack::OpString(cmd->getTopOp()));
+    DBG_PRT("%s: op %s\n", __PRETTY_FUNCTION__, Command_stack::OpString(cmd->getTopOp()));
 
     switch (cmd->getTopOp())
     {
@@ -32,13 +32,13 @@ void Composite_descriptor::handleHelp(Command_stack * cmd) const
         return;
 
     default:
-        DBG_PRT("%s\n unexpected op %s\n", __PRETTY_FUNCTION__, Command_stack::OpString(cmd->getTopOp()));
+        DBG_PRT("%s: unexpected op %s\n", __PRETTY_FUNCTION__, Command_stack::OpString(cmd->getTopOp()));
     }
 }
 
 void Composite_descriptor::handleHelpIdWord(Command_stack * cmd) const
 {
-    DBG_PRT("%s: component '%s' item '%s' at %p\n", __PRETTY_FUNCTION__, cmd->getTop(), getName(), pItem);
+    DBG_PRT("%s: component '%s' item '%s'\n", __PRETTY_FUNCTION__, cmd->getTop(), getName());
 
     const Aggregate * pAggr = getAggr(cmd->getTop()); // Component that is identified by cmd
     if (pAggr == nullptr)
