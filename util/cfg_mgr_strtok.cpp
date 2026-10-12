@@ -40,9 +40,9 @@ Strtok::State Strtok::seek_token(const char * word_delimiters,
                                  const char * block_end)
 {
     State state = State::PREFIX;
+    TokenType type = TokenType::WORD;
     for ( ; state < State::FOUND; m_str++)
     {
-        TokenType type;
         if (state == State::PREFIX)
         {
             state = seek_start(word_delimiters, block_start, &type);
