@@ -66,4 +66,12 @@ struct Aggregate_data
     const unsigned int offset; ///< Offset [bytes] of items, or pointer to items, within the composite item
 };
 
+class Contained_aggregate;
+
+struct Owned_aggregate_data
+{
+    Aggregate_data a;
+    Contained_aggregate * m_counterAggr; // the counter for this owned component
+};
+
 }

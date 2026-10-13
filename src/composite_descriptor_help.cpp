@@ -58,7 +58,7 @@ void Composite_descriptor::helpDepth(Command_stack * cmd) const
     unsigned depth = 0;
     if (!cmd->popUnsignedInt(depth))
     {
-        m_mgr_service->m_print("Invalid: 'depth' needs a non-negative integer.\n", cmd->getTop(), getName());
+        m_mgr_service->m_print("Invalid: 'depth' needs a non-negative integer.\n");
         return;
     }
     help("", "", depth);

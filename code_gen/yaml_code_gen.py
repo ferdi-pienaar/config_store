@@ -286,7 +286,7 @@ class CompositeItem(Item):
         "Return string containing initialization of the metadata, including pre-pended initialization of included data"
         s = "namespace " + self.d['name'] + " { // Composite item initialization\n"
         for aggr in self.aggregates:
-            s += aggr.get_init(self.get_type(), self.id_gen) 
+            s += aggr.get_init(self.get_type())
         s += self.get_aggr_list_init()
         s += self.get_metadata_init()
         s += "cfg_mgr::Composite_descriptor desc(&data);\n"
@@ -356,12 +356,11 @@ class Aggregate:
         self.d = d
         self.item = makeItem(self.d['item'], id_gen, old_id, container_name)
 
-    def get_init(self, container_type_name, id_gen):
+    def get_init(self, container_type_name):
         "Return initialization string"
         s = self.item.get_init()
         s += "namespace " + self.item.d['name'] + " { // Aggregate initialization\n"
-        s += "const cfg_mgr::Aggregate_data aggregate_data = {&desc, " + self.get_count_str(None)
-        s += ", offsetof(" + container_type_name + ", " + self.item.d['name'] + ")};\n"
+        s += self.get_data_init(container_type_name)
         s += self.get_instantiate()
         s += "} // namespace " + self.item.d['name'] + ", aggregate initialization\n"
         return s
@@ -409,10 +408,14 @@ class ContainedAggregate(Aggregate):
         if self.d['count'] != 1:
             s += "[" + self.get_count_str(parent_name) + "]"
         return s + ";\n"
+
+    def get_data_init(self, container_type_name):
+        s = "const cfg_mgr::Aggregate_data aggregate_data = {&desc, " + self.get_count_str(None)
+        s += ", offsetof(" + container_type_name + ", " + self.item.d['name'] + ")};\n"
+        return s
                 
     def get_instantiate(self):
-        s = "cfg_mgr::Contained_aggregate aggregate(&aggregate_data);\n"
-        return s
+        return "cfg_mgr::Contained_aggregate aggregate(&aggregate_data);\n"
 
 
 class OwnedAggregate(Aggregate):
@@ -428,14 +431,19 @@ class OwnedAggregate(Aggregate):
         s += ".\n"
         return s
 
-    def get_instantiate(self):
-        s = "cfg_mgr::Owned_aggregate aggregate(&aggregate_data"
+    def get_data_init(self, container_type_name):
+        s = "const cfg_mgr::Owned_aggregate_data aggregate_data = {\n"
+        s += "    {&desc, " + self.get_count_str(None)
+        s += ", offsetof(" + container_type_name + ", " + self.item.d['name'] + ")}, // common Aggregate_data\n"
         if 'counter' in self.d:
-            s += ", &" + self.d['counter'] + "::aggregate"
+            s += "    &" + self.d['counter'] + "::aggregate // counter\n"
         else:
-            s += ", nullptr"
-        s += ");\n"
+            s += "    nullptr // no counter\n"
+        s += "};\n"
         return s
+
+    def get_instantiate(self):
+        return "cfg_mgr::Owned_aggregate aggregate(&aggregate_data);\n"
         
     def get_max_count(self):
         "Return numerical value for maximum number of instances of owned aggregate"

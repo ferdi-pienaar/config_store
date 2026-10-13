@@ -13,11 +13,11 @@ namespace cfg_mgr
 void Owned_aggregate::help(string prefix, unsigned depth) const
 {
     string info = "=> [" + to_string(getData()->maxCount) + "] ";
-    if (m_counterAggr != nullptr)
+    if (m_data->m_counterAggr != nullptr)
     {
-        info += string("(counter ") + string(m_counterAggr->getData()->pDesc->getName()) + ") ";
+        info += string("(counter ") + string(m_data->m_counterAggr->getData()->pDesc->getName()) + ") ";
     }
-    m_data->pDesc->help(prefix, info, depth);
+    getData()->pDesc->help(prefix, info, depth);
 }
 
 }

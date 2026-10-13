@@ -15,7 +15,7 @@ namespace cfg_mgr
 
 void Aggregate::mgrInit(const Mgr_service *serv)
 {
-    m_data->pDesc->mgrInit(serv);
+    getData()->pDesc->mgrInit(serv);
 }
 
 // Utility method to extract an index from an array of command words
@@ -24,7 +24,7 @@ bool Aggregate::getIndex(Command_stack * cmd, unsigned int & itemIdx) const
 {
 
     if (cmd->popUnsignedInt(itemIdx)) return true;
-    m_data->pDesc->m_mgr_service->m_print("Invalid: '%s' needs index.\n", m_data->pDesc->getName());
+    getData()->pDesc->m_mgr_service->m_print("Invalid: '%s' needs index.\n", getData()->pDesc->getName());
     return false;
 }
 
@@ -35,7 +35,7 @@ uint8_t * Aggregate::getItemAtIndex(const uint8_t * pParentItem, unsigned idx) c
     {
         return nullptr;
     }
-    return getFirstItem(pParentItem) + idx * m_data->pDesc->getLen();
+    return getFirstItem(pParentItem) + idx * getData()->pDesc->getLen();
 }
 
 // Set items to default (and free the memory they occupied, if OWNed)
@@ -45,7 +45,7 @@ void Aggregate::setDefault(uint8_t * pItem) const
     // Set each item to default (thus freeing memory of OWNed sub-components)
     for (unsigned i = 0; i < getCount(pItem); i++)
     {
-        m_data->pDesc->setDefault(getItemAtIndex(pItem, i));
+        getData()->pDesc->setDefault(getItemAtIndex(pItem, i));
     }
 
     // Free item memory (for OWNed aggregates, no effect on CONTAINed)
@@ -56,7 +56,7 @@ void Aggregate::setDefault(uint8_t * pItem) const
 // @param prefix string to be pre-pended to the value, representing its context
 void Aggregate::print(const uint8_t * pItem, std::string prefix, bool show_state) const
 {
-    if (!show_state && !m_data->pDesc->isPersistent())
+    if (!show_state && !getData()->pDesc->isPersistent())
     {
         // The item is not persistent, i.e. state, so exclude it because not required
         return;
@@ -66,13 +66,13 @@ void Aggregate::print(const uint8_t * pItem, std::string prefix, bool show_state
 
     for (unsigned i = 0; i < getCount(pItem); i++)
     {
-        if (m_data->maxCount > 1)
+        if (getData()->maxCount > 1)
         {
             // There can be more than one item, so print the index to distinguish among them
             snprintf(indexbuf, sizeof(indexbuf), " %d", i);
         }
-        m_data->pDesc->print(getItemAtIndex(pItem, i),
-                             prefix + m_data->pDesc->getName() + indexbuf + " ",
+        getData()->pDesc->print(getItemAtIndex(pItem, i),
+                             prefix + getData()->pDesc->getName() + indexbuf + " ",
                              show_state);
     }
 }
@@ -92,14 +92,14 @@ bool Aggregate::getComponentItem(Command_stack * cmd,
                                  Cmd_context * candidateCtxt) const
 {
     unsigned int itemIdx = 0; // If no index is needed, we'll use offset 0.
-    if (m_data->maxCount > 1)
+    if (getData()->maxCount > 1)
     {
         getIndex(cmd, itemIdx);
         candidateCtxt->addToString(itemIdx);
     }
 
     DBG_PRT("%s: %p offset %d idx %d cnt %d len %d\n",
-            __PRETTY_FUNCTION__, *ppItem, m_data->offset, itemIdx, getCount(pParentItem), m_data->pDesc->getLen());
+            __PRETTY_FUNCTION__, *ppItem, getData()->offset, itemIdx, getCount(pParentItem), getData()->pDesc->getLen());
 
     if (itemIdx == getCount(pParentItem))
     {
@@ -111,14 +111,14 @@ bool Aggregate::getComponentItem(Command_stack * cmd,
         *ppItem = getItemAtIndex(pParentItem, itemIdx);
     }
     assert(*ppItem != nullptr); // Operator input is verified during eval phase.
-    candidateCtxt->setItem(m_data->pDesc, *ppItem);
+    candidateCtxt->setItem(getData()->pDesc, *ppItem);
     return true;
 }
 
 // Save to persistent storage all elements in the array, if its metadata says it's a persistent item.
 void Aggregate::save(const uint8_t *pItem) const
 {
-    if (!m_data->pDesc->isPersistent())
+    if (!getData()->pDesc->isPersistent())
     {
         return;
     }
@@ -129,17 +129,17 @@ void Aggregate::save(const uint8_t *pItem) const
         return;
     }
 
-    if (m_data->maxCount > 1)
+    if (getData()->maxCount > 1)
     {
-        m_data->pDesc->m_mgr_service->m_store->startWriteArray(m_data->pDesc->getName());
+        getData()->pDesc->m_mgr_service->m_store->startWriteArray(getData()->pDesc->getName());
     }
     for (unsigned i = 0; i < getCount(pItem); i++)
     {
-        m_data->pDesc->save(getItemAtIndex(pItem, i));
+        getData()->pDesc->save(getItemAtIndex(pItem, i));
     }
-    if (m_data->maxCount > 1)
+    if (getData()->maxCount > 1)
     {
-        m_data->pDesc->m_mgr_service->m_store->endWriteArray();
+        getData()->pDesc->m_mgr_service->m_store->endWriteArray();
     }
 }
 
@@ -153,15 +153,15 @@ void Aggregate::save(const uint8_t *pItem) const
 //         else an indication of why store load failed
 Result Aggregate::load(uint8_t * pParentItem) const
 {
-    if (!m_data->pDesc->isPersistent())
+    if (!getData()->pDesc->isPersistent())
     {
         return Result::CM_SUCCESS;
     }
-    if (m_data->maxCount > 1)
+    if (getData()->maxCount > 1)
     {
-        m_data->pDesc->m_mgr_service->m_store->startLoadArray(m_data->pDesc->getName());
+        getData()->pDesc->m_mgr_service->m_store->startLoadArray(getData()->pDesc->getName());
     }
-    for (unsigned idx = 0; idx < m_data->maxCount; idx++)
+    for (unsigned idx = 0; idx < getData()->maxCount; idx++)
     {
         Result res = loadItem(pParentItem, idx);
         if (res == Result::CM_NOT_FOUND)
@@ -175,9 +175,9 @@ Result Aggregate::load(uint8_t * pParentItem) const
             return res;
         }
     }
-    if (m_data->maxCount > 1)
+    if (getData()->maxCount > 1)
     {
-        m_data->pDesc->m_mgr_service->m_store->endLoadArray();
+        getData()->pDesc->m_mgr_service->m_store->endLoadArray();
     }
     return Result::CM_SUCCESS;
 }
@@ -187,7 +187,7 @@ Result Aggregate::load(uint8_t * pParentItem) const
 Result Aggregate::loadItem(uint8_t * pParentItem, unsigned idx) const
 {
     // This fails if there isn't an item in the store to load.
-    Result res = m_data->pDesc->startLoad();
+    Result res = getData()->pDesc->startLoad();
     if (res != Result::CM_SUCCESS)
     {
         return res;
@@ -201,7 +201,7 @@ Result Aggregate::loadItem(uint8_t * pParentItem, unsigned idx) const
         return Result::CM_FAIL;
     }
     // We have memory to load the item into, so complete the load.
-    return m_data->pDesc->endLoad(pItem);
+    return getData()->pDesc->endLoad(pItem);
 }
 
 // Aggregate has content iff one of its items does.
@@ -209,7 +209,7 @@ bool Aggregate::hasPersistentContent(const uint8_t * pParentItem) const
 {
     for (unsigned i = 0; i < getCount(pParentItem); i++)
     {
-        if (m_data->pDesc->hasPersistentContent(getItemAtIndex(pParentItem, i)))
+        if (getData()->pDesc->hasPersistentContent(getItemAtIndex(pParentItem, i)))
         {
             return true;
         }

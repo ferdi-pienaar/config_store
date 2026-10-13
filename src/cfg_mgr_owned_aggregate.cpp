@@ -26,13 +26,13 @@ uint8_t * Owned_aggregate::getFirstItem(const uint8_t * pParentItem) const
 // xxx we should use a fixed-size integer for the return value?
 unsigned Owned_aggregate::getCount(const uint8_t * pParentItem) const
 {
-    if (m_counterAggr == nullptr)
+    if (m_data->m_counterAggr == nullptr)
     {
         // If there's no counter, then count is just 0 (absence) or 1 (presence)
         return (getFirstItem(pParentItem) == nullptr) ? 0 : 1;
     }
     unsigned count;
-    memcpy(&count, pParentItem + m_counterAggr->getData()->offset, m_counterAggr->getData()->pDesc->getLen());
+    memcpy(&count, pParentItem + m_data->m_counterAggr->getData()->offset, m_data->m_counterAggr->getData()->pDesc->getLen());
     return count;
 }
 
@@ -40,7 +40,7 @@ unsigned Owned_aggregate::getCount(const uint8_t * pParentItem) const
 // xxx we should use a fixed-size integer for 'count' arg?
 void Owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) const
 {
-    if (m_counterAggr == nullptr)
+    if (m_data->m_counterAggr == nullptr)
     {
         // There is no counter, which is mandatory if maxCount > 1.
         // Auto-generated configs comply with this.
@@ -50,12 +50,12 @@ void Owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) const
 
     DBG_PRT("%s: %s count=%d, %d bytes at %p\n",
             __PRETTY_FUNCTION__, getData()->pDesc->getName(), count,
-            m_counterAggr->getData()->pDesc->getLen(), pParentItem + m_counterAggr->getData()->offset);
+            m_data->m_counterAggr->getData()->pDesc->getLen(), pParentItem + m_data->m_counterAggr->getData()->offset);
 
     // This limit is checked before creating owned items, enforce it here.
     assert(count <= getData()->maxCount);
 
-    switch (m_counterAggr->getData()->pDesc->getLen())
+    switch (m_data->m_counterAggr->getData()->pDesc->getLen())
     {
     case sizeof(uint8_t):
         assert(count <= UINT8_MAX);
@@ -72,7 +72,7 @@ void Owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) const
     default:
         assert(0);
     }
-    memcpy(pParentItem + m_counterAggr->getData()->offset, &count, m_counterAggr->getData()->pDesc->getLen());
+    memcpy(pParentItem + m_data->m_counterAggr->getData()->offset, &count, m_data->m_counterAggr->getData()->pDesc->getLen());
 }
 
 // Free memory of items, if any.  This is called when setting the parent
@@ -101,10 +101,10 @@ void Owned_aggregate::freeItems(uint8_t * pParentItem) const
 // here we pop the index if necessary and hand over to component descriptor.
 bool Owned_aggregate::evalCmd(Command_stack * cmd, uint8_t * pParentItem, Command_stack::eCmOp &op) const
 {
-    DBG_PRT("%s: item '%s'\n", __PRETTY_FUNCTION__, m_data->pDesc->getName());
+    DBG_PRT("%s: item '%s'\n", __PRETTY_FUNCTION__, getData()->pDesc->getName());
 
     unsigned int itemIdx = 0; // If no index from user is needed, we use offset 0.
-    if ((m_data->maxCount > 1) && !getIndex(cmd, itemIdx))
+    if ((getData()->maxCount > 1) && !getIndex(cmd, itemIdx))
     {
         // There can be more than one item, so we need an explicit index, but operator didn't provide it.
         return false;
@@ -119,8 +119,8 @@ bool Owned_aggregate::evalCmd(Command_stack * cmd, uint8_t * pParentItem, Comman
 
     if (itemIdx > count)
     {
-        m_data->pDesc->m_mgr_service->m_print("Invalid: index %u for owned '%s' > max %u.\n",
-                                              itemIdx, m_data->pDesc->getName(), count);
+        getData()->pDesc->m_mgr_service->m_print("Invalid: index %u for owned '%s' > max %u.\n",
+                                              itemIdx, getData()->pDesc->getName(), count);
         return false;
     }
 
@@ -131,28 +131,28 @@ bool Owned_aggregate::evalCmd(Command_stack * cmd, uint8_t * pParentItem, Comman
         pItem = getItemAtIndex(pParentItem, itemIdx);
     }
 
-    if (!m_data->pDesc->evalCmd(cmd, pItem, op))
+    if (!getData()->pDesc->evalCmd(cmd, pItem, op))
     {
-        DBG_PRT("%s: item '%s': invalid by component.\n", __PRETTY_FUNCTION__, m_data->pDesc->getName());
+        DBG_PRT("%s: item '%s': invalid by component.\n", __PRETTY_FUNCTION__, getData()->pDesc->getName());
         return false;
     }
 
     // Component found cmd valid, now check if this implicit add.
     if (itemIdx < count)
     {
-        DBG_PRT("%s: item '%s': valid index %u.\n", __PRETTY_FUNCTION__, m_data->pDesc->getName(), itemIdx);
+        DBG_PRT("%s: item '%s': valid index %u.\n", __PRETTY_FUNCTION__, getData()->pDesc->getName(), itemIdx);
         return true;
     }
 
     // Here itemIdx == count, so it may be implicit add due to Command_stack::CM_SET.
     if (op == Command_stack::CM_SET)
     {
-        DBG_PRT("%s: item '%s': implict add for index %u.\n", __PRETTY_FUNCTION__, m_data->pDesc->getName(), itemIdx);
+        DBG_PRT("%s: item '%s': implict add for index %u.\n", __PRETTY_FUNCTION__, getData()->pDesc->getName(), itemIdx);
         return true;
     }
 
-    m_data->pDesc->m_mgr_service->m_print("Invalid: index %u for owned '%s' for op %s (%u).\n",
-                                          itemIdx, m_data->pDesc->getName(), Command_stack::OpString(op), op);
+    getData()->pDesc->m_mgr_service->m_print("Invalid: index %u for owned '%s' for op %s (%u).\n",
+                                          itemIdx, getData()->pDesc->getName(), Command_stack::OpString(op), op);
     return false;
 }
 
@@ -166,7 +166,7 @@ bool Owned_aggregate::evalAdd(uint8_t * pItem) const
 
     if (getCount(pItem) >= getData()->maxCount)
     {
-        m_data->pDesc->m_mgr_service->m_print("Invalid: can't add '%s' (max %u).\n", getData()->pDesc->getName(), getData()->maxCount);
+        getData()->pDesc->m_mgr_service->m_print("Invalid: can't add '%s' (max %u).\n", getData()->pDesc->getName(), getData()->maxCount);
         return false;
     }
     return true;
@@ -193,15 +193,15 @@ bool Owned_aggregate::evalDel(Command_stack * cmd, uint8_t * pItem) const
 
     if (cnt == 0)
     {
-        m_data->pDesc->m_mgr_service->m_print("Invalid: currently no '%s'.\n", getData()->pDesc->getName());
+        getData()->pDesc->m_mgr_service->m_print("Invalid: currently no '%s'.\n", getData()->pDesc->getName());
         return false;
     }
 
     unsigned int itemIdx = 0; // If no explicit index is needed, use 0 offset
-    if ((m_data->maxCount > 1) && !getIndex(&cmd->pop(), itemIdx))
+    if ((getData()->maxCount > 1) && !getIndex(&cmd->pop(), itemIdx))
     {
         // An index is needed but couldn't be extracted from the command
-        m_data->pDesc->m_mgr_service->m_print("Invalid: no index provided for item '%s' to delete.\n", getData()->pDesc->getName());
+        getData()->pDesc->m_mgr_service->m_print("Invalid: no index provided for item '%s' to delete.\n", getData()->pDesc->getName());
         return false;
     }
 
@@ -209,7 +209,7 @@ bool Owned_aggregate::evalDel(Command_stack * cmd, uint8_t * pItem) const
 
     if (itemIdx >= cnt)
     {
-        m_data->pDesc->m_mgr_service->m_print("Invalid: index %u out of range (0.. %u).\n", itemIdx, cnt-1);
+        getData()->pDesc->m_mgr_service->m_print("Invalid: index %u out of range (0.. %u).\n", itemIdx, cnt-1);
         return false;
     }
     return true;
@@ -220,7 +220,7 @@ bool Owned_aggregate::evalDel(Command_stack * cmd, uint8_t * pItem) const
 bool Owned_aggregate::handleDel(Command_stack * cmd, uint8_t * pItem) const
 {
     unsigned int itemIdx = 0;
-    if (m_data->maxCount > 1)
+    if (getData()->maxCount > 1)
     {
         // If there can be more than 1 instance, a valid command has an index.
         getIndex(&cmd->pop(), itemIdx);
@@ -248,7 +248,7 @@ uint8_t * Owned_aggregate::add(uint8_t * pParentItem) const
     uint8_t * pNewMem = (uint8_t *)realloc(*ppItems, (cnt + 1) * getData()->pDesc->getLen());
     if (pNewMem == nullptr)
     {
-        m_data->pDesc->m_mgr_service->m_print("No %u for %s\n", getData()->pDesc->getLen(), getData()->pDesc->getName());
+        getData()->pDesc->m_mgr_service->m_print("No %u for %s\n", getData()->pDesc->getLen(), getData()->pDesc->getName());
         return nullptr;
     }
 

@@ -20,7 +20,7 @@ class Command_stack;
 class Contained_aggregate : public Aggregate
 {
 public:
-    Contained_aggregate(const Aggregate_data * d): Aggregate(d) {}
+    Contained_aggregate(const Aggregate_data * d): m_data(d) {}
 
     virtual unsigned getCount(const uint8_t * pParentItem) const override;
     void setCount(uint8_t * pParentItem, unsigned int) const override
@@ -47,6 +47,7 @@ public:
     }
     uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const override;
     void help(std::string prefix, unsigned depth) const override;
+    const Aggregate_data * getData() const override { return m_data; }
 
 private:
     uint8_t * getFirstItem(const uint8_t * pParentItem) const override;
@@ -55,6 +56,8 @@ private:
     {
         (void)pParentItem;
     }
+
+    const Aggregate_data * const m_data;
 };
 
 }

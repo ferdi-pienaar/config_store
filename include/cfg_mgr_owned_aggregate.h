@@ -30,9 +30,7 @@ class Contained_aggregate;
 class Owned_aggregate : public Aggregate
 {
 public:
-    Owned_aggregate(const Aggregate_data * d,
-                    const Contained_aggregate * cntAggr):
-        Aggregate(d), m_counterAggr(cntAggr) {}
+    Owned_aggregate(const Owned_aggregate_data * d): m_data(d) {}
 
     virtual unsigned getCount(const uint8_t * pParentItem) const override;
     bool evalCmd(Command_stack * cmd, uint8_t * pParentItem, Command_stack::eCmOp &op) const override;
@@ -45,12 +43,17 @@ public:
     void del(uint8_t * pParentItem, unsigned int itemIdx) const override;
     uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const override;
     void help(std::string prefix, unsigned depth) const override;
+    const Aggregate_data * getData() const override
+    {
+        // Return reference to common members shared by Contained_aggregate and Owned_aggregate.
+        return &(m_data->a);
+    }
 
 private:
     uint8_t * getFirstItem(const uint8_t * pParentItem) const override;
     void freeItems(uint8_t * pParentItem) const override;
 
-    const Contained_aggregate * const m_counterAggr; // the counter for this owned component
+    const Owned_aggregate_data * const m_data;
 };
 
 }

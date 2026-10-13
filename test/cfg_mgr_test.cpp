@@ -358,8 +358,8 @@ Contained_aggregate ca3(&ca3_d);
 
 const Simple_metadata s4_d = {{"owned", 4, sizeof(int), true}, cm_set_int, nullptr, cm_prt_int};
 Simple_descriptor s4(&s4_d);
-const Aggregate_data ca4_d = {&s4, MAX_NUMBER_OWNED, offsetof(struct m2, owned)};
-Owned_aggregate oa4(&ca4_d, &ca3);
+const Owned_aggregate_data ca4_d = {{&s4, MAX_NUMBER_OWNED, offsetof(struct m2, owned)}, &ca3};
+Owned_aggregate oa4(&ca4_d);
 
 Aggregate * const aggrList2[] = {&ca3, &oa4};
 const Composite_metadata c2_d = {{"c2", 1, sizeof(struct m2), true}, aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0])};
@@ -882,14 +882,14 @@ struct m2
 // test set 5 metadata
 const Simple_metadata s1_d = {{"pint", 1, sizeof(long long int), false}, cm_set_int, nullptr, cm_prt_int};
 Simple_descriptor s1(&s1_d);
-const Aggregate_data oa1_d = {&s1, 1, offsetof(struct m1, pint)};
-Owned_aggregate oa1(&oa1_d, nullptr); // no counter ref for single
+const Owned_aggregate_data oa1_d = {{&s1, 1, offsetof(struct m1, pint)}, nullptr}; // no counter ref for single
+Owned_aggregate oa1(&oa1_d);
 
 Aggregate * const aggrList1[] = {&oa1};
 const Composite_metadata c1_d = {{"m1", 1, sizeof(struct m1), false}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
 Composite_descriptor c1(&c1_d);
-const Aggregate_data oa2_d = {&c1, 1, offsetof(struct m2, pm1)};
-Owned_aggregate oa2(&oa2_d, nullptr); // no counter ref for single
+const Owned_aggregate_data oa2_d = {{&c1, 1, offsetof(struct m2, pm1)}, nullptr}; // no counter ref for single
+Owned_aggregate oa2(&oa2_d);
 
 Aggregate * const aggrList2[] = {&oa2};
 const Composite_metadata c2_d = {{"m2", 1, sizeof(struct m2), false}, aggrList2, sizeof(aggrList2)/sizeof(aggrList2[0])};

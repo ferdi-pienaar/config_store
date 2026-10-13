@@ -254,8 +254,17 @@ const Composite_metadata data =
 };
 
 Composite_descriptor desc(&data);
-const Aggregate_data aggregate_data = {&desc, 3 /* xxx max number of users */, offsetof(tDevice, users)};
-Owned_aggregate aggregate(&aggregate_data, &userCnt::aggregate);
+const Owned_aggregate_data aggregate_data = 
+{
+    {
+        &desc,
+        3 /* xxx max number of users */,
+        offsetof(tDevice, users)
+    },
+    &userCnt::aggregate
+};
+
+Owned_aggregate aggregate(&aggregate_data);
 
 } // namespace user
 
@@ -288,8 +297,16 @@ const Simple_metadata data =
 };
 
 Simple_descriptor desc(&data);
-const Aggregate_data aggregate_data = {&desc, 1, offsetof(tHome, pAddr)};
-Owned_aggregate aggregate(&aggregate_data, nullptr); // nullptr => no counter
+const Owned_aggregate_data aggregate_data = 
+{
+    {
+        &desc,
+        1,
+        offsetof(tHome, pAddr)
+    },
+    nullptr // no counter
+};
+Owned_aggregate aggregate(&aggregate_data); // nullptr => no counter
 
 } // namespace addr
 
@@ -345,8 +362,16 @@ const Composite_metadata data =
 };
 
 Composite_descriptor desc(&data);
-const Aggregate_data aggregate_data = {&desc, 1, offsetof(tHome, pLoc)};
-Owned_aggregate aggregate(&aggregate_data, nullptr); // nullptr because the owned item has no counter
+const Owned_aggregate_data aggregate_data =
+{
+    {
+        &desc,
+        1,
+        offsetof(tHome, pLoc)
+    },
+    nullptr // the owned item has no counter
+};
+Owned_aggregate aggregate(&aggregate_data);
 
 } // namespace location
 

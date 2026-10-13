@@ -34,8 +34,8 @@ class Store;
 class Aggregate
 {
 public:
-    Aggregate(const Aggregate_data * d): m_data(d) {};
-    virtual ~Aggregate() {}
+    Aggregate() = default;
+    virtual ~Aggregate() = default;
     void mgrInit(const Mgr_service *);
     bool getIndex(Command_stack * cmd, unsigned int & itemIndex) const;
     uint8_t * getItemAtIndex(const uint8_t * pParentItem, unsigned idx) const;
@@ -60,19 +60,13 @@ public:
     Result load(uint8_t * pParentItem) const;
     virtual void help(std::string prefix, unsigned depth) const = 0;
     virtual bool hasPersistentContent(const uint8_t * pItem) const;
-    const Aggregate_data * getData() const
-    {
-        return m_data;
-    }
+    virtual const Aggregate_data * getData() const = 0;
 
 private:
     /// returns address of the first item in the array
     virtual uint8_t * getFirstItem(const uint8_t * pParentItem) const = 0;
     virtual void freeItems(uint8_t * pParentItem) const = 0;
     Result loadItem(uint8_t * pParentItem, unsigned idx) const;
-
-protected:
-    const Aggregate_data * const m_data;
 };
 
 }
