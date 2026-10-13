@@ -104,9 +104,10 @@ bool Owned_aggregate::evalCmd(Command_stack * cmd, uint8_t * pParentItem, Comman
     DBG_PRT("%s: item '%s'\n", __PRETTY_FUNCTION__, getData()->pDesc->getName());
 
     unsigned int itemIdx = 0; // If no index from user is needed, we use offset 0.
-    if ((getData()->maxCount > 1) && !getIndex(cmd, itemIdx))
+    if ((getData()->maxCount > 1) && !cmd->popUnsignedInt(itemIdx))
     {
-        // There can be more than one item, so we need an explicit index, but operator didn't provide it.
+        getData()->pDesc->m_mgr_service->m_print("Invalid: need index for owned '%s'.\n",
+                                              itemIdx, getData()->pDesc->getName());
         return false;
     }
 
@@ -157,8 +158,8 @@ bool Owned_aggregate::evalCmd(Command_stack * cmd, uint8_t * pParentItem, Comman
 }
 
 // Evaluate add command.
-// @pre pItem != nullptr
-bool Owned_aggregate::evalAdd(uint8_t * pItem) const
+// @pre pItem != nullptr, cmd count is 0 or 1, optional index.
+bool Owned_aggregate::evalAdd(Command_stack * cmd, uint8_t * pItem) const
 {
     DBG_PRT("%s: item '%s' at %p\n", __PRETTY_FUNCTION__, getData()->pDesc->getName(), pItem);
 
@@ -169,18 +170,40 @@ bool Owned_aggregate::evalAdd(uint8_t * pItem) const
         getData()->pDesc->m_mgr_service->m_print("Invalid: can't add '%s' (max %u).\n", getData()->pDesc->getName(), getData()->maxCount);
         return false;
     }
+
+    unsigned int cnt = getCount(pItem); // number of items currently in array
+
+    // If there is another cmd word, it must be an index. If there isn't, add item at end.
+    unsigned int itemIdx = cnt;
+    if ((cmd->getCount() == 1) && !cmd->popUnsignedInt(itemIdx))
+    {
+        getData()->pDesc->m_mgr_service->m_print("Invalid: not an index.\n");
+        return false;
+    }
+
+    DBG_PRT("%s: count=%u itemIdx=%u\n", __PRETTY_FUNCTION__, cnt, itemIdx);
+
+    if (itemIdx > cnt)
+    {
+        getData()->pDesc->m_mgr_service->m_print("Invalid: index %u out of range (0.. %u).\n", itemIdx, cnt);
+        return false;
+    }
     return true;
 }
 
 // Handle command 'add' on command line
+// @pre pItem != nullptr, cmd count is 0 or 1, optional index.
 // @return true iff OK.
-bool Owned_aggregate::handleAdd(uint8_t * pItem) const
+bool Owned_aggregate::handleAdd(Command_stack * cmd, uint8_t * pItem) const
 {
-    return add(pItem) != nullptr;
+    // The index is optional but if not provided we add after the end: index=cnt.
+    unsigned int itemIdx = getCount(pItem);
+    cmd->popUnsignedInt(itemIdx);
+    return add(pItem, itemIdx) != nullptr;
 }
 
 // Evaluate command 'del' on command line.
-// @pre pItem != nullptr
+// @pre pItem != nullptr, cmd count is 0 or 1, optional index.
 bool Owned_aggregate::evalDel(Command_stack * cmd, uint8_t * pItem) const
 {
     DBG_PRT("%s: item '%s' at %p\n", __PRETTY_FUNCTION__, getData()->pDesc->getName(), pItem);
@@ -198,7 +221,7 @@ bool Owned_aggregate::evalDel(Command_stack * cmd, uint8_t * pItem) const
     }
 
     unsigned int itemIdx = 0; // If no explicit index is needed, use 0 offset
-    if ((getData()->maxCount > 1) && !getIndex(&cmd->pop(), itemIdx))
+    if ((getData()->maxCount > 1) && !cmd->popUnsignedInt(itemIdx))
     {
         // An index is needed but couldn't be extracted from the command
         getData()->pDesc->m_mgr_service->m_print("Invalid: no index provided for item '%s' to delete.\n", getData()->pDesc->getName());
@@ -216,6 +239,7 @@ bool Owned_aggregate::evalDel(Command_stack * cmd, uint8_t * pItem) const
 }
 
 // Handle command 'del' on command line
+// @pre pItem != nullptr, cmd count is 0 or 1, optional index.
 // @return true iff OK.
 bool Owned_aggregate::handleDel(Command_stack * cmd, uint8_t * pItem) const
 {
@@ -223,7 +247,7 @@ bool Owned_aggregate::handleDel(Command_stack * cmd, uint8_t * pItem) const
     if (getData()->maxCount > 1)
     {
         // If there can be more than 1 instance, a valid command has an index.
-        getIndex(&cmd->pop(), itemIdx);
+        cmd->popUnsignedInt(itemIdx);
     }
     del(pItem, itemIdx);
     return true;
@@ -234,28 +258,37 @@ bool Owned_aggregate::handleDel(Command_stack * cmd, uint8_t * pItem) const
 // This allocates memory for the new item, sets it to default values,
 // and increments the corresponding counter.
 // @return pointer to new allocated memory, or nullptr in case of failure
-uint8_t * Owned_aggregate::add(uint8_t * pParentItem) const
+uint8_t * Owned_aggregate::add(uint8_t * pParentItem, unsigned int itemIdx) const
 {
     unsigned cnt = getCount(pParentItem);
     assert(cnt < getData()->maxCount);
+    item_len_t componentLen = getData()->pDesc->getLen();
 
     // Reallocate memory, and save pointer in the same location
     uint8_t ** ppItems = (uint8_t **)(pParentItem + getData()->offset);
 
     DBG_PRT("%s: %d * %d at %p + %d (%p), currently %p\n",
-            __PRETTY_FUNCTION__, cnt+1, getData()->pDesc->getLen(), pParentItem, getData()->offset, ppItems, *ppItems);
+            __PRETTY_FUNCTION__, cnt+1, componentLen, pParentItem, getData()->offset, ppItems, *ppItems);
 
-    uint8_t * pNewMem = (uint8_t *)realloc(*ppItems, (cnt + 1) * getData()->pDesc->getLen());
+    uint8_t * pNewMem = (uint8_t *)realloc(*ppItems, (cnt + 1) * componentLen);
     if (pNewMem == nullptr)
     {
-        getData()->pDesc->m_mgr_service->m_print("No %u for %s\n", getData()->pDesc->getLen(), getData()->pDesc->getName());
+        getData()->pDesc->m_mgr_service->m_print("No %u for %s\n", componentLen, getData()->pDesc->getName());
         return nullptr;
     }
 
     // Memory successfully allocated, so reference the (possibly new) memory.
     *ppItems = pNewMem;
 
-    uint8_t * pNewItem = pNewMem + cnt * getData()->pDesc->getLen();
+    uint8_t * pNewItem = pNewMem + itemIdx * componentLen;
+
+    if (itemIdx < cnt)
+    {
+        // New item is not at the end: this is an insert, so move displaced items.
+        memmove(pNewItem + componentLen, // dest
+                pNewItem, // src: location of new item
+                (cnt - itemIdx) * componentLen);
+    }
 
     // Initialize added item with default values. First memset to ensure
     // counters, which have no setDefault fn, are 0 (also sets pointers to owned to nullptr).
@@ -310,7 +343,7 @@ void Owned_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
 //
 uint8_t * Owned_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem) const
 {
-    return add(pParentItem);
+    return add(pParentItem, idx);
 }
 
 }

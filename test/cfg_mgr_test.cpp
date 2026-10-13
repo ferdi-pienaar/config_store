@@ -476,6 +476,37 @@ TEST_F(CfgMgrOwned, set_and_print_config)
     EXPECT_STREQ("owned 0 = 73\n", cm_printf_spy_get());
 }
 
+// Add with index to insert item before existing items.
+TEST_F(CfgMgrOwned, add_insert)
+{
+    std::vector<char *> command1 = {(char *)"owned", (char *)"0", (char *)"=", (char *)"111"};
+    cm->handleCmd(command1.size(), command1.data());
+    std::vector<char *> commandAdd = {(char *)"add", (char *)"owned", (char *)"0"};
+    cm->handleCmd(commandAdd.size(), commandAdd.data());
+
+    EXPECT_EQ(2, C2_CONFIG->cnt);
+    EXPECT_EQ(0, C2_CONFIG->owned[0]); // insert has default value
+    EXPECT_EQ(111, C2_CONFIG->owned[1]);
+}
+
+TEST_F(CfgMgrOwned, add_bad_index)
+{
+    std::vector<char *> commandAdd = {(char *)"add", (char *)"owned", (char *)"zero"};
+    cm->handleCmd(commandAdd.size(), commandAdd.data());
+
+    //std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
+TEST_F(CfgMgrOwned, add_index_too_big)
+{
+    std::vector<char *> commandAdd = {(char *)"add", (char *)"owned", (char *)"1"};
+    cm->handleCmd(commandAdd.size(), commandAdd.data());
+
+    //std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
 // cmd 'add' without the name of the component to add is invalid
 TEST_F(CfgMgrOwned, add_without_param)
 {
@@ -533,7 +564,6 @@ TEST_F(CfgMgrOwned, load)
     EXPECT_EQ(8, C2_CONFIG->owned[1]);
 }
 
-
 // Verify what's saved to TLV, given a TLV file that's read on startup that
 // has more than the max number of an OWNED component.
 //
@@ -559,7 +589,6 @@ TEST_F(CfgMgrOwned, loadTooMany)
     // See what CM made of the file it loaded
     EXPECT_TRUE(nvram->match(expectedTlv, sizeof(expectedTlv)));
 }
-
 
 // Verify what's saved to TLV, given a TLV file that's read on startup that
 // contains the ID of a non-persistent item (the counter).  It should

@@ -34,7 +34,7 @@ bool Contained_aggregate::evalCmd(Command_stack * cmd, uint8_t * pParentItem, Co
     DBG_PRT("%s: item '%s'\n", __PRETTY_FUNCTION__, m_data->pDesc->getName());
 
     unsigned int itemIdx = 0; // If no index from user is needed, we use offset 0.
-    if ((m_data->maxCount > 1) && !getIndex(cmd, itemIdx))
+    if ((m_data->maxCount > 1) && !cmd->popUnsignedInt(itemIdx))
     {
         // There can be more than one item, so we need an explicit index, but operator didn't provide it.
         return false;
@@ -56,7 +56,7 @@ bool Contained_aggregate::evalCmd(Command_stack * cmd, uint8_t * pParentItem, Co
     return m_data->pDesc->evalCmd(cmd, pItem, op);
 }
 
-bool Contained_aggregate::evalAdd(uint8_t * pItem) const
+bool Contained_aggregate::evalAdd(Command_stack * cmd, uint8_t * pItem) const
 {
     DBG_PRT("%s: item '%s'\n", __PRETTY_FUNCTION__, getData()->pDesc->getName());
     m_data->pDesc->m_mgr_service->m_print("Invalid: 'add' not supported for contained '%s'.\n", getData()->pDesc->getName());
@@ -64,7 +64,7 @@ bool Contained_aggregate::evalAdd(uint8_t * pItem) const
 }
 
 // Handle command 'add' on command line
-bool Contained_aggregate::handleAdd(uint8_t * pItem) const
+bool Contained_aggregate::handleAdd(Command_stack * cmd, uint8_t * pItem) const
 {
     return false;
 }

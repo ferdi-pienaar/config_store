@@ -94,12 +94,12 @@ bool Composite_descriptor::handleCmd(Command_stack * cmd,
         return handleIdWord(cmd, pItem, candidateContext, updateCtxt);
 
     case Command_stack::CM_ADD:
-        // Remove the word 'add' and call the component named in the next word.
-        return getAggr(cmd->pop().getTop())->handleAdd(pItem);
+        // Remove the word 'add' and call the component named in the next word, passing word after that.
+        return getAggr(cmd->pop().getTop())->handleAdd(&cmd->pop(), pItem);
 
     case Command_stack::CM_DEL:
-        // Remove the word 'del' and call the component named in the next word.
-        return getAggr(cmd->pop().getTop())->handleDel(cmd, pItem);
+        // Remove the word 'del' and call the component named in the next word, passing word after that.
+        return getAggr(cmd->pop().getTop())->handleDel(&cmd->pop(), pItem);
 
     case Command_stack::CM_PRT:
         print(pItem, "", true);
@@ -274,7 +274,7 @@ bool Composite_descriptor::evalAdd(Command_stack * cmd, uint8_t * pItem) const
 {
     DBG_PRT("%s: add in '%s' at %p\n", __PRETTY_FUNCTION__, getName(), pItem);
 
-    if (cmd->getCount() != 1)
+    if (!((cmd->getCount() == 1) || (cmd->getCount() == 2)))
     {
         m_mgr_service->m_print("Invalid: %u parameters for 'add'.\n", cmd->getCount());
         return false;
@@ -291,7 +291,7 @@ bool Composite_descriptor::evalAdd(Command_stack * cmd, uint8_t * pItem) const
         m_mgr_service->m_print("Invalid: can't add '%s' in non-existent '%s'.\n", cmd->getTop(), getName());
         return false;
     }
-    return pAggr->evalAdd(pItem);
+    return pAggr->evalAdd(&cmd->pop(), pItem);
 }
 
 // Evaluate delete a component named by cmd from this composite.
@@ -317,7 +317,7 @@ bool Composite_descriptor::evalDel(Command_stack * cmd, uint8_t * pItem) const
         m_mgr_service->m_print("Invalid: can't remove '%s' from non-existent '%s'.\n", cmd->getTop(), getName());
         return false;
     }
-    return pAggr->evalDel(cmd, pItem);
+    return pAggr->evalDel(&cmd->pop(), pItem);
 }
 
 }

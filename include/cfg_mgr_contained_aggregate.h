@@ -29,11 +29,11 @@ public:
         assert(false); // not modifiable
     }
     bool evalCmd(Command_stack * cmd, uint8_t * pParentItem, Command_stack::eCmOp &op) const override;
-    bool evalAdd(uint8_t * pItem) const override;
+    bool evalAdd(Command_stack * cmd, uint8_t * pItem) const override;
     bool evalDel(Command_stack * cmd, uint8_t * pItem) const override;
-    bool handleAdd(uint8_t * pItem) const override;
+    bool handleAdd(Command_stack * cmd, uint8_t * pItem) const override;
     bool handleDel(Command_stack * cmd, uint8_t * pItem) const override;
-    uint8_t * add(uint8_t * pParentItem) const override
+    uint8_t * add(uint8_t * pParentItem, unsigned int itemIdx) const override
     {
         (void)pParentItem;
         assert(false);

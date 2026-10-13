@@ -37,19 +37,18 @@ public:
     Aggregate() = default;
     virtual ~Aggregate() = default;
     void mgrInit(const Mgr_service *);
-    bool getIndex(Command_stack * cmd, unsigned int & itemIndex) const;
     uint8_t * getItemAtIndex(const uint8_t * pParentItem, unsigned idx) const;
     virtual bool evalCmd(Command_stack * cmd, uint8_t * pParentItem, Command_stack::eCmOp &op) const = 0;
     /// returns number of items currently in the aggregate
     virtual unsigned getCount(const uint8_t * pParentItem) const = 0;
-    virtual bool evalAdd(uint8_t * pItem) const = 0;
+    virtual bool evalAdd(Command_stack * cmd, uint8_t * pItem) const = 0;
     virtual bool evalDel(Command_stack * cmd, uint8_t * pItem) const = 0;
-    virtual bool handleAdd(uint8_t * pItem) const = 0;
+    virtual bool handleAdd(Command_stack * cmd, uint8_t * pItem) const = 0;
     virtual bool handleDel(Command_stack * cmd, uint8_t * pItem) const = 0;
     virtual void setCount(uint8_t * pParentItem, unsigned int) const = 0;
     void setDefault(uint8_t * pItem) const;
     void print(const uint8_t * pItem, std::string prefix, bool include_state) const;
-    virtual uint8_t * add(uint8_t * pParentItem) const = 0;
+    virtual uint8_t * add(uint8_t * pParentItem, unsigned int itemIdx) const = 0;
     virtual void del(uint8_t * pParentItem, unsigned int itemIdx) const = 0;
     bool getComponentItem(Command_stack * cmd,
                           uint8_t * pParentItem,

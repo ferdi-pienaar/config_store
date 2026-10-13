@@ -18,16 +18,6 @@ void Aggregate::mgrInit(const Mgr_service *serv)
     getData()->pDesc->mgrInit(serv);
 }
 
-// Utility method to extract an index from an array of command words
-// @return true iff returning an index.
-bool Aggregate::getIndex(Command_stack * cmd, unsigned int & itemIdx) const
-{
-
-    if (cmd->popUnsignedInt(itemIdx)) return true;
-    getData()->pDesc->m_mgr_service->m_print("Invalid: '%s' needs index.\n", getData()->pDesc->getName());
-    return false;
-}
-
 // Return pointer to item, given parent item and index
 uint8_t * Aggregate::getItemAtIndex(const uint8_t * pParentItem, unsigned idx) const
 {
@@ -94,7 +84,7 @@ bool Aggregate::getComponentItem(Command_stack * cmd,
     unsigned int itemIdx = 0; // If no index is needed, we'll use offset 0.
     if (getData()->maxCount > 1)
     {
-        getIndex(cmd, itemIdx);
+        cmd->popUnsignedInt(itemIdx);
         candidateCtxt->addToString(itemIdx);
     }
 
@@ -104,7 +94,7 @@ bool Aggregate::getComponentItem(Command_stack * cmd,
     if (itemIdx == getCount(pParentItem))
     {
         // Add a new RAM item.
-        *ppItem = add(pParentItem);
+        *ppItem = add(pParentItem, itemIdx);
     }
     else
     {
