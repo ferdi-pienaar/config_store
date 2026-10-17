@@ -31,9 +31,23 @@ unsigned Owned_aggregate::getCount(const uint8_t * pParentItem) const
         // If there's no counter, then count is just 0 (absence) or 1 (presence)
         return (getFirstItem(pParentItem) == nullptr) ? 0 : 1;
     }
-    unsigned count;
-    memcpy(&count, pParentItem + m_data->m_counterAggr->getData()->offset, m_data->m_counterAggr->getData()->pDesc->getLen());
-    return count;
+
+    const uint8_t * pCount = pParentItem + m_data->m_counterAggr->getData()->offset;
+
+    switch (m_data->m_counterAggr->getData()->pDesc->getLen())
+    {
+    case sizeof(uint8_t):
+        return (unsigned)(*pCount);
+
+    case sizeof(uint16_t):
+        return (unsigned)(*((uint16_t *)pCount));
+
+    case sizeof(uint32_t):
+        return (unsigned)(*((uint32_t *)pCount));
+
+    default:
+        assert(false && "Invalid counter len");
+    }
 }
 
 // Set value in RAM that records the number of items in the array of items
@@ -55,24 +69,34 @@ void Owned_aggregate::setCount(uint8_t * pParentItem, unsigned int count) const
     // This limit is checked before creating owned items, enforce it here.
     assert(count <= getData()->maxCount);
 
+    uint8_t * pCount = pParentItem + m_data->m_counterAggr->getData()->offset;
+
     switch (m_data->m_counterAggr->getData()->pDesc->getLen())
     {
     case sizeof(uint8_t):
+    {
         assert(count <= UINT8_MAX);
+        *pCount = count;
         break;
+    }
 
     case sizeof(uint16_t):
+    {
         assert(count <= UINT16_MAX);
+        *((uint16_t *)pCount) = count;
         break;
+    }
 
     case sizeof(uint32_t):
+    {
         assert(count <= UINT32_MAX);
+        *((uint32_t *)pCount) = count;
         break;
+    }
 
     default:
-        assert(0);
+        assert(false && "Invalid counter len");
     }
-    memcpy(pParentItem + m_data->m_counterAggr->getData()->offset, &count, m_data->m_counterAggr->getData()->pDesc->getLen());
 }
 
 // Free memory of items, if any.  This is called when setting the parent
