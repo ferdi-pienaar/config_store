@@ -92,13 +92,11 @@ class Item:
         "Return string representing initialization of the common metadata structure"
         s = indent + "{\n"
         s += 2 * indent + "\"" + self.d['name'] + "\", // name\n"
-        s += 2 * indent + self.id + ", // id\n"
-        s += 2 * indent + self.get_size() + ", // size\n"
-        s += 2 * indent
         if self.d['persistent']:
-             s += "true // persistent\n"
+            s += 2 * indent + self.id + ", // id\n"
         else:
-            s += "false // not persistent\n"
+            s += 2 * indent + "cfg_mgr::NOT_PERSISTENT,\n"
+        s += 2 * indent + self.get_size() + " // size\n"
         s += indent + "},\n"
         return s
 

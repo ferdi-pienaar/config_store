@@ -51,18 +51,18 @@ void setdef_t1(uint8_t *pItem, item_len_t len)
 
 
 // test set 1 metadata
-const Simple_metadata s1_d = {{"name1", 1, sizeof(char) * STRING_ARRAY_LEN, false}, cm_set_str, cm_setdef_null, nullptr};
+const Simple_metadata s1_d = {{"name1", NOT_PERSISTENT, sizeof(char) * STRING_ARRAY_LEN}, cm_set_str, cm_setdef_null, nullptr};
 Simple_descriptor s1(&s1_d);
 const Aggregate_data ca1_d = {&s1, 1, offsetof(struct m, m1)};
 Contained_aggregate ca1(&ca1_d);
 
-const Simple_metadata s2_d = {{"name2", 2, sizeof(short int), true}, cm_set_int, setdef_t1, cm_prt_int};
+const Simple_metadata s2_d = {{"name2", 2, sizeof(short int)}, cm_set_int, setdef_t1, cm_prt_int};
 Simple_descriptor s2(&s2_d);
 const Aggregate_data ca2_d = {&s2, ARRAY_LEN, offsetof(struct m, m2)};
 Contained_aggregate ca2(&ca2_d);
 
 Aggregate * const aggrList1[] = {&ca1, &ca2};
-const Composite_metadata c1_d = {{"c1", 1, sizeof(struct m), true}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
+const Composite_metadata c1_d = {{"c1", 1, sizeof(struct m)}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
 Composite_descriptor c1(&c1_d);
 
 struct m * C1_CONFIG = nullptr;

@@ -40,13 +40,15 @@ bool Tlv_store::startWrite() const
 
 void Tlv_store::writeSimple(const Simple_metadata * data, const uint8_t * v) const
 {
-    m_tlv_writer->writeSimple(data->c.id, data->c.len, v);
+    assert(data->c.persistent_id != NOT_PERSISTENT);
+    m_tlv_writer->writeSimple(data->c.persistent_id, data->c.len, v);
 }
 
 
 void Tlv_store::startWriteComposite(const Composite_metadata * data) const
 {
-    m_tlv_writer->startWriteComposite(data->c.id);
+    assert(data->c.persistent_id != NOT_PERSISTENT);
+    m_tlv_writer->startWriteComposite(data->c.persistent_id);
 }
 
 
@@ -57,7 +59,7 @@ void Tlv_store::endWriteComposite() const
 
 Result Tlv_store::startLoadSimple(const Simple_metadata * data) const
 {
-    return m_tlv_loader->startLoadSimple(data->c.id);
+    return m_tlv_loader->startLoadSimple(data->c.persistent_id);
 }
 
 Result Tlv_store::endLoadSimple(uint8_t * pRam, const Simple_metadata * data) const
@@ -75,7 +77,7 @@ Result Tlv_store::endLoadSimple(uint8_t * pRam, const Simple_metadata * data) co
 
 Result Tlv_store::startLoadComposite(const Composite_metadata * data) const
 {
-    return m_tlv_loader->startLoadComposite(data->c.id);
+    return m_tlv_loader->startLoadComposite(data->c.persistent_id);
 }
 
 Result Tlv_store::endLoadComposite() const

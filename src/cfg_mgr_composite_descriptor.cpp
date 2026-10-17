@@ -173,7 +173,7 @@ void Composite_descriptor::print(const uint8_t * pItem, string prefix, bool show
 {
     DBG_PRT("print composite %s len %d show_state=%d\n", getName(), getLen(), show_state);
 
-    if (!show_state && !m_data->c.persistent)
+    if (!show_state && m_data->c.persistent_id == NOT_PERSISTENT)
     {
         // The item is not persistent, i.e. state, so exclude it because not required
         return;
@@ -219,7 +219,7 @@ const Aggregate * Composite_descriptor::getAggr(const char * name) const
 /// Save item to persistent storage
 void Composite_descriptor::save(const uint8_t *pItem) const
 {
-    DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id);
+    DBG_PRT("%s: %s\n", __PRETTY_FUNCTION__, m_data->c.name);
 
     if (!hasPersistentContent(pItem))
     {
@@ -240,7 +240,7 @@ void Composite_descriptor::save(const uint8_t *pItem) const
 Result Composite_descriptor::startLoad() const
 {
     Result ret = m_mgr_service->m_store->startLoadComposite(m_data);
-    DBG_PRT("%s: %s (%hx) res=%s\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id, ResultString(ret));
+    DBG_PRT("%s: %s res=%s\n", __PRETTY_FUNCTION__, m_data->c.name, ResultString(ret));
     return ret;
 }
 
@@ -265,7 +265,7 @@ Result Composite_descriptor::endLoad(uint8_t * pItem) const
             return ret;
         }
     }
-    DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id);
+    DBG_PRT("%s: %s\n", __PRETTY_FUNCTION__, m_data->c.name);
     return m_mgr_service->m_store->endLoadComposite();
 }
 

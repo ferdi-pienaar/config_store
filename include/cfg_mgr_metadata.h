@@ -22,12 +22,13 @@ typedef void (*CM_SETDEF_FPTR)(uint8_t *pItem, item_len_t len);
 // Convert item of len bytes into a string.
 typedef std::string (*CM_PRT_FPTR)(const uint8_t *pItem, item_len_t len);
 
+constexpr item_id_t NOT_PERSISTENT = (item_id_t) -1;
+
 struct Common_metadata
 {
     const char * const name; ///< name by which item is addressed on CLI
-    const item_id_t id; ///< ID (unique in the context of the component's composite) of item in NVRAM
+    const item_id_t persistent_id; ///< ID (unique in the context of the component's composite) of item in NVRAM or NOT_PERSISTENT
     const item_len_t len; ///< Number of bytes occupied by an item in RAM
-    const bool persistent; ///< Saved to NVRAM?
 };
 
 // class Simple_descriptor has a pointer to an object of this type.

@@ -59,7 +59,6 @@ const Simple_metadata data =
         "ipaddr",
         ID_IPADDR,
         SIZEOF(tDevice, addr),
-        true
     },
     cm_set_int,
     cm_setdef_null,
@@ -83,7 +82,6 @@ const Simple_metadata data =
         "port",
         ID_CLIPORT,
         SIZEOF(tDevice, cliPort[0]), // the number of elements in the array are taken into account in the aggregate below
-        true
     },
     cm_set_int,
     cm_setdef_null,
@@ -105,9 +103,8 @@ const Simple_metadata data =
 {
     {
         "usercnt",
-        ID_USERCOUNT,
+        NOT_PERSISTENT,
         SIZEOF(tDevice, userCount),
-        false // counter is not persistent
     },
     nullptr, // set: counter, so can't be set
     nullptr, // setdef: no setdef for a counter
@@ -143,7 +140,6 @@ const Simple_metadata data =
         "name",
         ID_NAME,
         SIZEOF(tUser, name),
-        true
     },
     cm_set_str,
     cm_setdef_null,
@@ -167,7 +163,6 @@ const Simple_metadata data =
         "id",
         ID_ID,
         SIZEOF(tUser, id),
-        true
     },
     cm_set_int, // xxx unsigned
     cm_setdef_null,
@@ -191,7 +186,6 @@ const Simple_metadata data =
         "temp",
         ID_TEMP,
         SIZEOF(tUser, temperature),
-        true
     },
     cm_set_int,
     setdef_temp,
@@ -213,9 +207,8 @@ const Simple_metadata data =
 {
     {
         "elapsed",
-        ID_ELAPSED,
+        NOT_PERSISTENT,
         SIZEOF(tUser, elapsed),
-        false
     },
     nullptr, // no set function, because statistics are set by application, not cfg_mgr
     nullptr, // setdef
@@ -247,7 +240,6 @@ const Composite_metadata data =
         "user",
         ID_USER,
         sizeof(tUser),
-        true
     },
     aggrList,
     sizeof(aggrList)/sizeof(aggrList[0])
@@ -289,7 +281,6 @@ const Simple_metadata data =
         "addr",
         ID_ADDR,
         sizeof(unsigned long), // xxx
-        true
     },
     cm_set_int, // xxx set
     cm_setdef_null,
@@ -328,7 +319,6 @@ const Simple_metadata data =
         "name",
         ID_NAME,
         MAX_LEN_LOCATION_NAME, // xxx
-        true
     },
     cm_set_str,
     cm_setdef_null,
@@ -355,7 +345,6 @@ const Composite_metadata data =
         "loc",
         ID_LOC,
         sizeof(tLocation),
-        true
     },
     aggrList,
     sizeof(aggrList)/sizeof(aggrList[0])
@@ -391,7 +380,6 @@ const Composite_metadata data =
         "home",
         ID_HOME,
         sizeof(tHome),
-        true
     },
     aggrList,
     sizeof(aggrList)/sizeof(aggrList[0])
@@ -422,7 +410,6 @@ const Composite_metadata data =
         "device",
         0xbabe,
         sizeof(tDevice),
-        true
     },
     aggrList,
     sizeof(aggrList)/sizeof(aggrList[0])

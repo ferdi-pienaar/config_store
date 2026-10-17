@@ -137,14 +137,14 @@ void Simple_descriptor::setDefault(uint8_t * pItem) const
 /// Save item to persistent storage
 void Simple_descriptor::save(const uint8_t *pItem) const
 {
-    DBG_PRT("%s: %s (%hx)\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id);
+    DBG_PRT("%s: %s\n", __PRETTY_FUNCTION__, m_data->c.name);
     m_mgr_service->m_store->writeSimple(m_data, pItem);
 }
 
 Result Simple_descriptor::startLoad() const
 {
     Result ret = m_mgr_service->m_store->startLoadSimple(m_data);
-    DBG_PRT("%s: %s (%hx) res=%s\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id, ResultString(ret));
+    DBG_PRT("%s: %s res=%s\n", __PRETTY_FUNCTION__, m_data->c.name, ResultString(ret));
     return ret;
 }
 
@@ -152,7 +152,7 @@ Result Simple_descriptor::startLoad() const
 Result Simple_descriptor::endLoad(uint8_t * pItem) const
 {
     Result ret = m_mgr_service->m_store->endLoadSimple(pItem, m_data);
-    DBG_PRT("%s: %s (%hx) res=%s\n", __PRETTY_FUNCTION__, m_data->c.name, m_data->c.id, ResultString(ret));
+    DBG_PRT("%s: %s res=%s\n", __PRETTY_FUNCTION__, m_data->c.name, ResultString(ret));
     return ret;
 }
 

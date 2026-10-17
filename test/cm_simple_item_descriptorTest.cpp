@@ -41,7 +41,7 @@ protected:
 
 TEST_F(SimpleDescriptor, getLen)
 {
-    Simple_metadata d_d = {{"d01", 1, 55, true}, nullptr, nullptr, nullptr};
+    Simple_metadata d_d = {{"d01", 1, 55}, nullptr, nullptr, nullptr};
 
     Simple_descriptor d(&d_d);
     EXPECT_EQ(55, d.getLen());
@@ -52,7 +52,7 @@ TEST_F(SimpleDescriptor, print)
 {
     string prefix = "";
     unsigned mem = 7;
-    Simple_metadata d_d = {{"d01", 1, sizeof(mem), true}, nullptr, nullptr, cm_prt_hexstr};
+    Simple_metadata d_d = {{"d01", 1, sizeof(mem)}, nullptr, nullptr, cm_prt_hexstr};
 
     Simple_descriptor d(&d_d);
     d.mgrInit(&srv);
@@ -64,10 +64,10 @@ TEST_F(SimpleDescriptor, print)
 TEST_F(SimpleDescriptor, set)
 {
     int mem = 0;
-    Simple_metadata d_d = {{"d01", 1, sizeof(mem), true}, cm_set_int, nullptr, nullptr};
+    Simple_metadata d_d = {{"d01", 1, sizeof(mem)}, cm_set_int, nullptr, nullptr};
 
     Simple_descriptor d(&d_d);
-
+    d.mgrInit(&srv);
     d.set((uint8_t *)&mem, "4");
     EXPECT_EQ(4, mem);
 }
@@ -77,7 +77,7 @@ TEST_F(SimpleDescriptor, set)
 TEST_F(SimpleDescriptor, setdefFunc)
 {
     int mem = 8;
-    Simple_metadata d_d = {{"d01", 1, sizeof(mem), true}, nullptr, setint11, nullptr};
+    Simple_metadata d_d = {{"d01", 1, sizeof(mem)}, nullptr, setint11, nullptr};
 
     Simple_descriptor d(&d_d);
 
@@ -90,7 +90,7 @@ TEST_F(SimpleDescriptor, setdefFunc)
 TEST_F(SimpleDescriptor, setdef)
 {
     int mem = 8;
-    Simple_metadata d_d = {{"d01", 1, sizeof(mem), true}, nullptr, nullptr, nullptr};
+    Simple_metadata d_d = {{"d01", 1, sizeof(mem)}, nullptr, nullptr, nullptr};
 
     Simple_descriptor d(&d_d);
 
