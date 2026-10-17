@@ -27,10 +27,6 @@ public:
     {
         return m_data->c.name;
     }
-    virtual item_id_t getId() const override
-    {
-        return m_data->c.id;
-    }
     virtual item_len_t getLen() const override
     {
         return m_data->c.len;

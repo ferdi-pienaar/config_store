@@ -62,7 +62,6 @@ public:
     virtual bool evalCmd(Command_stack * cmd, uint8_t * pItem, Command_stack::eCmOp &op) const = 0;
     virtual bool handleCmd(Command_stack * cmd, uint8_t * pItem, Cmd_context * candidate, bool & setCtxt) const = 0;
     virtual const char * getName() const = 0;
-    virtual item_id_t getId() const = 0;
     virtual void save(const uint8_t * pItem) const = 0;
     virtual Result startLoad() const = 0;
     virtual Result endLoad(uint8_t * pItem) const = 0;
@@ -78,7 +77,7 @@ protected:
     friend class Aggregate; // Aggregate can use its item's manager services.
     friend class Contained_aggregate;
     friend class Owned_aggregate;
-    const Mgr_service *m_mgr_service;
+    const Mgr_service *m_mgr_service = nullptr;
 };
 
 }
