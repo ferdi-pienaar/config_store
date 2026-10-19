@@ -12,7 +12,6 @@ Usage: python yaml_code_gen.py <source YAML file>
   This script tries to load a YAML file containing IDs used for TLV, and if it doesn't find it, generates new IDs.
 
 todo:
-  Don't generate or save IDs for "json" metadata, they are only used for "tlv".
   Should we mark items in the ID file that are no longer present in the config file?
   We retain the IDs in the ID file (so this script can avoid re-using them), but
   it could be useful to see what's no longer used in the current config without
@@ -77,15 +76,17 @@ class Id_generator:
 
 
 class Item:
-    def __init__(self, d, container_id_gen, old_id, full_namespace):
+    def __init__(self, d, full_namespace):
         self.d = d
         self.full_namespace = full_namespace
+
+    def set_ids(self, container_id_gen, old_id):
         if old_id is not None:
             #print d['name'], "has old ID", old_id['id']
             self.id = str(old_id['id'])
-        else:
-            self.id = container_id_gen.get_id(d['name'])
-            print("{} assigned new ID {}".format(d['name'], self.id))
+        elif self.d['persistent']:
+            self.id = container_id_gen.get_id(self.d['name'])
+            print("Persistent {} assigned new ID {}".format(self.d['name'], self.id))
 
     def get_common_metadata_init(self):
         "Return string representing initialization of the common metadata structure"
@@ -128,8 +129,8 @@ class Item:
             return self.full_namespace
 
 class SimpleItem(Item):
-    def __init__(self, d, container_id_gen, old_id, full_namespace):
-        Item.__init__(self, d, container_id_gen, old_id, full_namespace)
+    def __init__(self, d, full_namespace):
+        Item.__init__(self, d, full_namespace)
 
     def get_init(self):
         "Return string containing initialization of the metadata"
@@ -220,22 +221,26 @@ def get_value_from_dictionary_list(dlist, key):
             return d
 
 class CompositeItem(Item):
-    def __init__(self, d, container_id_gen, old_id, full_namespace):
-        "prefix_string, from containing item, is prefixed to this item's name to give this item's structure name"
-        Item.__init__(self, d, container_id_gen, old_id, full_namespace)
-        if old_id is not None:
-            self.id_gen = Id_generator(old_id['components'])
-        else:
-            self.id_gen = Id_generator(None)
+    def __init__(self, d, full_namespace):
+        Item.__init__(self, d, full_namespace)
         self.aggregates = []
         if len(full_namespace) > 0:
             full_namespace += "::"
         full_namespace += self.d['name']
         for a in self.d['aggregate']:
+            self.aggregates.append(makeAggregate(a, full_namespace))
+
+    def set_ids(self, container_id_gen, old_ids):
+        Item.set_ids(self, container_id_gen, old_ids)
+        if old_ids is not None:
+            self.id_gen = Id_generator(old_ids['components'])
+        else:
+            self.id_gen = Id_generator(None)
+        for a in self.aggregates:
             component_id = None
-            if old_id is not None:
-                component_id = get_value_from_dictionary_list(old_id['components'], a['item']['name'])
-            self.aggregates.append(makeAggregate(a, self.id_gen, component_id, full_namespace))
+            if old_ids is not None:
+                component_id = get_value_from_dictionary_list(old_ids['components'], a.d['item']['name'])
+            a.item.set_ids(self.id_gen, component_id)
 
     def get_component_ids(self):
         "Get list of component IDs in format used to generate the ID yaml file"
@@ -355,9 +360,9 @@ class CompositeItem(Item):
 
 
 class Aggregate:
-    def __init__(self, d, id_gen, old_id, container_name):
+    def __init__(self, d, container_name):
         self.d = d
-        self.item = makeItem(self.d['item'], id_gen, old_id, container_name)
+        self.item = makeItem(self.d['item'], container_name)
 
     def get_init(self, container_type_name):
         "Return initialization string"
@@ -403,8 +408,8 @@ class Aggregate:
         return True, ""
 
 class ContainedAggregate(Aggregate):
-    def __init__(self, d, id_gen, old_id, container_name):
-        Aggregate.__init__(self, d, id_gen, old_id, container_name)
+    def __init__(self, d, container_name):
+        Aggregate.__init__(self, d, container_name)
 
     def get_instance_definition(self, parent_name):
         s = self.item.get_type_and_name('contained')
@@ -422,8 +427,8 @@ class ContainedAggregate(Aggregate):
 
 
 class OwnedAggregate(Aggregate):
-    def __init__(self, d, id_gen, old_id, container_name):
-        Aggregate.__init__(self, d, id_gen, old_id, container_name)
+    def __init__(self, d, container_name):
+        Aggregate.__init__(self, d, container_name)
 
     def get_instance_definition(self, parent_name):
         s = self.item.get_type_and_name('owned') + "; // Pointer to item"
@@ -458,83 +463,90 @@ class OwnedAggregate(Aggregate):
             return self.d['count']
 
 
-def makeItem(d, container_id_gen, old_id, full_namespace):
+def makeItem(d, full_namespace):
     "Factory method returns an Item object of the requested class"
     if 'aggregate' in d: 
-        return CompositeItem(d, container_id_gen, old_id, full_namespace)
+        return CompositeItem(d, full_namespace)
     else:
-        return SimpleItem(d, container_id_gen, old_id, full_namespace)
+        return SimpleItem(d, full_namespace)
 
 
-def makeAggregate(d, id_gen, old_id, container_name):
+def makeAggregate(d, container_name):
     "Factory method returns an Aggregate object of the requested class"
     if d['type'] == 'owned': 
-        return OwnedAggregate(d, id_gen, old_id, container_name)
+        return OwnedAggregate(d, container_name)
     else:
-        return ContainedAggregate(d, id_gen, old_id, container_name)
+        return ContainedAggregate(d, container_name)
 
 
-def loadCfgData(script, cfgFileName):
+def loadCfgData(cfgFileName):
     "Load configuration metadata from YAML config file"
     try:
         f = open(cfgFileName)
     except:
         print("Configuration file name not given.")
         return
-    print("{}: Reading config file {}".format(script, cfgFileName))
+    print("{}: Reading config file {}".format(scriptName, cfgFileName))
     data = f.read()
     f.close()
     return data
 
 
-def validate_yaml(yaml_data, schema_file, script):
+def validate_yaml(yaml_data, schema_file):
     "Validate YAML data using Yamale schema file -- these are basic validations."
     schema = yamale.make_schema(schema_file)
     data = yamale.make_data(content=yaml_data)
     try:
         yamale.validate(schema, data)
     except ValueError as e:
-        print("{}: Validation failed {}".format(script, str(e)))
+        print("{}: Validation failed {}".format(scriptName, str(e)))
         return False
-    print("{}: YAML validation success.".format(script))
+    print("{}: YAML validation success.".format(scriptName))
     return True
 
-def loadIdData(script, fname):
+
+def loadIdData(fname):
     "Read ID data file and return dictionary, or None if there's a problem with the input file"
     try:
         f = open(fname)
     except IOError:
-        print("{}: Can't open ID file {}".format(script, fname))
+        print("{}: Can't open ID file {}".format(scriptName, fname))
         return
-    print("{}: Reading ID file {}".format(script, fname))
+    print("{}: Reading ID file {}".format(scriptName, fname))
     data = f.read()
     f.close()
     return data
 
 
-def makeBaseItem(script, yaml_cfg_text, id_text):
+def makeBaseItem(yaml_cfg_text):
     "From the config file and the YAML ID data, create objects to generate C++ code and a new ID file."
     try:
         cfg = yaml.load(yaml_cfg_text, Loader=yaml.SafeLoader)
     except:
-        print("{}: config file can't be loaded as YAML".format(script))
+        print("{}: config file can't be loaded as YAML".format(scriptName))
         return
     try:
         base_item_config = cfg['item']
     except:
-        print("{}: Root element in configuration is not an item".format(script))
+        print("{}: Root element in configuration is not an item".format(scriptName))
         return
-    try:
-        id_dict = yaml.load(id_text, Loader=yaml.SafeLoader)
-    except:
-        # This happens in the normal case where no ID file exists yet
-        print("{}: ID file can't be loaded as YAML".format(script))
-        return makeItem(base_item_config, Id_generator(None), None, "")
-    if id_dict['name'] != base_item_config['name']:
-        # The ID data has no entry for the base item
-        print("'{0}' in ID data file doesn't match '{1}' in config file: generating new IDs!".format(id_dict['name'], base_item_config['name']))
+    return makeItem(base_item_config, "")
+
+
+def setBaseItemIds(baseItem, id_text):
+    id_dict = None
+    if id_text is not None:
+        try:
+            id_dict = yaml.load(id_text, Loader=yaml.SafeLoader)
+        except:
+            # id_text exist but can't be loaded as YAML: should not happen since it has been validated.
+            print("{}: ID file can't be loaded as YAML".format(scriptName))
+    if id_dict is not None and id_dict['name'] != baseItem.d['name']:
+        # The ID data has no entry for the base item.
+        print("'{}' in ID data file doesn't match '{}' in config file: generating new IDs!".format(id_dict['name'], baseItem.d['name']))
         id_dict = None
-    return makeItem(base_item_config, Id_generator(None), id_dict, "")
+    # id_dict is None if: id file contents is not YAML (unlikely as it is pre-validated) or ID does not match baseItem.
+    baseItem.set_ids(Id_generator(None), id_dict)
 
 
 def saveIdData(fname, old_id_text):
@@ -595,24 +607,26 @@ if __name__ == "__main__":
     schemaFilePath = sys.argv[6]
     idSchemaFilePath = sys.argv[7]
 
-    cfg_text = loadCfgData(scriptName, cfgFilePath)
+    cfg_text = loadCfgData(cfgFilePath)
     if cfg_text is None:
         sys.exit()
-    if not validate_yaml(cfg_text, schemaFilePath, scriptName):
+    if not validate_yaml(cfg_text, schemaFilePath):
         sys.exit("Invalid YAML config file {}".format(cfgFilePath))
 
-    idFilePath = os.path.splitext(cfgFilePath)[0] + "_id.yaml"
-    id_text = loadIdData(scriptName, idFilePath)
-    if id_text is not None:
-        if not validate_yaml(id_text, idSchemaFilePath, scriptName):
-            sys.exit("Invalid YAML ID file {}".format(idFilePath))
-
-    baseItem = makeBaseItem(scriptName, cfg_text, id_text)
+    baseItem = makeBaseItem(cfg_text)
     if baseItem is None:
         sys.exit()
 
     if not baseItem.validate():
         sys.exit("Validation failed.")
+
+    if store_type == "tlv":
+        idFilePath = os.path.splitext(cfgFilePath)[0] + "_id.yaml"
+        id_text = loadIdData(idFilePath)
+        if id_text is not None:
+            if not validate_yaml(id_text, idSchemaFilePath):
+                sys.exit("Invalid YAML ID file {}".format(idFilePath))
+        setBaseItemIds(baseItem, id_text)
 
     saveDefinitionFile(definitionFilePath, scriptName, cfgFilePath, baseItem)
     saveInititializationFile(initializationFilePath,
@@ -621,4 +635,6 @@ if __name__ == "__main__":
                             os.path.basename(definitionFilePath),
                             dependencyFileName,
                             baseItem)
-    saveIdData(idFilePath, id_text)
+
+    if store_type == "tlv":
+        saveIdData(idFilePath, id_text)

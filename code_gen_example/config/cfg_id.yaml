@@ -8,8 +8,6 @@ components:
   name: ipaddr
 - id: 1
   name: port
-- id: 2
-  name: userCnt
 - components:
   - id: 0
     name: name
@@ -17,12 +15,8 @@ components:
     name: id
   - id: 2
     name: temp
-  - id: 3
-    name: elapsed
   - id: 45
     name: boso
-  - id: 4
-    name: tempCnt
   id: 3
   name: user
 - components:
