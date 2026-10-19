@@ -3,8 +3,6 @@
 #include "cfg_mgr_cmd_stack.h"
 #include "cfg_mgr_cmd_ctxt.h"
 #include "cfg_mgr_dbg.h"
-#include <stdlib.h> // malloc
-#include <cstring> // memset, strcmp, memcpy
 
 using namespace std;
 

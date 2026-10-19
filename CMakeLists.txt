@@ -13,7 +13,9 @@ target_include_directories(config_store_tlv
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include/util>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include/tlv>
         $<INSTALL_INTERFACE:include/config_store>
+        $<INSTALL_INTERFACE:include/config_store/tlv>
     PRIVATE
         ${CMAKE_SOURCE_DIR}/src
 )
@@ -24,7 +26,9 @@ target_include_directories(config_store_json
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include/util>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include/json>
         $<INSTALL_INTERFACE:include/config_store>
+        $<INSTALL_INTERFACE:include/config_store/json>
     PRIVATE
         ${CMAKE_SOURCE_DIR}/src
 )

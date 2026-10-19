@@ -4,20 +4,19 @@ From YAML descriptor, generate .h file(s) containing user data structures
 and the .cpp file that implements the initialization of the metadata
 describing the contents of those structures.
 
-Usage: python yaml_code_gen.py <source YAML file> <ID YAML file>
+Usage: python yaml_code_gen.py <source YAML file>
+                               ["tlv" | "json"]
                                <output h file> <output cpp file>
                                <user-written h file>
                                <YAML schema file for config> <YAML schema file for IDs>
-  This script tries to load <ID YAML file> and if it doesn't find it, generates new IDs.
+  This script tries to load a YAML file containing IDs used for TLV, and if it doesn't find it, generates new IDs.
 
 todo:
+  Don't generate or save IDs for "json" metadata, they are only used for "tlv".
   Should we mark items in the ID file that are no longer present in the config file?
   We retain the IDs in the ID file (so this script can avoid re-using them), but
   it could be useful to see what's no longer used in the current config without
   having to compare the config file and the ID file.
-
-  Only include cfg_mgr_simple_descriptor.h/cfg_mgr_composite_descriptor.h and
-  cfg_mgr_contained_aggregate.h/cfg_mgr_owned_aggregate.h if actually used.
 
 """
 
@@ -92,10 +91,16 @@ class Item:
         "Return string representing initialization of the common metadata structure"
         s = indent + "{\n"
         s += 2 * indent + "\"" + self.d['name'] + "\", // name\n"
-        if self.d['persistent']:
-            s += 2 * indent + self.id + ", // id\n"
+        if store_type == "tlv":
+            if self.d['persistent']:
+                s += 2 * indent + self.id + ", // id\n"
+            else:
+                s += 2 * indent + "cfg_mgr::NOT_PERSISTENT,\n"
         else:
-            s += 2 * indent + "cfg_mgr::NOT_PERSISTENT,\n"
+            if self.d['persistent']:
+                s += 2 * indent + "cfg_mgr::PERSISTENT,\n"
+            else:
+                s += 2 * indent + "cfg_mgr::NOT_PERSISTENT,\n"
         s += 2 * indent + self.get_size() + " // size\n"
         s += indent + "},\n"
         return s
@@ -583,7 +588,7 @@ def saveInititializationFile(fname, scriptFile, cfgFile, definitionFile, depende
 if __name__ == "__main__":
     scriptName = os.path.basename(sys.argv[0])
     cfgFilePath = sys.argv[1]
-    idFilePath = sys.argv[2]
+    store_type = sys.argv[2]
     definitionFilePath = sys.argv[3]
     initializationFilePath = sys.argv[4]
     dependencyFileName = os.path.basename(sys.argv[5])
@@ -596,6 +601,7 @@ if __name__ == "__main__":
     if not validate_yaml(cfg_text, schemaFilePath, scriptName):
         sys.exit("Invalid YAML config file {}".format(cfgFilePath))
 
+    idFilePath = os.path.splitext(cfgFilePath)[0] + "_id.yaml"
     id_text = loadIdData(scriptName, idFilePath)
     if id_text is not None:
         if not validate_yaml(id_text, idSchemaFilePath, scriptName):

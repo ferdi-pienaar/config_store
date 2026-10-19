@@ -4,9 +4,7 @@
 #include "cfg_mgr_cmd_ctxt.h"
 #include "cfg_mgr_dbg.h"
 #include "store/cfg_mgr_store.h"
-#include <stdlib.h> // malloc
 #include <cassert>
-#include <cstring> // memset, strcmp, memcpy
 
 using namespace std;
 

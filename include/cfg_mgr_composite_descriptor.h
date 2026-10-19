@@ -43,7 +43,7 @@ public:
     Result endLoad(uint8_t * pItem) const override;
     bool isPersistent() const override
     {
-        return m_data->c.persistent_id != NOT_PERSISTENT;
+        return m_data->c.isPersistent();
     }
 
 private:

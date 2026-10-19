@@ -6,6 +6,7 @@
 #include "cfg_mgr_dbg.h"
 #include <stdlib.h> // malloc
 #include <cstring> // memset, strcmp, memcpy
+#include <cassert>
 
 using namespace std;
 
@@ -48,6 +49,7 @@ unsigned Owned_aggregate::getCount(const uint8_t * pParentItem) const
     default:
         assert(false && "Invalid counter len");
     }
+    return 0;
 }
 
 // Set value in RAM that records the number of items in the array of items

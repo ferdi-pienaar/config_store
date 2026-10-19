@@ -16,7 +16,7 @@
 // when is it initialized?).
 
 // xxx should be a naming convention: camelCase, or underscores, etc.
-#include "my_cfg.h"
+#include "../my_cfg.h"
 #include "cfg_mgr_simple_descriptor.h"
 #include "cfg_mgr_composite_descriptor.h"
 #include "cfg_mgr_contained_aggregate.h"
@@ -26,7 +26,7 @@
 #include "cfg_mgr_set_str.h"
 #include "cfg_mgr_prt_str.h"
 #include "cfg_mgr_setdef_null.h"
-#include "my_cfg_fn.h" // User-written functions "plugged in" to Config_manager
+#include "../my_cfg_fn.h" // User-written functions "plugged in" to Config_manager
 
 // We can get the size of a member of a type without having to declare a variable of that type
 // Using it means that if we change the type of a simple CONTAINED item

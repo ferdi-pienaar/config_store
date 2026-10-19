@@ -173,7 +173,7 @@ void Composite_descriptor::print(const uint8_t * pItem, string prefix, bool show
 {
     DBG_PRT("print composite %s len %d show_state=%d\n", getName(), getLen(), show_state);
 
-    if (!show_state && m_data->c.persistent_id == NOT_PERSISTENT)
+    if (!show_state && !m_data->c.isPersistent())
     {
         // The item is not persistent, i.e. state, so exclude it because not required
         return;

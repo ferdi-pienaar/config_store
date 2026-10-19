@@ -52,7 +52,7 @@ set(JSON_TEST_SOURCES
 # -------------------------------------------------
 # TLV tests
 # -------------------------------------------------
-add_executable(config_store_test_tlv ${COMMON_TEST_SOURCES} ${TLV_TEST_SOURCES})
+add_executable(config_store_test_tlv ${COMMON_TEST_SOURCES} cfg_mgr_common_test_tlv.cpp ${TLV_TEST_SOURCES})
 
 target_link_libraries(config_store_test_tlv PRIVATE
     config_store_tlv
@@ -66,7 +66,7 @@ gtest_discover_tests(config_store_test_tlv)
 # -------------------------------------------------
 # JSON tests
 # -------------------------------------------------
-add_executable(config_store_test_json ${COMMON_TEST_SOURCES} ${JSON_TEST_SOURCES})
+add_executable(config_store_test_json ${COMMON_TEST_SOURCES} cfg_mgr_common_test_json.cpp ${JSON_TEST_SOURCES})
 
 target_link_libraries(config_store_test_json PRIVATE
     config_store_json
