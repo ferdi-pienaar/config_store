@@ -5,6 +5,7 @@
 #include "cfg_mgr_composite_descriptor.h"       // Unit under test
 #include "cfg_mgr_contained_aggregate.h"       // Unit under test
 #include "cfg_mgr_owned_aggregate.h"       // Unit under test
+#include "item_identifier.h"
 #include "cfg_mgr_set_int.h"  // Extensions to unit under test (generic "set" functions)
 #include "cfg_mgr_prt_int.h"  // Extensions to unit under test (generic "print" functions)
 #include "cfg_mgr_set_str.h"  // Extensions to unit under test (generic "set" functions)

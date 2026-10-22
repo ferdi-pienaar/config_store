@@ -590,6 +590,7 @@ def saveInititializationFile(fname, scriptFile, cfgFile, definitionFile, depende
     finit.write("#include \"cfg_mgr_composite_descriptor.h\" // from cfg_mgr library\n")
     finit.write("#include \"cfg_mgr_contained_aggregate.h\" // from cfg_mgr library\n")
     finit.write("#include \"cfg_mgr_owned_aggregate.h\" // from cfg_mgr library\n")
+    finit.write("#include \"item_identifier.h\" // from cfg_mgr library\n")
     finit.write("#include \"" + definitionFile + "\" // auto-generated\n")
     finit.write("#include \"" + dependencyFile + "\" // supplied by application programmer\n\n")
     finit.write(baseItem.get_init())

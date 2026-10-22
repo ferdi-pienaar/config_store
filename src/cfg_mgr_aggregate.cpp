@@ -42,27 +42,28 @@ void Aggregate::setDefault(uint8_t * pItem) const
 
 // Print, appending index to prefix (if necessary) and delegating to items
 // @param prefix string to be pre-pended to the value, representing its context
-void Aggregate::print(const uint8_t * pItem, std::string prefix, bool show_state) const
+void Aggregate::print(const uint8_t * pParentItem, std::string prefix, bool show_state) const
 {
-    if (!show_state && !getData()->pDesc->isPersistent())
+    for (unsigned i = 0; i < getCount(pParentItem); i++)
     {
-        // The item is not persistent, i.e. state, so exclude it because not required
-        return;
+        // Use getPrintPrefixAdd implemented in sub-class to get different versions of prefix.
+        uint8_t *pItem = getItemAtIndex(pParentItem, i);
+        getData()->pDesc->print(pItem, prefix + getPrintPrefixAdd(pItem, i), show_state);
     }
+}
 
-    char indexbuf[6] = {0}; // xxx big enough to avoid truncation in all cases?
+// Get pring prefix addition for aggregates that need an index only: that means
+// all contained aggregates, and some owned aggregates -- the ones that use index id rather than key.
+string Aggregate::getPrintPrefixIndex(unsigned index) const
+{
+    string p = getData()->pDesc->getName();
 
-    for (unsigned i = 0; i < getCount(pItem); i++)
+    if (getData()->maxCount > 1)
     {
-        if (getData()->maxCount > 1)
-        {
-            // There can be more than one item, so print the index to distinguish among them
-            snprintf(indexbuf, sizeof(indexbuf), " %d", i);
-        }
-        getData()->pDesc->print(getItemAtIndex(pItem, i),
-                             prefix + getData()->pDesc->getName() + indexbuf + " ",
-                             show_state);
+        // There can be more than one item, so print the index to distinguish among them
+        p += " " + to_string(index);
     }
+    return p + " ";
 }
 
 // From remaining command-line words, find component item of this aggregate.
@@ -80,10 +81,13 @@ bool Aggregate::getComponentItem(Command_stack * cmd,
                                  Cmd_context * candidateCtxt) const
 {
     unsigned int itemIdx = 0; // If no index is needed, we'll use offset 0.
+    string id; // index (converted to string) or key
+
     if (getData()->maxCount > 1)
     {
-        cmd->popUnsignedInt(itemIdx);
-        candidateCtxt->addToString(itemIdx);
+        // There can be more than 1 item, so extract the id (index or key) from cmd.
+        id = extractId(cmd, pParentItem, itemIdx);
+        candidateCtxt->addToString(id.c_str());
     }
 
     DBG_PRT("%s: %p offset %d idx %d cnt %d len %d\n",
@@ -92,7 +96,7 @@ bool Aggregate::getComponentItem(Command_stack * cmd,
     if (itemIdx == getCount(pParentItem))
     {
         // Add a new RAM item.
-        *ppItem = add(pParentItem, itemIdx);
+        *ppItem = add(pParentItem, itemIdx, id.c_str());
     }
     else
     {
@@ -101,6 +105,13 @@ bool Aggregate::getComponentItem(Command_stack * cmd,
     assert(*ppItem != nullptr); // Operator input is verified during eval phase.
     candidateCtxt->setItem(getData()->pDesc, *ppItem);
     return true;
+}
+
+// From command, pop ID, and also set itemIdx to the corresponding integer.
+string Aggregate::extractIdIndex(Command_stack *cmd, unsigned &itemIdx) const
+{
+    cmd->popUnsignedInt(itemIdx);
+    return to_string(itemIdx);
 }
 
 // Save to persistent storage all elements in the array, if its metadata says it's a persistent item.

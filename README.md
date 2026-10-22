@@ -164,7 +164,11 @@ classDiagram
     Descriptor --> Mgr_service
     Aggregate "1" *--> "1" Descriptor
     Composite Descriptor "1" *--> "*" Aggregate
-
+    Aggregate <|-- Contained Aggregate
+    Aggregate <|-- Owned Aggregate
+    Owned Aggregate *--> Item Identifier
+    Item Identifier <|-- Item Identifier Index
+    Item Identifier <|-- Item Identifier Key
     Mgr_service *--> Store : m_store
     Store <|-- Tlv_store
     Store <|-- Json_store

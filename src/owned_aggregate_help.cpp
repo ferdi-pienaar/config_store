@@ -2,6 +2,7 @@
 #include "cfg_mgr_contained_aggregate.h"
 #include "cfg_mgr_descriptor.h"
 #include "cfg_mgr_dbg.h"
+#include "item_identifier.h"
 
 using namespace std;
 
@@ -13,9 +14,13 @@ namespace cfg_mgr
 void Owned_aggregate::help(string prefix, unsigned depth) const
 {
     string info = "=> [" + to_string(getData()->maxCount) + "] ";
-    if (m_data->m_counterAggr != nullptr)
+    if (m_data->m_counterAggr)
     {
-        info += string("(counter ") + string(m_data->m_counterAggr->getData()->pDesc->getName()) + ") ";
+        info += string("counter=") + string(m_data->m_counterAggr->getData()->pDesc->getName()) + " ";
+    }
+    if (m_data->m_keyAggr)
+    {
+        info += string("key=") + string(m_data->m_keyAggr->getData()->pDesc->getName()) + " ";
     }
     getData()->pDesc->help(prefix, info, depth);
 }

@@ -26,6 +26,7 @@
 #include "cfg_mgr_set_str.h"
 #include "cfg_mgr_prt_str.h"
 #include "cfg_mgr_setdef_null.h"
+#include "item_identifier.h"
 #include "../my_cfg_fn.h" // User-written functions "plugged in" to Config_manager
 
 // We can get the size of a member of a type without having to declare a variable of that type
@@ -236,7 +237,8 @@ const Owned_aggregate_data aggregate_data =
         3 /* xxx max number of users */,
         offsetof(tDevice, users)
     },
-    &userCnt::aggregate
+    &userCnt::aggregate, // count
+    &name::aggregate, // key
 };
 
 Owned_aggregate aggregate(&aggregate_data);

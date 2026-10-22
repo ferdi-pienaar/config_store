@@ -47,8 +47,8 @@ public:
     virtual bool handleDel(Command_stack * cmd, uint8_t * pItem) const = 0;
     virtual void setCount(uint8_t * pParentItem, unsigned int) const = 0;
     void setDefault(uint8_t * pItem) const;
-    void print(const uint8_t * pItem, std::string prefix, bool include_state) const;
-    virtual uint8_t * add(uint8_t * pParentItem, unsigned int itemIdx) const = 0;
+    void print(const uint8_t * pParentItem, std::string prefix, bool include_state) const;
+    virtual uint8_t * add(uint8_t * pParentItem, unsigned int itemIdx, const char *id) const = 0;
     virtual void del(uint8_t * pParentItem, unsigned int itemIdx) const = 0;
     bool getComponentItem(Command_stack * cmd,
                           uint8_t * pParentItem,
@@ -62,10 +62,20 @@ public:
     virtual const Aggregate_data * getData() const = 0;
 
 private:
+
+    friend class Item_identifier_index;
+
     /// returns address of the first item in the array
     virtual uint8_t * getFirstItem(const uint8_t * pParentItem) const = 0;
     virtual void freeItems(uint8_t * pParentItem) const = 0;
     Result loadItem(uint8_t * pParentItem, unsigned idx) const;
+    virtual std::string getPrintPrefixAdd(const uint8_t * pItem, unsigned index) const = 0;
+    virtual std::string extractId(Command_stack * cmd, uint8_t *pParentItem, unsigned &itemIdx) const = 0;
+
+protected:
+    std::string getPrintPrefixIndex(unsigned index) const;
+    std::string extractIdIndex(Command_stack *cmd, unsigned &itemIdx) const;
+
 };
 
 }

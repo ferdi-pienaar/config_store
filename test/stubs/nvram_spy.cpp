@@ -1,10 +1,10 @@
 // NVRAM implementation using a block of memory for "persistent" storage.
 //
-
 #include "nvram_spy.h"
 #include <cstring> // memset, strcmp, memcpy
 #include <iostream>
 #include <iomanip> // setw
+#include <cassert>
 
 using namespace std;
 
@@ -54,6 +54,8 @@ unsigned int Nvram_spy::getOffset()
 
 bool Nvram_spy::adjustOffset(int i)
 {
+    // If this fails CUT may try to access out-of-bounds, which may mean we need to increase m_memSize.
+    assert(m_offset + i < m_memSize);
     m_offset += i;
     return true;
 }
@@ -62,6 +64,9 @@ bool Nvram_spy::adjustOffset(int i)
 //
 bool Nvram_spy::write(const uint8_t * d, unsigned int len)
 {
+    // If this fails CUT writes out-of-bounds, which may mean we need to increase m_memSize.
+    assert(m_offset + len < m_memSize);
+
     memcpy(m_nvMem + m_offset, d, len);
     m_offset += len;
     if (m_offset > m_bytesWritten)
@@ -74,6 +79,9 @@ bool Nvram_spy::write(const uint8_t * d, unsigned int len)
 
 bool Nvram_spy::read(uint8_t * d, unsigned int len)
 {
+    // If this fails CUT reads out-of-bounds, which may mean we need to increase m_memSize.
+    assert(m_offset + len < m_memSize);
+
     if (m_offset + len > m_bytesWritten)
     {
         // Fail: attempt to read bytes that haven't been set

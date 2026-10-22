@@ -14,7 +14,13 @@ namespace cfg_mgr
 // to the item's composite but not to the item.
 void Simple_descriptor::print(const uint8_t * pItem, string prefix, bool show_state) const
 {
-    DBG_PRT("print simple %s len %d at %p show_state=%d\n", getName(), getLen(), pItem, show_state);
+    DBG_PRT("print simple '%s' len %u at %p show_state=%d\n", getName(), getLen(), pItem, show_state);
+
+    if (!show_state && !isPersistent())
+    {
+        // The item is not persistent, i.e. state, so exclude it because not required
+        return;
+    }
 
     if (m_data->pPrt != nullptr)
     {

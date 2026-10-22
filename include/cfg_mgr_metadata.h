@@ -64,7 +64,8 @@ class Contained_aggregate;
 struct Owned_aggregate_data
 {
     Aggregate_data a;
-    Contained_aggregate * m_counterAggr; // the counter for this owned component
+    Contained_aggregate * m_counterAggr; // the counter for this owned component (optional ref)
+    Contained_aggregate * m_keyAggr; // the key for this owned component (optional ref)
 };
 
 }

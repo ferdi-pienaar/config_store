@@ -8,7 +8,6 @@ using namespace std;
 
 namespace cfg_mgr
 {
-
 // Return address of the first item in the item array.
 // pParentItem: pointer to parent item; from this the aggregate obtains the
 //              address of the first item in the array that it links to the parent.
@@ -92,6 +91,18 @@ bool Contained_aggregate::handleDel(Command_stack * cmd, uint8_t * pItem) const
 uint8_t * Contained_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem) const
 {
     return getItemAtIndex(pParentItem, idx);
+}
+
+// For contained aggregate, use a prefix with integer index, a function in the parent class.
+string Contained_aggregate::getPrintPrefixAdd(const uint8_t * pItem, unsigned index) const
+{
+    return getPrintPrefixIndex(index);
+}
+
+// From command, pop an ID (it is an index for contained items) and return it as a string.
+string Contained_aggregate::extractId(Command_stack * cmd, uint8_t *pParentItem, unsigned &itemIdx) const
+{
+    return extractIdIndex(cmd, itemIdx);
 }
 
 }

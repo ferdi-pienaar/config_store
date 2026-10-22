@@ -143,9 +143,9 @@ bool Composite_descriptor::evalIdWord(Command_stack * cmd, uint8_t * pItem, Comm
     return pAggr->evalCmd(&cmd->pop(), pItem, op);
 }
 
-// Handle word in command string that's not a reserved command word,
+// Handle word in command that's not a reserved command word,
 // hence presumably it identifies a component.
-//
+// @param cmd - on entry, the top command is a word that presumably names a component.
 // @param candidateContext - in/out, candidate new command=line
 //        context build up while interpreting cmd stack.
 // @param updateCtx - out, true if candidateContext should become
@@ -301,7 +301,7 @@ bool Composite_descriptor::evalDel(Command_stack * cmd, uint8_t * pItem) const
 
     if (!((cmd->getCount() == 1) || (cmd->getCount() == 2)))
     {
-        // Should provide item name and, optionally, index.
+        // Should provide item name and, optionally, id (index or key).
         m_mgr_service->m_print("Invalid: %u parameters for 'del'.\n", cmd->getCount());
         return false;
     }

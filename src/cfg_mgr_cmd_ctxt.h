@@ -20,15 +20,17 @@ public:
         m_string(istr), m_desc(desc), m_item(item) {}
     Cmd_context(const Cmd_context & rhs) :
         m_string(rhs.m_string), m_desc(rhs.m_desc), m_item(rhs.m_item) {}
-    void addToString(std::string w);
-    void addToString(unsigned idx);
+    void addToString(std::string w)
+    {
+        m_string += w + " ";
+    }
     void setItem(const Descriptor * desc, uint8_t * item)
     {
         m_desc = desc;
         m_item = item;
     }
 
-    std::string getString() const
+    const std::string &getString() const
     {
         return m_string;
     }

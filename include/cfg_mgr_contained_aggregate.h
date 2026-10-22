@@ -21,7 +21,6 @@ class Contained_aggregate : public Aggregate
 {
 public:
     Contained_aggregate(const Aggregate_data * d): m_data(d) {}
-
     virtual unsigned getCount(const uint8_t * pParentItem) const override;
     void setCount(uint8_t * pParentItem, unsigned int) const override
     {
@@ -33,7 +32,7 @@ public:
     bool evalDel(Command_stack * cmd, uint8_t * pItem) const override;
     bool handleAdd(Command_stack * cmd, uint8_t * pItem) const override;
     bool handleDel(Command_stack * cmd, uint8_t * pItem) const override;
-    uint8_t * add(uint8_t * pParentItem, unsigned int itemIdx) const override
+    uint8_t * add(uint8_t * pParentItem, unsigned int itemIdx, const char *id) const override
     {
         (void)pParentItem;
         assert(false);
@@ -56,6 +55,10 @@ private:
     {
         (void)pParentItem;
     }
+    std::string getPrintPrefixAdd(const uint8_t * pItem, unsigned index) const override;
+    std::string extractId(Command_stack * cmd, uint8_t *pParentItem, unsigned &itemIdx) const override;
+
+    friend class Item_identifier_key;
 
     const Aggregate_data * const m_data;
 };

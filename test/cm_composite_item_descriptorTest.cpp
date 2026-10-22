@@ -9,6 +9,7 @@
 #include "cfg_mgr_simple_descriptor.h"       // Unit under test
 #include "cfg_mgr_contained_aggregate.h"       // Unit under test
 #include "cfg_mgr_owned_aggregate.h"       // Unit under test
+#include "item_identifier.h"       // Unit under test
 #include "store/cfg_mgr_store.h"
 #include "cfg_mgr_cmd_ctxt.h"       // Unit under test
 #include "cfg_mgr_cmd_stack.h"       // Unit under test

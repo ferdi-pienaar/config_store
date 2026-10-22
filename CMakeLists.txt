@@ -45,7 +45,8 @@ set(CFG_MGR_CORE_SRC
     src/cfg_mgr_contained_aggregate.cpp
     src/cfg_mgr_owned_aggregate.cpp
     src/cfg_mgr_cmd_stack.cpp
-    src/cfg_mgr_cmd_ctxt.cpp
+    src/item_identifier_index.cpp
+    src/item_identifier_key.cpp
     src/store/cfg_mgr_store.cpp
     src/store/nvram.cpp
 

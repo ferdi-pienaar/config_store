@@ -77,6 +77,8 @@ protected:
     friend class Aggregate; // Aggregate can use its item's manager services.
     friend class Contained_aggregate;
     friend class Owned_aggregate;
+    friend class Item_identifier_index;
+    friend class Item_identifier_key;
     const Mgr_service *m_mgr_service = nullptr;
 };
 

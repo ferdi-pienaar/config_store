@@ -4,6 +4,8 @@
 #include "cfg_mgr_cmd_stack.h"
 #include "cfg_mgr_cmd_ctxt.h"
 #include "cfg_mgr_dbg.h"
+#include "item_identifier_index.h"
+#include "item_identifier_key.h"
 #include <stdlib.h> // malloc
 #include <cstring> // memset, strcmp, memcpy
 #include <cassert>
@@ -12,6 +14,19 @@ using namespace std;
 
 namespace cfg_mgr
 {
+
+Owned_aggregate::Owned_aggregate(const Owned_aggregate_data * d): m_data(d)
+{
+    if (m_data->m_keyAggr)
+    {
+        // This aggregate has a key reference, so uses key identifier strategy.
+        m_identifier = make_unique<Item_identifier_key>();
+    }
+    else
+    {
+        m_identifier = make_unique<Item_identifier_index>();
+    }
+}
 
 // Return address of the first item in the item array, or nullptr if there are
 // no items allocated.
@@ -124,30 +139,16 @@ void Owned_aggregate::freeItems(uint8_t * pParentItem) const
 }
 
 // Evaluate a command: the parent composite removed the cmd word that identifies this component,
-// here we pop the index if necessary and hand over to component descriptor.
+// here we pop the index or key if necessary and hand over to component descriptor.
 bool Owned_aggregate::evalCmd(Command_stack * cmd, uint8_t * pParentItem, Command_stack::eCmOp &op) const
 {
     DBG_PRT("%s: item '%s'\n", __PRETTY_FUNCTION__, getData()->pDesc->getName());
 
-    unsigned int itemIdx = 0; // If no index from user is needed, we use offset 0.
-    if ((getData()->maxCount > 1) && !cmd->popUnsignedInt(itemIdx))
-    {
-        getData()->pDesc->m_mgr_service->m_print("Invalid: need index for owned '%s'.\n",
-                                              itemIdx, getData()->pDesc->getName());
-        return false;
-    }
+    unsigned itemIdx = 0;
+    unsigned count = (pParentItem == nullptr) ? 0 : getCount(pParentItem);
 
-    unsigned count = 0;
-    if (pParentItem != nullptr)
+    if (!m_identifier->get_indexEval(cmd, *this, pParentItem, itemIdx, count))
     {
-        // Memory exists, so current count may be more than 0.
-        count = getCount(pParentItem);
-    }
-
-    if (itemIdx > count)
-    {
-        getData()->pDesc->m_mgr_service->m_print("Invalid: index %u for owned '%s' > max %u.\n",
-                                              itemIdx, getData()->pDesc->getName(), count);
         return false;
     }
 
@@ -184,7 +185,7 @@ bool Owned_aggregate::evalCmd(Command_stack * cmd, uint8_t * pParentItem, Comman
 }
 
 // Evaluate add command.
-// @pre pItem != nullptr, cmd count is 0 or 1, optional index.
+// @pre pItem != nullptr, cmd count is 0 or 1, optional index or mandatory key.
 bool Owned_aggregate::evalAdd(Command_stack * cmd, uint8_t * pItem) const
 {
     DBG_PRT("%s: item '%s' at %p\n", __PRETTY_FUNCTION__, getData()->pDesc->getName(), pItem);
@@ -199,11 +200,11 @@ bool Owned_aggregate::evalAdd(Command_stack * cmd, uint8_t * pItem) const
 
     unsigned int cnt = getCount(pItem); // number of items currently in array
 
-    // If there is another cmd word, it must be an index. If there isn't, add item at end.
+    // If there is another cmd word, it must be an id (index or key). If there isn't, add item at end.
     unsigned int itemIdx = cnt;
-    if ((cmd->getCount() == 1) && !cmd->popUnsignedInt(itemIdx))
+    const char *unused_key = nullptr; // Don't need the value of the key in eval phase.
+    if (!m_identifier->get_indexAdd(cmd, *this, pItem, itemIdx, unused_key))
     {
-        getData()->pDesc->m_mgr_service->m_print("Invalid: not an index.\n");
         return false;
     }
 
@@ -218,14 +219,14 @@ bool Owned_aggregate::evalAdd(Command_stack * cmd, uint8_t * pItem) const
 }
 
 // Handle command 'add' on command line
-// @pre pItem != nullptr, cmd count is 0 or 1, optional index.
+// @pre pItem != nullptr, cmd count is 0 or 1, item identifier (optional index or mandatory key).
 // @return true iff OK.
 bool Owned_aggregate::handleAdd(Command_stack * cmd, uint8_t * pItem) const
 {
-    // The index is optional but if not provided we add after the end: index=cnt.
     unsigned int itemIdx = getCount(pItem);
-    cmd->popUnsignedInt(itemIdx);
-    return add(pItem, itemIdx) != nullptr;
+    const char *id = nullptr;
+    m_identifier->get_indexAdd(cmd, *this, pItem, itemIdx, id);
+    return add(pItem, itemIdx, id) != nullptr;
 }
 
 // Evaluate command 'del' on command line.
@@ -236,29 +237,27 @@ bool Owned_aggregate::evalDel(Command_stack * cmd, uint8_t * pItem) const
 
     assert(pItem != nullptr);
 
-    unsigned int cnt = getCount(pItem); // number of items currently in array
+    unsigned int count = getCount(pItem); // number of items currently in array
 
-    DBG_PRT("%s: count=%u\n", __PRETTY_FUNCTION__, cnt);
+    DBG_PRT("%s: count=%u\n", __PRETTY_FUNCTION__, count);
 
-    if (cnt == 0)
+    if (count == 0)
     {
         getData()->pDesc->m_mgr_service->m_print("Invalid: currently no '%s'.\n", getData()->pDesc->getName());
         return false;
     }
 
-    unsigned int itemIdx = 0; // If no explicit index is needed, use 0 offset
-    if ((getData()->maxCount > 1) && !cmd->popUnsignedInt(itemIdx))
+    unsigned int itemIdx = 0; // unused here in eval phase.
+    if (!m_identifier->get_indexDel(cmd, *this, pItem, itemIdx))
     {
-        // An index is needed but couldn't be extracted from the command
-        getData()->pDesc->m_mgr_service->m_print("Invalid: no index provided for item '%s' to delete.\n", getData()->pDesc->getName());
+        // Mandatory index not in cmd, or key does not match an existing item.
         return false;
     }
 
-    DBG_PRT("%s: count=%u itemIdx=%u\n", __PRETTY_FUNCTION__, cnt, itemIdx);
-
-    if (itemIdx >= cnt)
+    if (itemIdx >= count)
     {
-        getData()->pDesc->m_mgr_service->m_print("Invalid: index %u out of range (0.. %u).\n", itemIdx, cnt-1);
+        getData()->pDesc->m_mgr_service->m_print("Invalid: index %u out of range (0.. %u).\n",
+                                                 itemIdx, count - 1);
         return false;
     }
     return true;
@@ -270,11 +269,7 @@ bool Owned_aggregate::evalDel(Command_stack * cmd, uint8_t * pItem) const
 bool Owned_aggregate::handleDel(Command_stack * cmd, uint8_t * pItem) const
 {
     unsigned int itemIdx = 0;
-    if (getData()->maxCount > 1)
-    {
-        // If there can be more than 1 instance, a valid command has an index.
-        cmd->popUnsignedInt(itemIdx);
-    }
+    m_identifier->get_indexDel(cmd, *this, pItem, itemIdx);
     del(pItem, itemIdx);
     return true;
 }
@@ -284,7 +279,7 @@ bool Owned_aggregate::handleDel(Command_stack * cmd, uint8_t * pItem) const
 // This allocates memory for the new item, sets it to default values,
 // and increments the corresponding counter.
 // @return pointer to new allocated memory, or nullptr in case of failure
-uint8_t * Owned_aggregate::add(uint8_t * pParentItem, unsigned int itemIdx) const
+uint8_t * Owned_aggregate::add(uint8_t * pParentItem, unsigned int itemIdx, const char *id) const
 {
     unsigned cnt = getCount(pParentItem);
     assert(cnt < getData()->maxCount);
@@ -322,6 +317,8 @@ uint8_t * Owned_aggregate::add(uint8_t * pParentItem, unsigned int itemIdx) cons
     getData()->pDesc->setDefault(pNewItem);
 
     DBG_PRT("%s: pNewMem=%p\n", __PRETTY_FUNCTION__, pNewMem);
+
+    m_identifier->set_key(*this, pNewItem, id);
 
     setCount(pParentItem, cnt + 1);
     return pNewItem;
@@ -369,7 +366,19 @@ void Owned_aggregate::del(uint8_t * pParentItem, unsigned int itemIdx) const
 //
 uint8_t * Owned_aggregate::getComponentItem(unsigned idx, uint8_t * pParentItem) const
 {
-    return add(pParentItem, idx);
+    return add(pParentItem, idx, nullptr);
+}
+
+// For owned aggregate, the print prefix contains either the index or the key.
+string Owned_aggregate::getPrintPrefixAdd(const uint8_t * pItem, unsigned index) const
+{
+    return m_identifier->getPrintPrefixAdd(*this, pItem, index);
+}
+
+// From command, pop an ID (it may be an index or a key) and return it as a string.
+string Owned_aggregate::extractId(Command_stack * cmd, uint8_t *pParentItem, unsigned &itemIdx) const
+{
+    return m_identifier->extractId(*this, cmd, pParentItem, itemIdx);
 }
 
 }

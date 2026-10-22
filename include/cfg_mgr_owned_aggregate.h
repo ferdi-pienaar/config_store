@@ -5,6 +5,7 @@
 #include "cfg_mgr_aggregate.h" // parent class
 #include "cfg_mgr_types.h"
 #include "cfg_mgr_metadata.h"
+#include <memory>
 
 // One of the problems with the earlier version of this code that I wanted
 // to avoid this time is requiring the application developer to know that
@@ -22,6 +23,7 @@ namespace cfg_mgr
 class Command_stack;
 class Cmd_context;
 class Contained_aggregate;
+class Item_identifier;
 
 ////////////////////////////////////////////////////////////////////////////////
 /// In an owned aggregate, component items are owned but not contained
@@ -30,8 +32,7 @@ class Contained_aggregate;
 class Owned_aggregate : public Aggregate
 {
 public:
-    Owned_aggregate(const Owned_aggregate_data * d): m_data(d) {}
-
+    Owned_aggregate(const Owned_aggregate_data * d);
     virtual unsigned getCount(const uint8_t * pParentItem) const override;
     bool evalCmd(Command_stack * cmd, uint8_t * pParentItem, Command_stack::eCmOp &op) const override;
     bool evalAdd(Command_stack * cmd, uint8_t * pItem) const override;
@@ -39,7 +40,7 @@ public:
     bool handleAdd(Command_stack * cmd, uint8_t * pItem) const override;
     bool handleDel(Command_stack * cmd, uint8_t * pItem) const override;
     void setCount(uint8_t * pParentItem, unsigned int) const override;
-    uint8_t * add(uint8_t * pParentItem, unsigned int itemIdx) const override;
+    uint8_t * add(uint8_t * pParentItem, unsigned int itemIdx, const char *id) const override;
     void del(uint8_t * pParentItem, unsigned int itemIdx) const override;
     uint8_t * getComponentItem(unsigned idx, uint8_t * pParentItem) const override;
     void help(std::string prefix, unsigned depth) const override;
@@ -52,8 +53,12 @@ public:
 private:
     uint8_t * getFirstItem(const uint8_t * pParentItem) const override;
     void freeItems(uint8_t * pParentItem) const override;
+    std::string getPrintPrefixAdd(const uint8_t * pItem, unsigned index) const override;
+    std::string extractId(Command_stack * cmd, uint8_t *pParentItem, unsigned &itemIdx) const override;
 
+    friend class Item_identifier_key;
     const Owned_aggregate_data * const m_data;
+    std::unique_ptr<Item_identifier> m_identifier;
 };
 
 }
