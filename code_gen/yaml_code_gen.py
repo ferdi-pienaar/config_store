@@ -428,7 +428,24 @@ class ContainedAggregate(Aggregate):
 
 class OwnedAggregate(Aggregate):
     def __init__(self, d, container_name):
+        if 'key' in d:
+            key_component = self.get_synth_key(d['key'])
+            # Add an aggregate at start of list, if there already are some, else create first.
+            if 'aggregate' in d['item']:
+                d['item']['aggregate'].insert(0, key_component)
+            else:
+                d['item']['aggregate'] = [key_component]
         Aggregate.__init__(self, d, container_name)
+
+    def get_synth_key(self, key):
+        "From 'compressed' key info from YAML config, synthesize the full key aggregate."
+        key_synth = {'count': 1, 'type': 'contained'}
+        key_synth['item'] = {'name': 'key', 'persistent': 'true'}
+        key_synth['item']['set'] = 'cfg_mgr::cm_set_str'
+        key_synth['item']['setdef'] = 'cfg_mgr::cm_setdef_null'
+        key_synth['item']['print'] = 'cfg_mgr::cm_prt_str'
+        key_synth['item']['array'] = {'type': 'char', 'count': key['count']}
+        return key_synth
 
     def get_instance_definition(self, parent_name):
         s = self.item.get_type_and_name('owned') + "; // Pointer to item"
@@ -444,9 +461,11 @@ class OwnedAggregate(Aggregate):
         s += "    {&desc, " + self.get_count_str(None)
         s += ", offsetof(" + container_type_name + ", " + self.item.d['name'] + ")}, // common Aggregate_data\n"
         if 'counter' in self.d:
-            s += "    &" + self.d['counter'] + "::aggregate // counter\n"
+            s += "    &" + self.d['counter'] + "::aggregate, // counter\n"
         else:
-            s += "    nullptr // no counter\n"
+            s += "    nullptr, // no counter\n"
+        if 'key' in self.d:
+            s += "    &key::aggregate // key\n"
         s += "};\n"
         return s
 

@@ -127,6 +127,24 @@ class Test_contained_array_gen(unittest.TestCase):
         b = yaml_code_gen.makeBaseItem(self.cfg)
         #print(b.get_init())
 
+class Test_owned_with_key_gen(unittest.TestCase):
+    def setUp(self):
+        # Code executed before each test
+        self.cfg = get_file_data(TEST_CONFIG_DIR/"cfg_owned_w_key.yaml")
+        yaml_code_gen.scriptName = "script"
+
+    def test_definition(self):
+        b = yaml_code_gen.makeBaseItem(self.cfg)
+        expected_def = ('struct t_alf\n'
+        '{\n'
+        '    unsigned long ipaddr[2];\n'
+        '};\n')
+        self.assertEqual(expected_def, b.get_definition())
+
+    def test_init(self):
+        b = yaml_code_gen.makeBaseItem(self.cfg)
+        #print(b.get_init())
+
 class Test_invalid_config(unittest.TestCase):
     def setUp(self):
         # Code executed before each test

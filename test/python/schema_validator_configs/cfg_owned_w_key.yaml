@@ -1,0 +1,33 @@
+
+item:
+    name: device
+    persistent: true
+    aggregate:
+    -   count: 1
+        type: contained
+        item:
+            name: userCnt
+            persistent: false
+            print: cfg_mgr::cm_prt_int
+            type: unsigned long
+    -   count: 2
+        type: owned
+        counter: userCnt
+        key:
+            count:
+                name: KEY_LEN
+                type: constexpr unsigned
+                value: 32
+        item:
+            name: user
+            persistent: true
+            aggregate:
+            -   count: 1
+                type: contained
+                item:
+                    name: id
+                    persistent: true
+                    set: cfg_mgr::cm_set_int
+                    setdef: cfg_mgr::cm_setdef_null
+                    print: cfg_mgr::cm_prt_int
+                    type: unsigned long

@@ -59,6 +59,11 @@ owned_aggregate_2_plus:
     count: include('count_2_plus')
     item: include('item-d')
     counter: str()
+    key: include('key-d', required=False)
+
+# Optional key in owned aggregate.
+key-d:
+    count: include('count_1_plus')
 
 # Max number of items is 1 or more.
 count_1_plus: any(include('count_1'), include('count_2_plus'))
