@@ -22,6 +22,7 @@ public:
                           const uint8_t *pParentItem, unsigned &itemIdx) const override;
 
 private:
+    const char *pop_key(Command_stack *cmd, const Owned_aggregate &aggr) const;
     bool find_key(const char *key, const Owned_aggregate &aggr, const uint8_t *pParentItem,
                   unsigned &itemIdx, unsigned count) const;
 };

@@ -13,15 +13,25 @@ item:
     -   count: 2
         type: owned
         counter: userCnt
-        key:
-            count:
-                name: KEY_LEN
-                type: constexpr unsigned
-                value: 32
+        key: uname
         item:
             name: user
             persistent: true
             aggregate:
+            -   count: 1
+                type: contained
+                item:
+                    name: uname
+                    persistent: true
+                    set: cfg_mgr::cm_set_str
+                    setdef: cfg_mgr::cm_setdef_null
+                    print: cfg_mgr::cm_prt_str
+                    array:
+                        count:
+                            name: UNAME_LEN
+                            type: constexpr unsigned
+                            value: 16
+                        type: char
             -   count: 1
                 type: contained
                 item:

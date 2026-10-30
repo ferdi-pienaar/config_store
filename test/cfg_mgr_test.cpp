@@ -990,7 +990,7 @@ TEST_F(CfgMgrOwnedOwned, print_config_non_persistent_composite)
     EXPECT_STREQ("m1 pint = 441\n", cm_printf_spy_get());
 }
 
-namespace owned_key {
+namespace owned_key_string {
 constexpr unsigned KEY_LEN = 12;
 constexpr unsigned MAX_NUM_OWNED = 2;
 
@@ -1007,7 +1007,7 @@ struct t_device
 };
 
 // key is contained in owned
-const Simple_metadata key_d = {{"key", 1, KEY_LEN}, nullptr, nullptr, cm_prt_str};
+const Simple_metadata key_d = {{"key", 1, KEY_LEN}, cm_set_str, nullptr, cm_prt_str};
 Simple_descriptor key_s(&key_d);
 const Aggregate_data key_ad = {&key_s, 1, offsetof(t_owned, key)};
 Contained_aggregate key_a(&key_ad);
@@ -1078,6 +1078,15 @@ TEST_F(CfgMgrOwnedKey, add_implicit)
     EXPECT_EQ(14, DEVICE->owned[0].id);
 }
 
+TEST_F(CfgMgrOwnedKey, cmd_no_key_fail)
+{
+    std::vector<char *> command = {(char *)"owned"};
+    cm->handleCmd(command.size(), command.data());
+
+    std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
 TEST_F(CfgMgrOwnedKey, del)
 {
     std::vector<char *> command = {(char *)"add", (char *)"owned", (char *)"\"fred\""};
@@ -1101,11 +1110,32 @@ TEST_F(CfgMgrOwnedKey, add_twice_fail)
     EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
 }
 
+TEST_F(CfgMgrOwnedKey, add_invalid_key_fail)
+{
+    std::vector<char *> command = {(char *)"add", (char *)"owned", (char *)"noquotes"};
+    cm->handleCmd(command.size(), command.data());
+
+    //std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
 TEST_F(CfgMgrOwnedKey, del_wrong_key_fail)
 {
     std::vector<char *> command = {(char *)"add", (char *)"owned", (char *)"\"fred\""};
     cm->handleCmd(command.size(), command.data());
     std::vector<char *> command_del = {(char *)"del", (char *)"owned", (char *)"\"wilma\""};
+    cm->handleCmd(command_del.size(), command_del.data());
+
+    EXPECT_EQ(1, DEVICE->cnt);
+    //std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
+TEST_F(CfgMgrOwnedKey, del_invalid_key_fail)
+{
+    std::vector<char *> command = {(char *)"add", (char *)"owned", (char *)"\"fred\""};
+    cm->handleCmd(command.size(), command.data());
+    std::vector<char *> command_del = {(char *)"del", (char *)"owned", (char *)"noquotes"};
     cm->handleCmd(command_del.size(), command_del.data());
 
     EXPECT_EQ(1, DEVICE->cnt);
@@ -1131,7 +1161,7 @@ TEST_F(CfgMgrOwnedKey, save_setdef_load)
     EXPECT_STREQ("Barney", DEVICE->owned[0].key);
 }
 
-} // namespace owned_key
+} // namespace owned_key_string
 
 namespace owned_key_in_owned {
 constexpr unsigned KEY_LEN = 12;
@@ -1155,7 +1185,7 @@ struct t_device
 };
 
 // key is contained in owned
-const Simple_metadata key_d = {{"key", 1, KEY_LEN}, nullptr, nullptr, cm_prt_str};
+const Simple_metadata key_d = {{"key", 1, KEY_LEN}, cm_set_str, nullptr, cm_prt_str};
 Simple_descriptor key_s(&key_d);
 const Aggregate_data key_ad = {&key_s, 1, offsetof(t_owned, key)};
 Contained_aggregate key_a(&key_ad);
@@ -1221,5 +1251,78 @@ TEST_F(CfgMgrOwnedKeyOwned, add_implicit)
 }
 
 } // namespace owned_key_in_owned
+
+namespace owned_key_int {
+
+constexpr unsigned MAX_NUM_OWNED = 2;
+
+struct t_owned
+{
+    unsigned id;
+};
+
+struct t_device
+{
+    unsigned cnt;
+    t_owned *owned;
+};
+
+// id is contained in owned
+const Simple_metadata id_d = {{"id", 2, sizeof(unsigned)}, cm_set_int, cm_setdef_null, cm_prt_int};
+Simple_descriptor id_s(&id_d);
+const Aggregate_data id_ad = {&id_s, 1, offsetof(t_owned, id)};
+Contained_aggregate id_a(&id_ad);
+
+// cnt is contained in t_device
+const Simple_metadata cnt_d = {{"cnt", NOT_PERSISTENT, sizeof(unsigned)}, nullptr, nullptr, cm_prt_int};
+Simple_descriptor cnt_s(&cnt_d);
+const Aggregate_data cnt_ad = {&cnt_s, 1, offsetof(t_device, cnt)};
+Contained_aggregate cnt_a(&cnt_ad);
+
+// owned is a composite (of id) owned by t_device
+Aggregate * const owned_l[] = {&id_a};
+const Composite_metadata owned_d = {{"owned", 1, sizeof(t_owned)}, owned_l, sizeof(owned_l)/sizeof(owned_l[0])};
+Composite_descriptor owned_c(&owned_d);
+// owned has a counter (a sibling) and a key (a component).
+const Owned_aggregate_data owned_ad = {{&owned_c, MAX_NUM_OWNED, offsetof(t_device, owned)}, &cnt_a, &id_a};
+Owned_aggregate owned_a(&owned_ad);
+
+// device is a composite of cnt and owned.
+Aggregate * const device_l[] = {&cnt_a, &owned_a};
+const Composite_metadata device_d = {{"device", 1, sizeof(t_device)}, device_l, sizeof(device_l)/sizeof(device_l[0])};
+Composite_descriptor device_c(&device_d);
+
+t_device * DEVICE = nullptr;
+
+class CfgMgrOwnedKeyInt : public testing::Test
+{
+protected:
+    //Define data accessible to test group members here.
+    unique_ptr<Nvram_spy> nvram;
+    unique_ptr<Config_manager_implement> cm;
+
+    virtual void SetUp()
+    {
+        nvram = make_unique<Nvram_spy>();
+        cm = make_unique<Config_manager_implement>(&device_c, cm_printf_spy, (uint8_t **)&DEVICE, nvram.get());
+        cm_printf_spy_init();
+    }
+};
+
+TEST_F(CfgMgrOwnedKeyInt, add_and_print)
+{
+    std::vector<char *> command = {(char *)"add", (char *)"owned", (char *)"99"};
+    cm->handleCmd(command.size(), command.data());
+
+    ASSERT_EQ(1, DEVICE->cnt);
+    EXPECT_EQ(99, DEVICE->owned[0].id);
+
+    std::vector<char *> command_prt = {(char *)"prt"};
+    cm->handleCmd(command_prt.size(), command_prt.data());
+
+    EXPECT_STREQ("cnt = 1\nowned 99 id = 99\n", cm_printf_spy_get());
+}
+
+} // namespace owned_key_int
 
 } // namespace

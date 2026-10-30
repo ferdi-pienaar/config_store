@@ -28,6 +28,12 @@ void Simple_descriptor::print(const uint8_t * pItem, string prefix, bool show_st
     }
 }
 
+// Convert item to its string representation using its prt fn.
+string Simple_descriptor::to_string(const uint8_t * pItem) const
+{
+    return m_data->pPrt(pItem, getLen());
+}
+
 // Evaluate cmd for simple item.
 bool Simple_descriptor::evalCmd(Command_stack * cmd, uint8_t * pItem, Command_stack::eCmOp &op) const
 {

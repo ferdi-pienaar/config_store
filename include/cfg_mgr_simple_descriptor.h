@@ -43,7 +43,8 @@ public:
         return m_data->c.isPersistent();
     }
     void print(const uint8_t * pItem, std::string prefix, bool include_state) const override;
-    bool set(uint8_t * pItem, std::string val) const;
+    std::string to_string(const uint8_t * pItem) const override;
+    bool set(uint8_t * pItem, std::string val) const override;
     void setDefault(uint8_t * pItem) const override;
     void handleHelp(Command_stack * cmd) const override;
     void help(std::string prefix, const std::string &aggr_info, unsigned depth) const override;

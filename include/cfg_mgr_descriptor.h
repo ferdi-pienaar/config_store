@@ -68,6 +68,8 @@ public:
     virtual item_len_t getLen() const = 0;
     virtual bool hasPersistentContent(const uint8_t *pItem) const = 0;
     virtual void print(const uint8_t * pItem, std::string prefix, bool include_state) const = 0;
+    virtual std::string to_string(const uint8_t * pItem) const { return ""; }
+    virtual bool set(uint8_t * pItem, std::string val) const { return false; }
     virtual void setDefault(uint8_t * pItem) const = 0;
     virtual void handleHelp(Command_stack * cmd) const = 0;
     virtual void help(std::string prefix, const std::string &aggr_info, unsigned depth) const = 0;

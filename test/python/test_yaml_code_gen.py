@@ -132,18 +132,33 @@ class Test_owned_with_key_gen(unittest.TestCase):
         # Code executed before each test
         self.cfg = get_file_data(TEST_CONFIG_DIR/"cfg_owned_w_key.yaml")
         yaml_code_gen.scriptName = "script"
+        yaml_code_gen.store_type = "tlv"
 
     def test_definition(self):
         b = yaml_code_gen.makeBaseItem(self.cfg)
-        expected_def = ('struct t_alf\n'
+        expected_def = (
+        'namespace device\n{\n'
+        'namespace user\n{\n'
+        'constexpr unsigned UNAME_LEN = 16; // Size of array \'uname\'\n'
+        '} // namespace user\n\n'
+        '// Current namespace: device\n'
+        'struct t_user\n'
         '{\n'
-        '    unsigned long ipaddr[2];\n'
-        '};\n')
+        '    char uname[user::UNAME_LEN];\n'
+        '    unsigned long id;\n'
+        '};\n'
+        '} // namespace device\n\n'
+        'struct t_device\n'
+        '{\n'
+        '    unsigned long userCnt;\n'
+        '    device::t_user *user; // Pointer to item array, max entries is 2, counter is userCnt.\n'
+        '};\n'
+        )
         self.assertEqual(expected_def, b.get_definition())
 
-    def test_init(self):
-        b = yaml_code_gen.makeBaseItem(self.cfg)
-        #print(b.get_init())
+    #def test_init(self):
+    #    b = yaml_code_gen.makeBaseItem(self.cfg)
+    #    print(b.get_init())
 
 class Test_invalid_config(unittest.TestCase):
     def setUp(self):

@@ -13,23 +13,6 @@ using namespace std;
 namespace cfg_mgr
 {
 
-static const char *pop_key(Command_stack *cmd, PRINTF_FN_TYPE print, const char *name)
-{
-    if (cmd->getCount() == 0)
-    {
-        print("Invalid: missing key for item '%s'.\n", name);
-        return nullptr;
-    }
-    const char *key = cmd->getTop();
-    unsigned len = strlen(key);
-    if ((len < 3) || (key[0] != '\"') || (key[len-1] != '\"'))
-    {
-        print("Invalid key len %u for item '%s'.\n", len, name);
-        return nullptr;
-    }
-    return key;
-}
-
 // Eval phase.
 // Return index that matches key. If there is no match, set index = count.
 // Returns false if key is invalid, i.e. not quoted or length 0.
@@ -41,12 +24,11 @@ bool Item_identifier_key::get_indexEval(Command_stack *cmd, const Owned_aggregat
     DBG_PRT("%s: item '%s' key %p count %u\n", __PRETTY_FUNCTION__,
             aggr.getData()->pDesc->getName(), aggr.m_data->m_keyAggr, count);
 
-    const char *key = pop_key(cmd, aggr.getData()->pDesc->m_mgr_service->m_print, aggr.getData()->pDesc->getName());
+    const char *key = pop_key(cmd, aggr);
     if (not key)
     {
         return false;
     }
-    cmd->pop();
 
     if (pParentItem == nullptr)
     {
@@ -69,7 +51,7 @@ bool Item_identifier_key::get_indexAdd(Command_stack *cmd, const Owned_aggregate
             aggr.m_data->m_keyAggr);
 
     assert(pParentItem != nullptr);
-    key = pop_key(cmd, aggr.getData()->pDesc->m_mgr_service->m_print, aggr.getData()->pDesc->getName());
+    key = pop_key(cmd, aggr);
     if (not key)
     {
         return false;
@@ -94,7 +76,7 @@ bool Item_identifier_key::get_indexDel(Command_stack *cmd, const Owned_aggregate
             aggr.m_data->m_keyAggr);
 
     assert(pParentItem != nullptr);
-    const char *key = pop_key(cmd, aggr.getData()->pDesc->m_mgr_service->m_print, aggr.getData()->pDesc->getName());
+    const char *key = pop_key(cmd, aggr);
     if (not key)
     {
         return false;
@@ -111,19 +93,19 @@ bool Item_identifier_key::get_indexDel(Command_stack *cmd, const Owned_aggregate
     return false;
 }
 
-// k - key string, including opening and closing quotes, which are stripped off by cm_set_str
-// before saving it in the key item memory.
-void Item_identifier_key::set_key(const Owned_aggregate &aggr, uint8_t *pItem, const char *k) const
+// k - key in string format.
+// Use the key's set function to translate the string format to the in-memory value.
+void Item_identifier_key::set_key(const Owned_aggregate &aggr, uint8_t *pItem, const char *key) const
 {
-    DBG_PRT("%s: item '%s' key %s\n", __PRETTY_FUNCTION__, aggr.getData()->pDesc->getName(), k);
+    DBG_PRT("%s: item '%s' key %s\n", __PRETTY_FUNCTION__, aggr.getData()->pDesc->getName(), key);
 
-    if (k == nullptr)
+    if (key == nullptr)
     {
         // During load from store, key is not available when the item is added.
         return;
     }
-    uint8_t *key_item = aggr.m_data->m_keyAggr->getFirstItem(pItem);
-    cm_set_str(key_item, aggr.m_data->m_keyAggr->m_data->pDesc->getLen(), k, nullptr);
+    uint8_t *pKeyItem = aggr.m_data->m_keyAggr->getFirstItem(pItem);
+    aggr.m_data->m_keyAggr->getData()->pDesc->set(pKeyItem, key);
 }
 
 // From pItem, return a prefix addition containing the descriptor name and key of the item.
@@ -134,8 +116,9 @@ string Item_identifier_key::getPrintPrefixAdd(const Owned_aggregate &aggr, const
             index, pItem);
 
     string p = aggr.getData()->pDesc->getName();
-    const uint8_t *key = aggr.m_data->m_keyAggr->getFirstItem(pItem);
-    return p + " " + cm_prt_str(key, aggr.m_data->m_keyAggr->m_data->pDesc->getLen()) + " ";
+    const uint8_t *pKeyItem = aggr.m_data->m_keyAggr->getFirstItem(pItem);
+    string key = aggr.m_data->m_keyAggr->getData()->pDesc->to_string(pKeyItem);
+    return p + " " + key + " ";
 }
 
 // Exec phase.
@@ -151,7 +134,25 @@ string Item_identifier_key::extractId(const Owned_aggregate &aggr, Command_stack
     return key;
 }
 
-// @param key - includes opening and closing quotes.
+const char *Item_identifier_key::pop_key(Command_stack *cmd, const Owned_aggregate &aggr) const
+{
+    if (cmd->getCount() == 0)
+    {
+        aggr.getData()->pDesc->m_mgr_service->m_print("Invalid: missing key.");
+        return nullptr;
+    }
+    const char *key = cmd->getTop();
+    cmd->pop();
+
+    // Use set function's eval function (i.e. with pItem=nullptr) to check if key is valid.
+    if (not aggr.m_data->m_keyAggr->getData()->pDesc->set(nullptr, key))
+    {
+        return nullptr;
+    }
+    return key;
+}
+
+// @param key - string representation of key.
 // return true iff key is found in existing items.
 // if not found, itemIdx is set to count on return.
 bool Item_identifier_key::find_key(const char *key, const Owned_aggregate &aggr,
@@ -162,13 +163,10 @@ bool Item_identifier_key::find_key(const char *key, const Owned_aggregate &aggr,
     {
         // Get the owned item, and from that get its component, the key.
         const uint8_t *pItem = aggr.getItemAtIndex(pParentItem, itemIdx);
-        const char *candidate_key = (char *)aggr.m_data->m_keyAggr->getFirstItem(pItem);
+        const uint8_t *pKeyItem = aggr.m_data->m_keyAggr->getFirstItem(pItem);
+        string candidate_key = aggr.m_data->m_keyAggr->getData()->pDesc->to_string(pKeyItem);
 
-        unsigned len_k = strlen(key) - 2; // remove the quotes
-        unsigned len_c = strlen(candidate_key);
-        unsigned len = (len_c > len_k) ? len_c : len_k;
-
-        if (strncmp(key + 1, candidate_key, len) == 0)
+        if (strcmp(key, candidate_key.c_str()) == 0)
         {
             DBG_PRT("%s: item '%s' match index %u.\n", __PRETTY_FUNCTION__,
                     aggr.getData()->pDesc->getName(), itemIdx);
