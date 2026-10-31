@@ -445,7 +445,7 @@ class OwnedAggregate(Aggregate):
         s += ", offsetof(" + container_type_name + ", " + self.item.d['name'] + ")}, // common Aggregate_data\n"
         if 'counter' in self.d:
             s += "    &" + self.d['counter'] + "::aggregate, // counter\n"
-        else:
+        elif 'key' in self.d:
             s += "    nullptr, // no counter\n"
         if 'key' in self.d:
             s += "    &"+ self.d['key'] + "::aggregate // key\n"

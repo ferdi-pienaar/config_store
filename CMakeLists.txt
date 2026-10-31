@@ -46,7 +46,6 @@ set(CFG_MGR_CORE_SRC
     src/cfg_mgr_owned_aggregate.cpp
     src/cfg_mgr_cmd_stack.cpp
     src/item_identifier_index.cpp
-    src/item_identifier_key.cpp
     src/store/cfg_mgr_store.cpp
     src/store/nvram.cpp
 
@@ -72,6 +71,17 @@ set(CFG_MGR_JSON_STORE_SRC
     src/store/json/cfg_mgr_json_loader.cpp
     src/store/json/cfg_mgr_json_ctxt.cpp
 )
+
+option(KEY_ENABLE "Enable owned items identified by key" OFF)
+
+if(KEY_ENABLE)
+    set(CFG_MGR_CORE_SRC ${CFG_MGR_CORE_SRC}
+    src/item_identifier_make_both.cpp
+    src/item_identifier_key.cpp)
+else()
+    set(CFG_MGR_CORE_SRC ${CFG_MGR_CORE_SRC}
+    src/item_identifier_make_index.cpp)
+endif()
 
 option(HELP_ENABLE "Enable help on target" OFF)
 

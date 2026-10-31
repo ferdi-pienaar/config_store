@@ -43,6 +43,7 @@ item:
             value: 3
         type: owned
         counter: userCnt
+        key: id
         item:
             name: user
             persistent: true

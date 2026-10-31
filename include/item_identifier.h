@@ -2,6 +2,7 @@
 #pragma once
 #include <stdint.h> // uint8_t, etc
 #include <string>
+#include <memory>
 
 namespace cfg_mgr
 {
@@ -12,6 +13,7 @@ class Owned_aggregate;
 class Item_identifier
 {
 public:
+    static std::unique_ptr<Item_identifier> make_Identifier(bool use_key);
     virtual ~Item_identifier() = default;
     virtual bool get_indexEval(Command_stack *cmd, const Owned_aggregate &aggr,
                                const uint8_t *pParentItem, unsigned &itemIdx,

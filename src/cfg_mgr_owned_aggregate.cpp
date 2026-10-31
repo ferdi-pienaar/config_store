@@ -4,8 +4,7 @@
 #include "cfg_mgr_cmd_stack.h"
 #include "cfg_mgr_cmd_ctxt.h"
 #include "cfg_mgr_dbg.h"
-#include "item_identifier_index.h"
-#include "item_identifier_key.h"
+#include "item_identifier.h"
 #include <stdlib.h> // malloc
 #include <cstring> // memset, strcmp, memcpy
 #include <cassert>
@@ -17,15 +16,8 @@ namespace cfg_mgr
 
 Owned_aggregate::Owned_aggregate(const Owned_aggregate_data * d): m_data(d)
 {
-    if (m_data->m_keyAggr)
-    {
-        // This aggregate has a key reference, so uses key identifier strategy.
-        m_identifier = make_unique<Item_identifier_key>();
-    }
-    else
-    {
-        m_identifier = make_unique<Item_identifier_index>();
-    }
+    // Get the strategy we need: if this object has a key aggregate, we need a key strategy.
+    m_identifier = Item_identifier::make_Identifier(m_data->m_keyAggr);
 }
 
 // Return address of the first item in the item array, or nullptr if there are

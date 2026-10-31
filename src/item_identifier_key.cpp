@@ -3,8 +3,6 @@
 #include "cfg_mgr_dbg.h"
 #include "cfg_mgr_descriptor.h"
 #include "cfg_mgr_owned_aggregate.h"
-#include "cfg_mgr_prt_str.h"
-#include "cfg_mgr_set_str.h"
 #include <cassert>
 #include <cstring> // strcmp
 

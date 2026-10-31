@@ -77,13 +77,13 @@ A Descriptor is metadata for an item stored in RAM. A single Descriptor may desc
 
 A Composite Descriptor contains other Descriptors (either Composite or Simple), each via an Aggregate which describes _how_ it contains the component Descriptor.
 
-A Simple Descriptor describes an item that has a built-in C++ type: integers, chars, bool, and floating-point types.
+A Simple Descriptor describes an item that has a built-in C++ type: integers, chars, bool, and floating-point types, or an array of such types.
 
 An Aggregate describes the relationship between a Composite Descriptor and a component Descriptor.
 
 A Contained Aggregate means the component items reside in the same block of memory as the composite to which they belong. The number of component items is fixed, either a single item or a fixed-length array.
 
-A Owned Aggregate means the component items reside in a block of memory that is pointed to by the composite that owns them. The number of component items is variable, between 0 and Aggregate::maxCount.
+An Owned Aggregate means the component items reside in a block of memory that is pointed to by the composite that owns them. The number of component items is variable, between 0 and Aggregate::maxCount. When there can be more than one owned item, a particular item can be identified on the CLI by an index, or, if the item is itself a composite, one of its components can be selected as the key that identifies it.
 
 ```mermaid
 ---
