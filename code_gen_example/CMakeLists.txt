@@ -2,8 +2,8 @@
 set(CONFIG_STORE_CODE_GEN ${PROJECT_SOURCE_DIR}/code_gen/yaml_code_gen.py)
 set(CFG_YAML ${CMAKE_CURRENT_SOURCE_DIR}/config/cfg.yaml)
 set(DEPENDENCY_H   ${CMAKE_CURRENT_SOURCE_DIR}/cfg_depend.h)
-set(SCHEMA_FILE ${CMAKE_CURRENT_SOURCE_DIR}/../code_gen/cfg_schema.yaml)
-set(ID_SCHEMA_FILE ${CMAKE_CURRENT_SOURCE_DIR}/../code_gen/cfg_id_schema.yaml)
+set(SCHEMA_FILE ${PROJECT_SOURCE_DIR}/code_gen/cfg_schema.yaml)
+set(ID_SCHEMA_FILE ${PROJECT_SOURCE_DIR}/code_gen/cfg_id_schema.yaml)
 
 foreach(BACKEND tlv json)
     set(GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated/${BACKEND})

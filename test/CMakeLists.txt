@@ -95,3 +95,5 @@ set_tests_properties(python_tests PROPERTIES
     ENVIRONMENT
         "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/../code_gen"
 )
+
+add_subdirectory(e2e)

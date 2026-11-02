@@ -1,0 +1,37 @@
+# This source file in YAML language is written by the designer of a
+# configurable items hierarchy, and describes those items. It's an input
+# to the build system that makes the executable that also includes
+# the config manager library.
+---
+
+item:
+    name: device
+    persistent: true
+    aggregate:
+    -   count: 1
+        type: contained
+        item:
+            name: userCnt
+            persistent: false
+            print: cfg_mgr::cm_prt_int
+            type: unsigned short
+    -   count:
+            name: MAX_NUM_USERS
+            type: const unsigned short
+            value: 3
+        type: owned
+        counter: userCnt
+        key: id
+        item:
+            name: user
+            persistent: true
+            aggregate:
+            -   count: 1
+                type: contained
+                item:
+                    name: id
+                    persistent: true
+                    set: cfg_mgr::cm_set_int
+                    setdef: cfg_mgr::cm_setdef_null
+                    print: cfg_mgr::cm_prt_int
+                    type: unsigned

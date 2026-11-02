@@ -136,7 +136,7 @@ const char *Item_identifier_key::pop_key(Command_stack *cmd, const Owned_aggrega
 {
     if (cmd->getCount() == 0)
     {
-        aggr.getData()->pDesc->m_mgr_service->m_print("Invalid: missing key.");
+        aggr.getData()->pDesc->m_mgr_service->m_print("Invalid: missing key.\n");
         return nullptr;
     }
     const char *key = cmd->getTop();
