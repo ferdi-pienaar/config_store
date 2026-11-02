@@ -6,7 +6,7 @@ set(SCHEMA_FILE ${CMAKE_CURRENT_SOURCE_DIR}/../code_gen/cfg_schema.yaml)
 set(ID_SCHEMA_FILE ${CMAKE_CURRENT_SOURCE_DIR}/../code_gen/cfg_id_schema.yaml)
 
 foreach(BACKEND tlv json)
-    set(GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated/${BACKEND}/)
+    set(GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated/${BACKEND})
     set(CFG_CPP ${GENERATED_DIR}/cfg.cpp)
     set(CFG_H   ${GENERATED_DIR}/cfg.h)
 

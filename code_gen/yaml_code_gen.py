@@ -25,6 +25,10 @@ import sys
 import datetime
 import os
 
+# This is set to True if the YAML config file depends on library feature KEY_ENABLED, i.e.
+# owned items can be identified by keys instead of indexes.
+key_feature_depend = False
+
 indent = "    "
 
 def getCommonHdr(script, inputFile):
@@ -448,6 +452,8 @@ class OwnedAggregate(Aggregate):
         elif 'key' in self.d:
             s += "    nullptr, // no counter\n"
         if 'key' in self.d:
+            global key_feature_depend
+            key_feature_depend = True
             s += "    &"+ self.d['key'] + "::aggregate // key\n"
         s += "};\n"
         return s
@@ -593,10 +599,15 @@ def saveInititializationFile(fname, scriptFile, cfgFile, definitionFile, depende
     finit.write("#include \"cfg_mgr_contained_aggregate.h\" // from cfg_mgr library\n")
     finit.write("#include \"cfg_mgr_owned_aggregate.h\" // from cfg_mgr library\n")
     finit.write("#include \"item_identifier.h\" // from cfg_mgr library\n")
+    finit.write("#include \"key_feature_support.h\" // from cfg_mgr library\n")
     finit.write("#include \"" + definitionFile + "\" // auto-generated\n")
     finit.write("#include \"" + dependencyFile + "\" // supplied by application programmer\n\n")
     finit.write(baseItem.get_init())
     finit.write(baseItem.get_access_fn())
+    if key_feature_depend:
+        finit.write("// This code needs library built with option KEY_ENABLE, so call function that exists iff it is supported.\n")
+        finit.write("// If this fails to link, rebuild library with -DKEY_ENABLE=ON.\n")
+        finit.write("void check_library_feature_support() { cfg_mgr::key_feature_support(); }\n")
     finit.close()    
 
 

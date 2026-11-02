@@ -77,7 +77,8 @@ option(KEY_ENABLE "Enable owned items identified by key" OFF)
 if(KEY_ENABLE)
     set(CFG_MGR_CORE_SRC ${CFG_MGR_CORE_SRC}
     src/item_identifier_make_both.cpp
-    src/item_identifier_key.cpp)
+    src/item_identifier_key.cpp
+    src/key_feature_support.cpp)
 else()
     set(CFG_MGR_CORE_SRC ${CFG_MGR_CORE_SRC}
     src/item_identifier_make_index.cpp)
