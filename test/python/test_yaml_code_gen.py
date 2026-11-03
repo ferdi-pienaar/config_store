@@ -186,5 +186,40 @@ class Test_invalid_config(unittest.TestCase):
         b = yaml_code_gen.makeBaseItem(cfg)
         self.assertFalse(b.validate())
 
+    def test_invalid_contained_w_counter(self):
+        cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_contained_w_counter.yaml")
+        b = yaml_code_gen.makeBaseItem(cfg)
+        self.assertFalse(b.validate())
+
+    def test_invalid_owned_key_ref(self):
+        cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_owned_key_ref.yaml")
+        b = yaml_code_gen.makeBaseItem(cfg)
+        self.assertFalse(b.validate())
+
+    def test_invalid_owned_key_multiple(self):
+        cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_owned_key_multiple.yaml")
+        b = yaml_code_gen.makeBaseItem(cfg)
+        self.assertFalse(b.validate())
+
+    def test_invalid_owned_key_owned(self):
+        cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_owned_key_owned.yaml")
+        b = yaml_code_gen.makeBaseItem(cfg)
+        self.assertFalse(b.validate())
+
+    def test_invalid_owned_key_not_persistent(self):
+        cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_owned_key_not_persistent.yaml")
+        b = yaml_code_gen.makeBaseItem(cfg)
+        self.assertFalse(b.validate())
+
+    def test_invalid_contained_w_key(self):
+        cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_contained_w_key.yaml")
+        b = yaml_code_gen.makeBaseItem(cfg)
+        self.assertFalse(b.validate())
+
+    def test_invalid_simple_w_key(self):
+        cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_simple_w_key.yaml")
+        b = yaml_code_gen.makeBaseItem(cfg)
+        self.assertFalse(b.validate())
+
 if __name__ == "__main__":
     unittest.main()

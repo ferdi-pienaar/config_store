@@ -192,7 +192,7 @@ class SimpleItem(Item):
         elif 'array' in self.d:
             s += self.d['array']['type'] + ") * "
             try:
-                # A counter with a name, so use it.
+                # A constant with a name, so use it.
                 s += str(self.d['array']['count']['name'])
             except:
                 # No name, use the integer value directly.
@@ -217,6 +217,11 @@ class SimpleItem(Item):
     def validate(self):
         "Validation of simple item is OK."
         return True
+
+    def validate_key(self, key_name):
+        print("key ref {} in simple item {}".format(key_name, self.d['name']))
+        return False
+
 
 def get_value_from_dictionary_list(dlist, key):
     "Helper function: from list of dictionaries, return the value of 1st dictionary with the desired 'name' entry(or None)"
@@ -341,25 +346,49 @@ class CompositeItem(Item):
         "Validate self and recursively validate components."
         for aggr in self.aggregates:
             #print("check aggregate {} in {}".format(aggr.item.d['name'], self.d['name']))
-            counter_aggr = None
             if 'counter' in aggr.d:
-                #print("aggregate {} has counter {}".format(aggr.item.d['name'], aggr.d['counter']))
-                # aggregate refers to a counter, so find and check that counter.
-                for ca in self.aggregates:
-                    if ca.item.d['name'] == aggr.d['counter']:
-                        counter_aggr = ca
-                        break
-                if counter_aggr is None:
-                    print("counter {} not in composite {}".format(aggr.d['counter'], self.d['name']))
+                # counter name is a reference to a sibling aggregate.
+                if aggr.d['type'] != 'owned':
+                    print("counter ref {} for composite {} that is not owned".format(aggr.d['counter'], aggr.item.d['name']))
                     return False
-                # The counter aggregate exists in this composite, so validate it.
-                valid, msg = counter_aggr.validate_counter()
-                if not valid:
-                    print("counter {} in {} invalid: {}".format(aggr.d['counter'], self.d['name'], msg))
+                if not self.validate_counter(aggr.d['counter']):
                     return False
-            # aggr is valid, next validate its item.
-            if not aggr.item.validate():
+            if not aggr.validate():
                 return False
+        return True
+
+    def validate_counter(self, counter_name):
+        "Find the sibling aggregate with counter_name and validate it."
+        counter_aggr = None
+        for candidate_aggr in self.aggregates:
+            if candidate_aggr.item.d['name'] == counter_name:
+                counter_aggr = candidate_aggr
+                break
+        if counter_aggr is None:
+            print("counter {} not in composite {}".format(counter_name, self.d['name']))
+            return False
+        # The counter aggregate exists in this composite, so validate it.
+        valid, msg = counter_aggr.validate_counter()
+        if not valid:
+            print("counter {} in {} invalid: {}".format(counter_name, self.d['name'], msg))
+            return False
+        return True
+
+    def validate_key(self, key_name):
+        "Find the aggregate with key_name and validate it."
+        key_aggr = None
+        for candidate_aggr in self.aggregates:
+            if candidate_aggr.item.d['name'] == key_name:
+                key_aggr = candidate_aggr
+                break
+        if key_aggr is None:
+            print("key {} not in composite {}".format(key_name, self.d['name']))
+            return False
+        # The key aggregate exists in this composite, so validate it.
+        valid, msg = key_aggr.validate_key()
+        if not valid:
+            print("key {} in {} invalid: {}".format(key_name, self.d['name'], msg))
+            return False
         return True
 
 
@@ -400,8 +429,15 @@ class Aggregate:
             pass
         return s
 
+    def validate(self):
+        if 'key' in self.d:
+            # key name is a reference to a child of the aggregate's item.
+            if not self.validate_key_ref():
+                return False
+        return self.item.validate()
+
     def validate_counter(self):
-        "This aggregate is a counter for an owned component, check it meets requirements."
+        "This aggregate is a counter for an owned component, validate it."
         #print("found counter")
         if self.d['type'] != "contained":
             return False, "not contained"
@@ -409,6 +445,24 @@ class Aggregate:
             return False, "{} instances".format(self.d['count'])
         if 'setdef' in self.item.d:
             return False, "has setdef"
+        return True, ""
+
+    def validate_key_ref(self):
+        "This aggregate has a key reference, check it is valid."
+        if self.d['type'] != 'owned':
+            print("key ref {} for composite {} that is not owned".format(self.d['key'], self.item.d['name']))
+            return False
+        # The key is in a valid aggregate, now check the item.
+        return self.item.validate_key(self.d['key'])
+
+    def validate_key(self):
+        "This aggregate is a key for an owned component, check it is valid."
+        if self.d['type'] != "contained":
+            return False, "not contained"
+        if self.d['count'] != 1:
+            return False, "{} instances".format(self.d['count'])
+        if not self.item.d['persistent']:
+            return False, "not persistent"
         return True, ""
 
 class ContainedAggregate(Aggregate):

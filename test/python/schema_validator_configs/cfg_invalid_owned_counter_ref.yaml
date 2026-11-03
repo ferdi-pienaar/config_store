@@ -12,7 +12,7 @@ item:
             type: unsigned long
     -   count: 2
         type: owned
-        counter: addrCntxxxxxxxx
+        counter: counter_ref_with_no_target
         item:
             name: ipaddr
             persistent: true

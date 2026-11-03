@@ -6,14 +6,14 @@ item:
     -   count: 1
         type: contained
         item:
-            name: addrCnt
+            name: counter_w_setdef
             persistent: false
             print: cfg_mgr::cm_prt_int
             setdef: cfg_mgr::cm_setdef_null
             type: unsigned long
     -   count: 2
         type: owned
-        counter: addrCnt
+        counter: counter_w_setdef
         item:
             name: ipaddr
             persistent: true

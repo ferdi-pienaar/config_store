@@ -6,13 +6,13 @@ item:
     -   count: 1
         type: owned
         item:
-            name: addrCnt
+            name: counter_owned
             persistent: false
             print: cfg_mgr::cm_prt_int
             type: unsigned long
     -   count: 2
         type: owned
-        counter: addrCnt
+        counter: counter_owned
         item:
             name: ipaddr
             persistent: true
