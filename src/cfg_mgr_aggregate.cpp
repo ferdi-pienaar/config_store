@@ -158,7 +158,11 @@ Result Aggregate::load(uint8_t * pParentItem) const
     }
     if (getData()->maxCount > 1)
     {
-        getData()->pDesc->m_mgr_service->m_store->startLoadArray(getData()->pDesc->getName());
+        Result ret = getData()->pDesc->m_mgr_service->m_store->startLoadArray(getData()->pDesc->getName());
+        if (ret != Result::CM_SUCCESS)
+        {
+            return ret;
+        }
     }
     for (unsigned idx = 0; idx < getData()->maxCount; idx++)
     {
