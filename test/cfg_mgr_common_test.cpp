@@ -135,3 +135,95 @@ TEST_F(CfgMgrContainedCommon, print_composite_with_unprintable_component)
 
     EXPECT_STREQ("name2 0 = 7\nname2 1 = 7\n", cm_printf_spy_get());
 }
+
+namespace owned_follower
+{
+
+t_dev *DEV_CONFIG = nullptr;
+
+class CfgMgrOwnedFollower : public testing::Test
+{
+protected:
+    //Define data accessible to test group members here.
+    unique_ptr<Nvram_spy> nvram;
+    unique_ptr<Config_manager_implement> cm;
+
+    virtual void SetUp()
+    {
+        nvram = make_unique<Nvram_spy>();
+        cm = make_unique<Config_manager_implement>(&c1, cm_printf_spy, (uint8_t **)&DEV_CONFIG, nvram.get());
+        cm_printf_spy_init();
+    }
+};
+
+// xxx
+TEST_F(CfgMgrOwnedFollower, default_value)
+{
+    std::vector<char *> command = {(char *)"prt"};
+    cm->handleCmd(command.size(), command.data());
+
+    EXPECT_STREQ("owned_cnt = 0\n", cm_printf_spy_get());
+}
+
+TEST_F(CfgMgrOwnedFollower, save_load_leader_follower)
+{
+    std::vector<char *> command_set1 = {(char *)"leader", (char *)"=", (char *)"12"};
+    cm->handleCmd(command_set1.size(), command_set1.data());
+    std::vector<char *> command_set2 = {(char *)"follower", (char *)"=", (char *)"79"};
+    cm->handleCmd(command_set2.size(), command_set2.data());
+
+    std::vector<char *> command_save = {(char *)"save"};
+    cm->handleCmd(command_save.size(), command_save.data());
+
+    std::vector<char *> command_load = {(char *)"load"};
+    cm->handleCmd(command_load.size(), command_load.data());
+
+    std::vector<char *> command = {(char *)"prt"};
+    cm->handleCmd(command.size(), command.data());
+
+    EXPECT_STREQ("leader = 12\nowned_cnt = 0\nfollower = 79\n", cm_printf_spy_get());
+}
+
+} // namespace owned_follower
+
+namespace leader_owned_1_follower
+{
+
+t_dev *DEV_CONFIG = nullptr;
+
+class CfgMgrLeaderOwned1Follower : public testing::Test
+{
+protected:
+    //Define data accessible to test group members here.
+    unique_ptr<Nvram_spy> nvram;
+    unique_ptr<Config_manager_implement> cm;
+
+    virtual void SetUp()
+    {
+        nvram = make_unique<Nvram_spy>();
+        cm = make_unique<Config_manager_implement>(&c1, cm_printf_spy, (uint8_t **)&DEV_CONFIG, nvram.get());
+        cm_printf_spy_init();
+    }
+};
+
+// xxx
+TEST_F(CfgMgrLeaderOwned1Follower, save_load_leader_follower)
+{
+    std::vector<char *> command_set1 = {(char *)"leader", (char *)"=", (char *)"12"};
+    cm->handleCmd(command_set1.size(), command_set1.data());
+    std::vector<char *> command_set2 = {(char *)"follower", (char *)"=", (char *)"712"};
+    cm->handleCmd(command_set2.size(), command_set2.data());
+
+    std::vector<char *> command_save = {(char *)"save"};
+    cm->handleCmd(command_save.size(), command_save.data());
+
+    std::vector<char *> command_load = {(char *)"load"};
+    cm->handleCmd(command_load.size(), command_load.data());
+
+    std::vector<char *> command = {(char *)"prt"};
+    cm->handleCmd(command.size(), command.data());
+
+    EXPECT_STREQ("leader = 12\nfollower = 712\n", cm_printf_spy_get());
+}
+
+} // namespace leader_owned_1_follower

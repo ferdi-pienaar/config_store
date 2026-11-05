@@ -28,3 +28,62 @@ Contained_aggregate ca2(&ca2_d);
 Aggregate * const aggrList1[] = {&ca1, &ca2};
 const Composite_metadata c1_d = {{"c1", PERSISTENT, sizeof(struct m)}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
 Composite_descriptor c1(&c1_d);
+
+namespace owned_follower
+{
+
+// owned with max count 1 and no counter
+const Simple_metadata s1_d = {{"leader", PERSISTENT, sizeof(int)}, cm_set_int, cm_setdef_null, cm_prt_int};
+Simple_descriptor s1(&s1_d);
+const Owned_aggregate_data a1_d = {{&s1, 1, offsetof(t_dev, leader)}};
+Owned_aggregate a1(&a1_d);
+
+const Simple_metadata s2_d = {{"owned_cnt", NOT_PERSISTENT, sizeof(unsigned)}, nullptr, nullptr, cm_prt_int};
+Simple_descriptor s2(&s2_d);
+const Aggregate_data a2_d = {&s2, 1, offsetof(t_dev, owned_cnt)};
+Contained_aggregate a2(&a2_d);
+
+// owned with max count MAX_NUM_OWNED and counter
+const Simple_metadata s3_d = {{"owned", PERSISTENT, sizeof(int)}, cm_set_int, cm_setdef_null, cm_prt_int};
+Simple_descriptor s3(&s3_d);
+const Owned_aggregate_data a3_d = {{&s3, MAX_NUM_OWNED, offsetof(t_dev, owned)}, &a2};
+Owned_aggregate a3(&a3_d);
+
+// owned with max count 1 and no counter
+const Simple_metadata s4_d = {{"follower", PERSISTENT, sizeof(int)}, cm_set_int, cm_setdef_null, cm_prt_int};
+Simple_descriptor s4(&s4_d);
+const Owned_aggregate_data a4_d = {{&s4, 1, offsetof(t_dev, follower)}};
+Owned_aggregate a4(&a4_d);
+
+Aggregate * const aggrList1[] = {&a1, &a2, &a3, &a4};
+const Composite_metadata c1_d = {{"dev", PERSISTENT, sizeof(t_dev)}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
+Composite_descriptor c1(&c1_d);
+
+} // namespace owned_follower
+
+namespace leader_owned_1_follower
+{
+
+// owned with max count 1 and no counter
+const Simple_metadata s1_d = {{"leader", PERSISTENT, sizeof(int)}, cm_set_int, cm_setdef_null, cm_prt_int};
+Simple_descriptor s1(&s1_d);
+const Owned_aggregate_data a1_d = {{&s1, 1, offsetof(t_dev, leader)}};
+Owned_aggregate a1(&a1_d);
+
+// owned with max count 1 and no counter
+const Simple_metadata s2_d = {{"owned", PERSISTENT, sizeof(int)}, cm_set_int, cm_setdef_null, cm_prt_int};
+Simple_descriptor s2(&s2_d);
+const Owned_aggregate_data a2_d = {{&s2, 1, offsetof(t_dev, owned)}};
+Owned_aggregate a2(&a2_d);
+
+// owned with max count 1 and no counter
+const Simple_metadata s3_d = {{"follower", PERSISTENT, sizeof(int)}, cm_set_int, cm_setdef_null, cm_prt_int};
+Simple_descriptor s3(&s3_d);
+const Owned_aggregate_data a3_d = {{&s3, 1, offsetof(t_dev, follower)}};
+Owned_aggregate a3(&a3_d);
+
+Aggregate * const aggrList1[] = {&a1, &a2, &a3};
+const Composite_metadata c1_d = {{"dev", PERSISTENT, sizeof(t_dev)}, aggrList1, sizeof(aggrList1)/sizeof(aggrList1[0])};
+Composite_descriptor c1(&c1_d);
+
+} // namespace leader_owned_1_follower

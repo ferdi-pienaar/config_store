@@ -129,14 +129,17 @@ Result JsonLoader::endLoadComposite(ValueType t)
         return Result::CM_INCOHERENT_DATA;
     }
     m_context.pop();
+    // We just loaded an item, so no longer at first member in the higher level we've popped to.
     m_context.setIsFirstMember(false);
     return Result::CM_SUCCESS;
 }
 
 // Common start for simple, object, and array.
+// If the member name is not found, restore nvram offset for next load's findName.
 Result JsonLoader::startLoadMember(const char * name)
 {
     skipws();
+    unsigned int start_offset = m_nvram->getOffset();
     if (!m_context.isFirstMember())
     {
         // This is subsequent member, so expect ',' before its name.
@@ -153,6 +156,7 @@ Result JsonLoader::startLoadMember(const char * name)
         Result ret = findName(name);
         if (ret != Result::CM_SUCCESS)
         {
+            m_nvram->setOffset(start_offset);
             return ret;
         }
         skipws();
@@ -161,10 +165,8 @@ Result JsonLoader::startLoadMember(const char * name)
 }
 
 // Find name within the current object.
-// If not found, leave nvram offset unchanged so next find starts at same offset.
 Result JsonLoader::findName(const char * name)
 {
-    unsigned int start_offset = m_nvram->getOffset();
     while (true)
     {
         Result res = readName(name);
@@ -182,7 +184,6 @@ Result JsonLoader::findName(const char * name)
         if (res != Result::CM_SUCCESS)
         {
             // There are no more names in the current context, or some other error.
-            m_nvram->setOffset(start_offset);
             return res;
         }
     }
