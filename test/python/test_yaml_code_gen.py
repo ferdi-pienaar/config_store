@@ -17,7 +17,7 @@ def get_file_data(file_path):
 
 class Test_simple_gen(unittest.TestCase):
     cfg = \
-    ("item:\n"
+    ("descriptor:\n"
     "  name: alf\n"
     "  persistent: true\n"
     "  type: int\n")
@@ -32,9 +32,9 @@ class Test_simple_gen(unittest.TestCase):
         ("name: alf\n"
         "id: 55\n")
         yaml_code_gen.store_type = "tlv"
-        b = yaml_code_gen.makeBaseItem(self.cfg)
-        yaml_code_gen.setBaseItemIds(b, id)
-        expected_init = ('namespace alf { // Simple item initialization\n'
+        b = yaml_code_gen.makeBaseDescriptor(self.cfg)
+        yaml_code_gen.setBaseDescriptorIds(b, id)
+        expected_init = ('namespace alf { // Simple descriptor initialization\n'
         'const cfg_mgr::Simple_metadata data =\n'
         '{\n'
         '    {\n'
@@ -47,15 +47,15 @@ class Test_simple_gen(unittest.TestCase):
         '    nullptr, // print\n'
         '};\n'
         'cfg_mgr::Simple_descriptor desc(&data);\n'
-        '} // namespace alf, simple item initialization\n')
+        '} // namespace alf, simple descriptor initialization\n')
         self.assertEqual(expected_init, b.get_init())
 
     def test_init_without_id(self):
         "Check C++ init code produced from a YAML config descriptor without ID dictionary."
         yaml_code_gen.store_type = "tlv"
-        b = yaml_code_gen.makeBaseItem(self.cfg)
-        yaml_code_gen.setBaseItemIds(b, None)
-        expected_init = ('namespace alf { // Simple item initialization\n'
+        b = yaml_code_gen.makeBaseDescriptor(self.cfg)
+        yaml_code_gen.setBaseDescriptorIds(b, None)
+        expected_init = ('namespace alf { // Simple descriptor initialization\n'
         'const cfg_mgr::Simple_metadata data =\n'
         '{\n'
         '    {\n'
@@ -68,14 +68,14 @@ class Test_simple_gen(unittest.TestCase):
         '    nullptr, // print\n'
         '};\n'
         'cfg_mgr::Simple_descriptor desc(&data);\n'
-        '} // namespace alf, simple item initialization\n')
+        '} // namespace alf, simple descriptor initialization\n')
         self.assertEqual(expected_init, b.get_init())
 
     def test_init_json(self):
         "Check C++ init code produced from a YAML config descriptor."
         yaml_code_gen.store_type = "json"
-        b = yaml_code_gen.makeBaseItem(self.cfg)
-        expected_init = ('namespace alf { // Simple item initialization\n'
+        b = yaml_code_gen.makeBaseDescriptor(self.cfg)
+        expected_init = ('namespace alf { // Simple descriptor initialization\n'
         'const cfg_mgr::Simple_metadata data =\n'
         '{\n'
         '    {\n'
@@ -88,7 +88,7 @@ class Test_simple_gen(unittest.TestCase):
         '    nullptr, // print\n'
         '};\n'
         'cfg_mgr::Simple_descriptor desc(&data);\n'
-        '} // namespace alf, simple item initialization\n')
+        '} // namespace alf, simple descriptor initialization\n')
         self.assertEqual(expected_init, b.get_init())
 
 class Test_contained_array_gen(unittest.TestCase):
@@ -100,13 +100,13 @@ class Test_contained_array_gen(unittest.TestCase):
       id: 0
     """
     cfg = """
-    item:
+    descriptor:
       name: alf
       persistent: true
       aggregate:
       - count: 2
         type: contained
-        item:
+        descriptor:
           name: ipaddr
           persistent: true
           type: unsigned long
@@ -116,7 +116,7 @@ class Test_contained_array_gen(unittest.TestCase):
         yaml_code_gen.scriptName = "script"
 
     def test_contained_array_definition(self):
-        b = yaml_code_gen.makeBaseItem(self.cfg)
+        b = yaml_code_gen.makeBaseDescriptor(self.cfg)
         expected_def = ('struct t_alf\n'
         '{\n'
         '    unsigned long ipaddr[2];\n'
@@ -124,7 +124,7 @@ class Test_contained_array_gen(unittest.TestCase):
         self.assertEqual(expected_def, b.get_definition())
 
     def test_contained_array_init(self):
-        b = yaml_code_gen.makeBaseItem(self.cfg)
+        b = yaml_code_gen.makeBaseDescriptor(self.cfg)
         #print(b.get_init())
 
 class Test_owned_with_key_gen(unittest.TestCase):
@@ -135,7 +135,7 @@ class Test_owned_with_key_gen(unittest.TestCase):
         yaml_code_gen.store_type = "tlv"
 
     def test_definition(self):
-        b = yaml_code_gen.makeBaseItem(self.cfg)
+        b = yaml_code_gen.makeBaseDescriptor(self.cfg)
         expected_def = (
         'namespace device\n{\n'
         'namespace user\n{\n'
@@ -157,7 +157,7 @@ class Test_owned_with_key_gen(unittest.TestCase):
         self.assertEqual(expected_def, b.get_definition())
 
     #def test_init(self):
-    #    b = yaml_code_gen.makeBaseItem(self.cfg)
+    #    b = yaml_code_gen.makeBaseDescriptor(self.cfg)
     #    print(b.get_init())
 
 class Test_invalid_config(unittest.TestCase):
@@ -168,57 +168,57 @@ class Test_invalid_config(unittest.TestCase):
 
     def test_invalid_owned_counter_ref(self):
         cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_owned_counter_ref.yaml")
-        b = yaml_code_gen.makeBaseItem(cfg)
+        b = yaml_code_gen.makeBaseDescriptor(cfg)
         self.assertFalse(b.validate())
 
     def test_invalid_owned_counter_multiple(self):
         cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_owned_counter_multiple.yaml")
-        b = yaml_code_gen.makeBaseItem(cfg)
+        b = yaml_code_gen.makeBaseDescriptor(cfg)
         self.assertFalse(b.validate())
 
     def test_invalid_owned_counter_owned(self):
         cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_owned_counter_owned.yaml")
-        b = yaml_code_gen.makeBaseItem(cfg)
+        b = yaml_code_gen.makeBaseDescriptor(cfg)
         self.assertFalse(b.validate())
 
     def test_invalid_owned_counter_setdef(self):
         cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_owned_counter_setdef.yaml")
-        b = yaml_code_gen.makeBaseItem(cfg)
+        b = yaml_code_gen.makeBaseDescriptor(cfg)
         self.assertFalse(b.validate())
 
     def test_invalid_contained_w_counter(self):
         cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_contained_w_counter.yaml")
-        b = yaml_code_gen.makeBaseItem(cfg)
+        b = yaml_code_gen.makeBaseDescriptor(cfg)
         self.assertFalse(b.validate())
 
     def test_invalid_owned_key_ref(self):
         cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_owned_key_ref.yaml")
-        b = yaml_code_gen.makeBaseItem(cfg)
+        b = yaml_code_gen.makeBaseDescriptor(cfg)
         self.assertFalse(b.validate())
 
     def test_invalid_owned_key_multiple(self):
         cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_owned_key_multiple.yaml")
-        b = yaml_code_gen.makeBaseItem(cfg)
+        b = yaml_code_gen.makeBaseDescriptor(cfg)
         self.assertFalse(b.validate())
 
     def test_invalid_owned_key_owned(self):
         cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_owned_key_owned.yaml")
-        b = yaml_code_gen.makeBaseItem(cfg)
+        b = yaml_code_gen.makeBaseDescriptor(cfg)
         self.assertFalse(b.validate())
 
     def test_invalid_owned_key_not_persistent(self):
         cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_owned_key_not_persistent.yaml")
-        b = yaml_code_gen.makeBaseItem(cfg)
+        b = yaml_code_gen.makeBaseDescriptor(cfg)
         self.assertFalse(b.validate())
 
     def test_invalid_contained_w_key(self):
         cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_contained_w_key.yaml")
-        b = yaml_code_gen.makeBaseItem(cfg)
+        b = yaml_code_gen.makeBaseDescriptor(cfg)
         self.assertFalse(b.validate())
 
     def test_invalid_simple_w_key(self):
         cfg = get_file_data(TEST_CONFIG_DIR/"cfg_invalid_simple_w_key.yaml")
-        b = yaml_code_gen.makeBaseItem(cfg)
+        b = yaml_code_gen.makeBaseDescriptor(cfg)
         self.assertFalse(b.validate())
 
 if __name__ == "__main__":

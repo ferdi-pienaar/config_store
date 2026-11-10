@@ -1,11 +1,11 @@
 
-item:
+descriptor:
     name: device
     persistent: true
     aggregate:
     -   count: 1
         type: contained
-        item:
+        descriptor:
             name: counter_for_contained
             persistent: false
             print: cfg_mgr::cm_prt_int
@@ -14,13 +14,13 @@ item:
         type: contained
         counter: counter_for_contained
         key: uname
-        item:
+        descriptor:
             name: user
             persistent: true
             aggregate:
             -   count: 1
                 type: contained
-                item:
+                descriptor:
                     name: uname
                     persistent: true
                     set: cfg_mgr::cm_set_str
@@ -34,7 +34,7 @@ item:
                         type: char
             -   count: 1
                 type: contained
-                item:
+                descriptor:
                     name: id
                     persistent: true
                     set: cfg_mgr::cm_set_int

@@ -1,5 +1,5 @@
 
-item:
+descriptor:
     persistent: true
     type: int
     print: printf

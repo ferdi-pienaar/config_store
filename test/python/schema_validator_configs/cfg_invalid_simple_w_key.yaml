@@ -1,11 +1,11 @@
 
-item:
+descriptor:
     name: device
     persistent: true
     aggregate:
     -   count: 1
         type: contained
-        item:
+        descriptor:
             name: userCnt
             persistent: false
             print: cfg_mgr::cm_prt_int
@@ -13,7 +13,7 @@ item:
     -   count: 1
         type: owned
         key: key_for_simple
-        item:
+        descriptor:
             name: user
             persistent: true
             set: cfg_mgr::cm_set_int

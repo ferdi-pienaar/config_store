@@ -1,17 +1,17 @@
 # This source file in YAML language is written by the designer of a
-# configurable items hierarchy, and describes those items.  It's an input
+# configurable items hierarchy, and describes those items. It's an input
 # to the build system that makes the executable that also includes
 # the config manager library.
 ---
 
-# Parent item
-item:
+# Parent descriptor
+descriptor:
     name: device
     persistent: true
     aggregate:
     -   count: 1
         type: contained
-        item:
+        descriptor:
             name: ipaddr
             persistent: true
             set: cfg_mgr::cm_set_int
@@ -23,7 +23,7 @@ item:
             type: const unsigned short
             value: 4
         type: contained
-        item:
+        descriptor:
             name: port
             persistent: true
             set: cfg_mgr::cm_set_int
@@ -32,7 +32,7 @@ item:
             type: unsigned short
     -   count: 1
         type: contained
-        item:
+        descriptor:
             name: userCnt
             persistent: false
             print: cfg_mgr::cm_prt_int
@@ -44,13 +44,13 @@ item:
         type: owned
         counter: userCnt
         key: id
-        item:
+        descriptor:
             name: user
             persistent: true
             aggregate:
             -   count: 1
                 type: contained
-                item:
+                descriptor:
                     name: name
                     persistent: true
                     set: cfg_mgr::cm_set_str
@@ -64,7 +64,7 @@ item:
                         type: char
             -   count: 1
                 type: contained
-                item:
+                descriptor:
                     name: id
                     persistent: true
                     set: cfg_mgr::cm_set_int
@@ -72,8 +72,8 @@ item:
                     print: cfg_mgr::cm_prt_int
                     type: unsigned long
             -   count: 1
-                type: contained # Counter of owned item named 'temp' is contained.
-                item:
+                type: contained # Counter of owned descriptor named 'temp' is contained.
+                descriptor:
                     name: tempCnt
                     persistent: false # no need to save counter to NVRAM
                     print: cfg_mgr::cm_prt_int
@@ -81,7 +81,7 @@ item:
             -   count: 3
                 type: owned
                 counter: tempCnt
-                item:
+                descriptor:
                     name: temp
                     persistent: true
                     set: set_temp
@@ -90,20 +90,20 @@ item:
                     type: short
             -   count: 1
                 type: contained
-                item:
+                descriptor:
                     name: elapsed
                     persistent: false
                     print: cfg_mgr::cm_prt_int
                     type: unsigned
     -   count: 1
         type: contained
-        item:
+        descriptor:
             name: home
             persistent: true
             aggregate:
             -   count: 1
                 type: owned
-                item:
+                descriptor:
                     name: addr
                     persistent: true
                     set: cfg_mgr::cm_set_int
@@ -112,13 +112,13 @@ item:
                     type: unsigned
             -   count: 1
                 type: owned
-                item:
+                descriptor:
                     name: location
                     persistent: true
                     aggregate:
                     -   count: 1
                         type: contained
-                        item:
+                        descriptor:
                             name: name
                             persistent: true
                             set: cfg_mgr::cm_set_str

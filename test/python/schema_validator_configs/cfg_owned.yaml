@@ -1,11 +1,11 @@
 
-item:
+descriptor:
     name: device
     persistent: true
     aggregate:
     -   count: 1
         type: owned
-        item:
+        descriptor:
             name: ipaddr
             persistent: true
             set: cfg_mgr::cm_set_int

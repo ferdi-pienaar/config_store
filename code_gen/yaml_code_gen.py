@@ -12,7 +12,7 @@ Usage: python yaml_code_gen.py <source YAML file>
   This script tries to load a YAML file containing IDs used for TLV, and if it doesn't find it, generates new IDs.
 
 todo:
-  Should we mark items in the ID file that are no longer present in the config file?
+  Should we mark descriptors in the ID file that are no longer present in the config file?
   We retain the IDs in the ID file (so this script can avoid re-using them), but
   it could be useful to see what's no longer used in the current config without
   having to compare the config file and the ID file.
@@ -45,9 +45,9 @@ def getInitHeader(script, inputFile):
 
 def getIdHeader(script):
     return ("# This file is both input to and output from " + script + ".\n" +
-            "# It 'remembers' the ID that's used to identify each item in NVRAM, for interoperability\n" +
+            "# It 'remembers' the ID that's used to identify each descriptor in NVRAM, for interoperability\n" +
             "# between different versions of the user-defined configurable item hierarchy.\n" +
-            "# It may be modified, typically to remove an item whose ID may be re-allocated because it\n" +
+            "# It may be modified, typically to remove a descriptor whose ID may be re-allocated because it\n" +
             "# is no longer used anywhere.\n")
 
 class Id_generator:
@@ -79,7 +79,7 @@ class Id_generator:
         #print "Start w", self.allocated_id
 
 
-class Item:
+class Descriptor:
     def __init__(self, d, full_namespace):
         self.d = d
         self.full_namespace = full_namespace
@@ -111,7 +111,7 @@ class Item:
         return s
 
     def get_component_ids(self):
-        "Implemented by CompositeItem"
+        "Implemented by CompositeDescriptor"
         pass
 
     def get_access_fn(self):
@@ -123,7 +123,7 @@ class Item:
         return s
 
     def get_inner_namespace(self):
-        "Return the inner-most of the namespaces this item is in."
+        "Return the inner-most of the namespaces this descriptor is in."
         substr = "::"
         i = self.full_namespace.rfind(substr)
         if i > 0:
@@ -132,16 +132,16 @@ class Item:
         else:
             return self.full_namespace
 
-class SimpleItem(Item):
+class SimpleDescriptor(Descriptor):
     def __init__(self, d, full_namespace):
-        Item.__init__(self, d, full_namespace)
+        Descriptor.__init__(self, d, full_namespace)
 
     def get_init(self):
         "Return string containing initialization of the metadata"
-        s = "namespace " + self.d['name'] + " { // Simple item initialization\n"
+        s = "namespace " + self.d['name'] + " { // Simple descriptor initialization\n"
         s += self.get_metadata_init()
         s += "cfg_mgr::Simple_descriptor desc(&data);\n"
-        s += "} // namespace " + self.d['name'] + ", simple item initialization\n"
+        s += "} // namespace " + self.d['name'] + ", simple descriptor initialization\n"
         return s
 
     def get_metadata_init(self):
@@ -215,11 +215,11 @@ class SimpleItem(Item):
         return s
 
     def validate(self):
-        "Validation of simple item is OK."
+        "Validation of simple descriptor is OK."
         return True
 
     def validate_key(self, key_name):
-        print("key ref {} in simple item {}".format(key_name, self.d['name']))
+        print("key ref {} in simple descriptor {}".format(key_name, self.d['name']))
         return False
 
 
@@ -229,9 +229,9 @@ def get_value_from_dictionary_list(dlist, key):
         if d['name'] == key:
             return d
 
-class CompositeItem(Item):
+class CompositeDescriptor(Descriptor):
     def __init__(self, d, full_namespace):
-        Item.__init__(self, d, full_namespace)
+        Descriptor.__init__(self, d, full_namespace)
         self.aggregates = []
         if len(full_namespace) > 0:
             full_namespace += "::"
@@ -240,7 +240,7 @@ class CompositeItem(Item):
             self.aggregates.append(makeAggregate(a, full_namespace))
 
     def set_ids(self, container_id_gen, old_ids):
-        Item.set_ids(self, container_id_gen, old_ids)
+        Descriptor.set_ids(self, container_id_gen, old_ids)
         if old_ids is not None:
             self.id_gen = Id_generator(old_ids['components'])
         else:
@@ -248,8 +248,8 @@ class CompositeItem(Item):
         for a in self.aggregates:
             component_id = None
             if old_ids is not None:
-                component_id = get_value_from_dictionary_list(old_ids['components'], a.d['item']['name'])
-            a.item.set_ids(self.id_gen, component_id)
+                component_id = get_value_from_dictionary_list(old_ids['components'], a.d['descriptor']['name'])
+            a.descriptor.set_ids(self.id_gen, component_id)
 
     def get_component_ids(self):
         "Get list of component IDs in format used to generate the ID yaml file"
@@ -257,17 +257,17 @@ class CompositeItem(Item):
         components = []
         for name in component_ids:
             # An item in the complete dictionary of IDs from ID generator
-            d = {} # Dictionary of dictionaries: ID, and optionally 'items', a list of item dictionaries
+            d = {} # Dictionary of dictionaries: ID, and optionally 'descriptors', a list of descriptor dictionaries
             d['name'] = name
             d['id'] = component_ids[name]        
             try:
-                component = [a.item for a in self.aggregates if a.item.d['name'] == name][0]
+                component = [a.descriptor for a in self.aggregates if a.descriptor.d['name'] == name][0]
                 id_list = component.get_component_ids()
                 if id_list is not None:
                     # The component is itself composite, so insert its entry
                     d['components'] = id_list
             except:
-                # Can't find a component item with a matching name -- no longer supported
+                # Can't find a component descriptor with a matching name -- no longer supported
                 print("{}, ID {}, is no longer in use".format(name, component_ids[name]))
             components.append(d)
         return components
@@ -278,8 +278,8 @@ class CompositeItem(Item):
         pre_definitions = ""
         for aggr in self.aggregates:
             pre_definitions += aggr.get_constant_definition()
-            pre_definitions += aggr.item.get_constant_definition()
-            pre_definitions += aggr.item.get_definition()
+            pre_definitions += aggr.descriptor.get_constant_definition()
+            pre_definitions += aggr.descriptor.get_definition()
 
         # Pre-definitions, if they exist, go in a namespace.
         if len(pre_definitions) > 0:
@@ -292,8 +292,8 @@ class CompositeItem(Item):
         s += "struct " + self.get_type() + "\n{\n"
         for aggr in self.aggregates:
             s += indent
-            if hasattr(aggr.item, 'aggregates'):
-                # The item is a composite, so its type is a struct in this item's namespace.
+            if hasattr(aggr.descriptor, 'aggregates'):
+                # The descriptor is a composite, so its type is a struct in this descriptor's namespace.
                 s += self.d['name'] + "::"
             s += aggr.get_instance_definition(self.d['name'])
         s += "};\n"
@@ -301,19 +301,19 @@ class CompositeItem(Item):
 
     def get_init(self):
         "Return string containing initialization of the metadata, including pre-pended initialization of included data"
-        s = "namespace " + self.d['name'] + " { // Composite item initialization\n"
+        s = "namespace " + self.d['name'] + " { // Composite descriptor initialization\n"
         for aggr in self.aggregates:
             s += aggr.get_init(self.get_type())
         s += self.get_aggr_list_init()
         s += self.get_metadata_init()
         s += "cfg_mgr::Composite_descriptor desc(&data);\n"
-        s += "} // namespace " + self.d['name'] + ", composite item initialization\n"
+        s += "} // namespace " + self.d['name'] + ", composite descriptor initialization\n"
         return s
 
     def get_aggr_list_init(self):
         s = "cfg_mgr::Aggregate * const aggregate_list[] =\n{\n"
         for a in self.aggregates:
-            s += indent + "&" + a.item.d['name'] + "::aggregate,\n"
+            s += indent + "&" + a.descriptor.d['name'] + "::aggregate,\n"
         s += "\n};\n"
         return s
 
@@ -339,17 +339,17 @@ class CompositeItem(Item):
         return "sizeof(" + self.get_type() + ")"
 
     def get_constant_definition(self):
-        "Composite items don't define constants"
+        "Composite descriptors don't define constants"
         return ""
 
     def validate(self):
         "Validate self and recursively validate components."
         for aggr in self.aggregates:
-            #print("check aggregate {} in {}".format(aggr.item.d['name'], self.d['name']))
+            #print("check aggregate {} in {}".format(aggr.descriptor.d['name'], self.d['name']))
             if 'counter' in aggr.d:
                 # counter name is a reference to a sibling aggregate.
                 if aggr.d['type'] != 'owned':
-                    print("counter ref {} for composite {} that is not owned".format(aggr.d['counter'], aggr.item.d['name']))
+                    print("counter ref {} for composite {} that is not owned".format(aggr.d['counter'], aggr.descriptor.d['name']))
                     return False
                 if not self.validate_counter(aggr.d['counter']):
                     return False
@@ -361,7 +361,7 @@ class CompositeItem(Item):
         "Find the sibling aggregate with counter_name and validate it."
         counter_aggr = None
         for candidate_aggr in self.aggregates:
-            if candidate_aggr.item.d['name'] == counter_name:
+            if candidate_aggr.descriptor.d['name'] == counter_name:
                 counter_aggr = candidate_aggr
                 break
         if counter_aggr is None:
@@ -378,7 +378,7 @@ class CompositeItem(Item):
         "Find the aggregate with key_name and validate it."
         key_aggr = None
         for candidate_aggr in self.aggregates:
-            if candidate_aggr.item.d['name'] == key_name:
+            if candidate_aggr.descriptor.d['name'] == key_name:
                 key_aggr = candidate_aggr
                 break
         if key_aggr is None:
@@ -395,15 +395,15 @@ class CompositeItem(Item):
 class Aggregate:
     def __init__(self, d, container_name):
         self.d = d
-        self.item = makeItem(self.d['item'], container_name)
+        self.descriptor = makeDescriptor(self.d['descriptor'], container_name)
 
     def get_init(self, container_type_name):
         "Return initialization string"
-        s = self.item.get_init()
-        s += "namespace " + self.item.d['name'] + " { // Aggregate initialization\n"
+        s = self.descriptor.get_init()
+        s += "namespace " + self.descriptor.d['name'] + " { // Aggregate initialization\n"
         s += self.get_data_init(container_type_name)
         s += self.get_instantiate()
-        s += "} // namespace " + self.item.d['name'] + ", aggregate initialization\n"
+        s += "} // namespace " + self.descriptor.d['name'] + ", aggregate initialization\n"
         return s
 
     def get_count_str(self, parent_name):
@@ -423,7 +423,7 @@ class Aggregate:
         s = ""
         try:
             c = self.d['count']
-            s += c['type'] + " " + c['name'] + " = " + str(c['value']) + "; // '" + self.item.d['name'] + "' count\n"
+            s += c['type'] + " " + c['name'] + " = " + str(c['value']) + "; // '" + self.descriptor.d['name'] + "' count\n"
         except:
             # If no counter that includes type, name and value, then there are no constants
             pass
@@ -431,10 +431,10 @@ class Aggregate:
 
     def validate(self):
         if 'key' in self.d:
-            # key name is a reference to a child of the aggregate's item.
+            # key name is a reference to a child of the aggregate's descriptor.
             if not self.validate_key_ref():
                 return False
-        return self.item.validate()
+        return self.descriptor.validate()
 
     def validate_counter(self):
         "This aggregate is a counter for an owned component, validate it."
@@ -443,17 +443,17 @@ class Aggregate:
             return False, "not contained"
         if self.d['count'] != 1:
             return False, "{} instances".format(self.d['count'])
-        if 'setdef' in self.item.d:
+        if 'setdef' in self.descriptor.d:
             return False, "has setdef"
         return True, ""
 
     def validate_key_ref(self):
         "This aggregate has a key reference, check it is valid."
         if self.d['type'] != 'owned':
-            print("key ref {} for composite {} that is not owned".format(self.d['key'], self.item.d['name']))
+            print("key ref {} for composite {} that is not owned".format(self.d['key'], self.descriptor.d['name']))
             return False
-        # The key is in a valid aggregate, now check the item.
-        return self.item.validate_key(self.d['key'])
+        # The key is in a valid aggregate, now check the descriptor.
+        return self.descriptor.validate_key(self.d['key'])
 
     def validate_key(self):
         "This aggregate is a key for an owned component, check it is valid."
@@ -461,7 +461,7 @@ class Aggregate:
             return False, "not contained"
         if self.d['count'] != 1:
             return False, "{} instances".format(self.d['count'])
-        if not self.item.d['persistent']:
+        if not self.descriptor.d['persistent']:
             return False, "not persistent"
         return True, ""
 
@@ -470,14 +470,14 @@ class ContainedAggregate(Aggregate):
         Aggregate.__init__(self, d, container_name)
 
     def get_instance_definition(self, parent_name):
-        s = self.item.get_type_and_name('contained')
+        s = self.descriptor.get_type_and_name('contained')
         if self.d['count'] != 1:
             s += "[" + self.get_count_str(parent_name) + "]"
         return s + ";\n"
 
     def get_data_init(self, container_type_name):
         s = "const cfg_mgr::Aggregate_data aggregate_data = {&desc, " + self.get_count_str(None)
-        s += ", offsetof(" + container_type_name + ", " + self.item.d['name'] + ")};\n"
+        s += ", offsetof(" + container_type_name + ", " + self.descriptor.d['name'] + ")};\n"
         return s
                 
     def get_instantiate(self):
@@ -489,7 +489,7 @@ class OwnedAggregate(Aggregate):
         Aggregate.__init__(self, d, container_name)
 
     def get_instance_definition(self, parent_name):
-        s = self.item.get_type_and_name('owned') + "; // Pointer to item"
+        s = self.descriptor.get_type_and_name('owned') + "; // Pointer to item"
         if self.get_max_count() > 1:
             s += " array, max entries is " + self.get_count_str(parent_name)
             if 'counter' in self.d:
@@ -500,7 +500,7 @@ class OwnedAggregate(Aggregate):
     def get_data_init(self, container_type_name):
         s = "const cfg_mgr::Owned_aggregate_data aggregate_data = {\n"
         s += "    {&desc, " + self.get_count_str(None)
-        s += ", offsetof(" + container_type_name + ", " + self.item.d['name'] + ")}, // common Aggregate_data\n"
+        s += ", offsetof(" + container_type_name + ", " + self.descriptor.d['name'] + ")}, // common Aggregate_data\n"
         if 'counter' in self.d:
             s += "    &" + self.d['counter'] + "::aggregate, // counter\n"
         elif 'key' in self.d:
@@ -525,12 +525,12 @@ class OwnedAggregate(Aggregate):
             return self.d['count']
 
 
-def makeItem(d, full_namespace):
-    "Factory method returns an Item object of the requested class"
+def makeDescriptor(d, full_namespace):
+    "Factory method returns an Descriptor object of the requested class"
     if 'aggregate' in d: 
-        return CompositeItem(d, full_namespace)
+        return CompositeDescriptor(d, full_namespace)
     else:
-        return SimpleItem(d, full_namespace)
+        return SimpleDescriptor(d, full_namespace)
 
 
 def makeAggregate(d, container_name):
@@ -580,7 +580,7 @@ def loadIdData(fname):
     return data
 
 
-def makeBaseItem(yaml_cfg_text):
+def makeBaseDescriptor(yaml_cfg_text):
     "From the config file and the YAML ID data, create objects to generate C++ code and a new ID file."
     try:
         cfg = yaml.load(yaml_cfg_text, Loader=yaml.SafeLoader)
@@ -588,14 +588,14 @@ def makeBaseItem(yaml_cfg_text):
         print("{}: config file can't be loaded as YAML".format(scriptName))
         return
     try:
-        base_item_config = cfg['item']
+        base_descriptor_config = cfg['descriptor']
     except:
-        print("{}: Root element in configuration is not an item".format(scriptName))
+        print("{}: Root element in configuration is not an descriptor".format(scriptName))
         return
-    return makeItem(base_item_config, "")
+    return makeDescriptor(base_descriptor_config, "")
 
 
-def setBaseItemIds(baseItem, id_text):
+def setBaseDescriptorIds(baseDescriptor, id_text):
     id_dict = None
     if id_text is not None:
         try:
@@ -603,12 +603,12 @@ def setBaseItemIds(baseItem, id_text):
         except:
             # id_text exist but can't be loaded as YAML: should not happen since it has been validated.
             print("{}: ID file can't be loaded as YAML".format(scriptName))
-    if id_dict is not None and id_dict['name'] != baseItem.d['name']:
-        # The ID data has no entry for the base item.
-        print("'{}' in ID data file doesn't match '{}' in config file: generating new IDs!".format(id_dict['name'], baseItem.d['name']))
+    if id_dict is not None and id_dict['name'] != baseDescriptor.d['name']:
+        # The ID data has no entry for the base descriptor.
+        print("'{}' in ID data file doesn't match '{}' in config file: generating new IDs!".format(id_dict['name'], baseDescriptor.d['name']))
         id_dict = None
-    # id_dict is None if: id file contents is not YAML (unlikely as it is pre-validated) or ID does not match baseItem.
-    baseItem.set_ids(Id_generator(None), id_dict)
+    # id_dict is None if: id file contents is not YAML (unlikely as it is pre-validated) or ID does not match baseDescriptor.
+    baseDescriptor.set_ids(Id_generator(None), id_dict)
 
 
 def saveIdData(fname, old_id_text):
@@ -628,23 +628,23 @@ def saveIdData(fname, old_id_text):
 
 def getIdData():
     "Get current ID data, including newly allocated ones and ones in the previous ID file, in ID file format."
-    # Special case: the top-level item is the only one that doesn't get its ID from a generator object
+    # Special case: the top-level descriptor is the only one that doesn't get its ID from a generator object
     id_dict = {}
-    id_dict['name'] = baseItem.d['name']
-    id_dict['id'] = int(baseItem.id)
-    id_dict['components'] = baseItem.get_component_ids()
+    id_dict['name'] = baseDescriptor.d['name']
+    id_dict['id'] = int(baseDescriptor.id)
+    id_dict['components'] = baseDescriptor.get_component_ids()
     return id_dict
 
 
-def saveDefinitionFile(fname, scriptFile, cfgFile, baseItem):
+def saveDefinitionFile(fname, scriptFile, cfgFile, baseDescriptor):
     "Make .h file containing type definitions"
     fdecl = open(fname, "w")
     fdecl.write(getDeclHeader(scriptFile, cfgFile))
-    fdecl.write(baseItem.get_definition())
+    fdecl.write(baseDescriptor.get_definition())
     fdecl.close()
 
 
-def saveInititializationFile(fname, scriptFile, cfgFile, definitionFile, dependencyFile, baseItem):
+def saveInititializationFile(fname, scriptFile, cfgFile, definitionFile, dependencyFile, baseDescriptor):
     "Make .cpp file containing definitions and initializations"
     finit = open(fname, "w")
     finit.write(getInitHeader(scriptFile, cfgFile))
@@ -656,8 +656,8 @@ def saveInititializationFile(fname, scriptFile, cfgFile, definitionFile, depende
     finit.write("#include \"key_feature_support.h\" // from cfg_mgr library\n")
     finit.write("#include \"" + definitionFile + "\" // auto-generated\n")
     finit.write("#include \"" + dependencyFile + "\" // supplied by application programmer\n\n")
-    finit.write(baseItem.get_init())
-    finit.write(baseItem.get_access_fn())
+    finit.write(baseDescriptor.get_init())
+    finit.write(baseDescriptor.get_access_fn())
     if key_feature_depend:
         finit.write("// This code needs library built with option KEY_ENABLE, so call function that exists iff it is supported.\n")
         finit.write("// If this fails to link, rebuild library with -DKEY_ENABLE=ON.\n")
@@ -681,11 +681,11 @@ if __name__ == "__main__":
     if not validate_yaml(cfg_text, schemaFilePath):
         sys.exit("Invalid YAML config file {}".format(cfgFilePath))
 
-    baseItem = makeBaseItem(cfg_text)
-    if baseItem is None:
+    baseDescriptor = makeBaseDescriptor(cfg_text)
+    if baseDescriptor is None:
         sys.exit()
 
-    if not baseItem.validate():
+    if not baseDescriptor.validate():
         sys.exit("Validation failed.")
 
     if store_type == "tlv":
@@ -694,15 +694,15 @@ if __name__ == "__main__":
         if id_text is not None:
             if not validate_yaml(id_text, idSchemaFilePath):
                 sys.exit("Invalid YAML ID file {}".format(idFilePath))
-        setBaseItemIds(baseItem, id_text)
+        setBaseDescriptorIds(baseDescriptor, id_text)
 
-    saveDefinitionFile(definitionFilePath, scriptName, cfgFilePath, baseItem)
+    saveDefinitionFile(definitionFilePath, scriptName, cfgFilePath, baseDescriptor)
     saveInititializationFile(initializationFilePath,
                             scriptName,
                             cfgFilePath,
                             os.path.basename(definitionFilePath),
                             dependencyFileName,
-                            baseItem)
+                            baseDescriptor)
 
     if store_type == "tlv":
         saveIdData(idFilePath, id_text)

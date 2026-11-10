@@ -4,13 +4,13 @@
 # the config manager library.
 ---
 
-item:
+descriptor:
     name: device
     persistent: true
     aggregate:
     -   count: 1
         type: contained
-        item:
+        descriptor:
             name: userCnt
             persistent: false
             print: cfg_mgr::cm_prt_int
@@ -22,13 +22,13 @@ item:
         type: owned
         counter: userCnt
         key: id
-        item:
+        descriptor:
             name: user
             persistent: true
             aggregate:
             -   count: 1
                 type: contained
-                item:
+                descriptor:
                     name: id
                     persistent: true
                     set: cfg_mgr::cm_set_int

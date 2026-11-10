@@ -1,18 +1,18 @@
 
-item:
+descriptor:
     name: device
     persistent: true
     aggregate:
     -   count: 2
         type: contained
         key: key_for_contained
-        item:
+        descriptor:
             name: user
             persistent: true
             aggregate:
             -   count: 1
                 type: contained
-                item:
+                descriptor:
                     name: key_for_contained
                     persistent: true
                     set: cfg_mgr::cm_set_str
@@ -26,7 +26,7 @@ item:
                         type: char
             -   count: 1
                 type: contained
-                item:
+                descriptor:
                     name: id
                     persistent: true
                     set: cfg_mgr::cm_set_int
