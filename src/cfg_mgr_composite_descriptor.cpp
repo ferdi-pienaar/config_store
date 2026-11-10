@@ -187,9 +187,8 @@ void Composite_descriptor::print(const uint8_t * pItem, string prefix, bool show
 
 // Delegate setDefault command to components
 //
-// @pre: item contains valid data, i.e. if an OWNED
-// component has no items allocated, the pointer to the items
-// is nullptr, so we can know not to try to free them.
+// @pre: item contains valid data, i.e. if an OWNED component has no items allocated,
+// the pointer to the items is nullptr, so we can know not to try to free them.
 //
 // For OWNED components, we free owned memory before setting
 // the corresponding counter to 0.
@@ -320,4 +319,4 @@ bool Composite_descriptor::evalDel(Command_stack * cmd, uint8_t * pItem) const
     return pAggr->evalDel(&cmd->pop(), pItem);
 }
 
-}
+} // namespace cfg_mgr

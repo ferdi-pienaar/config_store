@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 
 TEST_DIR = Path(__file__).resolve().parent
-TEST_CONFIG_DIR = TEST_DIR/"schema_validator_configs"
+TEST_CONFIG_DIR = TEST_DIR/"config"
 
 # Helper function opens file and returns its yamala_data
 def get_yamale_data(cfg_file_path):

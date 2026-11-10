@@ -91,9 +91,14 @@ add_test(NAME python_tests
             -m unittest discover ${CMAKE_CURRENT_SOURCE_DIR}/python
 )
 
+set(python_source_dirs
+    "${CMAKE_CURRENT_SOURCE_DIR}/../code_gen"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../front_end")
+
+cmake_path(CONVERT "${python_source_dirs}"
+           TO_NATIVE_PATH_LIST python_path)
+
 set_tests_properties(python_tests PROPERTIES
-    ENVIRONMENT
-        "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/../code_gen"
-)
+    ENVIRONMENT "PYTHONPATH=${python_path}")
 
 add_subdirectory(e2e)

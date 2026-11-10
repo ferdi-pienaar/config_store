@@ -373,4 +373,4 @@ string Owned_aggregate::extractId(Command_stack * cmd, uint8_t *pParentItem, uns
     return m_identifier->extractId(*this, cmd, pParentItem, itemIdx);
 }
 
-}
+} // namespace cfg_mgr

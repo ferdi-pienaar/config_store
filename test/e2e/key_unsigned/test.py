@@ -2,7 +2,7 @@
  Not a unit test, but uses Python module unittest to run tests.
  Start the C++ executable in a subprocess
  Send commands to it via stdout.
- Receive responses on stdint.
+ Receive responses on stdin.
 """
 import sys
 import unittest

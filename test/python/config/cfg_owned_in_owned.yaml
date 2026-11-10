@@ -1,0 +1,45 @@
+descriptor:
+    name: device
+    persistent: true
+    aggregate:
+    -   count: 1
+        type: contained
+        descriptor:
+            name: userCnt
+            persistent: false
+            print: cfg_mgr::cm_prt_int
+            type: unsigned short
+    -   count: 3
+        type: owned
+        counter: userCnt
+        key: id
+        descriptor:
+            name: user
+            persistent: true
+            aggregate:
+            -   count: 1
+                type: contained
+                descriptor:
+                    name: id
+                    persistent: true
+                    set: cfg_mgr::cm_set_int
+                    setdef: cfg_mgr::cm_setdef_null
+                    print: cfg_mgr::cm_prt_int
+                    type: unsigned long
+            -   count: 1
+                type: contained # Counter of owned descriptor named 'temp' is contained.
+                descriptor:
+                    name: tempCnt
+                    persistent: false # no need to save counter to NVRAM
+                    print: cfg_mgr::cm_prt_int
+                    type: unsigned short
+            -   count: 3
+                type: owned
+                counter: tempCnt
+                descriptor:
+                    name: temp
+                    persistent: true
+                    set: set_temp
+                    setdef: setdef_temp
+                    print: prt_temp
+                    type: short

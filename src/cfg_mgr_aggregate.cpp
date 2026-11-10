@@ -147,9 +147,8 @@ void Aggregate::save(const uint8_t *pItem) const
 //
 // @param pParentItem - base RAM address where loaded items are stored.
 //
-// @return CM_SUCCESS if item successfully loaded from store (it may have
-//           been saved into RAM or dumped)
-//         else an indication of why store load failed
+// @return CM_SUCCESS if item successfully loaded from store
+//  else an indication of why store load failed
 Result Aggregate::load(uint8_t * pParentItem) const
 {
     if (!getData()->pDesc->isPersistent())
@@ -220,4 +219,4 @@ bool Aggregate::hasPersistentContent(const uint8_t * pParentItem) const
     return false;
 }
 
-}
+} // namespace cfg_mgr

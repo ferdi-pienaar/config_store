@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 TEST_DIR = Path(__file__).resolve().parent
-TEST_CONFIG_DIR = TEST_DIR/"schema_validator_configs"
+TEST_CONFIG_DIR = TEST_DIR/"config"
 
 # Helper function opens file and returns its data
 def get_file_data(file_path):
