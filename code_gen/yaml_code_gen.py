@@ -177,12 +177,13 @@ class SimpleDescriptor(Descriptor):
             s += "*"
         s += self.d['name']
         if 'array' in self.d:
-            try:
+            count = self.d['array']['count']
+            if type(count) is dict:
                 # Use the symbolic constant.
-                s += "[" + self.get_inner_namespace() + "::" + self.d['array']['count']['name'] + "]"
-            except:
+                s += "[" + self.get_inner_namespace() + "::" + count['name'] + "]"
+            else:
                 # Constant has no name, so just an integer.
-                s += "[" + str(self.d['array']['count']) + "]"
+                s += "[" + str(count) + "]"
         return s
 
     def get_size(self):
@@ -191,12 +192,13 @@ class SimpleDescriptor(Descriptor):
             s += self.d['type'] + ")"
         elif 'array' in self.d:
             s += self.d['array']['type'] + ") * "
-            try:
+            count = self.d['array']['count']
+            if type(count) is dict:
                 # A constant with a name, so use it.
-                s += str(self.d['array']['count']['name'])
-            except:
+                s += str(count['name'])
+            else:
                 # No name, use the integer value directly.
-                s += str(self.d['array']['count'])
+                s += str(count)
         return s
         
     def get_definition(self):
@@ -206,12 +208,10 @@ class SimpleDescriptor(Descriptor):
     def get_constant_definition(self):
         "Return definition of constants representing the size of an array."
         s = ""
-        try:
+        if 'array' in self.d and type(self.d['array']) is dict:
+            # There are constants iff array count is a dictionary with type, name and value.
             c = self.d['array']['count']
             s += c['type'] + " " + c['name'] + " = " + str(c['value']) + "; // Size of array '" + self.d['name'] + "'\n"
-        except:
-            # If no array count that includes type, name and value, then there are no constants
-            pass
         return s
 
     def validate(self):
@@ -408,25 +408,21 @@ class Aggregate:
 
     def get_count_str(self, parent_name):
         "Return a string representing the count: either a symbolic constant's name, or just a string of an integer."
-        try:
+        count = self.d['count']
+        if type(count) is dict:
             if parent_name is not None:
                 # Constant defined in parent's namespace.
-                count = parent_name + "::" + self.d['count']['name']
-            else:
-                count = self.d['count']['name']
-        except:
-            count = str(self.d['count'])
-        return count
+                return parent_name + "::" + count['name']
+            return count['name']
+        return str(count)
         
     def get_constant_definition(self):
         "Return string representing the symbolic constants used in the aggregate count"
         s = ""
-        try:
-            c = self.d['count']
+        c = self.d['count']
+        if type(c) is dict:
+            # There are constants iff count is a dictionary with type, name and value.
             s += c['type'] + " " + c['name'] + " = " + str(c['value']) + "; // '" + self.descriptor.d['name'] + "' count\n"
-        except:
-            # If no counter that includes type, name and value, then there are no constants
-            pass
         return s
 
     def validate(self):
@@ -517,12 +513,12 @@ class OwnedAggregate(Aggregate):
         
     def get_max_count(self):
         "Return numerical value for maximum number of instances of owned aggregate"
-        try:
+        count = self.d['count']
+        if type(count) is dict:
             # The value of the symbolic constant
-            return self.d['count']['value']
-        except:
-            # Simple case: return the value
-            return self.d['count']
+            return count['value']
+        # Simple case: return the value
+        return count
 
 
 def makeDescriptor(d, full_namespace):
