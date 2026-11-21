@@ -152,18 +152,19 @@ class Aggregate:
     def common_get_next_words(self, item, cmd):
         "Apart from 'add' and 'del', next words are common to Contained and Owned."
         #print("common_get_next_words '{}' item {} cmd {}".format(self.descriptor.d['name'], item, cmd))
-        if cmd[0] == self.descriptor.d['name']:
-            if len(cmd) == 1:
-                if self.get_max_count() == 1:
-                    # No identifier is needed, pass empty command descriptor.
-                    return self.descriptor.get_next_words(item, cmd[1:])
-                else:
-                    # An identifier is needed, the next word should be one of them.
-                    return self.get_next_identifiers(item)
-            if len(cmd) > 1 and cmd[1] in item.keys():
-                # Identifier is provided, pass empty command descriptor.
-                return self.descriptor.get_next_words(item[cmd[1]], cmd[2:])
-        return []
+        if cmd[0] != self.descriptor.d['name']:
+            return []
+        if self.get_max_count() == 1:
+            # No identifier is needed, pass remainder to descriptor.
+            return self.descriptor.get_next_words(item, cmd[1:])
+        # An identifier is required.
+        if len(cmd) == 1:
+            # The descriptor name is the last cmd word: the next word should be an identifier.
+            return self.get_next_identifiers(item)
+        # An identifier is required and the command has another word after the name.
+        if cmd[1] in item.keys():
+            # A valid identifier is in cmd, pass the rest to descriptor.
+            return self.descriptor.get_next_words(item[cmd[1]], cmd[2:])
 
     def get_max_count(self):
         "Return numerical value for maximum number of instances of aggregate"

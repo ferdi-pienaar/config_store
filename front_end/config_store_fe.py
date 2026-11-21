@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Run config_store executable in sub-process. Update front_end_model so it can provide next words for command.
 
@@ -40,7 +41,6 @@ class Interaction():
         prompt = self.receive_until_prompt('u')
         while True:
             # Rebuild the data part of the model with each interaction.
-            self.item = {}
             # The previous prompt (or the initial one) begins the next (or first) interaction.
             prompt = self.interact(prompt)
 
@@ -49,9 +49,14 @@ class Interaction():
         cmd = input(prompt)
         self.send_cmd(cmd)
         self.receive_until_prompt('u')
+        return self.update_data_state()
+
+    def update_data_state(self):
+        "Get state from app by sending it command 'prt' and use that to update the model's data."
+        # We get a new data model after each command sent to app, so start with fresh data.
+        self.item = {}
         self.send_cmd("prt")
-        prompt = self.receive_until_prompt('s')
-        return prompt
+        return self.receive_until_prompt('s')
 
     def receive_until_prompt(self, dest):
         "Take output from app and pass to operator, until app ends its output by sending a user prompt."

@@ -167,6 +167,19 @@ class Test_next_words_owned_2_single(unittest.TestCase):
         self.assertTrue('=' in words)
 
 
+class Test_next_words_contained_owned_2_single(unittest.TestCase):
+    def setUp(self):
+        # Code executed before each test
+        cfg = get_file_data(TEST_CONFIG_DIR/"cfg_contained_owned_2_single.yaml")
+        self.baseDescriptor = front_end_model.makeBaseDescriptor(cfg)
+        self.item = {}
+
+    def test_owned_item_add(self):
+        "Add command passed to an empty config: there are 2 items that can be added."
+        words = front_end_model.get_next_words(self.baseDescriptor, self.item, 'network add'.split())
+        self.assertEqual(words, ['ipaddr', 'port'])
+
+
 class Test_next_words_contained(unittest.TestCase):
     def setUp(self):
         # Code executed before each test
