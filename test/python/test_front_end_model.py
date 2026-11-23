@@ -179,6 +179,39 @@ class Test_next_words_contained_owned_2_single(unittest.TestCase):
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, 'network add'.split())
         self.assertEqual(words, ['ipaddr', 'port'])
 
+    def test_owned_item_add_one_created(self):
+        "Add command passed to a config with one item added: only the other one can be added."
+        self.baseDescriptor.set_data(self.item, "network ipaddr = 14".split())
+        self.assertEqual(self.item, {'network': {'ipaddr': {}}})
+        words = front_end_model.get_next_words(self.baseDescriptor, self.item, 'network add'.split())
+        self.assertEqual(words, ['port'])
+
+    def test_owned_item_options_one_created(self):
+        "Add command passed to a config with one item added: del and add are offered as 2nd word."
+        self.baseDescriptor.set_data(self.item, "network ipaddr = 15".split())
+        self.assertEqual(self.item, {'network': {'ipaddr': {}}})
+        words = front_end_model.get_next_words(self.baseDescriptor, self.item, ['network'])
+        #self.assertEqual(len(words), 4)
+        self.assertTrue('del' in words)
+        self.assertTrue('add' in words)
+
+    def test_owned_item_options_both_created(self):
+        "Add command passed to a config with one item added: del but not add is offered as 2nd word."
+        self.baseDescriptor.set_data(self.item, "network ipaddr = 16".split())
+        self.baseDescriptor.set_data(self.item, "network port = 21".split())
+        self.assertEqual(self.item, {'network': {'ipaddr': {}, 'port': {}}})
+        words = front_end_model.get_next_words(self.baseDescriptor, self.item, ['network'])
+        print(words)
+        #self.assertEqual(len(words), 4)
+        self.assertFalse('add' in words)
+        self.assertTrue('del' in words)
+
+    def test_owned_item_del_one_created(self):
+        "Add command passed to a config with one item added: only this item can be deleted."
+        self.baseDescriptor.set_data(self.item, "network ipaddr = 17".split())
+        self.assertEqual(self.item, {'network': {'ipaddr': {}}})
+        words = front_end_model.get_next_words(self.baseDescriptor, self.item, 'network del'.split())
+        self.assertEqual(words, ['ipaddr'])
 
 class Test_next_words_contained(unittest.TestCase):
     def setUp(self):

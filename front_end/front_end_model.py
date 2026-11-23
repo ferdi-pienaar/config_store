@@ -32,7 +32,7 @@ class Descriptor:
 class SimpleDescriptor(Descriptor):
     def __init__(self, d):
         Descriptor.__init__(self, d)
-        print("create simple {}".format(d['name']))
+        #print("create simple {}".format(d['name']))
 
     def set_data(self, item, cmd):
         "Handle an executed valid config command line for this Descriptor."
@@ -55,7 +55,7 @@ class SimpleDescriptor(Descriptor):
 class CompositeDescriptor(Descriptor):
     def __init__(self, d):
         Descriptor.__init__(self, d)
-        print("create composite {}".format(d['name']))
+        #print("create composite {}".format(d['name']))
         self.aggregates = []
         for a in self.d['aggregate']:
             self.aggregates.append(makeAggregate(a))
@@ -101,8 +101,11 @@ class CompositeDescriptor(Descriptor):
         words = []
         for a in self.aggregates:
             # Add words returned by aggregate, which may be an empty list.
-            component_item = {}
-            if a.descriptor.d['name'] in item:
+            # We call the aggregate even if the item doesn't contain it because
+            # if the command is 'add' it may return the descriptor name.
+            component_item = None
+            if item is not None and a.descriptor.d['name'] in item:
+                #print("item contains aggr '{}'".format(a.descriptor.d['name']))
                 component_item = item[a.descriptor.d['name']]
             words += a.get_next_words(component_item, cmd)
         return words
@@ -110,8 +113,8 @@ class CompositeDescriptor(Descriptor):
     def allow_aggr_resize_op(self, op, item):
         "Return True if possible for this Descriptor in its current state, else False"
         for a in self.aggregates:
-            component_item = {}
-            if a.descriptor.d['name'] in item:
+            component_item = None
+            if item is not None and a.descriptor.d['name'] in item:
                 component_item = item[a.descriptor.d['name']]
             if a.allow_resize_op(op, component_item):
                 # This aggregate can add, so our search is over.
@@ -139,7 +142,7 @@ class Aggregate:
             self.descriptor.set_data(item, cmd)
 
     def get_context(self, item, cmd):
-        print("get_context {} aggr '{}' item {} cmd {}".format(self.d['type'], self.descriptor.d['name'], item, cmd))
+        #print("get_context {} aggr '{}' item {} cmd {}".format(self.d['type'], self.descriptor.d['name'], item, cmd))
         if (self.get_max_count() > 1) or ('key' in self.d):
             # next cmd word is a key (which may be an integer index).
             if cmd[0] in item:
@@ -178,7 +181,7 @@ class Aggregate:
 
 class ContainedAggregate(Aggregate):
     def __init__(self, d):
-        print("create contained",)
+        #print("create contained",)
         Aggregate.__init__(self, d)
 
     def get_next_words(self, item, cmd):
@@ -197,20 +200,30 @@ class ContainedAggregate(Aggregate):
 
 class OwnedAggregate(Aggregate):
     def __init__(self, d):
-        print("create owned",)
+        #print("create owned",)
         Aggregate.__init__(self, d)
 
     def get_next_words(self, item, cmd):
         "The cmd word may apply to this aggregate: return the Descriptor name if so."
         #print("owned aggregate get_next_words '{}' item {} cmd {}".format(self.descriptor.d['name'], item, cmd))
+        num_components = self.get_num_component_items(item)
         if len(cmd) == 1:
-            if cmd[0] == 'add' and len(item.keys()) < self.get_max_count():
+            if cmd[0] == 'add' and num_components < self.get_max_count():
                 return [self.descriptor.d['name']]
-            elif cmd[0] == 'del' and len(item.keys()) > 0:
+            elif cmd[0] == 'del' and num_components > 0:
                 return [self.descriptor.d['name']]
         if len(cmd) == 2 and cmd[0] == 'del' and cmd[1] == self.descriptor.d['name']:
             return list(item.keys())
         return self.common_get_next_words(item, cmd)
+
+    def get_num_component_items(self, item):
+        if item is None:
+            return 0
+        if self.get_max_count() > 1:
+            # There can be more than one item, so an identifier is needed.
+            return len(item.keys())
+        # No identifier is needed, so the fact that item is not None means the single instance exists.
+        return 1
 
     def get_next_identifiers(self, item):
         "Owned aggregate has a resizable range of items."
@@ -218,20 +231,23 @@ class OwnedAggregate(Aggregate):
             # If keys are used, return the set of keys that are installed.
             return list(item.keys())
         # If index is used instead, the possible identifiers include the next index too.
-        if len(item.keys()) == 0:
+        if item is None or len(item.keys()) == 0:
             # Special case where no items exist: return the first index.
             return ["0"]
+        # Indexed items exist: return current indexes and the next one.
         indexes = [int(i) for i in item.keys()]
         indexes.append(max(indexes) + 1)
         return [str(i) for i in indexes]
 
     def allow_resize_op(self, op, item):
         "Return True iff operation is possible."
+        #print("allow_resize_op d={} locals={}".format(self.d, locals()))
         # If the number of items (represented by their keys) hasn't reached max, add is allowed.
+        num_components = self.get_num_component_items(item)
         if op == 'add':
-            return len(item.keys()) < self.get_max_count()
+            return num_components < self.get_max_count()
         elif op == 'del':
-            return len(item.keys()) > 0
+            return num_components > 0
 
 
 def makeDescriptor(d):
