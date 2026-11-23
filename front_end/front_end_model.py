@@ -45,11 +45,21 @@ class SimpleDescriptor(Descriptor):
 
     def get_next_words(self, item, cmd):
         "Based on a data model from YAML and calls to fn config, return set of possible next words in partial command line."
-        #print("get_next_words simple '{}' item {} cmd {}".format(self.d['name'], item, cmd))
+        #print("simple get_next_words '{}' {}".format(self.d['name'], locals()))
+        if item is None:
+            # For implicit add only one command is supported.
+            if 'set' in self.d:
+                return ['=']
+            else:
+                return []
         words = Descriptor.common_command_words[:]
         if 'set' in self.d:
             words.append('=')
         return words
+
+    def support_set(self):
+        "Return true if descriptor has set function."
+        return 'set' in self.d
 
 
 class CompositeDescriptor(Descriptor):
@@ -87,14 +97,19 @@ class CompositeDescriptor(Descriptor):
         #print("composite get_next_words '{}' {}".format(self.d['name'], locals()))
         if len(cmd) == 0:
             # The last word in (partial?) cmd was this Descriptor's name, so it returns next words.
-            # Start with a copy of the words available in any context.
-            words = Descriptor.common_command_words[:]
+            # Start with a copy of the words available in a non-implicit-add context.
+            words = []
+            if item is not None:
+                words = Descriptor.common_command_words[:]
             if self.allow_aggr_resize_op('add', item):
                 words.append('add')
             if self.allow_aggr_resize_op('del', item):
                 words.append('del')
-            for a in self.d['aggregate']:
-                words.append(a['descriptor']['name'])
+            for a in self.aggregates:
+                if item is not None or a.descriptor.support_set():
+                    # If the item exists, or if the component supports '=', add the descriptor name.
+                    # The reason is that if the item doesn't exist, we still support implicit add.
+                    words.append(a.descriptor.d['name'])
             return words
 
         # There are command words to pass to components, one or more of which may return next words.
@@ -103,18 +118,24 @@ class CompositeDescriptor(Descriptor):
             # Add words returned by aggregate, which may be an empty list.
             # We call the aggregate even if the item doesn't contain it because
             # if the command is 'add' it may return the descriptor name.
-            component_item = None
-            if item is not None and a.descriptor.d['name'] in item:
-                #print("item contains aggr '{}'".format(a.descriptor.d['name']))
-                component_item = item[a.descriptor.d['name']]
-            words += a.get_next_words(component_item, cmd)
+            words += a.get_next_words(item, cmd)
         return words
+
+    def support_set(self):
+        "Set is supported if any components support it."
+        for a in self.aggregates:
+            if a.support_set():
+                return True
+        return False
 
     def allow_aggr_resize_op(self, op, item):
         "Return True if possible for this Descriptor in its current state, else False"
+        if item is None:
+            # Not supported for items that don't exist, i.e. implicit add.
+            return False
         for a in self.aggregates:
             component_item = None
-            if item is not None and a.descriptor.d['name'] in item:
+            if a.descriptor.d['name'] in item:
                 component_item = item[a.descriptor.d['name']]
             if a.allow_resize_op(op, component_item):
                 # This aggregate can add, so our search is over.
@@ -154,7 +175,7 @@ class Aggregate:
 
     def common_get_next_words(self, item, cmd):
         "Apart from 'add' and 'del', next words are common to Contained and Owned."
-        #print("common_get_next_words '{}' item {} cmd {}".format(self.descriptor.d['name'], item, cmd))
+        #print("common_get_next_words '{}' {}".format(self.descriptor.d['name'], locals()))
         if cmd[0] != self.descriptor.d['name']:
             return []
         if self.get_max_count() == 1:
@@ -165,9 +186,11 @@ class Aggregate:
             # The descriptor name is the last cmd word: the next word should be an identifier.
             return self.get_next_identifiers(item)
         # An identifier is required and the command has another word after the name.
-        if cmd[1] in item.keys():
-            # A valid identifier is in cmd, pass the rest to descriptor.
-            return self.descriptor.get_next_words(item[cmd[1]], cmd[2:])
+        component_item = None
+        if item is not None and cmd[1] in item.keys():
+            # A valid identifier is in cmd
+            component_item = item[cmd[1]]
+        return self.descriptor.get_next_words(component_item, cmd[2:])
 
     def get_max_count(self):
         "Return numerical value for maximum number of instances of aggregate"
@@ -186,8 +209,15 @@ class ContainedAggregate(Aggregate):
 
     def get_next_words(self, item, cmd):
         "The cmd word may apply to this aggregate: return the Descriptor name if so."
-        #print("contained aggregate get_next_words '{}' item {} cmd {}".format(self.descriptor.d['name'], item, cmd))
-        return self.common_get_next_words(item, cmd)
+        #print("contained aggregate get_next_words '{}' {}".format(self.descriptor.d['name'], locals()))
+        if item is None:
+            component_item = None
+        elif self.descriptor.d['name'] in item:
+            component_item = item[self.descriptor.d['name']]
+        else:
+            # The parent item exists, but not this component.
+            component_item = {}
+        return self.common_get_next_words(component_item, cmd)
 
     def get_next_identifiers(self, item):
         "Contained aggregate has a fixed range of indexes that act as identifiers."
@@ -205,16 +235,19 @@ class OwnedAggregate(Aggregate):
 
     def get_next_words(self, item, cmd):
         "The cmd word may apply to this aggregate: return the Descriptor name if so."
-        #print("owned aggregate get_next_words '{}' item {} cmd {}".format(self.descriptor.d['name'], item, cmd))
-        num_components = self.get_num_component_items(item)
+        #print("owned aggregate get_next_words '{}' {}".format(self.descriptor.d['name'], locals()))
+        component_item = None
+        if item is not None and self.descriptor.d['name'] in item:
+            component_item = item[self.descriptor.d['name']]
+        num_components = self.get_num_component_items(component_item)
         if len(cmd) == 1:
             if cmd[0] == 'add' and num_components < self.get_max_count():
                 return [self.descriptor.d['name']]
             elif cmd[0] == 'del' and num_components > 0:
                 return [self.descriptor.d['name']]
         if len(cmd) == 2 and cmd[0] == 'del' and cmd[1] == self.descriptor.d['name']:
-            return list(item.keys())
-        return self.common_get_next_words(item, cmd)
+            return list(component_item.keys())
+        return self.common_get_next_words(component_item, cmd)
 
     def get_num_component_items(self, item):
         if item is None:

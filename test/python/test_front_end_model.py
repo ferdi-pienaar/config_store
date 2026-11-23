@@ -24,22 +24,14 @@ class Test_next_words_owned_w_key(unittest.TestCase):
     def test_empty_config_first_word(self):
         "An empty command passed to an empty config."
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, [])
-        self.assertEqual(len(words), 8)
-        self.assertTrue('load' in words)
-        self.assertTrue('save' in words)
-        self.assertTrue('setdef' in words)
-        self.assertTrue('prt' in words)
-        self.assertTrue('prtc' in words)
-        self.assertTrue('add' in words)
-        self.assertTrue('userCnt' in words) # component name
-        self.assertTrue('user' in words) # component name
+        # Note that 'del' is not in words.
+        self.assertEqual(set(words), {'load', 'save', 'setdef', 'prt', 'prtc', 'add', 'userCnt', 'user'})
 
     def test_owned_item_first_word(self):
         "An empty command passed to a config with an item that can be deleted."
         self.baseDescriptor.set_data(self.item, 'user "Fred" id = 8'.split())
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, [])
-        self.assertEqual(len(words), 9)
-        self.assertTrue('del' in words)
+        self.assertEqual(set(words), {'load', 'save', 'setdef', 'prt', 'prtc', 'add', 'userCnt', 'user', 'del'})
 
     def test_owned_item_get_keys(self):
         "Descriptor name passed to descriptor with 2 keys."
@@ -56,7 +48,7 @@ class Test_next_words_owned_w_key(unittest.TestCase):
     def test_empty_del(self):
         "Del command passed to an empty config: nothing can be deleted."
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, ['del'])
-        self.assertEqual(len(words), 0)
+        self.assertEqual(words, [])
 
     def test_owned_item_del(self):
         "Del command passed to an config that contains a deletable item: return name of the item."
@@ -80,39 +72,33 @@ class Test_next_words_owned_w_key(unittest.TestCase):
     def test_empty_owned_2_words(self):
         self.baseDescriptor.set_data(self.item, 'user "Fred" id = 8'.split())
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, 'user "Fred"'.split())
-        self.assertEqual(len(words), 5)
-        self.assertTrue('setdef' in words)
-        self.assertTrue('prt' in words)
-        self.assertTrue('prtc' in words)
-        self.assertTrue('uname' in words) # component name
-        self.assertTrue('id' in words) # component name
+        self.assertEqual(set(words), {'setdef', 'prt', 'prtc', 'uname', 'id'})
 
     def test_simple_component_of_owned(self):
         self.baseDescriptor.set_data(self.item, 'user "Fred" id = 8'.split())
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, 'user "Fred" id'.split())
-        self.assertEqual(len(words), 4)
-        self.assertTrue('setdef' in words)
-        self.assertTrue('prt' in words)
-        self.assertTrue('prtc' in words)
-        self.assertTrue('=' in words)
+        self.assertEqual(set(words), {'setdef', 'prt', 'prtc', '='})
+
+    def test_implicit_add_get_descriptors(self):
+        "For implicit add, next word identifies components with possible set."
+        words = front_end_model.get_next_words(self.baseDescriptor, self.item, 'user "Fred"'.split())
+        self.assertEqual(words, ['uname', 'id'])
+
+    def test_implicit_add_get_op(self):
+        "For implicit add, next word identifies components with possible set."
+        words = front_end_model.get_next_words(self.baseDescriptor, self.item, 'user "Fred" id'.split())
+        self.assertEqual(words, ['='])
 
     def test_component_without_set_fn(self):
-        "simple has no set fn, so word '=' is not included."
+        "Simple has no set fn, so word '=' is not included."
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, ['userCnt'])
-        self.assertEqual(len(words), 3)
-        self.assertTrue('setdef' in words)
-        self.assertTrue('prt' in words)
-        self.assertTrue('prtc' in words)
+        self.assertEqual(set(words), {'setdef', 'prt', 'prtc'})
 
     def test_change_context(self):
         self.baseDescriptor.set_data(self.item, 'user "Fred" id = 8'.split())
         ctxt, component_item = self.baseDescriptor.get_context(self.item, 'user "Fred"'.split())
         words = front_end_model.get_next_words(ctxt, component_item, ['id'])
-        self.assertEqual(len(words), 4)
-        self.assertTrue('setdef' in words)
-        self.assertTrue('prt' in words)
-        self.assertTrue('prtc' in words)
-        self.assertTrue('=' in words)
+        self.assertEqual(set(words), {'setdef', 'prt', 'prtc', '='})
 
 
 class Test_next_words_owned_w_counter(unittest.TestCase):
@@ -133,6 +119,10 @@ class Test_next_words_owned_w_counter(unittest.TestCase):
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, ['ipaddr'])
         self.assertEqual(words, ["0", "1"])
 
+    def test_implicit_add(self):
+        "Implicit add offers '=' for item that can be implicitly added."
+        words = front_end_model.get_next_words(self.baseDescriptor, self.item, 'ipaddr 0'.split())
+        self.assertEqual(words, ['='])
 
 class Test_next_words_owned_2_single(unittest.TestCase):
     def setUp(self):
@@ -150,21 +140,13 @@ class Test_next_words_owned_2_single(unittest.TestCase):
         "cmd references an owned item that doesn't need a key."
         self.baseDescriptor.set_data(self.item, "port = 333".split())
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, ['port'])
-        self.assertEqual(len(words), 4)
-        self.assertTrue('setdef' in words)
-        self.assertTrue('prt' in words)
-        self.assertTrue('prtc' in words)
-        self.assertTrue('=' in words)
+        self.assertEqual(set(words), {'setdef', 'prt', 'prtc', '='})
 
-    def test_owned_item_not_exist(self):
+    def test_implicit_add_get_op(self):
         "cmd references a keyless owned item that doesn't exist: implicit add would create it."
-        # xxx setdef prt and prtc would be rejected, since the item doesn't exist yet.
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, ['port'])
-        self.assertEqual(len(words), 4)
-        self.assertTrue('setdef' in words)
-        self.assertTrue('prt' in words)
-        self.assertTrue('prtc' in words)
-        self.assertTrue('=' in words)
+        # For implicitly added item, the only next word is '='.
+        self.assertEqual(words, ['='])
 
 
 class Test_next_words_contained_owned_2_single(unittest.TestCase):
@@ -178,6 +160,18 @@ class Test_next_words_contained_owned_2_single(unittest.TestCase):
         "Add command passed to an empty config: there are 2 items that can be added."
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, 'network add'.split())
         self.assertEqual(words, ['ipaddr', 'port'])
+
+    def test_implicit_add_get_op(self):
+        "For implicit add, next word identifies components with possible set."
+        words = front_end_model.get_next_words(self.baseDescriptor, self.item, 'network port'.split())
+        self.assertEqual(words, ['='])
+
+    def test_owned_item_options_none_created(self):
+        "Composite name passed to model without data."
+        self.assertEqual(self.item, {})
+        words = front_end_model.get_next_words(self.baseDescriptor, self.item, ['network'])
+        # Note that 'del' is absent because neither component exists.
+        self.assertEqual(set(words), {'prt', 'prtc', 'setdef', 'add', 'ipaddr', 'port'})
 
     def test_owned_item_add_one_created(self):
         "Add command passed to a config with one item added: only the other one can be added."
@@ -213,6 +207,7 @@ class Test_next_words_contained_owned_2_single(unittest.TestCase):
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, 'network del'.split())
         self.assertEqual(words, ['ipaddr'])
 
+
 class Test_next_words_contained(unittest.TestCase):
     def setUp(self):
         # Code executed before each test
@@ -223,13 +218,7 @@ class Test_next_words_contained(unittest.TestCase):
     def test_empty_config_first_word(self):
         "An empty command passed to an empty config."
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, [])
-        self.assertEqual(len(words), 6)
-        self.assertTrue('load' in words)
-        self.assertTrue('save' in words)
-        self.assertTrue('setdef' in words)
-        self.assertTrue('prt' in words)
-        self.assertTrue('prtc' in words)
-        self.assertTrue('ipaddr' in words) # component name
+        self.assertEqual(set(words), {'load', 'save', 'setdef', 'prt', 'prtc', 'ipaddr'})
 
     def test_get_indexes(self):
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, ['ipaddr'])
@@ -253,6 +242,16 @@ class Test_next_words_owned_in_owned(unittest.TestCase):
         self.assertEqual(words, ["0", "1"])
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, 'user 89 temp'.split())
         self.assertEqual(words, ["0", "1", "2"])
+
+    def test_implicit_add_get_descriptors(self):
+        "For implicit add, next word identifies components with possible set."
+        words = front_end_model.get_next_words(self.baseDescriptor, self.item, 'user "notyet"'.split())
+        self.assertEqual(words, ['id', 'temp'])
+
+    def test_implicit_add_get_op(self):
+        "For implicit add, next word identifies components with possible set."
+        words = front_end_model.get_next_words(self.baseDescriptor, self.item, 'user "notyet" id'.split())
+        self.assertEqual(words, ['='])
 
 
 if __name__ == "__main__":
