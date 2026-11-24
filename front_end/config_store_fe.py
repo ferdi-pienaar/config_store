@@ -35,6 +35,7 @@ class Interaction():
             text=True)
         self.base_descriptor = base_descriptor
         self.item = {}
+        self.base_descriptor.init_data(self.item)
 
     def serve(self):
         "Repeat: wait for prompt from app and send command from operator to app."
@@ -55,6 +56,7 @@ class Interaction():
         "Get state from app by sending it command 'prt' and use that to update the model's data."
         # We get a new data model after each command sent to app, so start with fresh data.
         self.item = {}
+        self.base_descriptor.init_data(self.item)
         self.send_cmd("prt")
         return self.receive_until_prompt('s')
 

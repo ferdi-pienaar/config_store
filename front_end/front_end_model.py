@@ -34,14 +34,17 @@ class SimpleDescriptor(Descriptor):
         Descriptor.__init__(self, d)
         #print("create simple {}".format(d['name']))
 
+    def init_data(self, item):
+        pass
+
     def set_data(self, item, cmd):
         "Handle an executed valid config command line for this Descriptor."
-        #print("set_data simple '{}' item {} cmd {}".format(self.d['name'], item, cmd))
+        #print("set_data simple '{}' {}".format(self.d['name'], locals()))
 
-    def get_context(self, item, cmd):
+    def get_context(self, item, prompt):
         "Return this Descriptor if it matches cmd."
-        if cmd[0] == self.d['name'] and len(cmd) == 1:
-            return self, item
+        #print("get_context simple '{}' {}".format(self.d['name'], item, locals()))
+        return self, item
 
     def get_next_words(self, item, cmd):
         "Based on a data model from YAML and calls to fn config, return set of possible next words in partial command line."
@@ -70,27 +73,31 @@ class CompositeDescriptor(Descriptor):
         for a in self.d['aggregate']:
             self.aggregates.append(makeAggregate(a))
 
+    def init_data(self, item):
+        "Create data that exists before any command is executed."
+        #print("init_data composite '{}' {}".format(self.d['name'], locals()))
+        for a in self.aggregates:
+            a.init_data(item)
+
     def set_data(self, item, cmd):
         "Handle an executed valid set command line for this Descriptor."
-        #print("set_data composite '{}' item {} cmd {}".format(self.d['name'], item, cmd))
+        #print("set_data composite '{}' {}".format(self.d['name'], locals()))
         for a in self.aggregates:
-            # Pass the command on to the matching component.
+            # Pass the command on to each component.
             if cmd[0] == a.descriptor.d['name']:
-                if not a.descriptor.d['name'] in item:
-                    # No entry exists for this component, so create it.
-                    item[a.descriptor.d['name']] = {}
-                return a.set_data(item[a.descriptor.d['name']], cmd[1:])
+                # We pass the full item to the aggregate since it may need to extend it.
+                a.set_data(item, cmd[1:])
 
-    def get_context(self, item, cmd):
+    def get_context(self, item, prompt):
         "Return this Descriptor or the child that matches cmd."
-        print("get_context composite '{}' item {} cmd {}".format(self.d['name'], item, cmd))
-        if len(cmd) == 0:
+        #print("get_context composite '{}' {}".format(self.d['name'], item, locals()))
+        if len(prompt) == 0:
             return self, item
         for aggr in self.aggregates:
-            if cmd[0] == aggr.descriptor.d['name']:
-                d, i = aggr.get_context(item[aggr.descriptor.d['name']], cmd[1:])
-                if d is not None:
-                    return d, i
+            d, i = aggr.get_context(item, prompt)
+            if d is not None:
+                return d, i
+        return None, None
 
     def get_next_words(self, item, cmd):
         "Based on a data model from YAML and calls to fn config, return set of possible next words in partial command line."
@@ -149,29 +156,19 @@ class Aggregate:
         self.d = d
         self.descriptor = makeDescriptor(self.d['descriptor'])
 
-    def set_data(self, item, cmd):
-        "Handle an executed valid set command line for this aggregate's Descriptor."
-        #print("set_data {} aggr item {} cmd {}".format(self.d['type'], item, cmd))
-        if (self.get_max_count() > 1) or ('key' in self.d):
-            # next cmd word is a key (which may be an integer index), so remove it from cmd.
-            if not cmd[0] in item:
-                # No entry exists for this key, so create it.
-                item[cmd[0]] = {}
-            self.descriptor.set_data(item[cmd[0]], cmd[1:])
-        else:
-            # No key is used because there is only 1 item, and identifier is index, not key.
-            self.descriptor.set_data(item, cmd)
-
-    def get_context(self, item, cmd):
-        #print("get_context {} aggr '{}' item {} cmd {}".format(self.d['type'], self.descriptor.d['name'], item, cmd))
+    def get_context(self, item, prompt):
+        #print("get_context {} aggr '{}' {}".format(self.d['type'], self.descriptor.d['name'], locals()))
+        if prompt[0] != self.descriptor.d['name']:
+            return None, None
         if (self.get_max_count() > 1) or ('key' in self.d):
             # next cmd word is a key (which may be an integer index).
-            if cmd[0] in item:
+            if prompt[1] in item[prompt[0]]:
                 # The command contains an identifier (key or index) that identifies an item..
-                return self.descriptor.get_context(item[cmd[0]], cmd[1:])
+                return self.descriptor.get_context(item[prompt[0]][prompt[1]], prompt[2:])
         else:
             # No key is used because there is only 1 item, and identifier is index, not key.
-            self.descriptor.set_data(item, cmd)
+            return self.descriptor.get_context(item[prompt[0]], prompt[1:])
+        return None, None
 
     def common_get_next_words(self, item, cmd):
         "Apart from 'add' and 'del', next words are common to Contained and Owned."
@@ -207,6 +204,29 @@ class ContainedAggregate(Aggregate):
         #print("create contained",)
         Aggregate.__init__(self, d)
 
+    def init_data(self, item):
+        "A contained aggregate has items because its parent item exists."
+        #print("init_data {} aggr '{}' {}".format(self.d['type'], self.descriptor.d['name'], locals()))
+        item[self.descriptor.d['name']] = {}
+        if self.get_max_count() == 1:
+            self.descriptor.init_data(item[self.descriptor.d['name']])
+        else:
+            # More than one items exist, so indexes are used.
+            for index in self.get_next_identifiers(None):
+                item[self.descriptor.d['name']][index] = {}
+                self.descriptor.init_data(item[self.descriptor.d['name']][index])
+
+    def set_data(self, item, cmd):
+        "Handle an executed valid set command line for this aggregate's descriptor."
+        # item is the parent item; cmd has been stripped of the name identifying this component.
+        #print("set_data {} aggr '{}' {}".format(self.d['type'], self.descriptor.d['name'], locals()))
+        if (self.get_max_count() > 1):
+            # next cmd word is an index, so remove it from cmd.
+            self.descriptor.set_data(item[self.descriptor.d['name']][cmd[0]], cmd[1:])
+        else:
+            # No identifier is used because there is only 1 item.
+            self.descriptor.set_data(item[self.descriptor.d['name']], cmd)
+
     def get_next_words(self, item, cmd):
         "The cmd word may apply to this aggregate: return the Descriptor name if so."
         #print("contained aggregate get_next_words '{}' {}".format(self.descriptor.d['name'], locals()))
@@ -232,6 +252,29 @@ class OwnedAggregate(Aggregate):
     def __init__(self, d):
         #print("create owned",)
         Aggregate.__init__(self, d)
+
+    def init_data(self, item):
+        "A owned aggregate has no items until configured."
+        #print("init_data {} aggr '{}' {}".format(self.d['type'], self.descriptor.d['name'], locals()))
+
+    def set_data(self, item, cmd):
+        "Handle an executed valid set command line for this aggregate's descriptor."
+        # item is the parent item; cmd has been stripped of the name identifying this component.
+        #print("set_data {} aggr '{}' {}".format(self.d['type'], self.descriptor.d['name'], locals()))
+        if not self.descriptor.d['name'] in item:
+            # No entry for this component was created by a previous set_data, so create it.
+            item[self.descriptor.d['name']] = {}
+        if (self.get_max_count() > 1) or ('key' in self.d):
+            # next cmd word is a key (which may be an integer index), so remove it from cmd.
+            if not cmd[0] in item[self.descriptor.d['name']]:
+                # No entry for this key was created by a previous set_data, so create it.
+                item[self.descriptor.d['name']][cmd[0]] = {}
+                self.descriptor.init_data(item[self.descriptor.d['name']][cmd[0]])
+            self.descriptor.set_data(item[self.descriptor.d['name']][cmd[0]], cmd[1:])
+        else:
+            # No identifier is used because there is only 1 item and identifier is index, not key.
+            self.descriptor.init_data(item[self.descriptor.d['name']])
+            self.descriptor.set_data(item[self.descriptor.d['name']], cmd)
 
     def get_next_words(self, item, cmd):
         "The cmd word may apply to this aggregate: return the Descriptor name if so."

@@ -14,12 +14,13 @@ def get_file_data(file_path):
         data = f.read()
     return data
 
-class Test_next_words_owned_w_key(unittest.TestCase):
+class Test_owned_w_key(unittest.TestCase):
     def setUp(self):
         # Code executed before each test
         cfg = get_file_data(TEST_CONFIG_DIR/"cfg_owned_w_key.yaml")
         self.baseDescriptor = front_end_model.makeBaseDescriptor(cfg)
         self.item = {}
+        self.baseDescriptor.init_data(self.item)
 
     def test_empty_config_first_word(self):
         "An empty command passed to an empty config."
@@ -101,12 +102,13 @@ class Test_next_words_owned_w_key(unittest.TestCase):
         self.assertEqual(set(words), {'setdef', 'prt', 'prtc', '='})
 
 
-class Test_next_words_owned_w_counter(unittest.TestCase):
+class Test_owned_w_counter(unittest.TestCase):
     def setUp(self):
         # Code executed before each test
         cfg = get_file_data(TEST_CONFIG_DIR/"cfg_owned_w_counter.yaml")
         self.baseDescriptor = front_end_model.makeBaseDescriptor(cfg)
         self.item = {}
+        self.baseDescriptor.init_data(self.item)
 
     def test_empty_config_first_word(self):
         "0 is proposed as index for empty owned."
@@ -124,12 +126,14 @@ class Test_next_words_owned_w_counter(unittest.TestCase):
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, 'ipaddr 0'.split())
         self.assertEqual(words, ['='])
 
-class Test_next_words_owned_2_single(unittest.TestCase):
+
+class Test_owned_2_single(unittest.TestCase):
     def setUp(self):
         # Code executed before each test
         cfg = get_file_data(TEST_CONFIG_DIR/"cfg_owned_2_single.yaml")
         self.baseDescriptor = front_end_model.makeBaseDescriptor(cfg)
         self.item = {}
+        self.baseDescriptor.init_data(self.item)
 
     def test_owned_item_add(self):
         "Add command passed to an empty config: there are 2 items that can be added."
@@ -148,13 +152,20 @@ class Test_next_words_owned_2_single(unittest.TestCase):
         # For implicitly added item, the only next word is '='.
         self.assertEqual(words, ['='])
 
+    def test_change_context(self):
+        self.baseDescriptor.set_data(self.item, 'ipaddr = 890'.split())
+        ctxt, component_item = self.baseDescriptor.get_context(self.item, ['ipaddr'])
+        words = front_end_model.get_next_words(ctxt, component_item, [])
+        self.assertEqual(set(words), {'save', 'load', 'setdef', 'prt', 'prtc', '='})
 
-class Test_next_words_contained_owned_2_single(unittest.TestCase):
+
+class Test_contained_owned_2_single(unittest.TestCase):
     def setUp(self):
         # Code executed before each test
         cfg = get_file_data(TEST_CONFIG_DIR/"cfg_contained_owned_2_single.yaml")
         self.baseDescriptor = front_end_model.makeBaseDescriptor(cfg)
         self.item = {}
+        self.baseDescriptor.init_data(self.item)
 
     def test_owned_item_add(self):
         "Add command passed to an empty config: there are 2 items that can be added."
@@ -168,7 +179,6 @@ class Test_next_words_contained_owned_2_single(unittest.TestCase):
 
     def test_owned_item_options_none_created(self):
         "Composite name passed to model without data."
-        self.assertEqual(self.item, {})
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, ['network'])
         # Note that 'del' is absent because neither component exists.
         self.assertEqual(set(words), {'prt', 'prtc', 'setdef', 'add', 'ipaddr', 'port'})
@@ -176,44 +186,44 @@ class Test_next_words_contained_owned_2_single(unittest.TestCase):
     def test_owned_item_add_one_created(self):
         "Add command passed to a config with one item added: only the other one can be added."
         self.baseDescriptor.set_data(self.item, "network ipaddr = 14".split())
-        self.assertEqual(self.item, {'network': {'ipaddr': {}}})
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, 'network add'.split())
         self.assertEqual(words, ['port'])
 
     def test_owned_item_options_one_created(self):
         "Add command passed to a config with one item added: del and add are offered as 2nd word."
         self.baseDescriptor.set_data(self.item, "network ipaddr = 15".split())
-        self.assertEqual(self.item, {'network': {'ipaddr': {}}})
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, ['network'])
-        #self.assertEqual(len(words), 4)
-        self.assertTrue('del' in words)
-        self.assertTrue('add' in words)
+        # Note that both add and del are present
+        self.assertEqual(set(words), {'add', 'del', 'port', 'ipaddr', 'prt', 'prtc', 'setdef'})
 
     def test_owned_item_options_both_created(self):
         "Add command passed to a config with one item added: del but not add is offered as 2nd word."
         self.baseDescriptor.set_data(self.item, "network ipaddr = 16".split())
         self.baseDescriptor.set_data(self.item, "network port = 21".split())
-        self.assertEqual(self.item, {'network': {'ipaddr': {}, 'port': {}}})
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, ['network'])
-        print(words)
-        #self.assertEqual(len(words), 4)
-        self.assertFalse('add' in words)
-        self.assertTrue('del' in words)
+        # Note that del but not add are present
+        self.assertEqual(set(words), {'del', 'port', 'ipaddr', 'prt', 'prtc', 'setdef'})
 
     def test_owned_item_del_one_created(self):
         "Add command passed to a config with one item added: only this item can be deleted."
         self.baseDescriptor.set_data(self.item, "network ipaddr = 17".split())
-        self.assertEqual(self.item, {'network': {'ipaddr': {}}})
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, 'network del'.split())
         self.assertEqual(words, ['ipaddr'])
 
+    def test_change_context(self):
+        self.baseDescriptor.set_data(self.item, 'network port = 345'.split())
+        ctxt, component_item = self.baseDescriptor.get_context(self.item, ['network'])
+        words = front_end_model.get_next_words(ctxt, component_item, ['port'])
+        self.assertEqual(set(words), {'setdef', 'prt', 'prtc', '='})
 
-class Test_next_words_contained(unittest.TestCase):
+
+class Test_contained(unittest.TestCase):
     def setUp(self):
         # Code executed before each test
         cfg = get_file_data(TEST_CONFIG_DIR/"cfg_contained.yaml")
         self.baseDescriptor = front_end_model.makeBaseDescriptor(cfg)
         self.item = {}
+        self.baseDescriptor.init_data(self.item)
 
     def test_empty_config_first_word(self):
         "An empty command passed to an empty config."
@@ -224,13 +234,19 @@ class Test_next_words_contained(unittest.TestCase):
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, ['ipaddr'])
         self.assertEqual(words, ["0", "1"])
 
+    def test_change_context(self):
+        ctxt, component_item = self.baseDescriptor.get_context(self.item, 'ipaddr 1'.split())
+        words = front_end_model.get_next_words(ctxt, component_item, [])
+        self.assertEqual(set(words), {'save', 'load', 'setdef', 'prt', 'prtc', '='})
 
-class Test_next_words_owned_in_owned(unittest.TestCase):
+
+class Test_owned_in_owned(unittest.TestCase):
     def setUp(self):
         # Code executed before each test
         cfg = get_file_data(TEST_CONFIG_DIR/"cfg_owned_in_owned.yaml")
         self.baseDescriptor = front_end_model.makeBaseDescriptor(cfg)
         self.item = {}
+        self.baseDescriptor.init_data(self.item)
 
     def test_different_data_in_owned_items(self):
         "Two components have same metadata but different keys."
@@ -253,6 +269,14 @@ class Test_next_words_owned_in_owned(unittest.TestCase):
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, 'user "notyet" id'.split())
         self.assertEqual(words, ['='])
 
+    def test_change_context(self):
+        self.baseDescriptor.set_data(self.item, 'user 888 temp 0 = 41'.split())
+        ctxt, component_item = self.baseDescriptor.get_context(self.item, 'user 888 temp 0'.split())
+        words = front_end_model.get_next_words(ctxt, component_item, [])
+        self.assertEqual(set(words), {'save', 'load', 'setdef', 'prt', 'prtc', '='})
+        ctxt, component_item = self.baseDescriptor.get_context(self.item, 'user 888'.split())
+        words = front_end_model.get_next_words(ctxt, component_item, [])
+        self.assertEqual(set(words), {'save', 'load', 'add', 'del', 'setdef', 'prt', 'prtc', 'id', 'temp', 'tempCnt'})
 
 if __name__ == "__main__":
     unittest.main()
