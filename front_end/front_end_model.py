@@ -359,8 +359,8 @@ def makeBaseDescriptor(yaml_cfg_text):
 
 def get_next_words(descriptor, item, cmd):
     if len(cmd) == 0:
-        # Options for first word include 'save' and 'load' in addition to the context-specific ones.
-        return ["save", "load"] + descriptor.get_next_words(item, cmd)
+        # Present options for first word in addition to the context-specific ones.
+        return ["save", "load", "<"] + descriptor.get_next_words(item, cmd)
     return descriptor.get_next_words(item, cmd)
 
 

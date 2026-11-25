@@ -34,12 +34,15 @@ class Interaction():
             stderr=subprocess.PIPE,
             text=True)
         self.base_descriptor = base_descriptor
-        self.item = {}
-        self.base_descriptor.init_data(self.item)
+        self.base_item = {}
+        self.base_descriptor.init_data(self.base_item)
+        # Initially, context is the base context.
+        self.ctxt_descriptor = base_descriptor
+        self.ctxt_item = self.base_item
 
     def serve(self):
         "Repeat: wait for prompt from app and send command from operator to app."
-        prompt = self.receive_until_prompt('u')
+        prompt = self.receive_until_prompt('user')
         while True:
             # Rebuild the data part of the model with each interaction.
             # The previous prompt (or the initial one) begins the next (or first) interaction.
@@ -49,16 +52,30 @@ class Interaction():
         "Present prompt to operator, send operator command to app, gather app state for model."
         cmd = input(prompt)
         self.send_cmd(cmd)
-        self.receive_until_prompt('u')
-        return self.update_data_state()
+        prompt = self.receive_until_prompt('user')
+        # Use the prompt returned after sent command to set the context in which we'll generate next words for commands.
+        prompt_words = prompt.split()[1:-1]
+        self.ctxt_descriptor, self.ctxt_item = self.base_descriptor.get_context(self.base_item, prompt_words)
+        # Send prompt so update_data_state can restore the context, but discard '> ' at the end.
+        restore_prompt = ""
+        for w in prompt_words:
+            restore_prompt += w + ' '
+        self.update_data_state(restore_prompt)
+        return prompt
 
-    def update_data_state(self):
+    def update_data_state(self, previous_prompt):
         "Get state from app by sending it command 'prt' and use that to update the model's data."
         # We get a new data model after each command sent to app, so start with fresh data.
         self.item = {}
-        self.base_descriptor.init_data(self.item)
+        self.base_descriptor.init_data(self.base_item)
+        # Temporarily change the app's context to top-level, so 'prt' gives returns global state.
+        self.send_cmd("<")
+        self.receive_until_prompt('discard')
         self.send_cmd("prt")
-        return self.receive_until_prompt('s')
+        self.receive_until_prompt('self')
+        # Return app to the context that user set it to.
+        self.send_cmd(previous_prompt)
+        self.receive_until_prompt('discard')
 
     def receive_until_prompt(self, dest):
         "Take output from app and pass to operator, until app ends its output by sending a user prompt."
@@ -67,12 +84,12 @@ class Interaction():
             if output.endswith(Interaction.PROMPT_END):
                 # Strip the endline from the prompt and replace with a space.
                 return output[:-1] + " "
-            if dest == 'u':
+            if dest == 'user':
                 # Pass app output to operator.
                 print(output, end='')
-            else:
+            elif dest == 'self':
                 # Feed app output to our data model.
-                self.base_descriptor.set_data(self.item, output.split())
+                self.base_descriptor.set_data(self.base_item, output.split())
 
     def send_cmd(self, cmd):
         self.process.stdin.write(cmd + "\n")
@@ -81,8 +98,8 @@ class Interaction():
     def get_commands(self):
         "Return the commands available in current state."
         cmd = self.get_line_complete_words()
-        # Get next words from the model, given the current line
-        return front_end_model.get_next_words(self.base_descriptor, self.item, cmd)
+        # Get next words from the model, given the current line and current context.
+        return front_end_model.get_next_words(self.ctxt_descriptor, self.ctxt_item, cmd)
 
     def get_line_complete_words(self):
         "Return words in line that are complete, i.e. followed by a space."
