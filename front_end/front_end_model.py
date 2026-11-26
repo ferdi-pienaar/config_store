@@ -196,7 +196,7 @@ class Aggregate:
             # The value of the symbolic constant
             return count['value']
         # Simple case: return the value
-        return self.d['count']
+        return count
 
 
 class ContainedAggregate(Aggregate):

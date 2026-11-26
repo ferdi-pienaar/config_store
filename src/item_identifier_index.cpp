@@ -20,14 +20,6 @@ bool Item_identifier_index::get_indexEval(Command_stack *cmd, const Owned_aggreg
                                                       itemIdx, aggr.getData()->pDesc->getName());
         return false;
     }
-
-    if (itemIdx > count)
-    {
-        aggr.getData()->pDesc->m_mgr_service->m_print(
-            "Invalid: index %u for owned '%s' > max %u.\n", itemIdx,
-            aggr.getData()->pDesc->getName(), count);
-        return false;
-    }
     return true;
 }
 

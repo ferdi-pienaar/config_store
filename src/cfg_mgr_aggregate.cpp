@@ -68,7 +68,6 @@ string Aggregate::getPrintPrefixIndex(unsigned index) const
 
 // From remaining command-line words, find component item of this aggregate.
 // If the item does not exist, it is created in certain cases.
-// First, look in the command words for an integer representing an index.
 //
 // @param cmd - command string stack
 // @param pParentItem: (in) the owning item

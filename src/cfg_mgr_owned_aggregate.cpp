@@ -144,6 +144,13 @@ bool Owned_aggregate::evalCmd(Command_stack * cmd, uint8_t * pParentItem, Comman
         return false;
     }
 
+    if (itemIdx >= getData()->maxCount)
+    {
+        getData()->pDesc->m_mgr_service->m_print("Invalid: '%s' number %u, max %u.\n",
+            getData()->pDesc->getName(), itemIdx + 1, getData()->maxCount);
+        return false;
+    }
+
     uint8_t * pItem = nullptr;
     if (pParentItem != nullptr)
     {
