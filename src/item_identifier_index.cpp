@@ -9,7 +9,8 @@ namespace cfg_mgr
 {
 // Eval phase.
 // Return index in top cmd word (which we pop), and index not larger than count.
-// @return false if index is required but cmd word is not an integer, or if index is out-of-range.
+// @return false if index is required but cmd word is not an integer, or if index is out of range:
+//  valid range is current indexes, plus the next index (for implicit add).
 bool Item_identifier_index::get_indexEval(Command_stack *cmd, const Owned_aggregate &aggr,
                                           const uint8_t *pParentItem, unsigned &itemIdx,
                                           unsigned count) const
@@ -18,6 +19,12 @@ bool Item_identifier_index::get_indexEval(Command_stack *cmd, const Owned_aggreg
     {
         aggr.getData()->pDesc->m_mgr_service->m_print("Invalid: need index for owned '%s'.\n",
                                                       itemIdx, aggr.getData()->pDesc->getName());
+        return false;
+    }
+    if (itemIdx > count)
+    {
+        aggr.getData()->pDesc->m_mgr_service->m_print("Invalid: index %u for owned '%s' > max %u.\n",
+            itemIdx, aggr.getData()->pDesc->getName(), count);
         return false;
     }
     return true;

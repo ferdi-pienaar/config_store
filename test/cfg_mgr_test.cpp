@@ -716,6 +716,32 @@ TEST_F(CfgMgrOwned, del)
     EXPECT_TRUE(nvram->match(expectedTlv, sizeof(expectedTlv)));
 }
 
+// Verify implicitly adding with out-of-range index is rejected
+TEST_F(CfgMgrOwned, implicitAddInvalidIndex)
+{
+    std::vector<char *> command = {(char *)"owned", (char *)"1", (char *)"=", (char *)"7"}; // set item 1, only 0 is valid.
+    cm->handleCmd(command.size(), command.data());
+
+    //std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
+// Verify implicitly adding too many items is rejected.
+TEST_F(CfgMgrOwned, implicitAddTooMany)
+{
+    std::vector<char *> command = {(char *)"owned", (char *)"0", (char *)"=", (char *)"7"}; // implicitly add item 0.
+    cm->handleCmd(command.size(), command.data());
+    std::vector<char *> command1 = {(char *)"owned", (char *)"1", (char *)"=", (char *)"11"}; // implicitly add item 1.
+    cm->handleCmd(command1.size(), command1.data());
+
+    EXPECT_EQ(C2_CONFIG->cnt, MAX_NUMBER_OWNED);
+
+    std::vector<char *> command2 = {(char *)"owned", (char *)"2", (char *)"=", (char *)"11"}; // Try to implicitly add item 2.
+    cm->handleCmd(command2.size(), command2.data());
+
+    std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // test set 3, CONTAINED array
@@ -1078,12 +1104,28 @@ TEST_F(CfgMgrOwnedKey, add_implicit)
     EXPECT_EQ(14, DEVICE->owned[0].id);
 }
 
+TEST_F(CfgMgrOwnedKey, add_implicit_too_many_fail)
+{
+    std::vector<char *> command = {(char *)"owned", (char *)"\"wilma\"", (char *)"id", (char *)"=", (char *)"14"};
+    cm->handleCmd(command.size(), command.data());
+    std::vector<char *> command1 = {(char *)"owned", (char *)"\"Barney\"", (char *)"id", (char *)"=", (char *)"15"};
+    cm->handleCmd(command1.size(), command1.data());
+
+    ASSERT_EQ(MAX_NUM_OWNED, DEVICE->cnt);
+
+    std::vector<char *> command2 = {(char *)"owned", (char *)"\"Fred\"", (char *)"id", (char *)"=", (char *)"19"};
+    cm->handleCmd(command2.size(), command2.data());
+
+    //std::cout << cm_printf_spy_get();
+    EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
+}
+
 TEST_F(CfgMgrOwnedKey, cmd_no_key_fail)
 {
     std::vector<char *> command = {(char *)"owned"};
     cm->handleCmd(command.size(), command.data());
 
-    std::cout << cm_printf_spy_get();
+    //std::cout << cm_printf_spy_get();
     EXPECT_EQ(0, strncmp("Invalid", cm_printf_spy_get(), 7));
 }
 

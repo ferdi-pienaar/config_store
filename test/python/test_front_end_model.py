@@ -26,13 +26,13 @@ class Test_owned_w_key(unittest.TestCase):
         "An empty command passed to an empty config."
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, [])
         # Note that 'del' is not in words.
-        self.assertEqual(set(words), {'load', 'save', 'setdef', 'prt', 'prtc', 'add', 'userCnt', 'user'})
+        self.assertEqual(set(words), {'<', 'load', 'save', 'setdef', 'prt', 'prtc', 'add', 'userCnt', 'user'})
 
     def test_owned_item_first_word(self):
         "An empty command passed to a config with an item that can be deleted."
         self.baseDescriptor.set_data(self.item, 'user "Fred" id = 8'.split())
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, [])
-        self.assertEqual(set(words), {'load', 'save', 'setdef', 'prt', 'prtc', 'add', 'userCnt', 'user', 'del'})
+        self.assertEqual(set(words), {'<', 'load', 'save', 'setdef', 'prt', 'prtc', 'add', 'userCnt', 'user', 'del'})
 
     def test_owned_item_get_keys(self):
         "Descriptor name passed to descriptor with 2 keys."
@@ -156,7 +156,7 @@ class Test_owned_2_single(unittest.TestCase):
         self.baseDescriptor.set_data(self.item, 'ipaddr = 890'.split())
         ctxt, component_item = self.baseDescriptor.get_context(self.item, ['ipaddr'])
         words = front_end_model.get_next_words(ctxt, component_item, [])
-        self.assertEqual(set(words), {'save', 'load', 'setdef', 'prt', 'prtc', '='})
+        self.assertEqual(set(words), {'<', 'save', 'load', 'setdef', 'prt', 'prtc', '='})
 
 
 class Test_contained_owned_2_single(unittest.TestCase):
@@ -228,7 +228,7 @@ class Test_contained(unittest.TestCase):
     def test_empty_config_first_word(self):
         "An empty command passed to an empty config."
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, [])
-        self.assertEqual(set(words), {'load', 'save', 'setdef', 'prt', 'prtc', 'ipaddr'})
+        self.assertEqual(set(words), {'<', 'load', 'save', 'setdef', 'prt', 'prtc', 'ipaddr'})
 
     def test_get_indexes(self):
         words = front_end_model.get_next_words(self.baseDescriptor, self.item, ['ipaddr'])
@@ -237,7 +237,7 @@ class Test_contained(unittest.TestCase):
     def test_change_context(self):
         ctxt, component_item = self.baseDescriptor.get_context(self.item, 'ipaddr 1'.split())
         words = front_end_model.get_next_words(ctxt, component_item, [])
-        self.assertEqual(set(words), {'save', 'load', 'setdef', 'prt', 'prtc', '='})
+        self.assertEqual(set(words), {'<', 'save', 'load', 'setdef', 'prt', 'prtc', '='})
 
 
 class Test_owned_in_owned(unittest.TestCase):
@@ -273,10 +273,10 @@ class Test_owned_in_owned(unittest.TestCase):
         self.baseDescriptor.set_data(self.item, 'user 888 temp 0 = 41'.split())
         ctxt, component_item = self.baseDescriptor.get_context(self.item, 'user 888 temp 0'.split())
         words = front_end_model.get_next_words(ctxt, component_item, [])
-        self.assertEqual(set(words), {'save', 'load', 'setdef', 'prt', 'prtc', '='})
+        self.assertEqual(set(words), {'<', 'save', 'load', 'setdef', 'prt', 'prtc', '='})
         ctxt, component_item = self.baseDescriptor.get_context(self.item, 'user 888'.split())
         words = front_end_model.get_next_words(ctxt, component_item, [])
-        self.assertEqual(set(words), {'save', 'load', 'add', 'del', 'setdef', 'prt', 'prtc', 'id', 'temp', 'tempCnt'})
+        self.assertEqual(set(words), {'<', 'save', 'load', 'add', 'del', 'setdef', 'prt', 'prtc', 'id', 'temp', 'tempCnt'})
 
 if __name__ == "__main__":
     unittest.main()
