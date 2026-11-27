@@ -4,6 +4,12 @@ config-store is a small library that allows the user to create a schema for conf
 
 The metadata that describes the data schema can be implemented by the user as hand-written C++ code, or generated automatically by a Python script from a schema written in YAML.
 
+## Features
+- Describe the [structure of the data you want to manage](#structure-of-managed-data) in a YAML file. From this, a script generates C++ code that implements the config store.
+- An [optional front end](#optional-front-end) (written in Python) supports tabbed command completion and command history. This is a script that's separate from the embedded application, so the embedded application is kept small.
+- The configuration state can be persistently stored on the device in binary (TLV) or JSON format.
+- Data [migration](#migrating-stored-configuration-to-a-new-schema) is supported, i.e. if you change the structure of the data, devices that have stored data in the old format can run the new version of the application and still load their stored data.
+
 ```mermaid
 ---
 config:
@@ -111,7 +117,6 @@ classDiagram
     Aggregate "1" *--> "1" Descriptor
     Composite Descriptor "1" *--> "*" Aggregate
 
-
 ```
 
 # Operator command-line interface
@@ -188,3 +193,29 @@ If the developer removes an obsolete component from a Composite, config-store wi
 If the developer adds a component to a Composite, they should assign it a new type ID for use in the TLV store. This type ID should **not** be one that was used for a previously obsoleted component, since this would lead to incorrect loading from TLV store for units in the field still containing TLV data with the obsolete type ID. Software with the new schema can load older TLV stores where the new component is not present: config-store will assign a default value to the new component. The developer can specify default values for Simple components.
 
 For auto-generated code, the code generator creates a YAML file that associates each component with its type ID. This is used when auto-generating code, to ensure the IDs of components is not changed during their lifetime, and new components are assigned new IDs. This file should be kept under version control. Obsolete IDs may be deleted from this file only when it is certain that there is no unit in the field still containing a TLV store created by software using the old schema with the obsolete component.
+
+# Optional front end
+An optional front end that runs separately from the embedded application provides tabbed command completion and command history. The front end script has two sources of data: the meta-data description in the YAML file that was used to generate the application's metadata, and the current state of the data, which it obtains from the device via CLI.
+
+```mermaid
+---
+config:
+  layout: elk
+---
+
+flowchart
+    subgraph Device
+        APP-CMD[command interface]
+        META[C++ metadata]
+    end
+
+    subgraph Workstation
+        FE[Front end application]
+        YAML[YAML definition]
+    end
+
+    YAML --> FE
+    YAML -- code generation --> META
+    OP(operator) <-- CLI --> FE
+    FE <-- CLI --> APP-CMD
+```
