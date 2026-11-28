@@ -1,8 +1,8 @@
 """
-tab-completion part for front end -- still to be integrated with the model.
+tab-completion part for front end.
 
 Usage by client module: import this and create an instance of the class, passing
-a function that returns a list of commands as parameter, and register its complete
+a function that returns a list of commands as parameter, and register its complete()
 method with readline.set_completer(). When operator presses tab while inputting a line
 (using input()) the complete() method is called (by the framework behin input())
 to get words to offer as completions.

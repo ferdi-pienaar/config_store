@@ -10,10 +10,14 @@ Parameters
 """
 import sys
 import subprocess
-import front_end_model
 import readline
-from fe_readline import WordCompleter
 from enum import Enum
+from pathlib import Path
+# To install this script: look for modules where they are installed.
+module_dir = Path(__file__).resolve().parent.parent / "share" / "config_store"
+sys.path.insert(0, str(module_dir))
+from fe_readline import WordCompleter
+import front_end_model
 
 def loadFile(file_path):
     "Load configuration metadata from YAML config file"

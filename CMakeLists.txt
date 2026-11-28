@@ -122,10 +122,18 @@ endfunction()
 install(PROGRAMS code_gen/yaml_code_gen.py
         DESTINATION bin
         RENAME config_store_code_gen)
-# Install files used by the code-generation script to validate client YAML files.
+
+# Install the executable front end script.
+install(PROGRAMS front_end/config_store_fe.py
+        DESTINATION bin
+        RENAME config_store_front_end)
+
+# Install files used by the executable scripts.
 install(FILES
         code_gen/cfg_schema.yaml
         code_gen/cfg_id_schema.yaml
+        front_end/fe_readline.py
+        front_end/front_end_model.py
         DESTINATION share/config_store)
 install(DIRECTORY include/ DESTINATION include/config_store)
 # Install the library and create package 'export set' descriptor.
